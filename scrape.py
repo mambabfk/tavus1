@@ -49,7 +49,7 @@ def get_sitemap_urls(client: httpx.Client) -> list[str]:
 
 
 def extract(html: str) -> tuple[str, str]:
-    soup = BeautifulSoup(html, "lxml")
+    soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "noscript", "nav", "header", "footer", "aside"]):
         tag.decompose()
     title = ""
