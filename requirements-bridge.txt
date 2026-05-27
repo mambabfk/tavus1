@@ -1,0 +1,5 @@
+# Extra deps for bridge.py (the tool-call listener). Install only if you use the bridge:
+#   pip install -r requirements-bridge.txt
+# daily-python provides headless WebRTC + the conversation data channel.
+daily-python>=0.10.0
+httpx>=0.27

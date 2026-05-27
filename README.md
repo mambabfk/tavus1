@@ -66,11 +66,47 @@ Add a tool to the persona's `layers.llm.tools` (OpenAI function-calling format):
 }
 ```
 
-When the LLM emits a `conversation.tool_call` for `search_tavus_docs`, your app
-calls `POST /ask` with the `query`, then returns the `context` to the
-conversation via a `conversation.echo` / `conversation.append_llm_context`
-interaction. Tavus does not execute tool calls itself — your app bridges the
-tool call to this server. See `docs_store/.../tool-calling-examples` for the flow.
+Tavus does **not** execute tool calls or call this server directly. When the
+LLM emits a `conversation.tool_call`, Tavus broadcasts it over the conversation's
+WebRTC data channel (Daily). Something must be joined to the conversation to
+catch that event, call `/ask`, and inject the result back. `bridge.py` is that
+listener (see below) — so this works even with the Dev Portal's default UI.
+
+## bridge.py — the tool-call listener
+
+`bridge.py` joins the conversation headlessly (Daily Python SDK), listens for
+`search_tavus_docs` tool calls, queries this server's `/ask`, and injects the
+docs back via `conversation.append_llm_context` so the replica answers from them.
+
+```bash
+pip install -r requirements-bridge.txt   # daily-python (separate so it can't break the server install)
+
+# Option A: let the bridge create the conversation (opens a URL you talk through)
+export TAVUS_API_KEY=...        # your Tavus API key
+export PERSONA_ID=p...          # persona that defines the search_tavus_docs tool
+export REPLICA_ID=r...          # optional
+export DOCS_SERVER_URL=http://localhost:8800
+python bridge.py                # prints a conversation URL to open in your browser
+
+# Option B: attach to a conversation you already created in the Dev Portal
+export CONVERSATION_URL="https://tavus.daily.co/xxxx"
+export CONVERSATION_ID="c..."
+python bridge.py
+```
+
+Env knobs: `TOOL_NAME` (default `search_tavus_docs`), `RESULT_MODE`
+(`append_llm_context` default, or `respond` to make the LLM answer immediately,
+or `echo` to have the replica read text directly), `TOP_K`, `DOCS_SERVER_URL`.
+
+Run order: `server.py` (docs) → `ngrok`/optional → `bridge.py` (listener) →
+open the conversation URL and talk. `bridge.py` reaches the docs server over
+`DOCS_SERVER_URL` (localhost is fine since it runs on the same machine — ngrok
+is only needed if the listener runs elsewhere). See
+`docs_store/sections/onboarding-guide/tool-calling-examples` for the protocol.
+
+> Note: `daily-python` may not yet publish wheels for the very newest Python
+> (e.g. 3.14). If `pip install -r requirements-bridge.txt` fails, run the bridge
+> in a Python 3.12/3.13 venv — it can be separate from the server's venv.
 
 ## Config (env vars)
 
