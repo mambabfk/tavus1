@@ -37,7 +37,7 @@ from daily import CallClient, Daily, EventHandler
 DOCS_SERVER_URL = os.environ.get("DOCS_SERVER_URL", "http://localhost:8800").rstrip("/")
 TOOL_NAME = os.environ.get("TOOL_NAME", "search_tavus_docs")
 RESULT_MODE = os.environ.get("RESULT_MODE", "append_llm_context")  # or: respond | echo
-TOP_K = int(os.environ.get("TOP_K", "4"))
+TOP_K = int(os.environ.get("TOP_K", "3"))
 TAVUS_API_KEY = os.environ.get("TAVUS_API_KEY", "")
 PERSONA_ID = os.environ.get("PERSONA_ID", "")
 REPLICA_ID = os.environ.get("REPLICA_ID", "")
@@ -66,10 +66,19 @@ def create_conversation() -> tuple[str, str]:
     return data["conversation_url"], data["conversation_id"]
 
 
+# Reused keep-alive connection so each lookup skips TCP/handshake setup.
+_docs = httpx.Client(base_url=DOCS_SERVER_URL, timeout=10)
+
+
 def fetch_docs(query: str) -> str:
-    r = httpx.post(f"{DOCS_SERVER_URL}/ask", json={"query": query, "top_k": TOP_K}, timeout=15)
+    import time
+
+    t0 = time.perf_counter()
+    r = _docs.post("/ask", json={"query": query, "top_k": TOP_K})
     r.raise_for_status()
-    return r.json().get("context", "")
+    ctx = r.json().get("context", "")
+    print(f"[bridge] docs lookup {(time.perf_counter() - t0) * 1000:.0f}ms, {len(ctx)} chars")
+    return ctx
 
 
 def build_result_message(conversation_id: str, context: str) -> dict:

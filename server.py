@@ -28,6 +28,7 @@ from rank_bm25 import BM25Okapi
 
 DOCS_DIR = os.environ.get("DOCS_DIR", os.path.join(os.path.dirname(__file__), "docs_store"))
 DOCS_BASE = os.environ.get("TAVUS_DOCS_BASE", "https://docs.tavus.io")
+MAX_CONTEXT_CHARS = int(os.environ.get("MAX_CONTEXT_CHARS", "2200"))
 CHUNK_CHARS = int(os.environ.get("CHUNK_CHARS", "1100"))
 CHUNK_OVERLAP = int(os.environ.get("CHUNK_OVERLAP", "200"))
 
@@ -168,16 +169,25 @@ app.add_middleware(
 
 class SearchRequest(BaseModel):
     query: str
-    top_k: int = 5
+    top_k: int = 3
 
 
 def _format_context(query: str, results: list[dict]) -> str:
+    """Compact context for the persona LLM. Capped at MAX_CONTEXT_CHARS to keep
+    the post-tool-call LLM pass fast (smaller context = lower latency)."""
     if not results:
         return f"No Tavus documentation was found for: {query!r}."
     parts = [f"Tavus documentation relevant to: {query}\n"]
+    budget = MAX_CONTEXT_CHARS
     for n, r in enumerate(results, 1):
         src = f" ({r['url']})" if r["url"] else ""
-        parts.append(f"[{n}] {r['title']}{src}\n{r['text']}\n")
+        text = r["text"]
+        if len(text) > budget:
+            text = text[:budget].rsplit(" ", 1)[0] + " ..."
+        parts.append(f"[{n}] {r['title']}{src}\n{text}\n")
+        budget -= len(text)
+        if budget <= 0:
+            break
     return "\n".join(parts)
 
 
