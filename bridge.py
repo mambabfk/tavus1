@@ -28,7 +28,10 @@ The persona's layers.llm.tools must include a function named like TOOL_NAME
 import os
 import sys
 import json
+import time
+import base64
 import signal
+import pathlib
 import threading
 
 import httpx
@@ -43,6 +46,8 @@ PERSONA_ID = os.environ.get("PERSONA_ID", "")
 REPLICA_ID = os.environ.get("REPLICA_ID", "")
 CONVERSATION_URL = os.environ.get("CONVERSATION_URL", "")
 CONVERSATION_ID = os.environ.get("CONVERSATION_ID", "")
+SAVE_FRAMES = os.environ.get("SAVE_FRAMES", "false").lower() in ("1", "true", "yes")
+FRAMES_DIR = os.environ.get("FRAMES_DIR", "frames")
 
 
 def create_conversation() -> tuple[str, str]:
@@ -128,12 +133,23 @@ class Bridge(EventHandler):
     def on_app_message(self, message, sender: str) -> None:
         if not isinstance(message, dict):
             return
-        if message.get("event_type") != "conversation.tool_call":
-            return
+        event_type = message.get("event_type")
+        if event_type == "conversation.tool_call":
+            self.handle_llm_tool(message)
+        elif event_type == "conversation.perception_tool_call":
+            self.handle_perception_tool(message)
+
+    def _inject(self, message, context: str) -> None:
+        conv_id = message.get("conversation_id") or self.conversation_id
+        if self.client:
+            self.client.send_app_message(build_result_message(conv_id, context))
+            print(f"[bridge] injected {len(context)} chars via {RESULT_MODE}")
+
+    def handle_llm_tool(self, message: dict) -> None:
         props = message.get("properties", {}) or {}
         name, args = parse_tool_call(props)
         if name != TOOL_NAME:
-            print(f"[bridge] ignoring tool call for '{name}' (waiting for '{TOOL_NAME}')")
+            print(f"[bridge] ignoring LLM tool '{name}' (waiting for '{TOOL_NAME}')")
             return
         query = args.get("query") or args.get("q") or ""
         print(f"[bridge] tool_call {name}(query={query!r})")
@@ -144,10 +160,46 @@ class Bridge(EventHandler):
         except Exception as e:
             print(f"[bridge] docs server error: {e}", file=sys.stderr)
             context = f"Documentation lookup failed for: {query}"
-        conv_id = message.get("conversation_id") or self.conversation_id
-        if self.client:
-            self.client.send_app_message(build_result_message(conv_id, context))
-            print(f"[bridge] injected {len(context)} chars via {RESULT_MODE}")
+        self._inject(message, context)
+
+    def handle_perception_tool(self, message: dict) -> None:
+        props = message.get("properties", {}) or {}
+        name, args = parse_tool_call(props)
+        modality = props.get("modality") or message.get("modality") or "?"
+        print(f"[bridge] perception_tool_call {name} modality={modality} args={args}")
+        if SAVE_FRAMES:
+            self._save_frames(props.get("frames") or message.get("frames") or [])
+        if name == "capture_screen_issue":
+            issue = args.get("summary") or args.get("reason") or ""
+            if not issue:
+                return
+            try:
+                docs = fetch_docs(f"troubleshoot: {issue}")
+            except Exception as e:
+                print(f"[bridge] docs server error: {e}", file=sys.stderr)
+                docs = ""
+            context = (
+                f"The user appears to have this issue visible on their screen: {issue}\n\n"
+                f"Relevant Tavus documentation:\n{docs}"
+            )
+            self._inject(message, context)
+        elif name == "escalate_to_human":
+            print(f"[bridge] ESCALATION requested: {args.get('reason')!r}  "
+                  "(hook your own escalation here)")
+
+    def _save_frames(self, frames: list) -> None:
+        if not frames:
+            return
+        d = pathlib.Path(FRAMES_DIR)
+        d.mkdir(exist_ok=True)
+        ts = int(time.time() * 1000)
+        for i, f in enumerate(frames):
+            try:
+                raw = base64.b64decode(str(f).split(",")[-1])
+                (d / f"frame_{ts}_{i}.jpg").write_bytes(raw)
+            except Exception as e:
+                print(f"[bridge] frame save error: {e}", file=sys.stderr)
+        print(f"[bridge] saved {len(frames)} frame(s) to {FRAMES_DIR}/")
 
 
 def main() -> None:
