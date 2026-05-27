@@ -1,0 +1,2 @@
+Create Pronunciation Dictionary
+Create a pronunciation dictionary (/sections/conversational-video-interface/persona/pronunciation-dictionaries) with custom rules for controlling how words are spoken. Rules are automatically synced to both Cartesia and ElevenLabs so they work regardless of which TTS engine your persona uses. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.

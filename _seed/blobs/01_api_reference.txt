@@ -1,0 +1,153 @@
+@@@FILE:/api-reference/authentication.mdx
+Authentication
+Generate an API key in the Developer Portal and send it on each request in the `x-api-key` header.
+To use the Tavus API, you need an API key to authenticate your requests. This key verifies that requests are coming from your Tavus account.
+Get the API key
+Go to the Developer Portal and select API Key from the sidebar menu. Click Create New Key to begin generating your API key. Enter a name for the key and (optional) specify allowed IP addresses, then click Create API Key. Copy your newly created API key and store it securely. Remember that your API key is a secret! Never expose it in client-side code such as browsers or apps. Always load your API key securely from environment variables or a server-side configuration.
+Make Your First Call
+Requests go to https://tavusapi.com . Authenticate with your API key by sending it in the x-api-key header on every request, as below. x-api-key: <api-key>
+For example, you are using the POST - Create Conversation endpoint to create a real-time video call session with a Tavus replica. In this scenario, you can send an API request and replace <api-key> with your actual API key.
+curl --request POST \
+  --url https://tavusapi.com/v2/conversations \
+  --header 'Content-Type: application/json' \
+  --header 'x-api-key: <api-key>' \
+  --data '{
+  "replica_id": "r90bbd427f71",
+  "persona_id": "pdac61133ac5",
+  "conversation_name": "Interview User"
+}'
+@@@FILE:/api-reference/conversations/create-conversation.mdx
+Create conversation
+This endpoint starts a real-time video conversation with your AI replica, powered by a persona that allows it to see, hear, and respond like a human. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/conversations/delete-conversation.mdx
+Delete Conversation
+This endpoint deletes a single conversation by its unique identifier. Use this for destructive data removal. For normal call cleanup when a user leaves or a session is finished, use End Conversation (/api-reference/conversations/end-conversation) instead. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/conversations/end-conversation.mdx
+End Conversation
+This endpoint ends a single conversation by its unique identifier. Use this for routine call cleanup when a user leaves or your app no longer needs the room. To destructively remove conversation data, use Delete Conversation (/api-reference/conversations/delete-conversation). For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/conversations/get-conversation.mdx
+Get Conversation
+This endpoint returns a single conversation by its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/conversations/get-conversations.mdx
+List Conversations
+This endpoint returns a list of all Conversations created by the account associated with the API Key in use. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/documents/create-document.mdx
+Create Document
+Upload documents to your knowledge base for personas to reference during conversations. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/documents/delete-document.mdx
+Delete Document
+Delete a document and its associated data using its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/documents/get-document.mdx
+Get Document
+Retrieve detailed information about a specific document using its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/documents/get-documents.mdx
+List Documents
+Retrieve a list of documents. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/documents/patch-document.mdx
+Update Document
+Update a document's `document_name` and `tags`. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/documents/recrawl-document.mdx
+Recrawl Document
+Trigger a recrawl of a website document to fetch fresh content. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/guardrails/create-guardrails.mdx
+Create Guardrails
+Create a new guardrail. Guardrails provide strict behavioral boundaries that are enforced throughout a conversation. Attach guardrails to a persona directly via `guardrail_ids` or by tag via `guardrail_tags` on Create Persona (/api-reference/personas/create-persona). For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/guardrails/delete-guardrails.mdx
+Delete Guardrails
+Delete a single guardrail by its unique identifier. Personas with this guardrail attached via `guardrail_ids` will have the reference removed automatically. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/guardrails/get-guardrails.mdx
+Get Guardrails
+Retrieve a single guardrail by its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/guardrails/list-guardrails.mdx
+List Guardrails
+Return a flat list of guardrails owned by the caller. Pass `legacy=false` — recommended for all new integrations. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/guardrails/patch-guardrails.mdx
+Patch Guardrails
+Update specific fields of a guardrail using JSON Patch operations. Paths must match the current document shape — compare against the response from Get Guardrails before patching. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/objectives/create-objectives.mdx
+Create Objectives
+This endpoint creates objectives for a persona. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/objectives/delete-objectives.mdx
+Delete Objective
+This endpoint deletes a single objective by its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/objectives/get-objectives-list.mdx
+Get Objectives
+This endpoint returns a list of all objectives. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/objectives/get-objectives.mdx
+Get Objective
+This endpoint returns a single objective by its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/objectives/patch-objectives.mdx
+Patch Objective
+This endpoint allows you to update specific fields of an objective using JSON Patch operations. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/overview.mdx
+Overview
+Discover the Tavus API — build a real-time, human-like multimodal video conversation with a replica.
+Getting Started with Tavus APIs
+Tavus APIs allow you to create a Conversational Video Interface (CVI), an end-to-end pipeline for real-time video conversations with an AI replica. Each replica is integrated with a persona that enables it to see, hear, and respond like a human. You can access the API through standard HTTP requests, making it easy to integrate CVI into any application or platform. For machine-readable API and docs context, use https://docs.tavus.io/openapi.yaml as the canonical HTTP API contract, https://docs.tavus.io/llms.txt as the docs page index, and https://docs.tavus.io/llms-full.txt as the full bundled docs export.
+Who Is This For?
+This API is for developers looking to add real-time, human-like AI interactions into their apps or services.
+What Can You Do?
+Use the end-to-end CVI pipeline to build human-like, real-time multimodal video conversations with these three core components: Persona Define the agent's behavior, tone, and knowledge. Replica Train a lifelike digital replica from a short video or headshot image. Conversation Create a real-time video call session with your AI replica. A typical path: Authentication, then Create Persona, Create Replica, and Create Conversation.
+@@@FILE:/api-reference/personas/create-persona.mdx
+Create Persona
+Creates a persona that configures how a replica behaves and sounds in CVI for every conversation that uses that persona. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/personas/delete-persona.mdx
+Delete Persona
+This endpoint deletes a single persona by its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/personas/get-persona.mdx
+Get Persona
+This endpoint returns a single persona by its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/personas/get-personas.mdx
+List Personas
+This endpoint returns a list of all Personas created by the account associated with the API Key in use. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/personas/patch-persona.mdx
+Patch Persona
+This endpoint allows you to update specific fields of a persona using JSON Patch operations. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/phoenix-replica-model/create-replica.mdx
+Create Replica
+Creates a new replica from a training video or image URL for use in conversations—see Which training path? (/sections/replica/which-training-path) for preparation, consent, and media requirements. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/phoenix-replica-model/delete-replica.mdx
+Delete Replica
+Deletes a Replica by its unique ID; deleted replicas cannot be used in a conversation. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/phoenix-replica-model/get-replica.mdx
+Get Replica
+This endpoint returns a single Replica by its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/phoenix-replica-model/get-replicas.mdx
+List Replicas
+This endpoint returns a list of all Replicas created by the account associated with the API Key in use. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/phoenix-replica-model/patch-replica-name.mdx
+Rename Replica
+This endpoint renames a single Replica by its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/pronunciation-dictionaries/create-pronunciation-dictionary.mdx
+Create Pronunciation Dictionary
+Create a pronunciation dictionary (/sections/conversational-video-interface/persona/pronunciation-dictionaries) with custom rules for controlling how words are spoken. Rules are automatically synced to both Cartesia and ElevenLabs so they work regardless of which TTS engine your persona uses. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/pronunciation-dictionaries/delete-pronunciation-dictionary.mdx
+Delete Pronunciation Dictionary
+Permanently delete a pronunciation dictionary and remove it from all linked personas. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/pronunciation-dictionaries/get-pronunciation-dictionary.mdx
+Get Pronunciation Dictionary
+Retrieve a pronunciation dictionary by its ID, including all rules. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/pronunciation-dictionaries/list-pronunciation-dictionaries.mdx
+List Pronunciation Dictionaries
+List all pronunciation dictionaries for the authenticated user with pagination. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/pronunciation-dictionaries/update-pronunciation-dictionary.mdx
+Update Pronunciation Dictionary
+Update a pronunciation dictionary's name or rules using JSON Patch format (RFC 6902). Supported mutable fields are `name` and `rules`. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/video-request/create-video.mdx
+Generate Video
+This endpoint generates a new video using a Replica and either a script or an audio file. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/video-request/delete-video.mdx
+Delete Video
+This endpoint deletes a single video by its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/video-request/get-video.mdx
+Get Video
+This endpoint returns a single video by its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/video-request/get-videos.mdx
+List Videos
+This endpoint returns a list of all Videos created by the account associated with the API Key in use. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/video-request/patch-video-name.mdx
+Rename Video
+This endpoint renames a single video by its unique identifier. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
+@@@FILE:/api-reference/voices/list-voices.mdx
+List Voices
+Returns available stock `voice_name` values and their linked replica metadata. When you Create Replica with `train_image_url` (image-to-replica), `voice_name` is required—use this list to pick a valid slug and to preview options. For AI agents, use https://docs.tavus.io/openapi.yaml for the full HTTP API contract.
