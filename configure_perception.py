@@ -115,7 +115,10 @@ def main() -> None:
     patch = [{"op": op, "path": "/layers/perception", "value": merged}]
 
     p = httpx.patch(f"{API}/personas/{PERSONA_ID}", headers=headers, json=patch, timeout=30)
-    if p.status_code >= 300:
+    if p.status_code == 304:
+        print(f"Perception already up to date on persona {PERSONA_ID} (no change needed).")
+        return
+    if p.status_code >= 400:
         sys.exit(f"PATCH failed ({p.status_code}): {p.text}")
     print(f"Configured perception (raven-1) on persona {PERSONA_ID}.")
     print("Screen share is on by default; awareness queries now feed the LLM each turn.")

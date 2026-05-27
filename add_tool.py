@@ -69,7 +69,10 @@ def main() -> None:
         patch = [{"op": "add", "path": "/layers/llm/tools", "value": tools}]
 
     p = httpx.patch(f"{API}/personas/{PERSONA_ID}", headers=headers, json=patch, timeout=30)
-    if p.status_code >= 300:
+    if p.status_code == 304:
+        print(f"Tool already up to date on persona {PERSONA_ID} (no change needed).")
+        return
+    if p.status_code >= 400:
         sys.exit(f"PATCH failed ({p.status_code}): {p.text}")
     print(f"Added search_tavus_docs to persona {PERSONA_ID}. Tool count is now {len(tools)}.")
     print("Tip: also add to the persona's system prompt: "
