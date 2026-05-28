@@ -43,11 +43,33 @@ PERCEPTION = {
         "Is the user speaking quickly as if in a hurry?",
     ],
     "visual_tool_prompt": (
-        "You have a tool named `capture_screen_issue`. Call it when an error message, "
-        "stack trace, failed request, or misconfiguration is clearly visible on the user's "
-        "shared screen. Provide a concise summary of what appears to be wrong."
+        "You have two tools. Call `describe_screen` whenever the user is actively looking at, "
+        "working on, pointing to, or asking about something on their shared screen, so the "
+        "system can read the screen precisely. Call `capture_screen_issue` specifically when an "
+        "error, stack trace, failed request, or misconfiguration is visible."
     ),
     "visual_tools": [
+        {
+            "type": "function",
+            "function": {
+                "name": "describe_screen",
+                "description": (
+                    "Call whenever the user is engaging with their shared screen (working on it, "
+                    "pointing at it, or asking what you see) so the system can read it precisely."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "focus": {
+                            "type": "string",
+                            "description": "What the user seems focused on right now.",
+                            "maxLength": 1000,
+                        }
+                    },
+                    "required": ["focus"],
+                },
+            },
+        },
         {
             "type": "function",
             "function": {
@@ -68,7 +90,7 @@ PERCEPTION = {
                     "required": ["summary"],
                 },
             },
-        }
+        },
     ],
     "audio_tool_prompt": (
         "You have a tool named `escalate_to_human`. Use it only when the user sounds "

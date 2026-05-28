@@ -49,6 +49,20 @@ CONVERSATION_ID = os.environ.get("CONVERSATION_ID", "")
 SAVE_FRAMES = os.environ.get("SAVE_FRAMES", "false").lower() in ("1", "true", "yes")
 FRAMES_DIR = os.environ.get("FRAMES_DIR", "frames")
 
+# Local vision model (e.g. your Qwen3-VL MLX server) used to read screen frames
+# precisely, instead of relying on Raven's brief rolling description.
+USE_VISION = os.environ.get("USE_VISION", "true").lower() in ("1", "true", "yes")
+VISION_URL = os.environ.get("VISION_URL", "http://localhost:8000/v1/chat/completions")
+VISION_MODEL = os.environ.get("VISION_MODEL", "Qwen3-VL-32B-Instruct-MLX-4bit")
+VISION_TIMEOUT = float(os.environ.get("VISION_TIMEOUT", "45"))
+VISION_PROMPT = os.environ.get(
+    "VISION_PROMPT",
+    "You are reading a screenshot from a developer's shared screen during a live "
+    "support call. Describe exactly what is visible: the page or tool, key labels, "
+    "fields and their values, buttons, and any error or red text. Be literal and "
+    "specific; quote visible text verbatim where it matters. Under 150 words.",
+)
+
 
 def create_conversation() -> tuple[str, str]:
     """Create a Tavus conversation and return (conversation_url, conversation_id)."""
@@ -71,8 +85,41 @@ def create_conversation() -> tuple[str, str]:
     return data["conversation_url"], data["conversation_id"]
 
 
-# Reused keep-alive connection so each lookup skips TCP/handshake setup.
+# Reused keep-alive connections so each call skips TCP/handshake setup.
 _docs = httpx.Client(base_url=DOCS_SERVER_URL, timeout=10)
+_vision = httpx.Client(timeout=VISION_TIMEOUT)
+
+
+def read_screen(frames: list) -> str:
+    """Send the triggering screenshot frame to the local vision model for a precise
+    read. Returns '' if disabled, no frames, or the call fails (graceful fallback)."""
+    if not (USE_VISION and frames):
+        return ""
+    raw = str(frames[0]).split(",")[-1]  # tolerate raw base64 or a data: URL
+    payload = {
+        "model": VISION_MODEL,
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": VISION_PROMPT},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{raw}"}},
+                ],
+            }
+        ],
+        "max_tokens": 400,
+        "temperature": 0,
+    }
+    try:
+        t0 = time.perf_counter()
+        r = _vision.post(VISION_URL, json=payload)
+        r.raise_for_status()
+        out = r.json()["choices"][0]["message"]["content"].strip()
+        print(f"[bridge] vision read {(time.perf_counter() - t0) * 1000:.0f}ms, {len(out)} chars")
+        return out
+    except Exception as e:
+        print(f"[bridge] vision error ({VISION_URL}): {e}", file=sys.stderr)
+        return ""
 
 
 def fetch_docs(query: str) -> str:
@@ -166,11 +213,22 @@ class Bridge(EventHandler):
         props = message.get("properties", {}) or {}
         name, args = parse_tool_call(props)
         modality = props.get("modality") or message.get("modality") or "?"
-        print(f"[bridge] perception_tool_call {name} modality={modality} args={args}")
+        frames = props.get("frames") or message.get("frames") or []
+        print(f"[bridge] perception_tool_call {name} modality={modality} frames={len(frames)} args={args}")
         if SAVE_FRAMES:
-            self._save_frames(props.get("frames") or message.get("frames") or [])
-        if name == "capture_screen_issue":
-            issue = args.get("summary") or args.get("reason") or ""
+            self._save_frames(frames)
+
+        if name == "describe_screen":
+            # Precise read of the current screen via the local vision model.
+            screen = read_screen(frames) or args.get("focus") or ""
+            if not screen:
+                return
+            self._inject(message, f"What is currently on the user's screen (read from a screenshot): {screen}")
+
+        elif name == "capture_screen_issue":
+            # Vision read of the actual frame beats Raven's brief summary.
+            screen = read_screen(frames)
+            issue = screen or args.get("summary") or args.get("reason") or ""
             if not issue:
                 return
             try:
@@ -179,10 +237,12 @@ class Bridge(EventHandler):
                 print(f"[bridge] docs server error: {e}", file=sys.stderr)
                 docs = ""
             context = (
-                f"The user appears to have this issue visible on their screen: {issue}\n\n"
+                f"What is actually on the user's screen (read from a screenshot): "
+                f"{screen or args.get('summary', '')}\n\n"
                 f"Relevant Tavus documentation:\n{docs}"
             )
             self._inject(message, context)
+
         elif name == "escalate_to_human":
             print(f"[bridge] ESCALATION requested: {args.get('reason')!r}  "
                   "(hook your own escalation here)")
