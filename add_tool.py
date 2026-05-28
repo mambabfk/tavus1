@@ -68,6 +68,33 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "suggest_system_prompt",
+            "description": (
+                "BUILD TUTOR MODE ONLY. After the user gives a one-word use case, call "
+                "this with that use_case and a 3-4 sentence system prompt drafted for "
+                "it. The UI panel will render the prompt as a copy-pasteable card so the "
+                "user can paste it straight into the System Prompt field. Use this during "
+                "Step 1 so we don't spend turns dictating the prompt aloud."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "use_case": {
+                        "type": "string",
+                        "description": "One-word use case from the user (e.g. 'sales', 'tutor', 'support').",
+                    },
+                    "prompt_text": {
+                        "type": "string",
+                        "description": "A 3-4 sentence starting system prompt tailored to that use case.",
+                    },
+                },
+                "required": ["use_case", "prompt_text"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "tutor_step",
             "description": (
                 "BUILD TUTOR MODE ONLY. Call this at the START of each step of the "
