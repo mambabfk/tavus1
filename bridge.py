@@ -201,10 +201,23 @@ class Bridge(EventHandler):
                     message,
                     "The user sounds frustrated or stuck "
                     f"(reason: {reason}). Acknowledge it warmly in one short sentence, "
-                    "offer to connect them with a human, and share this scheduling link so "
-                    f"they can grab time: {CALENDLY_URL}. Say the link clearly (short form "
-                    "like the calendly.com path is best when spoken aloud).",
+                    "say you'll drop your Calendly in chat, and that they can grab time "
+                    f"there. The link is {CALENDLY_URL}.",
                 )
+                # Also try to post the link to Daily's built-in chat panel as a
+                # clickable visual cue. The Daily Prebuilt UI listens for this
+                # app-message shape; if Tavus's room renders it, the user sees a
+                # chat line. If not, the persona still speaks the link.
+                if self.client:
+                    try:
+                        self.client.send_app_message({
+                            "event": "chat-msg",
+                            "message": f"Grab time on my calendar: {CALENDLY_URL}",
+                            "from": "Assistant",
+                        })
+                        print("[bridge] posted Calendly link to chat")
+                    except Exception as e:
+                        print(f"[bridge] chat-msg send failed: {e}", file=sys.stderr)
 
     def _save_frames(self, frames: list) -> None:
         if not frames:
