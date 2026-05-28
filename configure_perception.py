@@ -40,8 +40,8 @@ PERCEPTION = {
         "Were any errors, failed requests, or misconfigurations visible during the call?",
     ],
     "audio_awareness_queries": [
-        "Does the user sound frustrated, confused, or stuck?",
-        "Is the user speaking quickly as if in a hurry?",
+        "Has the user explicitly asked to talk to a human, book a call, or see a calendar?",
+        "Is the user expressing clear distress about the product (not just thinking out loud or pausing)?",
     ],
     "visual_tool_prompt": (
         "You have two tools. Call `describe_screen` whenever the user is actively looking at, "
@@ -94,8 +94,14 @@ PERCEPTION = {
         },
     ],
     "audio_tool_prompt": (
-        "You have a tool named `escalate_to_human`. Use it only when the user sounds "
-        "sustainedly frustrated and self-serve help is not resolving their issue."
+        "You have a tool named `escalate_to_human`. Call it ONLY in these specific "
+        "cases: (1) the user explicitly asks to speak with a human, book a call, see a "
+        "calendar, or schedule time; (2) the user explicitly says the help isn't working "
+        "or that they want to give up; (3) the user has shown clear, sustained frustration "
+        "across multiple turns AND prior attempts to help have failed. Do NOT call it for "
+        "normal questions, brief pauses, thinking-out-loud, mild confusion, technical "
+        "uncertainty that is currently being resolved, or single instances of frustration. "
+        "When in any doubt, do NOT call it."
     ),
     "audio_tools": [
         {
