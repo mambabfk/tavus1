@@ -22,7 +22,7 @@ from typing import Optional
 from contextlib import asynccontextmanager
 
 import httpx
-from fastapi import FastAPI
+from fastapi import Body, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
@@ -31,6 +31,53 @@ from rank_bm25 import BM25Okapi
 DOCS_DIR = os.environ.get("DOCS_DIR", os.path.join(os.path.dirname(__file__), "docs_store"))
 DOCS_BASE = os.environ.get("TAVUS_DOCS_BASE", "https://docs.tavus.io")
 MAX_CONTEXT_CHARS = int(os.environ.get("MAX_CONTEXT_CHARS", "2200"))
+
+# Mode-specific greeting + conversational_context injected at conversation creation.
+# Both modes use the same persona; the context steers behavior.
+GREETINGS = {
+    "se": (
+        "Hey — I'm Tavus's solutions engineer. Here to help you build anything. "
+        "What are we breaking… I mean, building today?"
+    ),
+    "tutor": (
+        "Welcome — I'll walk you from zero to your first working Tavus agent in about "
+        "five minutes. What kind of agent do you want to build?"
+    ),
+}
+CONTEXTS = {
+    "se": (
+        "This conversation is in SOLUTIONS ENGINEER mode. The user is an existing or "
+        "prospective Tavus developer who needs open-ended help. They may share their "
+        "screen at any time — if they do, react to what they're actually looking at on "
+        "docs.tavus.io or platform.tavus.io. Default: answer questions concisely, using "
+        "search_tavus_docs when the user asks something factual about Tavus. Do NOT push "
+        "a calendar; only call offer_calendar after the user explicitly agrees to "
+        "schedule. Never call tutor_step or create_persona_for_me in this mode."
+    ),
+    "tutor": (
+        "This conversation is in BUILD TUTOR mode. The user is a brand-new Tavus "
+        "developer who has never shipped an agent. Walk them from zero to a live, "
+        "working CVI agent in 5 steps, in this exact order. At the START of each step "
+        "you MUST call the tutor_step tool with the step number and a short title so "
+        "the UI panel can track progress. Steps:\n"
+        "  1. Confirm they're signed into platform.tavus.io and on the Personas tab. "
+        "If they don't have an API key yet, point them to Developer Portal → API Key.\n"
+        "  2. Pick a stock replica from the gallery — recommend a friendly one; let "
+        "them browse if they want.\n"
+        "  3. Help them write a 3-sentence system prompt for the persona they want to "
+        "build. Ask what the agent should DO in one sentence, then offer your draft.\n"
+        "  4. Add one tool — recommend a simple get_weather stub so they see the "
+        "conversation.tool_call event flow. Use search_tavus_docs to ground the schema.\n"
+        "  5. Have them start a test conversation from the dashboard and speak one "
+        "sentence to it.\n"
+        "AFTER step 5, call the create_persona_for_me tool with persona_name, "
+        "system_prompt, and default_replica_id to mint a real starter persona that "
+        "reflects their choices. Then offer to schedule a follow-up via offer_calendar.\n"
+        "RULES: never skip ahead, never do more than one step at a time, confirm each "
+        "step is complete before advancing. Keep every spoken response under three "
+        "sentences. Use search_tavus_docs at any step where you need accurate fields."
+    ),
+}
 CHUNK_CHARS = int(os.environ.get("CHUNK_CHARS", "1100"))
 CHUNK_OVERLAP = int(os.environ.get("CHUNK_OVERLAP", "200"))
 
@@ -251,8 +298,9 @@ def config() -> dict:
 
 
 @app.post("/conversations")
-def create_conversation():
-    """Mint a fresh Tavus conversation server-side so the API key stays off the client."""
+def create_conversation(payload: dict = Body(default={})):
+    """Mint a fresh Tavus conversation. Body: {"mode": "se" | "tutor"}.
+    Same persona for both; conversational_context steers behavior."""
     api_key = os.environ.get("TAVUS_API_KEY", "")
     persona_id = os.environ.get("PERSONA_ID", "")
     if not api_key or not persona_id:
@@ -260,13 +308,13 @@ def create_conversation():
             {"error": "Set TAVUS_API_KEY and PERSONA_ID on the server before calling /conversations."},
             status_code=500,
         )
+    mode = str((payload or {}).get("mode", "se")).lower()
+    if mode not in GREETINGS:
+        mode = "se"
     body = {
         "persona_id": persona_id,
-        "custom_greeting": os.environ.get(
-            "CUSTOM_GREETING",
-            "Hey — I'm Tavus's solutions engineer. Here to help you build anything. "
-            "What are we breaking… I mean, building today?",
-        ),
+        "custom_greeting": GREETINGS[mode],
+        "conversational_context": CONTEXTS[mode],
     }
     replica_id = os.environ.get("REPLICA_ID", "")
     if replica_id:
@@ -283,6 +331,45 @@ def create_conversation():
     return {
         "conversation_url": data.get("conversation_url"),
         "conversation_id": data.get("conversation_id"),
+        "mode": mode,
+    }
+
+
+@app.post("/personas")
+def create_persona(payload: dict = Body(...)):
+    """Server-side proxy to POST /v2/personas; keeps TAVUS_API_KEY off the browser.
+    Used by the tutor's create_persona_for_me tool to mint a real persona at the
+    end of the 5-step flow."""
+    api_key = os.environ.get("TAVUS_API_KEY", "")
+    if not api_key:
+        return JSONResponse({"error": "TAVUS_API_KEY not set on the server."}, status_code=500)
+    persona_name = (payload.get("persona_name") or "My First Tavus Agent").strip()
+    system_prompt = (payload.get("system_prompt") or "You are a helpful assistant.").strip()
+    body = {
+        "persona_name": persona_name,
+        "system_prompt": system_prompt,
+        "pipeline_mode": "full",
+        "layers": {
+            "llm": {"model": "tavus-gpt-oss"},
+            "perception": {"perception_model": "raven-1"},
+        },
+    }
+    replica_id = (payload.get("default_replica_id") or "").strip()
+    if replica_id:
+        body["default_replica_id"] = replica_id
+    r = httpx.post(
+        "https://tavusapi.com/v2/personas",
+        headers={"x-api-key": api_key, "Content-Type": "application/json"},
+        json=body,
+        timeout=30,
+    )
+    if r.status_code >= 400:
+        return JSONResponse({"error": r.text}, status_code=r.status_code)
+    data = r.json()
+    return {
+        "persona_id": data.get("persona_id"),
+        "persona_name": persona_name,
+        "dashboard_url": f"https://platform.tavus.io/personas/{data.get('persona_id', '')}",
     }
 
 

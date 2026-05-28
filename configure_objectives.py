@@ -37,6 +37,9 @@ DATA = [
         "objective_prompt": (
             "Route to the right path based on what the user actually wants. Treat this as a "
             "fast intent check, not an interrogation. Branches:\n"
+            "  - TUTOR (the conversational_context says BUILD TUTOR mode): complete this "
+            "objective immediately with no questions and proceed to walk_steps — the script "
+            "is already in the context. Start with tutor_step(1, ...).\n"
             "  - SCHEDULING (user asks to book a call, see a calendar, talk to a human, or "
             "agrees when you offered): call the `offer_calendar` tool immediately. Do NOT "
             "ask any other questions. This objective is complete.\n"
@@ -77,12 +80,17 @@ DATA = [
     {
         "objective_name": "walk_steps",
         "objective_prompt": (
-            "Walk the user through accomplishing build_target, grounded in the API docs "
-            "(use search_tavus_docs for the exact fields and steps), and tailored to the "
-            "requirements they gave you. Go ONE concrete step at a time — reference the "
-            "specific field or button on their screen, keep each step to a sentence or two "
-            "(it is spoken aloud), and confirm they've done it before moving to the next. "
-            "Complete this objective once they confirm they've accomplished their goal."
+            "If BUILD TUTOR mode (per conversational_context): follow the 5-step script "
+            "verbatim, calling tutor_step(n, title) at the START of each step and "
+            "confirming completion before advancing. After step 5 call "
+            "create_persona_for_me with the persona_name, system_prompt, and "
+            "default_replica_id collected during the flow. Then offer to schedule a "
+            "follow-up via offer_calendar.\n"
+            "Otherwise (BUILDING mode): walk the user through their stated goal one "
+            "concrete step at a time, grounded in search_tavus_docs. Reference specific "
+            "fields/buttons on their screen. Keep each step to a sentence or two (it's "
+            "spoken aloud); confirm before moving on. Complete this objective once "
+            "they confirm they've accomplished their goal."
         ),
         "confirmation_mode": "auto",
         "output_variables": [],

@@ -44,14 +44,32 @@
     background: white; min-height: 420px; }
   /* "Start a conversation" landing */
   #start { display: flex; align-items: center; justify-content: center;
-    height: 100%; padding: 48px; text-align: center; flex-direction: column; gap: 16px; }
+    height: 100%; padding: 48px; text-align: center; flex-direction: column; gap: 18px; }
   #start h1 { font-size: 28px; font-weight: 500; margin: 0; }
-  #start p { color: var(--muted); max-width: 480px; margin: 0; }
-  #start-btn { background: var(--accent); color: #0a0d12; border: 0;
+  #start p { color: var(--muted); max-width: 520px; margin: 0; }
+  .start-buttons { display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap;
+    justify-content: center; }
+  .start-btn { background: var(--accent); color: #0a0d12; border: 0;
     padding: 14px 28px; border-radius: 8px; font-size: 16px; font-weight: 600;
-    cursor: pointer; }
-  #start-btn:disabled { opacity: 0.5; cursor: progress; }
-  #start-error { color: #ff8080; font-size: 13px; }
+    cursor: pointer; min-width: 220px; }
+  .start-btn.alt { background: var(--card); color: var(--ink);
+    border: 1px solid var(--line); }
+  .start-btn:disabled { opacity: 0.5; cursor: progress; }
+  #start-error { color: #ff8080; font-size: 13px; min-height: 16px; }
+  /* Tutor checklist */
+  .tutor-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  .tutor-list li { display: grid; grid-template-columns: 28px 1fr; align-items: baseline;
+    padding: 12px 14px; background: var(--card); border-radius: 8px;
+    border: 1px solid var(--line); color: var(--muted); font-size: 15px; }
+  .tutor-list li .n { font-family: ui-monospace, monospace; color: var(--muted); }
+  .tutor-list li.done { color: var(--ink); opacity: 0.7; }
+  .tutor-list li.done .n::before { content: "✓"; color: var(--good); }
+  .tutor-list li.done .n { font-size: 0; }
+  .tutor-list li.done .n::before { font-size: 16px; }
+  .tutor-list li.now { color: var(--ink); border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent); }
+  .tutor-list li.now .n { color: var(--accent); font-weight: 700; }
+  .persona-success { color: var(--good); }
 </style>
 </head>
 <body>
@@ -106,6 +124,62 @@
       </div>
       ${url ? `<iframe class="embed" src="${escapeHtml(url)}" onerror="this.style.display='none'"></iframe>` : ""}`);
   }
+  const TUTOR_STEPS = [
+    "Sign in & open Personas",
+    "Pick a replica",
+    "Write the system prompt",
+    "Add a tool",
+    "Start a test conversation",
+  ];
+  function showTutorProgress(currentStep) {
+    const items = TUTOR_STEPS.map((label, i) => {
+      const n = i + 1;
+      const cls = n < currentStep ? "done" : n === currentStep ? "now" : "";
+      return `<li class="${cls}"><span class="n">${n}</span><span>${escapeHtml(label)}</span></li>`;
+    }).join("");
+    setPanel(`<h3>Build your first Tavus agent</h3><ol class="tutor-list">${items}</ol>`);
+  }
+
+  async function handleCreatePersona(convId, args) {
+    console.log("[viewer] create_persona_for_me", args);
+    try {
+      const r = await fetch("/personas", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          persona_name: args.persona_name || "My First Tavus Agent",
+          system_prompt: args.system_prompt || "You are a helpful assistant.",
+          default_replica_id: args.default_replica_id || "",
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data.persona_id) {
+        const msg = data.error || `HTTP ${r.status}`;
+        inject(convId,
+          `Persona creation failed (${msg}). Apologize warmly in ONE short sentence and ` +
+          `offer to schedule a follow-up so we can help them get it set up.`);
+        setPanel(`<h3>Could not create persona</h3>
+          <div class="card"><div class="snippet">${escapeHtml(msg)}</div></div>`);
+        return;
+      }
+      inject(convId,
+        `The persona was created successfully (persona_id ${data.persona_id}). In ONE warm ` +
+        `sentence, tell the user it's live, that they can open it in the dashboard, and ` +
+        `offer to schedule a follow-up if they want help launching it.`);
+      setPanel(`
+        <h3 class="persona-success">✓ Your first Tavus agent is live</h3>
+        <div class="card">
+          <div class="title">${escapeHtml(data.persona_name || "")}</div>
+          <div>persona_id: <code>${escapeHtml(data.persona_id)}</code></div>
+          <div style="margin-top:8px;"><a href="${escapeHtml(data.dashboard_url)}"
+            target="_blank" rel="noopener">Open in dashboard →</a></div>
+        </div>`);
+    } catch (e) {
+      console.error("[viewer] create persona error", e);
+      inject(convId, `Tell the user the persona creation hit an error and offer to follow up.`);
+    }
+  }
+
   function showCalendly(url) {
     const sep = url.includes("?") ? "&" : "?";
     const embedSrc = `${url}${sep}embed_domain=${location.hostname}&embed_type=Inline`;
@@ -209,6 +283,11 @@
         if (q) handleSearchDocs(convId, q);
       } else if (name === "offer_calendar") {
         handleOfferCalendar(convId, args.reason || "");
+      } else if (name === "tutor_step") {
+        const n = parseInt(args.n, 10) || 0;
+        if (n > 0) showTutorProgress(n);
+      } else if (name === "create_persona_for_me") {
+        handleCreatePersona(convId, args);
       }
       return;
     }
@@ -246,26 +325,38 @@
     callDiv.innerHTML = `
       <div id="start">
         <h1>Talk to a Tavus Solutions Engineer</h1>
-        <p>Live video call, your screen-share, and a panel that shows the relevant
-           docs as the assistant looks them up.</p>
-        <button id="start-btn">Start conversation</button>
+        <p>Live video call with a Tavus expert. Share your screen and they'll
+           see what you're working on. Pick how you want to start:</p>
+        <div class="start-buttons">
+          <button class="start-btn" data-mode="se">Help me build something</button>
+          <button class="start-btn alt" data-mode="tutor">I'm brand new (5-min tutor)</button>
+        </div>
         <div id="start-error"></div>
       </div>`;
-    const btn = document.getElementById("start-btn");
     const err = document.getElementById("start-error");
-    btn.addEventListener("click", async () => {
-      btn.disabled = true; err.textContent = "";
-      try {
-        const r = await fetch("/conversations", { method: "POST" });
-        const data = await r.json();
-        if (!r.ok || !data.conversation_url) {
-          throw new Error(data.error || `HTTP ${r.status}`);
+    document.querySelectorAll(".start-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const mode = btn.getAttribute("data-mode") || "se";
+        document.querySelectorAll(".start-btn").forEach(b => b.disabled = true);
+        err.textContent = "";
+        try {
+          const r = await fetch("/conversations", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ mode }),
+          });
+          const data = await r.json();
+          if (!r.ok || !data.conversation_url) {
+            throw new Error(data.error || `HTTP ${r.status}`);
+          }
+          window.TAVUS_MODE = data.mode || mode;
+          joinRoom(data.conversation_url, data.conversation_id);
+          if (window.TAVUS_MODE === "tutor") showTutorProgress(0);
+        } catch (e) {
+          document.querySelectorAll(".start-btn").forEach(b => b.disabled = false);
+          err.textContent = `Couldn't start a conversation: ${e.message}`;
         }
-        joinRoom(data.conversation_url, data.conversation_id);
-      } catch (e) {
-        btn.disabled = false;
-        err.textContent = `Couldn't start a conversation: ${e.message}`;
-      }
+      });
     });
   }
 

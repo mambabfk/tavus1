@@ -65,6 +65,62 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "tutor_step",
+            "description": (
+                "BUILD TUTOR MODE ONLY. Call this at the START of each step of the "
+                "5-step tutor flow so the UI panel can light up the current step. Pass "
+                "the step number (1 through 5) and a short title. Do NOT call this in "
+                "Solutions Engineer mode."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "n": {
+                        "type": "integer",
+                        "description": "Step number, 1 through 5.",
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Short title for this step (e.g. 'Pick a replica').",
+                    },
+                },
+                "required": ["n", "title"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_persona_for_me",
+            "description": (
+                "BUILD TUTOR MODE ONLY. Call AFTER the user has completed all 5 tutor "
+                "steps. Creates a real Tavus persona reflecting the user's choices via "
+                "the Tavus API. Do NOT call this in Solutions Engineer mode and do NOT "
+                "call it before step 5 is complete."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "persona_name": {
+                        "type": "string",
+                        "description": "Name for the new persona (the user's choice or a sensible default).",
+                    },
+                    "system_prompt": {
+                        "type": "string",
+                        "description": "The 3-sentence system prompt the user wrote with your help.",
+                    },
+                    "default_replica_id": {
+                        "type": "string",
+                        "description": "Stock replica id the user picked (e.g. r90bbd427f71). Optional.",
+                    },
+                },
+                "required": ["persona_name", "system_prompt"],
+            },
+        },
+    },
 ]
 
 
