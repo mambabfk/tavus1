@@ -51,7 +51,10 @@ FRAMES_DIR = os.environ.get("FRAMES_DIR", "frames")
 
 # Local vision model (e.g. your Qwen3-VL MLX server) used to read screen frames
 # precisely, instead of relying on Raven's brief rolling description.
-USE_VISION = os.environ.get("USE_VISION", "true").lower() in ("1", "true", "yes")
+# Off by default: Raven is already a Gemini-class vision model, so a parallel
+# read is not a quality upgrade — only enable it if you want a deeper, on-demand
+# full-frame read than Raven's brief rolling summaries. Set USE_VISION=true to opt in.
+USE_VISION = os.environ.get("USE_VISION", "false").lower() in ("1", "true", "yes")
 VISION_URL = os.environ.get("VISION_URL", "http://localhost:8000/v1/chat/completions")
 VISION_MODEL = os.environ.get("VISION_MODEL", "Qwen3-VL-32B-Instruct-MLX-4bit")
 VISION_API_KEY = os.environ.get("VISION_API_KEY", "")
