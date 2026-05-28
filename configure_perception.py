@@ -30,9 +30,9 @@ API_KEY = os.environ.get("TAVUS_API_KEY", "")
 PERCEPTION = {
     "perception_model": "raven-1",
     "visual_awareness_queries": [
-        "What page, app, dashboard, or screen is the user currently viewing?",
-        "Is there an error message, red text, stack trace, or warning visible on screen?",
-        "What code, configuration, API request, or terminal output is shown on screen?",
+        "What is the title or main heading of the page, panel, or window currently open?",
+        "Which single area, field, or button does the user appear to be focused on right now?",
+        "Is a clear error, red text, or warning visible, and if so what does it say?",
     ],
     "perception_analysis_queries": [
         "What problem or task was the user working on, based on what was shown on screen?",
