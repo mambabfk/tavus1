@@ -35,14 +35,22 @@ DATA = [
     {
         "objective_name": "detect_intent",
         "objective_prompt": (
-            "Figure out what the user is trying to build or do (e.g. create objectives, "
-            "configure a persona, set up perception, fix an error). The screen is a HINT, not "
-            "the answer — if it's at all unclear, ask one short question to confirm: 'Looks "
-            "like you're on the Objectives page — are you trying to create a new objective?' "
-            "Do not give any instructions yet. Capture what they're building as build_target."
+            "Route to the right path based on what the user actually wants. Treat this as a "
+            "fast intent check, not an interrogation. Branches:\n"
+            "  - SCHEDULING (user asks to book a call, see a calendar, talk to a human, or "
+            "agrees when you offered): call the `offer_calendar` tool immediately. Do NOT "
+            "ask any other questions. This objective is complete.\n"
+            "  - QUICK QUESTION (user asked a single question about how Tavus works): just "
+            "answer it using `search_tavus_docs`. Do NOT force a discovery flow. This "
+            "objective is complete.\n"
+            "  - BUILDING (user wants to build, configure, or set up something step by step "
+            "and that isn't obvious already): confirm with ONE short question what they're "
+            "building, then complete this objective.\n"
+            "Default to the lightest possible touch. Never trap the user into describing a "
+            "'use case' if a single tool call would finish the job."
         ),
         "confirmation_mode": "auto",
-        "output_variables": ["build_target"],
+        "output_variables": [],
         "modality": "verbal",
         "next_conditional_objectives": {},
         "next_required_objective": "gather_requirements",
@@ -51,15 +59,16 @@ DATA = [
     {
         "objective_name": "gather_requirements",
         "objective_prompt": (
-            "Now that you know what they're building, call search_tavus_docs to learn what "
-            "that feature actually requires. Then ask the user for the specifics you still "
-            "need from them before you can give accurate steps — for example, for objectives, "
-            "ask what conversational flow or sequence of steps they want. Ask one focused "
-            "question at a time. Capture their answer as requirements. Do not start the "
-            "walkthrough until you have what you need."
+            "Only run this if the user is actually building or configuring something. "
+            "If detect_intent already finished with scheduling or a one-shot question, "
+            "skip this objective — it is complete with no action.\n"
+            "Otherwise: call search_tavus_docs to learn what that feature requires, then "
+            "ask the user for the one or two specifics you still need (e.g. their desired "
+            "flow). Ask one focused question at a time. Do not start the walkthrough until "
+            "you have what you need."
         ),
         "confirmation_mode": "auto",
-        "output_variables": ["requirements"],
+        "output_variables": [],
         "modality": "verbal",
         "next_conditional_objectives": {},
         "next_required_objective": "walk_steps",
