@@ -170,10 +170,13 @@
   function handleEscalate(convId, reason) {
     console.log("[viewer] escalate_to_human -> ask user", reason);
     inject(convId,
-      `The user seems stuck (reason: ${reason}). In ONE short sentence, gently ask if ` +
-      `they'd like to schedule a quick call with a human to work through it. Do NOT share ` +
-      `any calendar link or specifics yet — wait for their answer. If they agree, you may ` +
-      `then call the offer_calendar tool to pull up the calendar.`);
+      `INTERNAL CUE — NOT a user question, do NOT look anything up. ` +
+      `The user has sounded stuck for a moment (signal: ${reason}). ` +
+      `Speak ONE short, warm sentence checking in and ask if they'd like to schedule ` +
+      `a quick call with a human to work through it. Do NOT call search_tavus_docs or ` +
+      `any other tool right now. Do NOT mention a calendar link. Then wait for their answer. ` +
+      `If they affirm (yes / sure / please / send it), call the offer_calendar tool with ` +
+      `the reason. If they decline or say "I'm fine," just continue normally.`);
     // Intentionally NOT showing Calendly here.
   }
 
