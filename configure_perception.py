@@ -31,7 +31,8 @@ PERCEPTION = {
     "perception_model": "raven-1",
     "visual_awareness_queries": [
         "What is the title or main heading of the page, panel, or window currently open?",
-        "Which single area, field, or button does the user appear to be focused on right now?",
+        "What Tavus feature or task does the user appear to be working on (e.g. creating objectives, configuring a persona, setting up perception)?",
+        "Which area, field, or button does the user appear to be focused on right now?",
         "Is a clear error, red text, or warning visible, and if so what does it say?",
     ],
     "perception_analysis_queries": [

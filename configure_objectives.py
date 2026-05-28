@@ -33,33 +33,47 @@ API_KEY = os.environ.get("TAVUS_API_KEY", "")
 
 DATA = [
     {
-        "objective_name": "clarify_use_case_before_walkthrough",
+        "objective_name": "detect_intent",
         "objective_prompt": (
-            "When the developer shares their screen and asks for help or a walkthrough, "
-            "FIRST ask what they are trying to build or accomplish, in their own words, "
-            "before describing anything you see. For example: 'Before I walk you through "
-            "this — what are you building this persona for?' The screen is CONTEXT ONLY; it "
-            "does NOT tell you their goal. Do NOT describe what is on screen, give any "
-            "instructions, or move on until the user has stated their goal out loud. Capture "
-            "their stated goal as use_case."
+            "Figure out what the user is trying to build or do (e.g. create objectives, "
+            "configure a persona, set up perception, fix an error). The screen is a HINT, not "
+            "the answer — if it's at all unclear, ask one short question to confirm: 'Looks "
+            "like you're on the Objectives page — are you trying to create a new objective?' "
+            "Do not give any instructions yet. Capture what they're building as build_target."
         ),
         "confirmation_mode": "auto",
-        "output_variables": ["use_case"],
+        "output_variables": ["build_target"],
         "modality": "verbal",
         "next_conditional_objectives": {},
-        "next_required_objective": "guide_through_screen",
+        "next_required_objective": "gather_requirements",
         "callback_url": "",
     },
     {
-        "objective_name": "guide_through_screen",
+        "objective_name": "gather_requirements",
         "objective_prompt": (
-            "Using the use_case the developer just described, guide them toward THAT goal "
-            "one concrete step at a time. Reference specific elements on their shared screen "
-            "only when relevant to their stated goal — do not narrate the page or walk "
-            "through whatever happens to be open. Use search_tavus_docs if you need to look "
-            "up how a feature works. After each step, check whether they're ready to continue "
-            "or stuck. Complete this objective once the developer confirms they have what they "
-            "need."
+            "Now that you know what they're building, call search_tavus_docs to learn what "
+            "that feature actually requires. Then ask the user for the specifics you still "
+            "need from them before you can give accurate steps — for example, for objectives, "
+            "ask what conversational flow or sequence of steps they want. Ask one focused "
+            "question at a time. Capture their answer as requirements. Do not start the "
+            "walkthrough until you have what you need."
+        ),
+        "confirmation_mode": "auto",
+        "output_variables": ["requirements"],
+        "modality": "verbal",
+        "next_conditional_objectives": {},
+        "next_required_objective": "walk_steps",
+        "callback_url": "",
+    },
+    {
+        "objective_name": "walk_steps",
+        "objective_prompt": (
+            "Walk the user through accomplishing build_target, grounded in the API docs "
+            "(use search_tavus_docs for the exact fields and steps), and tailored to the "
+            "requirements they gave you. Go ONE concrete step at a time — reference the "
+            "specific field or button on their screen, keep each step to a sentence or two "
+            "(it is spoken aloud), and confirm they've done it before moving to the next. "
+            "Complete this objective once they confirm they've accomplished their goal."
         ),
         "confirmation_mode": "auto",
         "output_variables": [],
