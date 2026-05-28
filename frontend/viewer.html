@@ -77,6 +77,11 @@
   .prompt-snippet { background: var(--card); padding: 14px 16px; border-radius: 8px;
     border: 1px solid var(--line); white-space: pre-wrap; font-size: 14px;
     line-height: 1.5; max-height: 240px; overflow: auto; }
+  .feature-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .feature-list li { background: var(--card); padding: 11px 14px; border-radius: 8px;
+    border: 1px solid var(--line); font-size: 13px; }
+  .feature-list li .fname { font-size: 14px; color: var(--accent); font-weight: 600; }
+  .feature-list li .fdesc { color: var(--muted); margin-top: 3px; }
 </style>
 </head>
 <body>
@@ -178,6 +183,32 @@
         btn.textContent = "Select & copy manually";
       }
     });
+  }
+
+  const FEATURES = [
+    { name: "Knowledge Base", desc: "RAG over your own docs — the agent answers from your data, not guesses." },
+    { name: "Objectives", desc: "Drive the conversation through a goal-oriented flow with branching." },
+    { name: "Guardrails", desc: "Strict rules the agent must never cross." },
+    { name: "Tool Calling", desc: "Invoke your APIs mid-call to look things up or take action." },
+    { name: "Visual Awareness", desc: "Raven sees the user's face and shared screen in real time." },
+    { name: "Pronunciation Dictionary", desc: "Teach the TTS to say names and jargon correctly." },
+  ];
+  function handleShowFeatures() {
+    console.log("[viewer] show_features_overview");
+    const cards = FEATURES.map(f =>
+      `<li><div class="fname">${escapeHtml(f.name)}</div>
+            <div class="fdesc">${escapeHtml(f.desc)}</div></li>`).join("");
+    // Mark step 1 done, step 2 next.
+    const items = TUTOR_STEPS.map((label, i) => {
+      const n = i + 1;
+      const cls = n === 1 ? "done" : n === 2 ? "now" : "";
+      return `<li class="${cls}"><span class="n">${n}</span><span>${escapeHtml(label)}</span></li>`;
+    }).join("");
+    setPanel(`
+      <h3>What makes Tavus humans great</h3>
+      <ul class="feature-list">${cards}</ul>
+      <ol class="tutor-list" style="margin-top: 16px;">${items}</ol>
+    `);
   }
 
   async function handleCreatePersona(convId, args) {
@@ -328,6 +359,8 @@
         if (n > 0) showTutorProgress(n);
       } else if (name === "suggest_system_prompt") {
         handleSuggestPrompt(args);
+      } else if (name === "show_features_overview") {
+        handleShowFeatures();
       } else if (name === "create_persona_for_me") {
         handleCreatePersona(convId, args);
       }

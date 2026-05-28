@@ -96,6 +96,20 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "show_features_overview",
+            "description": (
+                "BUILD TUTOR MODE. Call this RIGHT AFTER suggest_system_prompt to surface "
+                "the six Tavus features that make our humans great — Knowledge Base, "
+                "Objectives, Guardrails, Tool Calling, Visual Awareness Queries, and "
+                "Pronunciation Dictionary. The UI panel renders them as cards. Narrate "
+                "all six by name in one breath while it appears. No parameters."
+            ),
+            "parameters": {"type": "object", "properties": {}, "required": []},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "tutor_step",
             "description": (
                 "BUILD TUTOR MODE ONLY. Call this at the START of each step of the "
