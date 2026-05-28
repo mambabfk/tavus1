@@ -96,6 +96,42 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "show_suggestions",
+            "description": (
+                "BUILD TUTOR MODE. Call this RIGHT AFTER the user answers an "
+                "ask_feature_question, to render concrete actionable items they "
+                "could upload, configure, or define for that feature — tailored "
+                "to their specific answer. This REPLACES echoing the answer back "
+                "to them. Example: if for Knowledge Base they said 'they need to "
+                "know our product', call show_suggestions('Knowledge Base', "
+                "'Here's what to upload for that:', ['PowerPoint decks', 'Product "
+                "PDFs/brochures', 'Customer call transcripts', 'Internal product "
+                "wiki'])."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "feature": {
+                        "type": "string",
+                        "description": "Feature name (Knowledge Base, Objectives, etc.).",
+                    },
+                    "intro": {
+                        "type": "string",
+                        "description": "ONE short framing line (e.g. 'Here's what to upload:').",
+                    },
+                    "items": {
+                        "type": "array",
+                        "description": "3-5 concrete things they could upload/configure/define, tailored to their stated answer.",
+                        "items": {"type": "string"},
+                    },
+                },
+                "required": ["feature", "items"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "ask_feature_question",
             "description": (
                 "BUILD TUTOR MODE. Replaces the static features overview with a "

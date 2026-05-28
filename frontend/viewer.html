@@ -279,6 +279,30 @@
     `);
   }
 
+  function handleShowSuggestions(args) {
+    const feature = String(args.feature || "");
+    const intro = String(args.intro || "Here's what you could do for this:");
+    const items = Array.isArray(args.items) ? args.items : [];
+    console.log("[viewer] show_suggestions", feature, items.length, "items");
+    const list = items.map(it =>
+      `<li class="opt"><span class="marker">•</span><span>${escapeHtml(String(it))}</span></li>`
+    ).join("");
+    const stepItems = TUTOR_STEPS.map((label, i) => {
+      const n = i + 1;
+      const cls = n === 1 ? "now" : "";
+      return `<li class="${cls}"><span class="n">${n}</span><span>${escapeHtml(label)}</span></li>`;
+    }).join("");
+    setPanel(`
+      <div class="feature-label">${escapeHtml(feature)}</div>
+      <h3 style="margin-top:2px;">What to set up</h3>
+      <div class="question-card">
+        <div class="qtext">${escapeHtml(intro)}</div>
+        <ul class="opt-list">${list}</ul>
+      </div>
+      <ol class="tutor-list" style="margin-top: 16px;">${stepItems}</ol>
+    `);
+  }
+
   function handleAskFeatureQuestion(args) {
     const feature = String(args.feature || "");
     const question = String(args.question || "");
@@ -476,6 +500,8 @@
         handleShowFeatures();
       } else if (name === "ask_feature_question") {
         handleAskFeatureQuestion(args);
+      } else if (name === "show_suggestions") {
+        handleShowSuggestions(args);
       } else if (name === "show_session_recap") {
         handleSessionRecap(args);
       } else if (name === "create_persona_for_me") {
