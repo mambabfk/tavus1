@@ -70,11 +70,12 @@ TOOLS = [
         "function": {
             "name": "suggest_system_prompt",
             "description": (
-                "BUILD TUTOR MODE ONLY. After the user gives a one-word use case, call "
-                "this with that use_case and a 3-4 sentence system prompt drafted for "
-                "it. The UI panel will render the prompt as a copy-pasteable card so the "
-                "user can paste it straight into the System Prompt field. Use this during "
-                "Step 1 so we don't spend turns dictating the prompt aloud."
+                "BUILD TUTOR MODE — REQUIRED IN STEP 1. As soon as the user describes "
+                "what kind of agent they want, you MUST call this tool with the use_case "
+                "and a 3-4 sentence starting system prompt. You MUST NOT speak the prompt "
+                "content out loud and you MUST NOT type it in chat — the UI panel renders "
+                "it as a copy-pasteable card. Speaking the prompt aloud is a failure mode "
+                "because the user can't paste audio. Call this tool. Always."
             ),
             "parameters": {
                 "type": "object",
