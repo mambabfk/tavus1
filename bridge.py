@@ -54,6 +54,7 @@ FRAMES_DIR = os.environ.get("FRAMES_DIR", "frames")
 USE_VISION = os.environ.get("USE_VISION", "true").lower() in ("1", "true", "yes")
 VISION_URL = os.environ.get("VISION_URL", "http://localhost:8000/v1/chat/completions")
 VISION_MODEL = os.environ.get("VISION_MODEL", "Qwen3-VL-32B-Instruct-MLX-4bit")
+VISION_API_KEY = os.environ.get("VISION_API_KEY", "")
 VISION_TIMEOUT = float(os.environ.get("VISION_TIMEOUT", "45"))
 VISION_PROMPT = os.environ.get(
     "VISION_PROMPT",
@@ -110,9 +111,10 @@ def read_screen(frames: list) -> str:
         "max_tokens": 400,
         "temperature": 0,
     }
+    headers = {"Authorization": f"Bearer {VISION_API_KEY}"} if VISION_API_KEY else {}
     try:
         t0 = time.perf_counter()
-        r = _vision.post(VISION_URL, json=payload)
+        r = _vision.post(VISION_URL, json=payload, headers=headers)
         r.raise_for_status()
         out = r.json()["choices"][0]["message"]["content"].strip()
         print(f"[bridge] vision read {(time.perf_counter() - t0) * 1000:.0f}ms, {len(out)} chars")
