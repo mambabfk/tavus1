@@ -9,9 +9,11 @@
     --bg: #0a0d12;
     --panel: #14171b;
     --card: #1d2128;
+    --line: #232831;
     --ink: #e6e8eb;
     --muted: #8a93a0;
     --accent: #7aa9ff;
+    --good: #4ade80;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
@@ -22,30 +24,44 @@
   #call iframe { width: 100% !important; height: 100% !important; border: 0 !important; }
   #panel { background: var(--panel); border-radius: 10px; padding: 18px;
     display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
-  #panel h2 { margin: 0 0 4px; font-size: 13px; letter-spacing: 0.12em;
+  #panel-head { display: flex; justify-content: space-between; align-items: baseline; }
+  #panel h2 { margin: 0; font-size: 13px; letter-spacing: 0.12em;
     text-transform: uppercase; color: var(--muted); }
+  #panel-status { font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; }
+  #panel-status.alive::before { content: "● "; color: var(--good); }
   #panel-body { flex: 1; min-height: 0; display: flex; flex-direction: column;
-    margin-top: 8px; gap: 12px; }
-  .placeholder { color: var(--muted); font-style: italic; padding-top: 16px; }
+    margin-top: 10px; gap: 12px; overflow: auto; }
+  .placeholder { color: var(--muted); font-style: italic; padding-top: 8px; }
   h3 { margin: 0; font-size: 18px; font-weight: 500; }
   .card { background: var(--card); padding: 14px 16px; border-radius: 8px;
-    border: 1px solid #232831; }
+    border: 1px solid var(--line); }
   .card .title { font-weight: 600; margin-bottom: 4px; }
-  .card .snippet { color: var(--muted); font-size: 13px; max-height: 140px; overflow: auto; }
+  .card .snippet { color: var(--muted); font-size: 13px; max-height: 140px; overflow: auto;
+    white-space: pre-wrap; }
   .card a { color: var(--accent); text-decoration: none; word-break: break-all; }
   .card a:hover { text-decoration: underline; }
   iframe.embed { width: 100%; flex: 1; border: 0; border-radius: 8px;
     background: white; min-height: 420px; }
-  .url-form { padding: 36px; color: var(--muted); }
-  .url-form code { background: #1d2128; padding: 2px 6px; border-radius: 4px;
-    color: var(--ink); }
+  /* "Start a conversation" landing */
+  #start { display: flex; align-items: center; justify-content: center;
+    height: 100%; padding: 48px; text-align: center; flex-direction: column; gap: 16px; }
+  #start h1 { font-size: 28px; font-weight: 500; margin: 0; }
+  #start p { color: var(--muted); max-width: 480px; margin: 0; }
+  #start-btn { background: var(--accent); color: #0a0d12; border: 0;
+    padding: 14px 28px; border-radius: 8px; font-size: 16px; font-weight: 600;
+    cursor: pointer; }
+  #start-btn:disabled { opacity: 0.5; cursor: progress; }
+  #start-error { color: #ff8080; font-size: 13px; }
 </style>
 </head>
 <body>
 <div id="app">
   <div id="call"></div>
   <aside id="panel">
-    <h2>Live Context</h2>
+    <div id="panel-head">
+      <h2>Live Context</h2>
+      <span id="panel-status">connecting…</span>
+    </div>
     <div id="panel-body">
       <div class="placeholder">Nothing here yet. As the assistant looks something up
         or offers to schedule, it'll appear in this panel.</div>
@@ -54,72 +70,205 @@
 </div>
 
 <script>
-  const params = new URLSearchParams(location.search);
-  const conversationUrl = params.get("conversation");
+  /* ---------- state ---------- */
+  let frame = null;
+  let currentConvId = "";
+  let calendlyUrl = "";
 
   const callDiv = document.getElementById("call");
   const panelBody = document.getElementById("panel-body");
+  const panelStatus = document.getElementById("panel-status");
 
+  /* ---------- helpers ---------- */
   function setPanel(html) { panelBody.innerHTML = html; }
   function escapeHtml(s) {
     return String(s ?? "").replace(/[&<>"']/g, c => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
     }[c]));
   }
+  function setStatus(text, alive) {
+    panelStatus.textContent = text;
+    panelStatus.classList.toggle("alive", !!alive);
+  }
+  function parseArgs(a) {
+    if (!a) return {};
+    if (typeof a === "object") return a;
+    try { return JSON.parse(a); } catch { return {}; }
+  }
 
-  if (!conversationUrl) {
-    callDiv.innerHTML = `
-      <div class="url-form">
-        <h3>Open this page with a conversation URL</h3>
-        <p>Append <code>?conversation=&lt;daily-room-url&gt;</code> — e.g.
-          <code>?conversation=https://tavus.daily.co/xxxxxxxx</code>.</p>
-        <p>The bridge prints both the plain URL and the wrapped one when it starts.</p>
-      </div>`;
-  } else {
-    const frame = window.DailyIframe.createFrame(callDiv, {
+  /* ---------- visual panels ---------- */
+  function showDoc(title, url, snippet) {
+    setPanel(`
+      <h3>${escapeHtml(title || "From the Tavus docs")}</h3>
+      <div class="card">
+        ${url ? `<div class="title"><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a></div>` : ""}
+        ${snippet ? `<div class="snippet">${escapeHtml(snippet)}</div>` : ""}
+      </div>
+      ${url ? `<iframe class="embed" src="${escapeHtml(url)}" onerror="this.style.display='none'"></iframe>` : ""}`);
+  }
+  function showCalendly(url) {
+    const sep = url.includes("?") ? "&" : "?";
+    const embedSrc = `${url}${sep}embed_domain=${location.hostname}&embed_type=Inline`;
+    setPanel(`
+      <h3>Grab time with me</h3>
+      <iframe class="embed" src="${escapeHtml(embedSrc)}" onerror="this.style.display='none'"></iframe>
+      <div class="card">
+        <div class="title">If the inline view doesn't load, open directly:</div>
+        <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>
+      </div>`);
+  }
+
+  /* ---------- in-browser bridge (replaces bridge.py for this tab) ---------- */
+  async function fetchDocs(query) {
+    const r = await fetch("/ask", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query, top_k: 3 }),
+    });
+    if (!r.ok) throw new Error(`/ask ${r.status}`);
+    return r.json();
+  }
+
+  function inject(convId, context) {
+    if (!frame || !context) return;
+    frame.sendAppMessage({
+      message_type: "conversation",
+      event_type: "conversation.append_llm_context",
+      conversation_id: convId || currentConvId,
+      properties: { context },
+    }, "*");
+    console.log("[viewer] injected", context.length, "chars");
+  }
+
+  async function handleSearchDocs(convId, query) {
+    console.log("[viewer] search_tavus_docs", query);
+    try {
+      const data = await fetchDocs(query);
+      inject(convId, data.context || "");
+      const top = (data.sources || [])[0];
+      if (top) showDoc(top.title, top.url, (data.context || "").slice(0, 600));
+    } catch (e) {
+      console.error("[viewer] docs error", e);
+      inject(convId, `Documentation lookup failed for: ${query}`);
+    }
+  }
+
+  async function handleCaptureScreenIssue(convId, summary) {
+    console.log("[viewer] capture_screen_issue", summary);
+    let docs = "", sources = [];
+    try {
+      const data = await fetchDocs(`troubleshoot: ${summary}`);
+      docs = data.context || ""; sources = data.sources || [];
+    } catch (e) { console.error("[viewer] docs error", e); }
+    inject(convId,
+      `The user appears to have this issue visible on their screen: ${summary}\n\n` +
+      `Relevant Tavus documentation:\n${docs}`);
+    if (sources[0]) showDoc(sources[0].title, sources[0].url, docs.slice(0, 600));
+  }
+
+  function handleEscalate(convId, reason) {
+    console.log("[viewer] escalate_to_human", reason);
+    if (!calendlyUrl) {
+      console.log("[viewer] no CALENDLY_URL configured on server");
+      return;
+    }
+    inject(convId,
+      `The user sounds frustrated or stuck (reason: ${reason}). Acknowledge it warmly, ` +
+      `tell them you're pulling up your calendar so they can grab time. ` +
+      `The link is ${calendlyUrl}.`);
+    showCalendly(calendlyUrl);
+  }
+
+  function onAppMessage(ev) {
+    const msg = ev && ev.data;
+    if (!msg || typeof msg !== "object") return;
+    const et = msg.event_type;
+    const props = msg.properties || {};
+    const convId = msg.conversation_id || currentConvId;
+
+    if (et === "conversation.tool_call") {
+      const name = props.name || (props.function && props.function.name);
+      const args = parseArgs(props.arguments ?? (props.function && props.function.arguments));
+      if (name === "search_tavus_docs") {
+        const q = args.query || args.q || "";
+        if (q) handleSearchDocs(convId, q);
+      }
+      return;
+    }
+
+    if (et === "conversation.perception_tool_call") {
+      const name = props.name || (props.function && props.function.name);
+      const args = parseArgs(props.arguments ?? (props.function && props.function.arguments));
+      if (name === "describe_screen" && args.focus) {
+        inject(convId, `What the user is looking at on their screen: ${args.focus}`);
+      } else if (name === "capture_screen_issue" && args.summary) {
+        handleCaptureScreenIssue(convId, args.summary);
+      } else if (name === "escalate_to_human") {
+        handleEscalate(convId, args.reason || "the user seems stuck");
+      }
+      return;
+    }
+  }
+
+  /* ---------- join + start flows ---------- */
+  function joinRoom(url, convId) {
+    currentConvId = convId || "";
+    callDiv.innerHTML = "";
+    frame = window.DailyIframe.createFrame(callDiv, {
       iframeStyle: { width: "100%", height: "100%", border: "0" },
       showLeaveButton: true,
     });
-    frame.join({ url: conversationUrl });
-    frame.on("app-message", (ev) => handleMessage(ev?.data));
+    frame.on("app-message", onAppMessage);
+    frame.on("joined-meeting", () => setStatus("listening", true));
+    frame.on("left-meeting", () => setStatus("disconnected", false));
+    frame.join({ url });
+    setStatus("joining…", false);
   }
 
-  function handleMessage(msg) {
-    if (!msg || typeof msg !== "object") return;
-    const et = msg.event_type || msg.event;
-    const props = msg.properties || {};
-
-    if (et === "ui.show_calendly" && props.url) {
-      const url = props.url;
-      const embedSrc = `${url}${url.includes("?") ? "&" : "?"}embed_domain=${location.hostname}&embed_type=Inline`;
-      setPanel(`
-        <h3>Grab time with me</h3>
-        <iframe class="embed" src="${escapeHtml(embedSrc)}"
-          onerror="this.style.display='none'"></iframe>
-        <div class="card">
-          <div class="title">If the inline view doesn't load, open directly:</div>
-          <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>
-        </div>`);
-      return;
-    }
-
-    if (et === "ui.show_doc") {
-      const url = props.url || "";
-      const title = props.title || "From the Tavus docs";
-      const snippet = props.snippet || "";
-      // Mintlify often blocks iframing, so we show a rich card and only try the
-      // iframe optimistically — if it fails the card still gives them the link.
-      setPanel(`
-        <h3>${escapeHtml(title)}</h3>
-        <div class="card">
-          ${url ? `<div class="title"><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a></div>` : ""}
-          ${snippet ? `<div class="snippet">${escapeHtml(snippet)}</div>` : ""}
-        </div>
-        ${url ? `<iframe class="embed" src="${escapeHtml(url)}"
-          onerror="this.style.display='none'"></iframe>` : ""}`);
-      return;
-    }
+  function showStart() {
+    callDiv.innerHTML = `
+      <div id="start">
+        <h1>Talk to a Tavus Solutions Engineer</h1>
+        <p>Live video call, your screen-share, and a panel that shows the relevant
+           docs as the assistant looks them up.</p>
+        <button id="start-btn">Start conversation</button>
+        <div id="start-error"></div>
+      </div>`;
+    const btn = document.getElementById("start-btn");
+    const err = document.getElementById("start-error");
+    btn.addEventListener("click", async () => {
+      btn.disabled = true; err.textContent = "";
+      try {
+        const r = await fetch("/conversations", { method: "POST" });
+        const data = await r.json();
+        if (!r.ok || !data.conversation_url) {
+          throw new Error(data.error || `HTTP ${r.status}`);
+        }
+        joinRoom(data.conversation_url, data.conversation_id);
+      } catch (e) {
+        btn.disabled = false;
+        err.textContent = `Couldn't start a conversation: ${e.message}`;
+      }
+    });
   }
+
+  /* ---------- boot ---------- */
+  (async function init() {
+    try {
+      const cfg = await fetch("/config").then(r => r.json());
+      calendlyUrl = cfg.calendly_url || "";
+    } catch { /* non-fatal */ }
+
+    const params = new URLSearchParams(location.search);
+    const conv = params.get("conversation");
+    const convId = params.get("conversation_id") || "";
+    if (conv) {
+      joinRoom(conv, convId);
+    } else {
+      showStart();
+      setStatus("idle", false);
+    }
+  })();
 </script>
 </body>
 </html>

@@ -21,9 +21,10 @@ from typing import Optional
 
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from rank_bm25 import BM25Okapi
 
@@ -233,8 +234,44 @@ def ask(req: SearchRequest) -> dict:
 @app.get("/viewer")
 def viewer() -> FileResponse:
     """Serve the embedded conversation + live-context-panel viewer.
-    Open it with ?conversation=<daily-room-url>."""
+    Open with ?conversation=<daily-room-url> to attach to an existing room, or
+    open it bare to mint a new conversation via POST /conversations."""
     return FileResponse(os.path.join(os.path.dirname(__file__), "frontend", "viewer.html"))
+
+
+@app.get("/config")
+def config() -> dict:
+    """Non-secret config the viewer needs in the browser (e.g. Calendly URL)."""
+    return {"calendly_url": os.environ.get("CALENDLY_URL", "")}
+
+
+@app.post("/conversations")
+def create_conversation():
+    """Mint a fresh Tavus conversation server-side so the API key stays off the client."""
+    api_key = os.environ.get("TAVUS_API_KEY", "")
+    persona_id = os.environ.get("PERSONA_ID", "")
+    if not api_key or not persona_id:
+        return JSONResponse(
+            {"error": "Set TAVUS_API_KEY and PERSONA_ID on the server before calling /conversations."},
+            status_code=500,
+        )
+    body = {"persona_id": persona_id}
+    replica_id = os.environ.get("REPLICA_ID", "")
+    if replica_id:
+        body["replica_id"] = replica_id
+    r = httpx.post(
+        "https://tavusapi.com/v2/conversations",
+        headers={"x-api-key": api_key, "Content-Type": "application/json"},
+        json=body,
+        timeout=30,
+    )
+    if r.status_code >= 400:
+        return JSONResponse({"error": r.text}, status_code=r.status_code)
+    data = r.json()
+    return {
+        "conversation_url": data.get("conversation_url"),
+        "conversation_id": data.get("conversation_id"),
+    }
 
 
 @app.post("/reload")
