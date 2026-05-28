@@ -186,18 +186,32 @@
   }
 
   const FEATURES = [
-    { name: "Knowledge Base", desc: "RAG over your own docs — the agent answers from your data, not guesses." },
-    { name: "Objectives", desc: "Drive the conversation through a goal-oriented flow with branching." },
-    { name: "Guardrails", desc: "Strict rules the agent must never cross." },
-    { name: "Tool Calling", desc: "Invoke your APIs mid-call to look things up or take action." },
-    { name: "Visual Awareness", desc: "Raven sees the user's face and shared screen in real time." },
-    { name: "Pronunciation Dictionary", desc: "Teach the TTS to say names and jargon correctly." },
+    { name: "Knowledge Base",
+      desc: "RAG over your own docs — the agent answers from your data, not guesses.",
+      example: "HR persona pulls real answers from your benefits handbook." },
+    { name: "Objectives",
+      desc: "Drive the conversation through a goal-oriented flow with branching.",
+      example: "Medical intake: greet → symptoms → allergies → escalate." },
+    { name: "Guardrails",
+      desc: "Strict rules the agent must never cross.",
+      example: "Finance agent never gives investment advice." },
+    { name: "Tool Calling",
+      desc: "Invoke your APIs mid-call to look things up or take action.",
+      example: "Look up an order, kick off a workflow, render a UI card." },
+    { name: "Visual Awareness",
+      desc: "Raven sees the user's face and shared screen continuously.",
+      example: "Spots an error on the user's screen, offers the fix in real time." },
+    { name: "Pronunciation Dictionary",
+      desc: "Teach the TTS to say specific names and jargon correctly.",
+      example: "'Tavus' or your CEO's name come out right every time." },
   ];
   function handleShowFeatures() {
     console.log("[viewer] show_features_overview");
     const cards = FEATURES.map(f =>
       `<li><div class="fname">${escapeHtml(f.name)}</div>
-            <div class="fdesc">${escapeHtml(f.desc)}</div></li>`).join("");
+            <div class="fdesc">${escapeHtml(f.desc)}</div>
+            <div class="fdesc" style="opacity:0.7;font-style:italic;margin-top:2px;">
+              e.g. ${escapeHtml(f.example)}</div></li>`).join("");
     // Mark step 1 done, step 2 next.
     const items = TUTOR_STEPS.map((label, i) => {
       const n = i + 1;
@@ -404,7 +418,7 @@
            see what you're working on. Pick how you want to start:</p>
         <div class="start-buttons">
           <button class="start-btn" data-mode="se">Help me build something</button>
-          <button class="start-btn alt" data-mode="tutor">I'm brand new (5-min tutor)</button>
+          <button class="start-btn alt" data-mode="tutor">I'm brand new (10-min tutor)</button>
         </div>
         <div id="start-error"></div>
       </div>`;
