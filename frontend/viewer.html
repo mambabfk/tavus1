@@ -125,11 +125,9 @@
       ${url ? `<iframe class="embed" src="${escapeHtml(url)}" onerror="this.style.display='none'"></iframe>` : ""}`);
   }
   const TUTOR_STEPS = [
-    "Sign in & open Personas",
-    "Pick a replica",
-    "Write the system prompt",
-    "Add a tool",
-    "Start a test conversation",
+    "Create your persona  ·  POST /v2/personas",
+    "Pick your replica  ·  stock or personal",
+    "Start a conversation  ·  POST /v2/conversations",
   ];
   function showTutorProgress(currentStep) {
     const items = TUTOR_STEPS.map((label, i) => {
