@@ -137,7 +137,15 @@
       const cls = n < currentStep ? "done" : n === currentStep ? "now" : "";
       return `<li class="${cls}"><span class="n">${n}</span><span>${escapeHtml(label)}</span></li>`;
     }).join("");
-    setPanel(`<h3>Build your first Tavus agent</h3><ol class="tutor-list">${items}</ol>`);
+    const header = currentStep === 0
+      ? `<h3>Build your first Tavus agent</h3>
+         <div class="card" style="border-color:var(--accent);">
+           <div class="title">Step 0 — share your screen</div>
+           <div class="snippet">Hit the screen-share button in the call controls.
+             Once I can see your screen, we'll start step 1.</div>
+         </div>`
+      : `<h3>Build your first Tavus agent</h3>`;
+    setPanel(`${header}<ol class="tutor-list">${items}</ol>`);
   }
 
   async function handleCreatePersona(convId, args) {

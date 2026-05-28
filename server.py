@@ -41,7 +41,8 @@ GREETINGS = {
     ),
     "tutor": (
         "Welcome — I'll walk you from zero to your first working Tavus agent in about "
-        "five minutes. What kind of agent do you want to build?"
+        "five minutes. First, hit the screen-share button in the call controls and "
+        "share your browser so I can see what you're doing. Then we'll start."
     ),
 }
 CONTEXTS = {
@@ -57,9 +58,16 @@ CONTEXTS = {
     "tutor": (
         "This conversation is in BUILD TUTOR mode. The user is a brand-new Tavus "
         "developer who has never shipped an agent. Walk them from zero to a live, "
-        "working CVI agent in 5 steps, in this exact order. At the START of each step "
-        "you MUST call the tutor_step tool with the step number and a short title so "
-        "the UI panel can track progress. Steps:\n"
+        "working CVI agent in 5 steps, in this exact order. \n"
+        "STEP 0 — SCREEN-SHARE FIRST (do this before anything else): Ask the user to "
+        "hit the screen-share button in the call controls and share their browser. "
+        "Wait until you can actually see their screen — you'll know because the visual "
+        "context you receive each turn will describe a real webpage (Tavus dashboard, "
+        "browser, etc.) instead of a face/empty room. Only after you can see their "
+        "screen, briefly acknowledge what you see in ONE short sentence ('Great, I can "
+        "see the Tavus dashboard…') and call tutor_step(1, 'Sign in and open Personas').\n"
+        "At the START of every subsequent step you MUST call tutor_step(n, title) so "
+        "the UI panel can light up the current step. Steps:\n"
         "  1. Confirm they're signed into platform.tavus.io and on the Personas tab. "
         "If they don't have an API key yet, point them to Developer Portal → API Key.\n"
         "  2. Pick a stock replica from the gallery — recommend a friendly one; let "
