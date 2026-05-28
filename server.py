@@ -242,7 +242,12 @@ def viewer() -> FileResponse:
 @app.get("/config")
 def config() -> dict:
     """Non-secret config the viewer needs in the browser (e.g. Calendly URL)."""
-    return {"calendly_url": os.environ.get("CALENDLY_URL", "")}
+    return {
+        "calendly_url": os.environ.get(
+            "CALENDLY_URL",
+            "https://calendly.com/tim-tavus/ai-video-developer-chat-with-tavus",
+        )
+    }
 
 
 @app.post("/conversations")
