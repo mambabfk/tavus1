@@ -1,0 +1,28 @@
+# Render blueprint — deploys the FastAPI docs+viewer service.
+#
+# Morning deploy:
+#   1. Push to GitHub (already there).
+#   2. render.com → New → Blueprint → connect repo.
+#   3. Render reads this file; you'll be prompted for TAVUS_API_KEY (sync: false).
+#   4. Click Apply. ~3 min build. URL: https://<service-name>.onrender.com
+#
+# The free Starter tier sleeps after ~15 min idle (cold start ~30s).
+# Bump to Starter Plus / Standard for the demo if you want always-on.
+
+services:
+  - type: web
+    name: tavus-solutions-engineer
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: TAVUS_API_KEY
+        sync: false   # set in dashboard at deploy time, not in git
+      - key: PERSONA_ID
+        value: p4c0064ebf72
+      - key: CALENDLY_URL
+        value: https://calendly.com/tim-tavus/ai-video-developer-chat-with-tavus
+      - key: PYTHON_VERSION
+        value: "3.13"
