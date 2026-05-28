@@ -30,10 +30,10 @@ API_KEY = os.environ.get("TAVUS_API_KEY", "")
 PERCEPTION = {
     "perception_model": "raven-1",
     "visual_awareness_queries": [
-        "What is the title or main heading of the page, panel, or window currently open?",
-        "What Tavus feature or task does the user appear to be working on (e.g. creating objectives, configuring a persona, setting up perception)?",
-        "Which area, field, or button does the user appear to be focused on right now?",
-        "Is a clear error, red text, or warning visible, and if so what does it say?",
+        "What page, form, or panel is currently visible on screen? Give its title or main heading.",
+        "On the New Persona form (if visible): is the System Prompt field filled in? If yes, briefly summarize what it says. If empty, say 'empty'.",
+        "On the New Persona form (if visible): which Replica is selected in the dropdown, and is the Persona Name field filled in?",
+        "Has the user moved past the New Persona form — are they now in a live Tavus conversation room with their new agent?",
     ],
     "perception_analysis_queries": [
         "What problem or task was the user working on, based on what was shown on screen?",
