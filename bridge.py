@@ -48,6 +48,7 @@ CONVERSATION_URL = os.environ.get("CONVERSATION_URL", "")
 CONVERSATION_ID = os.environ.get("CONVERSATION_ID", "")
 SAVE_FRAMES = os.environ.get("SAVE_FRAMES", "false").lower() in ("1", "true", "yes")
 FRAMES_DIR = os.environ.get("FRAMES_DIR", "frames")
+CALENDLY_URL = os.environ.get("CALENDLY_URL", "")
 
 
 def create_conversation() -> tuple[str, str]:
@@ -193,8 +194,17 @@ class Bridge(EventHandler):
             self._inject(message, context)
 
         elif name == "escalate_to_human":
-            print(f"[bridge] ESCALATION requested: {args.get('reason')!r}  "
-                  "(hook your own escalation here)")
+            reason = args.get("reason") or "the user seems stuck"
+            print(f"[bridge] ESCALATION requested: {reason!r}")
+            if CALENDLY_URL:
+                self._inject(
+                    message,
+                    "The user sounds frustrated or stuck "
+                    f"(reason: {reason}). Acknowledge it warmly in one short sentence, "
+                    "offer to connect them with a human, and share this scheduling link so "
+                    f"they can grab time: {CALENDLY_URL}. Say the link clearly (short form "
+                    "like the calendly.com path is best when spoken aloud).",
+                )
 
     def _save_frames(self, frames: list) -> None:
         if not frames:
