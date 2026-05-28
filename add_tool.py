@@ -165,11 +165,13 @@ def main() -> None:
     llm = layers.get("llm", {}) or {}
     tools = list(llm.get("tools", []) or [])
 
-    names = {t.get("function", {}).get("name") for t in tools if isinstance(t, dict)}
-    if "search_tavus_docs" in names:
-        print(f"Persona {PERSONA_ID} already has search_tavus_docs. Nothing to do.")
+    existing = {t.get("function", {}).get("name") for t in tools if isinstance(t, dict)}
+    wanted = [t for t in TOOLS if t["function"]["name"] not in existing]
+    if not wanted:
+        present = sorted(existing)
+        print(f"All tools already registered on persona {PERSONA_ID}: {present}")
         return
-    tools.append(TOOL)
+    tools.extend(wanted)
 
     if "llm" not in layers:
         patch = [{"op": "add", "path": "/layers/llm", "value": {"tools": tools}}]
@@ -180,13 +182,12 @@ def main() -> None:
 
     p = httpx.patch(f"{API}/personas/{PERSONA_ID}", headers=headers, json=patch, timeout=30)
     if p.status_code == 304:
-        print(f"Tool already up to date on persona {PERSONA_ID} (no change needed).")
+        print(f"Tools already up to date on persona {PERSONA_ID} (no change needed).")
         return
     if p.status_code >= 400:
         sys.exit(f"PATCH failed ({p.status_code}): {p.text}")
-    print(f"Added search_tavus_docs to persona {PERSONA_ID}. Tool count is now {len(tools)}.")
-    print("Tip: also add to the persona's system prompt: "
-          "'When asked about Tavus, call search_tavus_docs before answering.'")
+    added = [t["function"]["name"] for t in wanted]
+    print(f"Added {added} to persona {PERSONA_ID}. Total tools: {len(tools)}.")
 
 
 if __name__ == "__main__":
