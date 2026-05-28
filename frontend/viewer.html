@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Tavus Solutions Engineer</title>
+<script crossorigin src="https://unpkg.com/@daily-co/daily-js"></script>
+<style>
+  :root {
+    --bg: #0a0d12;
+    --panel: #14171b;
+    --card: #1d2128;
+    --ink: #e6e8eb;
+    --muted: #8a93a0;
+    --accent: #7aa9ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  #app { display: grid; grid-template-columns: 1fr 440px; gap: 10px; padding: 10px;
+    height: 100vh; }
+  #call { background: #000; border-radius: 10px; overflow: hidden; min-width: 0; }
+  #call iframe { width: 100% !important; height: 100% !important; border: 0 !important; }
+  #panel { background: var(--panel); border-radius: 10px; padding: 18px;
+    display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  #panel h2 { margin: 0 0 4px; font-size: 13px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); }
+  #panel-body { flex: 1; min-height: 0; display: flex; flex-direction: column;
+    margin-top: 8px; gap: 12px; }
+  .placeholder { color: var(--muted); font-style: italic; padding-top: 16px; }
+  h3 { margin: 0; font-size: 18px; font-weight: 500; }
+  .card { background: var(--card); padding: 14px 16px; border-radius: 8px;
+    border: 1px solid #232831; }
+  .card .title { font-weight: 600; margin-bottom: 4px; }
+  .card .snippet { color: var(--muted); font-size: 13px; max-height: 140px; overflow: auto; }
+  .card a { color: var(--accent); text-decoration: none; word-break: break-all; }
+  .card a:hover { text-decoration: underline; }
+  iframe.embed { width: 100%; flex: 1; border: 0; border-radius: 8px;
+    background: white; min-height: 420px; }
+  .url-form { padding: 36px; color: var(--muted); }
+  .url-form code { background: #1d2128; padding: 2px 6px; border-radius: 4px;
+    color: var(--ink); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="call"></div>
+  <aside id="panel">
+    <h2>Live Context</h2>
+    <div id="panel-body">
+      <div class="placeholder">Nothing here yet. As the assistant looks something up
+        or offers to schedule, it'll appear in this panel.</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const conversationUrl = params.get("conversation");
+
+  const callDiv = document.getElementById("call");
+  const panelBody = document.getElementById("panel-body");
+
+  function setPanel(html) { panelBody.innerHTML = html; }
+  function escapeHtml(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  if (!conversationUrl) {
+    callDiv.innerHTML = `
+      <div class="url-form">
+        <h3>Open this page with a conversation URL</h3>
+        <p>Append <code>?conversation=&lt;daily-room-url&gt;</code> — e.g.
+          <code>?conversation=https://tavus.daily.co/xxxxxxxx</code>.</p>
+        <p>The bridge prints both the plain URL and the wrapped one when it starts.</p>
+      </div>`;
+  } else {
+    const frame = window.DailyIframe.createFrame(callDiv, {
+      iframeStyle: { width: "100%", height: "100%", border: "0" },
+      showLeaveButton: true,
+    });
+    frame.join({ url: conversationUrl });
+    frame.on("app-message", (ev) => handleMessage(ev?.data));
+  }
+
+  function handleMessage(msg) {
+    if (!msg || typeof msg !== "object") return;
+    const et = msg.event_type || msg.event;
+    const props = msg.properties || {};
+
+    if (et === "ui.show_calendly" && props.url) {
+      const url = props.url;
+      const embedSrc = `${url}${url.includes("?") ? "&" : "?"}embed_domain=${location.hostname}&embed_type=Inline`;
+      setPanel(`
+        <h3>Grab time with me</h3>
+        <iframe class="embed" src="${escapeHtml(embedSrc)}"
+          onerror="this.style.display='none'"></iframe>
+        <div class="card">
+          <div class="title">If the inline view doesn't load, open directly:</div>
+          <a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>
+        </div>`);
+      return;
+    }
+
+    if (et === "ui.show_doc") {
+      const url = props.url || "";
+      const title = props.title || "From the Tavus docs";
+      const snippet = props.snippet || "";
+      // Mintlify often blocks iframing, so we show a rich card and only try the
+      // iframe optimistically — if it fails the card still gives them the link.
+      setPanel(`
+        <h3>${escapeHtml(title)}</h3>
+        <div class="card">
+          ${url ? `<div class="title"><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a></div>` : ""}
+          ${snippet ? `<div class="snippet">${escapeHtml(snippet)}</div>` : ""}
+        </div>
+        ${url ? `<iframe class="embed" src="${escapeHtml(url)}"
+          onerror="this.style.display='none'"></iframe>` : ""}`);
+      return;
+    }
+  }
+</script>
+</body>
+</html>

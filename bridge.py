@@ -76,15 +76,16 @@ def create_conversation() -> tuple[str, str]:
 _docs = httpx.Client(base_url=DOCS_SERVER_URL, timeout=10)
 
 
-def fetch_docs(query: str) -> str:
-    import time
-
+def fetch_docs(query: str) -> tuple[str, list[dict]]:
     t0 = time.perf_counter()
     r = _docs.post("/ask", json={"query": query, "top_k": TOP_K})
     r.raise_for_status()
-    ctx = r.json().get("context", "")
-    print(f"[bridge] docs lookup {(time.perf_counter() - t0) * 1000:.0f}ms, {len(ctx)} chars")
-    return ctx
+    data = r.json()
+    ctx = data.get("context", "")
+    sources = data.get("sources", []) or []
+    print(f"[bridge] docs lookup {(time.perf_counter() - t0) * 1000:.0f}ms, "
+          f"{len(ctx)} chars, {len(sources)} sources")
+    return ctx, sources
 
 
 def build_result_message(conversation_id: str, context: str) -> dict:
@@ -146,6 +147,22 @@ class Bridge(EventHandler):
             self.client.send_app_message(build_result_message(conv_id, context))
             print(f"[bridge] injected {len(context)} chars via {RESULT_MODE}")
 
+    def _broadcast_ui(self, event_type: str, properties: dict) -> None:
+        """Send a custom app-message the viewer page listens for (Calendly card,
+        relevant doc, etc.). The Daily Prebuilt UI just ignores it; viewer renders it."""
+        if not self.client:
+            return
+        try:
+            self.client.send_app_message({
+                "message_type": "ui",
+                "event_type": event_type,
+                "conversation_id": self.conversation_id,
+                "properties": properties,
+            })
+            print(f"[bridge] ui broadcast {event_type} -> {list(properties.keys())}")
+        except Exception as e:
+            print(f"[bridge] ui broadcast failed: {e}", file=sys.stderr)
+
     def handle_llm_tool(self, message: dict) -> None:
         props = message.get("properties", {}) or {}
         name, args = parse_tool_call(props)
@@ -156,12 +173,21 @@ class Bridge(EventHandler):
         print(f"[bridge] tool_call {name}(query={query!r})")
         if not query:
             return
+        sources: list[dict] = []
         try:
-            context = fetch_docs(query)
+            context, sources = fetch_docs(query)
         except Exception as e:
             print(f"[bridge] docs server error: {e}", file=sys.stderr)
             context = f"Documentation lookup failed for: {query}"
         self._inject(message, context)
+        # Show the relevant doc in the viewer panel.
+        if sources:
+            top = sources[0]
+            self._broadcast_ui("ui.show_doc", {
+                "title": top.get("title", ""),
+                "url": top.get("url", ""),
+                "snippet": (context[:600] if context else ""),
+            })
 
     def handle_perception_tool(self, message: dict) -> None:
         props = message.get("properties", {}) or {}
@@ -182,8 +208,9 @@ class Bridge(EventHandler):
             issue = args.get("summary") or args.get("reason") or ""
             if not issue:
                 return
+            sources: list[dict] = []
             try:
-                docs = fetch_docs(f"troubleshoot: {issue}")
+                docs, sources = fetch_docs(f"troubleshoot: {issue}")
             except Exception as e:
                 print(f"[bridge] docs server error: {e}", file=sys.stderr)
                 docs = ""
@@ -192,6 +219,13 @@ class Bridge(EventHandler):
                 f"Relevant Tavus documentation:\n{docs}"
             )
             self._inject(message, context)
+            if sources:
+                top = sources[0]
+                self._broadcast_ui("ui.show_doc", {
+                    "title": top.get("title", ""),
+                    "url": top.get("url", ""),
+                    "snippet": (docs[:600] if docs else issue),
+                })
 
         elif name == "escalate_to_human":
             reason = args.get("reason") or "the user seems stuck"
@@ -201,13 +235,12 @@ class Bridge(EventHandler):
                     message,
                     "The user sounds frustrated or stuck "
                     f"(reason: {reason}). Acknowledge it warmly in one short sentence, "
-                    "say you'll drop your Calendly in chat, and that they can grab time "
-                    f"there. The link is {CALENDLY_URL}.",
+                    "tell them you're pulling up your calendar so they can grab time. "
+                    f"The link is {CALENDLY_URL}.",
                 )
-                # Also try to post the link to Daily's built-in chat panel as a
-                # clickable visual cue. The Daily Prebuilt UI listens for this
-                # app-message shape; if Tavus's room renders it, the user sees a
-                # chat line. If not, the persona still speaks the link.
+                # Show the Calendly inline in the viewer panel (and post a chat
+                # line as a fallback for users on the bare Daily UI).
+                self._broadcast_ui("ui.show_calendly", {"url": CALENDLY_URL, "reason": reason})
                 if self.client:
                     try:
                         self.client.send_app_message({
@@ -215,7 +248,6 @@ class Bridge(EventHandler):
                             "message": f"Grab time on my calendar: {CALENDLY_URL}",
                             "from": "Assistant",
                         })
-                        print("[bridge] posted Calendly link to chat")
                     except Exception as e:
                         print(f"[bridge] chat-msg send failed: {e}", file=sys.stderr)
 
@@ -241,9 +273,12 @@ def main() -> None:
             sys.exit("CONVERSATION_URL was given without CONVERSATION_ID.")
     else:
         url, conv_id = create_conversation()
-        print("\n=== Open this URL in your browser to talk to the persona ===")
-        print(url)
-        print("============================================================\n")
+        from urllib.parse import quote
+        viewer_url = f"{DOCS_SERVER_URL}/viewer?conversation={quote(url, safe='')}"
+        print("\n=== Open ONE of these in your browser ===")
+        print(f"  Plain Daily UI:    {url}")
+        print(f"  With visual panel: {viewer_url}")
+        print("==========================================\n")
 
     # Verify the docs server is reachable before joining.
     try:

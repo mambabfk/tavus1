@@ -23,6 +23,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from rank_bm25 import BM25Okapi
 
@@ -227,6 +228,13 @@ def ask(req: SearchRequest) -> dict:
         "context": _format_context(req.query, results),
         "sources": [{"title": r["title"], "url": r["url"]} for r in results],
     }
+
+
+@app.get("/viewer")
+def viewer() -> FileResponse:
+    """Serve the embedded conversation + live-context-panel viewer.
+    Open it with ?conversation=<daily-room-url>."""
+    return FileResponse(os.path.join(os.path.dirname(__file__), "frontend", "viewer.html"))
 
 
 @app.post("/reload")
