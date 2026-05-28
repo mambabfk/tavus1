@@ -96,6 +96,41 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "ask_feature_question",
+            "description": (
+                "BUILD TUTOR MODE. Replaces the static features overview with a "
+                "personalized one. Call this SIX times in order — once per Tavus "
+                "feature (Knowledge Base, Objectives, Guardrails, Tool Calling, "
+                "Visual Awareness, Pronunciation Dictionary). Each call carries a "
+                "pointed multi-choice question TAILORED to this user's specific "
+                "use case from step 1. The UI panel renders the question + 2-4 "
+                "options as a card; the user speaks their answer. Affirm in one "
+                "line, move to next feature."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "feature": {
+                        "type": "string",
+                        "description": "Feature name: Knowledge Base, Objectives, Guardrails, Tool Calling, Visual Awareness, or Pronunciation Dictionary.",
+                    },
+                    "question": {
+                        "type": "string",
+                        "description": "Pointed one-sentence question tailored to this user's stated use case (not generic).",
+                    },
+                    "options": {
+                        "type": "array",
+                        "description": "2-4 short multi-choice options tailored to the use case.",
+                        "items": {"type": "string"},
+                    },
+                },
+                "required": ["feature", "question", "options"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "show_session_recap",
             "description": (
                 "BUILD TUTOR MODE — call at the very END of the tutor, AFTER "

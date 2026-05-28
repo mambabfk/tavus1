@@ -91,6 +91,18 @@
   .recap-list a { color: var(--accent); text-decoration: none; }
   .recap-list a:hover { text-decoration: underline; }
   .recap-list .fdesc { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  /* Personalized feature question card */
+  .question-card { background: var(--card); padding: 16px; border-radius: 10px;
+    border: 1px solid var(--line); }
+  .question-card .qtext { font-size: 15px; line-height: 1.45; margin-bottom: 12px;
+    color: var(--ink); }
+  .opt-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .opt-list .opt { background: var(--bg); padding: 10px 14px; border-radius: 8px;
+    border: 1px solid var(--line); font-size: 13px; color: var(--ink);
+    display: grid; grid-template-columns: 24px 1fr; gap: 8px; align-items: baseline; }
+  .opt-list .opt .marker { font-family: ui-monospace, monospace; color: var(--muted); }
+  .feature-label { font-size: 12px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 4px; }
 </style>
 </head>
 <body>
@@ -267,6 +279,31 @@
     `);
   }
 
+  function handleAskFeatureQuestion(args) {
+    const feature = String(args.feature || "");
+    const question = String(args.question || "");
+    const options = Array.isArray(args.options) ? args.options : [];
+    console.log("[viewer] ask_feature_question", feature);
+    const letters = ["A", "B", "C", "D", "E"];
+    const opts = options.map((o, i) =>
+      `<li class="opt"><span class="marker">${letters[i] || (i + 1)}</span><span>${escapeHtml(String(o))}</span></li>`
+    ).join("");
+    const items = TUTOR_STEPS.map((label, i) => {
+      const n = i + 1;
+      const cls = n === 1 ? "now" : "";
+      return `<li class="${cls}"><span class="n">${n}</span><span>${escapeHtml(label)}</span></li>`;
+    }).join("");
+    setPanel(`
+      <div class="feature-label">${escapeHtml(feature)}</div>
+      <h3 style="margin-top:2px;">Design this part of your agent</h3>
+      <div class="question-card">
+        <div class="qtext">${escapeHtml(question)}</div>
+        <ul class="opt-list">${opts}</ul>
+      </div>
+      <ol class="tutor-list" style="margin-top: 16px;">${items}</ol>
+    `);
+  }
+
   function handleShowFeatures() {
     console.log("[viewer] show_features_overview");
     const cards = FEATURES.map(f =>
@@ -437,6 +474,8 @@
         handleSuggestPrompt(args);
       } else if (name === "show_features_overview") {
         handleShowFeatures();
+      } else if (name === "ask_feature_question") {
+        handleAskFeatureQuestion(args);
       } else if (name === "show_session_recap") {
         handleSessionRecap(args);
       } else if (name === "create_persona_for_me") {
