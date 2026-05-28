@@ -166,16 +166,28 @@
     if (sources[0]) showDoc(sources[0].title, sources[0].url, docs.slice(0, 600));
   }
 
+  // Audio perception fired escalate: only ASK the user, don't surface calendar yet.
   function handleEscalate(convId, reason) {
-    console.log("[viewer] escalate_to_human", reason);
+    console.log("[viewer] escalate_to_human -> ask user", reason);
+    inject(convId,
+      `The user seems stuck (reason: ${reason}). In ONE short sentence, gently ask if ` +
+      `they'd like to schedule a quick call with a human to work through it. Do NOT share ` +
+      `any calendar link or specifics yet — wait for their answer. If they agree, you may ` +
+      `then call the offer_calendar tool to pull up the calendar.`);
+    // Intentionally NOT showing Calendly here.
+  }
+
+  // LLM-side tool: only call after user agreed -> actually show Calendly.
+  function handleOfferCalendar(convId, reason) {
+    console.log("[viewer] offer_calendar", reason);
     if (!calendlyUrl) {
       console.log("[viewer] no CALENDLY_URL configured on server");
+      inject(convId, "Tell the user there's no calendar configured yet and you'll follow up by email.");
       return;
     }
     inject(convId,
-      `The user sounds frustrated or stuck (reason: ${reason}). Acknowledge it warmly, ` +
-      `tell them you're pulling up your calendar so they can grab time. ` +
-      `The link is ${calendlyUrl}.`);
+      `The user agreed to schedule. Say one short, warm sentence that you're pulling up ` +
+      `the calendar now and they can grab any time that works. Then go quiet while they pick.`);
     showCalendly(calendlyUrl);
   }
 
@@ -192,6 +204,8 @@
       if (name === "search_tavus_docs") {
         const q = args.query || args.q || "";
         if (q) handleSearchDocs(convId, q);
+      } else if (name === "offer_calendar") {
+        handleOfferCalendar(convId, args.reason || "");
       }
       return;
     }

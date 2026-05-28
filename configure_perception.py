@@ -94,27 +94,29 @@ PERCEPTION = {
         },
     ],
     "audio_tool_prompt": (
-        "You have a tool named `escalate_to_human`. Call it ONLY in these specific "
-        "cases: (1) the user explicitly asks to speak with a human, book a call, see a "
-        "calendar, or schedule time; (2) the user explicitly says the help isn't working "
-        "or that they want to give up; (3) the user has shown clear, sustained frustration "
-        "across multiple turns AND prior attempts to help have failed. Do NOT call it for "
-        "normal questions, brief pauses, thinking-out-loud, mild confusion, technical "
-        "uncertainty that is currently being resolved, or single instances of frustration. "
-        "When in any doubt, do NOT call it."
+        "You have a tool named `escalate_to_human`. Call it ONLY when the user sounds "
+        "genuinely stuck or distressed across multiple turns (not normal pauses, thinking "
+        "out loud, or mild confusion). When you call it, it does NOT pull up a calendar — "
+        "it simply nudges the persona to ASK the user whether they'd like to schedule a "
+        "call with a human. Do not call it for every signal of confusion. When in doubt, "
+        "do NOT call it."
     ),
     "audio_tools": [
         {
             "type": "function",
             "function": {
                 "name": "escalate_to_human",
-                "description": "Escalate to a human when sustained user frustration is detected.",
+                "description": (
+                    "Fires when the user sounds genuinely stuck so the persona can check "
+                    "in. Does not surface a calendar — the persona must ask the user, and "
+                    "only then call the `offer_calendar` tool if the user agrees."
+                ),
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "reason": {
                             "type": "string",
-                            "description": "Why escalation is warranted.",
+                            "description": "Why the user seems stuck.",
                             "maxLength": 1000,
                         }
                     },

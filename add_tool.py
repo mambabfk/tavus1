@@ -19,27 +19,53 @@ API = "https://tavusapi.com/v2"
 PERSONA_ID = (sys.argv[1] if len(sys.argv) > 1 else os.environ.get("PERSONA_ID", "p4c0064ebf72"))
 API_KEY = os.environ.get("TAVUS_API_KEY", "")
 
-TOOL = {
-    "type": "function",
-    "function": {
-        "name": "search_tavus_docs",
-        "description": (
-            "Look up Tavus documentation to answer questions about CVI, personas, "
-            "replicas, conversations, the API, and integrations. Call this before "
-            "answering any question about how Tavus works."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "The user's question about Tavus, in natural language.",
-                }
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "search_tavus_docs",
+            "description": (
+                "Look up Tavus documentation to answer questions about CVI, personas, "
+                "replicas, conversations, the API, and integrations. Call this before "
+                "answering any question about how Tavus works."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The user's question about Tavus, in natural language.",
+                    }
+                },
+                "required": ["query"],
             },
-            "required": ["query"],
         },
     },
-}
+    {
+        "type": "function",
+        "function": {
+            "name": "offer_calendar",
+            "description": (
+                "Use this ONLY AFTER the user has explicitly agreed or confirmed that "
+                "they want to schedule time with a human (e.g. they said 'yes', 'sure', "
+                "'please do', 'send me your calendar'). Do NOT call this proactively or "
+                "just because the user is stuck — first ASK them out loud: 'Want me to "
+                "pull up my calendar so you can grab time?' and only call this tool once "
+                "they affirm. The reason field captures what they want to discuss."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "description": "What the user wants to discuss with a human.",
+                    }
+                },
+                "required": ["reason"],
+            },
+        },
+    },
+]
 
 
 def main() -> None:
