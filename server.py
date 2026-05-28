@@ -260,7 +260,14 @@ def create_conversation():
             {"error": "Set TAVUS_API_KEY and PERSONA_ID on the server before calling /conversations."},
             status_code=500,
         )
-    body = {"persona_id": persona_id}
+    body = {
+        "persona_id": persona_id,
+        "custom_greeting": os.environ.get(
+            "CUSTOM_GREETING",
+            "Hey — I'm Tavus's solutions engineer. Here to help you build anything. "
+            "What are we breaking… I mean, building today?",
+        ),
+    }
     replica_id = os.environ.get("REPLICA_ID", "")
     if replica_id:
         body["replica_id"] = replica_id
