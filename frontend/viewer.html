@@ -171,9 +171,13 @@
     const header = currentStep === 0
       ? `<h3>Build your first Tavus agent</h3>
          <div class="card" style="border-color:var(--accent);">
-           <div class="title">Step 0 — share your screen, then go to platform.tavus.io/dev/personas/create</div>
-           <div class="snippet">Hit screen-share in the call controls, then open
-             the New Persona form. Once I can see it, we'll go.</div>
+           <div class="title">Step 0 — share your screen, then open the form</div>
+           <div class="snippet">Hit screen-share in the call controls, then go to:
+             <br/><a href="https://platform.tavus.io/dev/personas/create"
+                target="_blank" rel="noopener"
+                style="color:var(--accent); word-break:break-all;">
+                platform.tavus.io/dev/personas/create →</a>
+             <br/>Once I can see the form, we'll go.</div>
          </div>`
       : `<h3>Build your first Tavus agent</h3>`;
     setPanel(`${header}<ol class="tutor-list">${items}</ol>`);
@@ -252,15 +256,21 @@
   function handleSessionRecap(args) {
     console.log("[viewer] show_session_recap", args);
     const personaName = String(args && args.persona_name || "your persona");
+    const choices = Array.isArray(args && args.choices) ? args.choices : [];
     const covered = [
       "Created a persona via POST /v2/personas",
       "Picked a stock replica",
-      "Saw Tavus's 6 differentiator features",
+      "Designed your agent's powers (KB, objectives, guardrails…)",
       "Watched a tool call build live UI",
       "Started a live conversation with your agent",
     ];
     const coveredHtml = covered.map(c =>
       `<li><span class="done-mark">✓</span><span>${escapeHtml(c)}</span></li>`).join("");
+    const choicesHtml = choices.map(c =>
+      `<li><span class="done-mark">✓</span><span>
+        <strong>${escapeHtml(String(c.feature || ""))}</strong>
+        <div class="fdesc">${escapeHtml(String(c.decision || ""))}</div></span></li>`
+    ).join("");
     const nextHtml = NEXT_STEPS.map(n =>
       `<li><span class="todo-mark">☐</span><span>
         <a href="${escapeHtml(n.url)}" target="_blank" rel="noopener">
@@ -272,6 +282,11 @@
         <strong style="font-size:12px;letter-spacing:0.12em;color:var(--muted);">YOU COVERED</strong>
       </div>
       <ul class="recap-list">${coveredHtml}</ul>
+      ${choices.length ? `
+        <div style="margin: 16px 0 8px;">
+          <strong style="font-size:12px;letter-spacing:0.12em;color:var(--muted);">YOUR DESIGN DECISIONS</strong>
+        </div>
+        <ul class="recap-list">${choicesHtml}</ul>` : ""}
       <div style="margin: 16px 0 8px;">
         <strong style="font-size:12px;letter-spacing:0.12em;color:var(--muted);">EXPLORE NEXT</strong>
       </div>
@@ -323,6 +338,9 @@
       <div class="question-card">
         <div class="qtext">${escapeHtml(question)}</div>
         <ul class="opt-list">${opts}</ul>
+        <div style="margin-top:10px; font-size:12px; color:var(--muted); font-style:italic;">
+          Starting points — feel free to brainstorm something off-menu.
+        </div>
       </div>
       <ol class="tutor-list" style="margin-top: 16px;">${items}</ol>
     `);

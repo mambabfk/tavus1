@@ -170,10 +170,10 @@ TOOLS = [
             "name": "show_session_recap",
             "description": (
                 "BUILD TUTOR MODE — call at the very END of the tutor, AFTER "
-                "create_persona_for_me has fired. Renders a wrap-up checklist in "
-                "the side panel showing what the user covered this session "
-                "(checked) and what's left to explore (unchecked, with doc links). "
-                "This is the 'so what's next' SE-style hand-off."
+                "create_persona_for_me has fired. Renders a wrap-up panel: what "
+                "the user covered, the design DECISIONS they made for each "
+                "feature (you remember those across the conversation), and what's "
+                "left to explore. This is the SE-style hand-off."
             ),
             "parameters": {
                 "type": "object",
@@ -181,6 +181,26 @@ TOOLS = [
                     "persona_name": {
                         "type": "string",
                         "description": "The name of the persona they just minted.",
+                    },
+                    "choices": {
+                        "type": "array",
+                        "description": (
+                            "The user's design decisions for each feature you "
+                            "discussed. One short line per feature summarizing "
+                            "WHAT THEY SAID they want (not what you suggested). "
+                            "Skip features they opted out of."
+                        ),
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "feature": {"type": "string"},
+                                "decision": {
+                                    "type": "string",
+                                    "description": "One-line summary of what the user decided for this feature.",
+                                },
+                            },
+                            "required": ["feature", "decision"],
+                        },
                     },
                 },
                 "required": [],
