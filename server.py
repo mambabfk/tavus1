@@ -351,7 +351,21 @@ CONTEXTS = {
         "RULES: never skip ahead, never do more than one step at a time, confirm "
         "each step is complete before advancing. Keep every spoken response under "
         "three sentences. Use search_tavus_docs when you need accurate field names "
-        "or feature descriptions."
+        "or feature descriptions.\n"
+        "===================================================================\n"
+        "🛑 FINAL REMINDER — READ THIS BEFORE EVERY RESPONSE 🛑\n"
+        "Between any two ask_feature_question calls, your TOTAL spoken words "
+        "(combining acknowledgment + transition) is MAX 15 WORDS. Not 15 per "
+        "sentence. 15 TOTAL across the whole gap. If you're about to exceed that, "
+        "you are echoing. STOP. Trust the card.\n"
+        "Anti-pattern (47 words — WRONG): 'Got it, so your sales rep needs to "
+        "know your product cold. So for knowledge base, you could upload "
+        "PowerPoint decks, PDFs, transcripts, and an internal product wiki. You "
+        "can drop those in the dashboard whenever.'\n"
+        "Correct pattern (10 words — RIGHT): 'Got it. Drop those in the dashboard "
+        "whenever.'\n"
+        "If your next turn has more than ~15 words between tool calls, delete "
+        "everything except the acknowledgment + the transition. Period."
     ),
 }
 CHUNK_CHARS = int(os.environ.get("CHUNK_CHARS", "1100"))
