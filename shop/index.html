@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rover &amp; Co. — Premium Dog Leashes</title>
+  <meta name="description" content="Handsome, durable dog leashes for every adventure. Free shipping over $50." />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦮</text></svg>" />
+</head>
+<body>
+  <header class="site">
+    <div class="bar">
+      <div class="brand">
+        <span class="paw">🐾</span>
+        <span>Rover &amp; Co.<small>Leashes for the journey</small></span>
+      </div>
+      <nav class="links">
+        <a href="#shop">Shop</a>
+        <a href="#why">Why us</a>
+        <a href="#shop">Bestsellers</a>
+      </nav>
+      <button class="cart-btn" id="cart-open" aria-label="Open cart">
+        🛒 Cart
+        <span class="cart-count" id="cart-count" style="display:none">0</span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div>
+        <h1>Leashes your dog will love. Built for the long walk.</h1>
+        <p>Thoughtfully designed leads in durable, weather-ready materials —
+          from rugged trail ropes to buttery full-grain leather. Free shipping over $50.</p>
+        <button class="cta" id="shop-now">Shop the collection</button>
+        <div class="pills">
+          <span class="pill">⭐ 12,000+ happy pups</span>
+          <span class="pill">♻️ Lifetime hardware warranty</span>
+          <span class="pill">🚚 Free returns</span>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="leash">🦮</div>
+        <h3>The Trailblazer</h3>
+        <span>Our bestselling hiking leash — now in three new colors.</span>
+      </div>
+    </section>
+
+    <div class="section-head" id="shop">
+      <h2>Shop leashes</h2>
+      <span>8 designs, made to last</span>
+    </div>
+    <section class="grid" id="grid"><!-- products injected by app.js --></section>
+
+    <section class="trust" id="why">
+      <div class="inner">
+        <div class="item"><b>🧵 Built tough</b><span>Climbing-grade materials &amp; solid brass hardware.</span></div>
+        <div class="item"><b>🚚 Fast &amp; free</b><span>Free shipping on orders over $50, always.</span></div>
+        <div class="item"><b>↩️ 60-day returns</b><span>Not a perfect fit? Send it back, no questions.</span></div>
+        <div class="item"><b>🐶 Pup-approved</b><span>Designed with vets and rescue trainers.</span></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site">
+    © <span id="year"></span> Rover &amp; Co. — A demo storefront. All products are fictional. 🐾
+  </footer>
+
+  <!-- Cart / checkout drawer -->
+  <div class="overlay" id="overlay"></div>
+  <aside class="drawer" id="drawer" aria-label="Shopping cart">
+    <header>
+      <h2 id="drawer-title">Your Cart</h2>
+      <button class="close" id="drawer-close" aria-label="Close cart">×</button>
+    </header>
+    <div class="items" id="items"></div>
+    <div class="checkout-view" id="checkout-view" style="display:none"></div>
+    <div class="summary" id="summary"></div>
+  </aside>
+
+  <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+  <script src="products.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
