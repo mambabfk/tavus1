@@ -43,12 +43,14 @@
   .hero .cta { background: var(--accent); color: #fff; border: none; border-radius: 999px;
     padding: 14px 28px; font-weight: 800; font-size: 16px; }
   .hero .cta:hover { background: var(--accent-dark); }
-  .hero-card { background: linear-gradient(135deg, #2f7d4f, #173d27); border-radius: 24px;
-    box-shadow: var(--shadow); padding: 28px; color: #fff; min-height: 240px;
+  .hero-card { position: relative; overflow: hidden; background: linear-gradient(135deg, #2f7d4f, #173d27);
+    border-radius: 24px; box-shadow: var(--shadow); color: #fff; min-height: 340px;
     display: flex; flex-direction: column; justify-content: flex-end; }
-  .hero-card .leash { font-size: 90px; line-height: 1; margin-bottom: auto; }
+  .hero-card img.hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+  .hero-card .cap { position: relative; z-index: 2; padding: 24px 28px;
+    background: linear-gradient(to top, rgba(0,0,0,.65), rgba(0,0,0,.05) 70%, transparent); }
   .hero-card h3 { margin: 0 0 4px; font-size: 22px; }
-  .hero-card span { opacity: 0.85; }
+  .hero-card span { opacity: 0.9; }
   .pills { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
   .pill { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; color: var(--muted); }
 
@@ -76,6 +78,17 @@
   .trust .inner { max-width: 1140px; margin: 0 auto; padding: 28px 20px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
   .trust .item b { display: block; font-size: 16px; }
   .trust .item span { color: #b8b0a2; font-size: 14px; }
+
+  .models { max-width: 1140px; margin: 10px auto 50px; padding: 0 20px;
+    display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 32px; align-items: center; }
+  .models .photo { border-radius: 20px; overflow: hidden; box-shadow: var(--shadow);
+    aspect-ratio: 4/3; background: linear-gradient(135deg, #d8cdb8, #b9ac90); }
+  .models .photo img { width: 100%; height: 100%; object-fit: cover; }
+  .models h2 { font-size: 30px; letter-spacing: -0.6px; margin: 0 0 10px; }
+  .models p { color: var(--muted); font-size: 17px; margin: 0 0 16px; }
+  .models .who { display: flex; gap: 20px; }
+  .models .who b { display: block; }
+  .models .who span { color: var(--muted); font-size: 14px; }
 
   footer.site { max-width: 1140px; margin: 0 auto; padding: 36px 20px 60px; color: var(--muted); font-size: 14px; }
 
@@ -120,6 +133,7 @@
     .hero { grid-template-columns: 1fr; }
     .hero-card { order: -1; }
     .trust .inner { grid-template-columns: repeat(2, 1fr); }
+    .models { grid-template-columns: 1fr; }
     nav.links { display: none; }
   }
   @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
@@ -134,8 +148,8 @@
       </div>
       <nav class="links">
         <a href="#shop">Shop</a>
+        <a href="#models">Our models</a>
         <a href="#why">Why us</a>
-        <a href="#shop">Bestsellers</a>
       </nav>
       <button class="cart-btn" id="cart-open" aria-label="Open cart">
         🛒 Cart
@@ -158,9 +172,12 @@
         </div>
       </div>
       <div class="hero-card">
-        <div class="leash">🦮</div>
-        <h3>The Trailblazer</h3>
-        <span>Our bestselling hiking leash — now in three new colors.</span>
+        <!-- Drop your photo in as shop/models.jpg. If it's missing the gradient shows instead. -->
+        <img class="hero-photo" src="models.jpg" alt="Biscuit & Marshmallow, our model pups" onerror="this.remove()" />
+        <div class="cap">
+          <h3>Meet Biscuit &amp; Marshmallow 🐾</h3>
+          <span>Our resident models — they test-drive every leash before it ships.</span>
+        </div>
       </div>
     </section>
 
@@ -169,6 +186,21 @@
       <span>8 designs, made to last</span>
     </div>
     <section class="grid" id="grid"><!-- products injected below --></section>
+
+    <section class="models" id="models">
+      <div class="photo">
+        <img src="models.jpg" alt="Biscuit & Marshmallow, our two model pups" onerror="this.remove()" />
+      </div>
+      <div>
+        <h2>Meet our models 🐶</h2>
+        <p>Every Rover &amp; Co. leash is tried, tugged, and thoroughly approved by our
+          two in-house experts before it ever reaches your pup.</p>
+        <div class="who">
+          <div><b>Biscuit</b><span>Senior fluff officer.<br>Loves the Trailblazer.</span></div>
+          <div><b>Marshmallow</b><span>Chief nap inspector.<br>Partial to the Heritage lead.</span></div>
+        </div>
+      </div>
+    </section>
 
     <section class="trust" id="why">
       <div class="inner">
