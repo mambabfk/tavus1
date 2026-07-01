@@ -447,10 +447,11 @@ def create_conversation(payload: dict = Body(default={})):
     """Mint a fresh Tavus conversation. Body: {"mode": "se" | "tutor"}.
     Same persona for both; conversational_context steers behavior."""
     api_key = os.environ.get("TAVUS_API_KEY", "")
-    persona_id = os.environ.get("PERSONA_ID", "")
-    if not api_key or not persona_id:
+    # Default to the Maya Teladoc PAL; PERSONA_ID env var overrides.
+    persona_id = os.environ.get("PERSONA_ID", "") or "p6df16f48450"
+    if not api_key:
         return JSONResponse(
-            {"error": "Set TAVUS_API_KEY and PERSONA_ID on the server before calling /conversations."},
+            {"error": "Set TAVUS_API_KEY on the server before calling /conversations."},
             status_code=500,
         )
     mode = str((payload or {}).get("mode", "se")).lower()
