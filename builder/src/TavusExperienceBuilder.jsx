@@ -409,27 +409,22 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
   const [videoShift, setVideoShift] = useState(0);
   const onCanvasLayout = useCallback((l) => setVideoShift(l?.active ? l.video_shift_x || 0 : 0), []);
 
-  // Load @tavus/cvi-ui components if installed (npx @tavus/cvi-ui@latest add conversation magic-canvas).
-  // import.meta.glob keeps the build green when they're absent and bundles them when present.
-  // Falls back to a plain iframe when they aren't installed.
-  const [cvi, setCvi] = useState(undefined); // undefined=loading, null=unavailable, object=ready
+  // Load the vendored CVI components (committed under src/components/cvi).
+  // The custom call UI is the ONLY call path — there is no hosted-iframe
+  // fallback. A load failure (e.g. a chunk lost to a network blip) shows a
+  // reload prompt instead of silently downgrading to the Daily prebuilt UI.
+  const [cvi, setCvi] = useState(undefined); // undefined=loading, null=load failed, object=ready
   useEffect(() => {
     let alive = true;
-    // Escape hatch: ?ui=iframe forces the Tavus-hosted call UI even when the
-    // custom components are installed (they have a known connect-hang risk).
-    if (new URLSearchParams(window.location.search).get("ui") === "iframe") {
-      setCvi(null);
-      return () => { alive = false; };
-    }
     const mods = import.meta.glob("./components/cvi/components/*/index.{tsx,ts,jsx,js}");
     const load = (name) => {
       const key = Object.keys(mods).find((k) => k.includes(`/${name}/`));
-      return key ? mods[key]() : Promise.reject(new Error(`${name} not installed`));
+      return key ? mods[key]() : Promise.reject(new Error(`${name} not bundled`));
     };
     Promise.all([load("cvi-provider"), load("conversation"), load("magic-canvas")])
       .then(([p, c, m]) => alive && setCvi({ CVIProvider: p.CVIProvider, Conversation: c.Conversation, MagicCanvas: m.MagicCanvas }))
       .catch((e) => {
-        console.warn("[builder] custom CVI UI unavailable, using hosted iframe:", e);
+        console.error("[builder] call interface failed to load:", e);
         if (alive) setCvi(null);
       });
     return () => { alive = false; };
@@ -466,12 +461,12 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
         </CVIProvider>
       );
     }
+    // Load failed — never fall back to the Daily prebuilt UI; ask for a reload.
     return (
-      <iframe
-        src={conversationUrl}
-        allow="camera; microphone; autoplay; display-capture; fullscreen"
-        title="Live conversation"
-      />
+      <div className="demo-cta">
+        <span className="demo-cta-hint">The call interface didn't load — usually a momentary network blip.</span>
+        <button className="pill-btn primary" onClick={() => window.location.reload()}>Reload</button>
+      </div>
     );
   };
 
@@ -544,13 +539,6 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
           </div>
         ) : (
           <div className="demo-stage">{stage()}</div>
-        )}
-
-        {conversationUrl && cvi === null && (
-          <p className="demo-cta-hint" style={{ marginTop: 14, maxWidth: 560, textAlign: "center" }}>
-            Showing the default call UI. For the fully custom Alto call experience, install the Tavus components:
-            run <code>npx @tavus/cvi-ui@latest add conversation magic-canvas</code> in the project, then restart.
-          </p>
         )}
 
         <span className="demo-powered">powered by tavus</span>

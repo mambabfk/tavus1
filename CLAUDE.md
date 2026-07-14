@@ -191,15 +191,14 @@ to copy that curl and run it from a terminal/backend.
 
 Full-screen branded shell rendered when `siteMode` is true.
 
-- **Call UI is chosen at runtime.** On mount it loads the Tavus CVI components
-  via `import.meta.glob("./components/cvi/components/*/index.{tsx,ts,jsx,js}")` —
-  glob (not a static dynamic import) so the Vite build stays green when the
-  components aren't installed, and bundles them lazily when they are.
+- **The custom CVI call UI is the ONLY call path** (per explicit product
+  decision — never show the Daily prebuilt/hosted iframe). Components are
+  vendored under `src/components/cvi/` and loaded via
+  `import.meta.glob("./components/cvi/components/*/index.{tsx,ts,jsx,js}")`.
   - `cvi === undefined` → loading
   - `cvi` object → render custom `<CVIProvider><Conversation/><MagicCanvas/></CVIProvider>`
-  - `cvi === null` → components not installed → fall back to a plain `<iframe
-    src={conversationUrl}>` (Tavus-hosted call UI), and show a hint to run
-    `npx @tavus/cvi-ui@latest add conversation magic-canvas`.
+  - `cvi === null` → chunk load failure → a "Reload" prompt. There is **no
+    iframe fallback** and no `?ui=` escape hatch.
 - `useTabRecorder()` — records the tab (getDisplayMedia) mixed with mic audio
   via an `AudioContext`, downloads a `.webm`. Independent of Tavus.
 
@@ -214,9 +213,9 @@ gates the join effect on `useDaily()` so it fires once the call object
 exists. **Don't regress this when re-running `npx @tavus/cvi-ui add` — the
 CLI's `--overwrite` will clobber the patched file.**
 
-The hosted-iframe fallback remains in `DemoSite` (components absent → plain
-`<iframe>`; also forceable via `?ui=iframe` on the demo page URL) — keep it
-working; it's the escape hatch.
+(Historical note: a hosted-iframe fallback existed until the user asked for
+the prebuilt UI to be impossible; it was removed once this fix made the
+custom path reliable.)
 
 ## Design system — Alto
 
@@ -250,4 +249,4 @@ real local Vite app.
 - Prefer `PUT` for skill attaches (full overwrite). If you switch to `PATCH`,
   remember the components-map replacement gotcha above.
 - Retheme via `:root` tokens, not scattered literals.
-- Never break the iframe fallback in `DemoSite` — it is the working call path.
+- Never reintroduce a hosted-iframe/Daily-prebuilt call path — the custom CVI UI is the only sanctioned call surface.
