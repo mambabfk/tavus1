@@ -174,8 +174,27 @@
 	transition: all 0.3s ease;
 }
 
+/* Presenting (PAL slides or local screenshare): the stage and the slide are
+   both ~16:9, so `contain` alone still fills edge-to-edge and ANY corner
+   overlay covers content. Reserve a right-hand rail as wide as the preview
+   thumbnails (width + margins) and letterbox the slide into what's left —
+   slide pixels and previews never overlap at any size. */
 .mainVideoScreenSharing {
 	object-fit: contain !important;
+	width: auto !important;
+	right: 8.5rem; /* 6rem preview + gutters */
+}
+
+@container conversation (min-width: 768px) {
+	.mainVideoScreenSharing {
+		right: 9.5rem; /* 7rem preview + gutters */
+	}
+}
+
+@container conversation (min-width: 1024px) {
+	.mainVideoScreenSharing {
+		right: 10.5rem; /* 8rem preview + gutters */
+	}
 }
 
 .mainVideoHidden {

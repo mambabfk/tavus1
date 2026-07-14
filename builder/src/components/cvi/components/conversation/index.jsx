@@ -107,6 +107,9 @@ const MainVideo = React.memo(() => {
 		<div
 			className={`${styles.mainVideoContainer} ${showingScreen ? styles.mainVideoContainerScreenSharing : ''}`}
 		>
+			{/* While presenting, slide content must never sit under the preview
+			    thumbnails — mainVideoScreenSharing reserves a right-hand rail for
+			    them and letterboxes the slide into the remaining space. */}
 			<DailyVideo
 				automirror
 				sessionId={mainSessionId}
