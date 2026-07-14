@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { isAuthed } from "./_auth.js";
 
 /* Vercel serverless function: drafts a Tavus persona system prompt with Claude.
    The Anthropic key lives server-side (ANTHROPIC_API_KEY env var on Vercel) —
@@ -41,6 +42,11 @@ function briefToPrompt(brief, context) {
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "POST only" });
+    return;
+  }
+
+  if (!isAuthed(req)) {
+    res.status(401).json({ error: "Not signed in — enter the access code first." });
     return;
   }
 

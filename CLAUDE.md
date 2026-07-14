@@ -26,7 +26,15 @@ Anthropic key.
   Claude (`claude-opus-4-8`, `@anthropic-ai/sdk`, adaptive thinking, streamed
   as plain text) to draft a persona system prompt. Requires the
   `ANTHROPIC_API_KEY` env var on Vercel — the key never reaches the browser.
+- `builder/api/login.js` + `builder/api/_auth.js` — shared access-code login.
+  When `BUILDER_PASSWORD` is set, the UI gates behind a lock screen and
+  `generate-persona` requires the HMAC session cookie (stateless — derived
+  from the password, so rotating the password revokes all sessions). Unset =
+  open (local dev).
 - `builder/vercel.json` — bumps the function's `maxDuration` to 60s.
+- Note: the repo **root** `api/`, `vercel.json`, `package.json`, and
+  `.vercelignore` mirror `builder/` so the Vercel project can build from the
+  repo root with zero config. Keep root `api/` in sync with `builder/api/`.
 
 ## Mental model
 

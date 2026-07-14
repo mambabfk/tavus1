@@ -291,6 +291,43 @@ function DemoSite({ site, conversationUrl, onStart, onExit, busy }) {
 export default function TavusExperienceBuilder() {
   const [step, setStep] = useState("setup");
 
+  // Access-code gate. The server decides whether login is required
+  // (BUILDER_PASSWORD env var set on Vercel); local dev stays open.
+  const [auth, setAuth] = useState({ checked: false, required: false, authed: false });
+  const [passcode, setPasscode] = useState("");
+  const [authErr, setAuthErr] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/login")
+      .then((r) => (r.ok ? r.json() : { authRequired: false, authed: true }))
+      .then((d) => setAuth({ checked: true, required: !!d.authRequired, authed: !!d.authed }))
+      .catch(() => setAuth({ checked: true, required: false, authed: true })); // no backend (bare vite) → open
+  }, []);
+
+  const submitLogin = async (e) => {
+    e.preventDefault();
+    setAuthErr("");
+    setAuthBusy(true);
+    try {
+      const r = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: passcode }),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error || "Wrong access code.");
+      }
+      setAuth((a) => ({ ...a, authed: true }));
+      setPasscode("");
+    } catch (err) {
+      setAuthErr(err.message);
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
   // Setup
   const [apiKey, setApiKey] = useState("");
   const [faceId, setFaceId] = useState("");
@@ -605,7 +642,10 @@ export default function TavusExperienceBuilder() {
       }
       if (text.startsWith("[error]") || !res.ok) {
         setPersonaDraft("");
-        throw new Error(text.replace(/^\[error\]\s*/, "") || `${res.status}: generation failed`);
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth((a) => ({ ...a, authed: false })); // session expired → back to gate
+        throw new Error(msg || `${res.status}: generation failed`);
       }
       addLog("ok", "Persona prompt drafted — review it, then attach to the PAL.");
     } catch (e) {
@@ -710,6 +750,44 @@ export default function TavusExperienceBuilder() {
   };
 
   /* ── UI ── */
+
+  // Access-code gate renders before anything else. Self-contained styling so
+  // the main <style> block (below) doesn't need to load for the lock screen.
+  if (!auth.checked || (auth.required && !auth.authed)) {
+    const s = {
+      root: { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F5F4F1", color: "#17181A", fontFamily: "'Instrument Sans', system-ui, sans-serif" },
+      card: { background: "#fff", border: "1px solid #E6E4DF", borderRadius: 16, padding: "36px 40px", width: "min(380px, 90vw)", boxShadow: "0 1px 3px rgba(20,20,20,.04)", textAlign: "center" },
+      input: { width: "100%", border: "1px solid #E6E4DF", borderRadius: 12, padding: "11px 14px", font: "inherit", fontSize: 14, outline: "none", textAlign: "center", letterSpacing: 2, marginTop: 18 },
+      btn: { width: "100%", marginTop: 12, background: "#17181A", color: "#fff", border: "none", borderRadius: 999, padding: "11px 18px", font: "inherit", fontWeight: 600, cursor: "pointer", opacity: authBusy ? 0.6 : 1 },
+      err: { color: "#D64545", fontSize: 13, marginTop: 12, minHeight: 18 },
+    };
+    return (
+      <div style={s.root}>
+        {auth.checked && (
+          <form style={s.card} onSubmit={submitLogin}>
+            <svg width="30" height="30" viewBox="0 0 26 26" fill="none" style={{ marginBottom: 10 }}>
+              <rect x="1" y="1" width="24" height="24" rx="8" stroke="#17181A" strokeWidth="2" />
+              <circle cx="13" cy="13" r="4.5" fill="#FF6B5E" />
+            </svg>
+            <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: -0.3 }}>tavus experience builder</div>
+            <div style={{ color: "#7A7B74", fontSize: 13, marginTop: 6 }}>Enter the access code to continue.</div>
+            <input
+              style={s.input}
+              type="password"
+              autoFocus
+              value={passcode}
+              onChange={(e) => setPasscode(e.target.value)}
+              placeholder="access code"
+            />
+            <button style={s.btn} type="submit" disabled={authBusy || !passcode}>
+              {authBusy ? "Checking…" : "Enter"}
+            </button>
+            <div style={s.err}>{authErr}</div>
+          </form>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="root">
