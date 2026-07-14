@@ -395,6 +395,7 @@ const store = {
   },
 };
 const SCENARIOS_KEY = "tavus_builder_scenarios_v1";
+const REC_KEY = "tavus_builder_recording_v1"; // S3 recording defaults (non-secret identifiers)
 const APIKEY_KEY = "tavus_builder_api_key_v1";
 const SHOWAPI_KEY = "tavus_builder_showapi_v1";
 
@@ -640,6 +641,7 @@ export default function TavusExperienceBuilder() {
   });
   const setBriefField = (k, v) => setPersonaBrief((b) => ({ ...b, [k]: v }));
   const [personaDraft, setPersonaDraft] = useState("");
+  const [personaFeedback, setPersonaFeedback] = useState("");
   const [generating, setGenerating] = useState(false);
   const [personaAttached, setPersonaAttached] = useState(false);
 
@@ -691,11 +693,16 @@ export default function TavusExperienceBuilder() {
 
   // Recording → your S3 bucket (Tavus uploads server-side; no AWS keys here,
   // just non-secret identifiers — access comes from a one-time IAM role trust).
-  const [recordingEnabled, setRecordingEnabled] = useState(false);
-  const [recS3Bucket, setRecS3Bucket] = useState("");
-  const [recS3Region, setRecS3Region] = useState("");
-  const [recS3RoleArn, setRecS3RoleArn] = useState("");
-  const [recS3ExternalId, setRecS3ExternalId] = useState("");
+  // ON by default, and the bucket details are remembered on this browser
+  // (REC_KEY) so they're entered once, not per demo.
+  const [recordingEnabled, setRecordingEnabled] = useState(() => store.get(REC_KEY, {}).enabled ?? true);
+  const [recS3Bucket, setRecS3Bucket] = useState(() => store.get(REC_KEY, {}).bucket ?? "");
+  const [recS3Region, setRecS3Region] = useState(() => store.get(REC_KEY, {}).region ?? "");
+  const [recS3RoleArn, setRecS3RoleArn] = useState(() => store.get(REC_KEY, {}).roleArn ?? "");
+  const [recS3ExternalId, setRecS3ExternalId] = useState(() => store.get(REC_KEY, {}).externalId ?? "");
+  useEffect(() => {
+    store.set(REC_KEY, { enabled: recordingEnabled, bucket: recS3Bucket, region: recS3Region, roleArn: recS3RoleArn, externalId: recS3ExternalId });
+  }, [recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId]);
 
   // New-PAL creation (Persona step)
   const [newPalName, setNewPalName] = useState("");
@@ -815,9 +822,14 @@ export default function TavusExperienceBuilder() {
     setMaxMinutes(c.maxMinutes ?? ""); setTimeWarning(c.timeWarning ?? "");
     setInactivitySeconds(c.inactivitySeconds ?? ""); setInactivityUtterance(c.inactivityUtterance ?? "");
     setWakePhrase(c.wakePhrase ?? ""); setInterruptButton(!!c.interruptButton); setGuardrailEcho(c.guardrailEcho ?? "");
-    setRecordingEnabled(!!c.recordingEnabled);
-    setRecS3Bucket(c.recS3Bucket ?? ""); setRecS3Region(c.recS3Region ?? "");
-    setRecS3RoleArn(c.recS3RoleArn ?? ""); setRecS3ExternalId(c.recS3ExternalId ?? "");
+    // Recording: scenarios saved before this feature (or without it) fall back
+    // to this browser's remembered defaults instead of wiping them.
+    const savedRec = store.get(REC_KEY, {});
+    setRecordingEnabled(c.recordingEnabled ?? savedRec.enabled ?? true);
+    setRecS3Bucket(c.recS3Bucket ?? savedRec.bucket ?? "");
+    setRecS3Region(c.recS3Region ?? savedRec.region ?? "");
+    setRecS3RoleArn(c.recS3RoleArn ?? savedRec.roleArn ?? "");
+    setRecS3ExternalId(c.recS3ExternalId ?? savedRec.externalId ?? "");
     setToolsEnabled(!!c.toolsEnabled);
     setToolRows(Array.isArray(c.toolRows) && c.toolRows.length ? c.toolRows : [{ name: "", desc: "", fields: "" }]);
     setToolWebhook(c.toolWebhook ?? ""); setToolEcho(c.toolEcho ?? "");
@@ -1189,6 +1201,47 @@ export default function TavusExperienceBuilder() {
       addLog("ok", "Persona prompt drafted — review it, then attach to the PAL.");
     } catch (e) {
       addLog("err", `Persona generation: ${e.message}`);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  /* Revise the current draft from plain-English feedback ("less salesy",
+     "mention the Pro tier", …) — an edit, not a regenerate-from-brief. */
+  const revisePersona = async () => {
+    if (!personaDraft.trim() || !personaFeedback.trim()) return;
+    setGenerating(true);
+    const previous = personaDraft;
+    setPersonaDraft("");
+    setPersonaAttached(false);
+    try {
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "revise", draft: previous, vibe: personaFeedback }),
+      });
+      if (!res.ok && !res.body) throw new Error(`${res.status}: revision failed`);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let text = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        text += decoder.decode(value, { stream: true });
+        setPersonaDraft(text);
+      }
+      if (text.startsWith("[error]") || !res.ok) {
+        setPersonaDraft(previous); // never lose the draft to a failed revision
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: revision failed`);
+      }
+      setPersonaFeedback("");
+      addLog("ok", "Draft revised — review it, then re-attach so the PAL picks it up.");
+    } catch (e) {
+      if (!personaDraft) setPersonaDraft(previous);
+      addLog("err", `Persona revision: ${e.message}`);
     } finally {
       setGenerating(false);
     }
@@ -2317,6 +2370,19 @@ export default function TavusExperienceBuilder() {
                 />
               </Field>
 
+              {personaDraft.trim() && (
+                <Field label="Revise with feedback" hint='Watched a call and want it different? Say what to change — "less salesy", "push the demo booking earlier", "mention the Pro tier by name" — and Claude edits the draft above, keeping the rest intact. Re-attach afterwards so the PAL picks it up.'>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input value={personaFeedback} onChange={(e) => setPersonaFeedback(e.target.value)}
+                      placeholder="e.g. Too formal — make it warmer, and stop asking two questions in a row"
+                      onKeyDown={(e) => e.key === "Enter" && !generating && revisePersona()} />
+                    <button className="pill-btn primary" style={{ flexShrink: 0 }} onClick={revisePersona} disabled={generating || !personaFeedback.trim()}>
+                      {generating ? "Revising…" : "Revise"}
+                    </button>
+                  </div>
+                </Field>
+              )}
+
               <div className="subhead">Create the persona</div>
               <Field label="" hint="Creates a brand-new PAL with this prompt as its brain and sets it as your PAL ID. Needs the API key and Face ID from Setup.">
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -3049,6 +3115,7 @@ export default function TavusExperienceBuilder() {
                 Files land at <span className="mono">tavus/&lt;conversation_id&gt;/&lt;timestamp&gt;</span>, and each call's recording
                 location shows up in <b>Results</b> next to its transcript a minute or so after the call ends.
                 One-time AWS setup: create the bucket and an IAM role Tavus can assume (a trust policy — no AWS keys ever go in here, only names).
+                The details below are remembered on this browser — fill them in once and every new demo records by default.
               </p>
               {recordingEnabled && (
                 <>

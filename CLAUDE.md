@@ -95,7 +95,12 @@ non-technical users; ids unchanged):
    `/api/generate-persona` and streams the draft into an editable
    `personaDraft` textarea → `attachPersona()` PATCHes the PAL with
    `[{op:"add", path:"/system_prompt", value}]`. Draft → review → attach; the
-   attach never happens without the human seeing the text. The prompt persists
+   attach never happens without the human seeing the text.
+   **Revise with feedback** (`revisePersona()`, `kind: "revise"`): a one-line
+   feedback field under the draft ("less salesy", "book the demo earlier")
+   sends draft + feedback; Claude returns an *edit* of the prompt (not a
+   regenerate), streamed back into the textarea; on failure the previous
+   draft is restored. Re-attach afterwards. The prompt persists
    on the PAL like objectives do.
    Setup also offers **Create PAL** (`createPal()`): `POST /pals` with
    `pal_name`, `default_face_id` (uses the Face ID field), and `system_prompt`
@@ -147,7 +152,10 @@ non-technical users; ids unchanged):
    (silence → echo → 10s grace → leave), `interruptButton`
    (`conversation.interrupt`), `guardrailEcho` (echo on any `*guardrail*`
    app-message event).
-   **Recording → S3** also lives here: `recordingEnabled` + `recS3Bucket`/
+   **Recording → S3** also lives here: **on by default**, and the S3 fields
+   persist in localStorage (`REC_KEY = "tavus_builder_recording_v1"`) —
+   entered once per browser; `applyConfig` falls back to those saved values
+   when a scenario predates the feature. Fields: `recordingEnabled` + `recS3Bucket`/
    `recS3Region`/`recS3RoleArn` (+ optional `recS3ExternalId`) →
    `properties.enable_recording: true` and `properties.recording_storage`
    (`{provider:"s3", bucket_name, bucket_region, assume_role_arn,

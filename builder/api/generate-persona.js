@@ -19,6 +19,16 @@ Rules for the persona prompts you write:
 
 Return ONLY the persona system prompt text. No preamble, no explanation, no code fences.`;
 
+const REVISE_SYSTEM = `You revise system prompts for Tavus PALs (personas) — AI humans that hold live, face-to-face video conversations as product demos.
+
+You are given the CURRENT persona prompt and the operator's feedback from watching it in a real call. Apply the feedback precisely:
+- Change exactly what the feedback asks for — rewrite, add, or remove those parts decisively rather than hedging.
+- Leave everything the feedback doesn't touch as close to the original as possible: same structure, same voice, same level of detail. This is an edit, not a rewrite.
+- Keep every persona-prompt rule intact: voice-first spoken style (short sentences, contractions, no markdown, no stage directions), second person, one question at a time, never claims to be human, never invents pricing/features/commitments, 250–500 words.
+- If a piece of feedback conflicts with those rules (e.g. "add bullet points"), honor the intent in a voice-safe way instead.
+
+Return ONLY the complete revised persona prompt text. No preamble, no explanation, no diff, no code fences.`;
+
 const VISION_SYSTEM = `You configure the vision layer ("perception", model raven-1) of a Tavus PAL — an AI human on a live video call that can continuously watch the user's camera/screen and listen to their tone.
 
 From the user's plain-English description of what the PAL should notice, write awareness queries:
@@ -114,11 +124,22 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { brief = {}, context = {}, kind = "persona", vibe = "" } = req.body ?? {};
+  const { brief = {}, context = {}, kind = "persona", vibe = "", draft = "" } = req.body ?? {};
 
   let system;
   let userPrompt;
-  if (kind === "talktrack") {
+  if (kind === "revise") {
+    if (!String(draft).trim()) {
+      res.status(400).json({ error: "There's no persona prompt to revise yet — draft one first." });
+      return;
+    }
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Tell Claude what to change first." });
+      return;
+    }
+    system = REVISE_SYSTEM;
+    userPrompt = `CURRENT PERSONA PROMPT:\n${String(draft).trim().slice(0, 20000)}\n\nOPERATOR FEEDBACK — apply this:\n${String(vibe).trim().slice(0, 4000)}`;
+  } else if (kind === "talktrack") {
     if (!String(vibe).trim()) {
       res.status(400).json({ error: "Describe the demo / deck first so Claude knows what to script." });
       return;
