@@ -68,7 +68,24 @@ Anthropic key.
 
 ## The wizard (`STEPS`)
 
-Left-rail steps, each a slice of one big component's state:
+Left-rail steps, grouped into four phases rendered as rail headers
+(`Start` → `The AI human` → `The experience` → `Run it`; `group` field on
+each STEPS entry). Every step ends with a `flow-nav` footer (Back /
+"Next: X →" / a 🚀 Launch shortcut gated on `canLaunch`). The default step
+is `start` — a hero step combining the prospect URL + use-case idea into
+one "Draft my demo" action (runs `draftDemo()` then `themeFromUrl()`,
+lands on Persona). The right-hand curl panel is titled "Under the hood"
+and is collapsible (persisted via `SHOWAPI_KEY`).
+
+Categorization rules learned the hard way: the ✋ interrupt-button toggle
+lives in **Page & Brand** (it's call UI, not timing); the guardrail
+voice-line lives in **Goals & Rules** next to the guardrails textarea;
+Timing keeps only duration/warning/nudge/wake-phrase. Magic Canvas has a
+"Suggest a canvas plan" button (`kind: "canvas"` → JSON
+{style, playbook, rules, disable}, biased against card overuse).
+
+Step slices of the one big component's state (labels renamed for
+non-technical users; ids unchanged):
 
 1. **Setup** — `apiKey`, `faceId`, `palId`, `language`, `conversationName`,
    `callbackUrl` (webhook), `greeting`. `canLaunch` requires key + face + PAL.

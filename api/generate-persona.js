@@ -33,6 +33,17 @@ VISUAL:
 AUDIO:
 - <query>`;
 
+const CANVAS_SYSTEM = `You plan Tavus Magic Canvas usage — interactive cards shown beside an AI human on a live video call. Available cards: question (multiple choice), input (free text), calendar (date/slot picker), text (supporting copy), chart (live bar/line/pie), alert (notices), scheduling_embed (live Calendly booking).
+
+Cards make conversations tactile, but they are easily overused — a great plan uses FEW, well-timed cards that beat speaking. Given a demo use case, return ONLY valid JSON:
+{
+  "style": "balanced" | "minimal" | "eager" | "on_request",
+  "playbook": "2-4 plain sentences: the card choreography for this conversation — what opens, what appears when, what never shows",
+  "rules": { "<card key>": "one sentence: exactly when to show this card", ... },
+  "disable": ["<card keys that don't serve this use case>"]
+}
+Rules: bias toward "balanced" or "minimal"; write rules ONLY for cards that clearly earn their place (2-4 of them); disable the rest; a card must do something speech can't (capture a choice, show data, book time). No markdown.`;
+
 const DEMO_SYSTEM = `You design complete Tavus CVI demo templates. Given a plain-English idea for a demo, draft every configurable element so it reads coherently for THAT use case — never recycle wording from unrelated products.
 
 Return ONLY valid JSON (no code fences, no commentary):
@@ -95,7 +106,14 @@ export default async function handler(req, res) {
 
   let system;
   let userPrompt;
-  if (kind === "demo") {
+  if (kind === "canvas") {
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Describe the demo's use case first (New Demo or Persona step)." });
+      return;
+    }
+    system = CANVAS_SYSTEM;
+    userPrompt = `Plan Magic Canvas for this demo:\n${String(vibe).trim()}`;
+  } else if (kind === "demo") {
     if (!String(vibe).trim()) {
       res.status(400).json({ error: "Describe the demo you want first." });
       return;

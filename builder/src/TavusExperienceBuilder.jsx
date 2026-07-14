@@ -28,19 +28,20 @@ const CANVAS_COMPONENTS = [
 ];
 
 const STEPS = [
-  { id: "setup", label: "Setup" },
-  { id: "persona", label: "Persona" },
-  { id: "guide", label: "Objectives & Guardrails" },
-  { id: "vision", label: "Vision" },
-  { id: "kb", label: "Knowledge Base" },
-  { id: "presentation", label: "Presentation" },
-  { id: "canvas", label: "Magic Canvas" },
-  { id: "speech", label: "Pronunciation" },
-  { id: "tools", label: "Integrations" },
-  { id: "controls", label: "Timing & Controls" },
-  { id: "site", label: "Demo Page" },
-  { id: "launch", label: "Launch" },
-  { id: "calls", label: "Calls & Data" },
+  { id: "start", label: "New Demo", group: "Start" },
+  { id: "setup", label: "Account", group: "Start" },
+  { id: "persona", label: "Persona", group: "The AI human" },
+  { id: "guide", label: "Goals & Rules", group: "The AI human" },
+  { id: "vision", label: "Vision", group: "The AI human" },
+  { id: "kb", label: "Knowledge", group: "The AI human" },
+  { id: "presentation", label: "Slides", group: "The experience" },
+  { id: "canvas", label: "Magic Canvas", group: "The experience" },
+  { id: "speech", label: "Voice", group: "The experience" },
+  { id: "site", label: "Page & Brand", group: "The experience" },
+  { id: "tools", label: "Integrations", group: "Run it" },
+  { id: "controls", label: "Timing", group: "Run it" },
+  { id: "launch", label: "Launch & Share", group: "Run it" },
+  { id: "calls", label: "Results", group: "Run it" },
 ];
 
 /* Tavus-hosted LLMs available for a PAL's brain (layers.llm.model). */
@@ -376,6 +377,7 @@ const store = {
 };
 const SCENARIOS_KEY = "tavus_builder_scenarios_v1";
 const APIKEY_KEY = "tavus_builder_api_key_v1";
+const SHOWAPI_KEY = "tavus_builder_showapi_v1";
 
 function Field({ label, hint, children }) {
   return (
@@ -557,7 +559,7 @@ export default function TavusExperienceBuilder() {
     return m ? m[1] : new URLSearchParams(window.location.search).get("demo");
   });
 
-  const [step, setStep] = useState("setup");
+  const [step, setStep] = useState("start");
 
   // Access-code gate. The server decides whether login is required
   // (BUILDER_PASSWORD env var set on Vercel); local dev stays open.
@@ -719,6 +721,7 @@ export default function TavusExperienceBuilder() {
   const logoFileRef = useRef(null);
   const [brandUrl, setBrandUrl] = useState("");
   const [theming, setTheming] = useState(false);
+  const [showApi, setShowApi] = useState(() => store.get(SHOWAPI_KEY, true));
 
   // Load remembered API key once on mount.
   useEffect(() => {
@@ -1407,6 +1410,54 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* ── Canvas ideation: Claude plans which cards earn their place ── */
+
+  const [canvasPlanning, setCanvasPlanning] = useState(false);
+  const generateCanvasPlan = async () => {
+    const vibe = [ideaText.trim(), personaBrief.product && `Product: ${personaBrief.product}`,
+      personaBrief.goal && `Goal: ${personaBrief.goal}`, personaBrief.audience && `Audience: ${personaBrief.audience}`]
+      .filter(Boolean).join("\n");
+    if (!vibe) { addLog("err", "Describe the demo first (New Demo step) so Claude knows the use case."); return; }
+    setCanvasPlanning(true);
+    try {
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "canvas", vibe }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || "planning failed");
+      }
+      const plan = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim());
+      if (plan.style) setCanvasStyle(plan.style);
+      if (plan.playbook) setCanvasPlaybook(plan.playbook);
+      const validKeys = new Set(CANVAS_COMPONENTS.map((c) => c.key));
+      if (plan.rules) {
+        setComponentRules((prev) => ({
+          ...prev,
+          ...Object.fromEntries(Object.entries(plan.rules).filter(([k]) => validKeys.has(k)).map(([k, v]) => [k, String(v)])),
+        }));
+      }
+      if (Array.isArray(plan.disable)) {
+        setComponents((prev) => ({
+          ...prev,
+          ...Object.fromEntries(plan.disable.filter((k) => validKeys.has(k)).map((k) => [k, false])),
+        }));
+      }
+      setCanvasEnabled(true);
+      const ruleCount = plan.rules ? Object.keys(plan.rules).length : 0;
+      addLog("ok", `Canvas plan drafted: ${plan.style || "balanced"} style, ${ruleCount} card rule${ruleCount === 1 ? "" : "s"}${plan.disable?.length ? `, ${plan.disable.length} cards off` : ""}. Edit anything below.`);
+    } catch (e) {
+      addLog("err", `Canvas plan: ${e.message}`);
+    } finally {
+      setCanvasPlanning(false);
+    }
+  };
+
   /* ── Logo upload: file → downscaled data URL (works offline, no hosting) ── */
 
   const onLogoFile = (file) => {
@@ -1640,6 +1691,10 @@ export default function TavusExperienceBuilder() {
         .rail-btn:hover { background:var(--surface); color:var(--text); }
         .rail-btn.active { background:var(--surface); color:var(--text); border:1px solid var(--border); box-shadow:0 1px 2px rgba(20,20,20,.04); }
         .rail-check { margin-left:auto; color:var(--ok); font-size:11px; }
+        .rail-group { font-family:var(--mono); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); opacity:.75; padding:14px 14px 4px; }
+        .rail > div:first-child .rail-group { padding-top:2px; }
+        .flow-nav { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:36px; padding-top:18px; border-top:1px solid var(--border); }
+        .flow-pos { font-family:var(--mono); font-size:11px; color:var(--muted); }
 
         /* main card */
         .main { flex:1; min-width:0; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:32px 36px; overflow-y:auto; box-shadow:0 1px 3px rgba(20,20,20,.04); }
@@ -1846,9 +1901,12 @@ export default function TavusExperienceBuilder() {
 
       <div className="layout">
         <nav className="rail">
-          {STEPS.map((s) => (
-            <button key={s.id} className={"rail-btn" + (step === s.id ? " active" : "")} onClick={() => setStep(s.id)}>
+          {STEPS.map((s, i) => (
+            <div key={s.id}>
+              {(i === 0 || STEPS[i - 1].group !== s.group) && <div className="rail-group">{s.group}</div>}
+            <button className={"rail-btn" + (step === s.id ? " active" : "")} onClick={() => setStep(s.id)}>
               <span className="rail-label">{s.label}</span>
+              {s.id === "start" && (personaBrief.product || site.theme) && <span className="rail-check">●</span>}
               {s.id === "setup" && canLaunch && <span className="rail-check">●</span>}
               {s.id === "persona" && personaDraft.trim() && <span className="rail-check">●</span>}
               {s.id === "guide" && (objectivesEnabled || guardrailsEnabled) && <span className="rail-check">●</span>}
@@ -1861,30 +1919,52 @@ export default function TavusExperienceBuilder() {
               {s.id === "canvas" && canvasEnabled && <span className="rail-check">●</span>}
               {s.id === "site" && site.brand && <span className="rail-check">●</span>}
             </button>
+            </div>
           ))}
         </nav>
 
         <main className="main">
-          {step === "setup" && (
+          {step === "start" && (
             <>
-              <h1>Setup</h1>
-              <p className="lede">Point the builder at your account and the PAL you want to configure. Everything else layers on top of this.</p>
+              <h1>New Demo</h1>
+              <p className="lede">
+                Tell it who the demo is for and what it should do — Claude drafts everything (the AI human's persona, goals, rules, page design in their brand) and you refine from there. Or skip this and build by hand.
+              </p>
 
               <div className="idea-box">
-                <div className="subhead" style={{ marginTop: 0 }}>✨ Start from an idea</div>
-                <p className="field-hint" style={{ maxWidth: 560, marginBottom: 8 }}>
-                  Describe the demo and Claude drafts every step for that exact use case — persona brief, objectives, guardrails, vision, canvas playbook, greeting, page copy. Nothing is locked: walk the rail afterwards and edit anything.
-                </p>
-                <textarea
-                  style={{ minHeight: 74, maxWidth: 560 }}
-                  value={ideaText}
-                  onChange={(e) => setIdeaText(e.target.value)}
-                  placeholder={"An internal HR onboarding assistant for new Salesforce employees — walks them through week-one setup, benefits enrollment, and who to meet. Friendly, unhurried."}
-                />
-                <button className="pill-btn primary" style={{ marginTop: 10 }} onClick={draftDemo} disabled={ideating || !ideaText.trim()}>
-                  {ideating ? "Drafting the demo…" : "Draft the whole demo"}
+                <Field label="Who's it for?" hint="The prospect's website. Used to match their brand — colors, logo, and the way they talk.">
+                  <input className="mono" value={brandUrl} onChange={(e) => setBrandUrl(e.target.value)} placeholder="https://prospect.com" />
+                </Field>
+                <Field label="What should the demo do?" hint="Plain English. The use case shapes everything — an HR demo speaks HR, a sales demo sells.">
+                  <textarea
+                    style={{ minHeight: 84 }}
+                    value={ideaText}
+                    onChange={(e) => setIdeaText(e.target.value)}
+                    placeholder={"An HR onboarding assistant for their new employees — walks through week-one setup, benefits enrollment, and who to meet. Friendly, unhurried."}
+                  />
+                </Field>
+                <button className="pill-btn primary big" onClick={async () => {
+                  if (ideaText.trim()) await draftDemo();
+                  if (brandUrl.trim()) await themeFromUrl();
+                  setStep("persona");
+                }} disabled={ideating || theming || (!ideaText.trim() && !brandUrl.trim())}>
+                  {ideating ? "Drafting the demo…" : theming ? "Matching their brand…" : "✨ Draft my demo"}
                 </button>
+                <p className="field-hint" style={{ marginTop: 10 }}>
+                  Takes ~30 seconds. You land on the Persona step to review — every word stays editable.
+                </p>
               </div>
+
+              <p className="field-hint" style={{ maxWidth: 560 }}>
+                Returning to a demo you saved? Load it from the <b>scenarios</b> menu in the top bar instead.
+              </p>
+            </>
+          )}
+
+          {step === "setup" && (
+            <>
+              <h1>Account</h1>
+              <p className="lede">One-time plumbing: your Tavus account and which AI human to use. Everything else layers on top.</p>
               <Field label="Tavus API key" hint="For production, calls belong on your backend.">
                 <input className="mono" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="tvs-…" />
                 <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--muted)", cursor: "pointer" }}>
@@ -1982,13 +2062,13 @@ export default function TavusExperienceBuilder() {
 
           {step === "guide" && (
             <>
-              <h1>Objectives &amp; Guardrails</h1>
+              <h1>Goals &amp; Rules</h1>
               <p className="lede">
-                Type in plain English — one per line. On launch, the builder converts them into structured Tavus resources and attaches them to your PAL. Heads up: unlike Canvas playbooks, these live on the PAL itself — every future conversation inherits them until you remove them.
+                What the conversation should achieve, and what's off-limits — in plain English, one per line. These stick with the AI human for every future conversation until you change them.
               </p>
 
               <div className="skill-head">
-                <div className="subhead" style={{ margin: 0 }}>Objectives</div>
+                <div className="subhead" style={{ margin: 0 }}>Goals</div>
                 <Toggle on={objectivesEnabled} onChange={setObjectivesEnabled} />
               </div>
               <p className="field-hint" style={{ maxWidth: 560, marginBottom: 8 }}>
@@ -2016,7 +2096,7 @@ export default function TavusExperienceBuilder() {
               )}
 
               <div className="skill-head" style={{ marginTop: 18 }}>
-                <div className="subhead" style={{ margin: 0 }}>Guardrails</div>
+                <div className="subhead" style={{ margin: 0 }}>Rules (guardrails)</div>
                 <Toggle on={guardrailsEnabled} onChange={setGuardrailsEnabled} />
               </div>
               <p className="field-hint" style={{ maxWidth: 560, marginBottom: 8 }}>
@@ -2032,6 +2112,10 @@ export default function TavusExperienceBuilder() {
                   onChange={(e) => setGuardrailsText(e.target.value)}
                   placeholder={"Never discuss competitors or their products\nNever quote custom pricing — direct pricing questions to the sales team\nUser is sharing credit card numbers or passwords\nMore than one person is visible in camera view [visual]"}
                 />
+              </Field>
+              <Field label="When a rule is hit, say… (optional)" hint="Spoken word-for-word the moment any rule above triggers. Leave blank for no spoken reaction.">
+                <textarea disabled={!guardrailsEnabled} value={guardrailEcho} onChange={(e) => setGuardrailEcho(e.target.value)}
+                  placeholder="That's outside what I can help with here — but I'm happy to get you to the right person." />
               </Field>
             </>
           )}
@@ -2082,7 +2166,7 @@ export default function TavusExperienceBuilder() {
           {step === "speech" && (
             <>
               <div className="skill-head">
-                <h1>Pronunciation</h1>
+                <h1>Voice</h1>
                 <Toggle on={speechEnabled} onChange={setSpeechEnabled} />
               </div>
               <p className="lede">
@@ -2105,7 +2189,7 @@ export default function TavusExperienceBuilder() {
 
           {step === "kb" && (
             <>
-              <h1>Knowledge Base</h1>
+              <h1>Knowledge</h1>
               <p className="lede">
                 Give the PAL material to know and present. Add any public link — a PDF, deck, doc, image, spreadsheet, or a whole website — and Tavus processes it in the background (a few minutes). Tick "PAL can use" to let the PAL reference a document when answering in this demo.
               </p>
@@ -2171,7 +2255,7 @@ export default function TavusExperienceBuilder() {
           {step === "presentation" && (
             <>
               <div className="skill-head">
-                <h1>Presentation</h1>
+                <h1>Slides</h1>
                 <Toggle on={presentationEnabled} onChange={setPresentationEnabled} />
               </div>
               <p className="lede">The PAL presents PDF decks and images from your Knowledge Base as a live screen share. PDFs must be 50 pages or fewer and fully processed ("ready") before launching. Slides appear inside the conversation automatically.</p>
@@ -2248,7 +2332,11 @@ export default function TavusExperienceBuilder() {
                 <h1>Magic Canvas</h1>
                 <Toggle on={canvasEnabled} onChange={setCanvasEnabled} />
               </div>
-              <p className="lede">The PAL shows interactive cards next to the video and decides when to use them. Attaching enables everything by default — switch off what you don't want, and add rules to control when each card appears.</p>
+              <p className="lede">Interactive cards next to the video — polls, charts, live booking — that make the conversation tactile. The trick is restraint: a few well-timed cards beat a slideshow. Let Claude plan it, then adjust.</p>
+
+              <button className="pill-btn primary" style={{ marginBottom: 18 }} onClick={generateCanvasPlan} disabled={!canvasEnabled || canvasPlanning}>
+                {canvasPlanning ? "Planning…" : "✨ Suggest a canvas plan"}
+              </button>
 
               <div className="comp-grid">
                 {CANVAS_COMPONENTS.map((c) => (
@@ -2368,7 +2456,7 @@ export default function TavusExperienceBuilder() {
           {step === "calls" && (
             <>
               <div className="skill-head">
-                <h1>Calls &amp; Data</h1>
+                <h1>Results</h1>
                 <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={fetchCalls} disabled={callsLoading}>
                   {callsLoading ? "Loading…" : callsList ? "Refresh" : "Load calls"}
                 </button>
@@ -2512,9 +2600,9 @@ export default function TavusExperienceBuilder() {
 
           {step === "controls" && (
             <>
-              <h1>Timing &amp; Controls</h1>
+              <h1>Timing</h1>
               <p className="lede">
-                Shape how the conversation runs: how long it lasts, what the PAL says as time runs out, when to nudge a quiet visitor, a wake phrase, and in-call controls. Spoken lines and the interrupt button work in the custom call UI (the default on your demo page).
+                How long the conversation runs and what the AI says as time runs out — plus a wake phrase for kiosks and a nudge for quiet visitors.
               </p>
 
               <div className="subhead">Conversation length</div>
@@ -2536,29 +2624,15 @@ export default function TavusExperienceBuilder() {
               </Field>
 
               <div className="subhead">Wake phrase</div>
-              <Field label="" hint="The PAL greets once, then stays quiet until someone says this phrase — great for kiosks where people chat nearby. Guidance-based (steers the PAL, not a hard mute).">
+              <Field label="" hint="The AI greets once, then stays quiet until someone says this phrase — great for kiosks where people chat nearby. It's guidance (steers the AI), not a hard mute.">
                 <input style={{ maxWidth: 320 }} value={wakePhrase} onChange={(e) => setWakePhrase(e.target.value)} placeholder='e.g. "Hey Ava"' />
-              </Field>
-
-              <div className="subhead">In-call controls</div>
-              <div className="skill-head" style={{ marginBottom: 6 }}>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>Interrupt button</span>
-                <Toggle on={interruptButton} onChange={setInterruptButton} />
-              </div>
-              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 18 }}>
-                Shows a ✋ button on the call that instantly stops the PAL mid-sentence — handy when it's mid-monologue and you want the floor.
-              </p>
-
-              <Field label="When a guardrail is hit, say… (optional)" hint="Spoken word-for-word the moment any guardrail triggers. Leave blank for no spoken reaction.">
-                <textarea value={guardrailEcho} onChange={(e) => setGuardrailEcho(e.target.value)}
-                  placeholder="That's outside what I can help with here — but I'm happy to get you to the right person." />
               </Field>
             </>
           )}
 
           {step === "site" && (
             <>
-              <h1>Demo Page</h1>
+              <h1>Page &amp; Brand</h1>
               <p className="lede">The launched conversation opens on a clean, branded page — the conversation stage front and center. Canvas cards and presentation slides appear inside the stage automatically.</p>
 
               <Field label="Match their website" hint="Paste the company's site and Claude restyles this page to their brand — colors, name, headline, logo. Everything stays editable below.">
@@ -2620,13 +2694,22 @@ export default function TavusExperienceBuilder() {
                 ))}
               </div>
 
+              <div className="subhead">In-call controls</div>
+              <div className="skill-head" style={{ marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>✋ Interrupt button</span>
+                <Toggle on={interruptButton} onChange={setInterruptButton} />
+              </div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 18 }}>
+                Adds a button to the call that instantly stops the AI mid-sentence — handy when it's mid-monologue and you want the floor.
+              </p>
+
               <button className="pill-btn" onClick={() => setSiteMode(true)}>Preview the page</button>
             </>
           )}
 
           {step === "launch" && (
             <>
-              <h1>Launch</h1>
+              <h1>Launch &amp; Share</h1>
               <p className="lede">
                 On launch: {[
                   objectivesEnabled && objectivesPayload.data.length && "creates & attaches objectives",
@@ -2688,20 +2771,53 @@ export default function TavusExperienceBuilder() {
               )}
             </>
           )}
+          {(() => {
+            const idx = STEPS.findIndex((s) => s.id === step);
+            return (
+              <div className="flow-nav">
+                {idx > 0 ? (
+                  <button className="pill-btn" onClick={() => setStep(STEPS[idx - 1].id)}>← {STEPS[idx - 1].label}</button>
+                ) : <span />}
+                <span className="flow-pos">{STEPS[idx]?.group} · {idx + 1} of {STEPS.length}</span>
+                <span style={{ display: "flex", gap: 8 }}>
+                  {step !== "launch" && (
+                    <button className="pill-btn" disabled={!canLaunch} title={canLaunch ? "Jump to Launch & Share" : "Needs your Tavus key + Face + PAL first (Account / Persona)"}
+                      onClick={() => setStep("launch")}>🚀 Launch</button>
+                  )}
+                  {idx < STEPS.length - 1 && (
+                    <button className="pill-btn primary" onClick={() => setStep(STEPS[idx + 1].id)}>Next: {STEPS[idx + 1].label} →</button>
+                  )}
+                </span>
+              </div>
+            );
+          })()}
         </main>
 
         <aside className="preview">
-          <div className="preview-card">
+          <div className="preview-card" style={showApi ? undefined : { flex: "none" }}>
             <div className="preview-head">
-              <span className="preview-title">{preview.title}</span>
-              <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12 }} onClick={() => copy(preview.text, "curl")}>
-                {copied === "curl" ? "Copied" : "Copy curl"}
-              </button>
+              <span className="preview-title">Under the hood</span>
+              <span style={{ display: "flex", gap: 6 }}>
+                {showApi && (
+                  <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12 }} onClick={() => copy(preview.text, "curl")}>
+                    {copied === "curl" ? "Copied" : "Copy curl"}
+                  </button>
+                )}
+                <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12 }}
+                  onClick={() => { const v = !showApi; setShowApi(v); store.set(SHOWAPI_KEY, v); }}>
+                  {showApi ? "Hide" : "Show"}
+                </button>
+              </span>
             </div>
-            <div className="preview-code">{preview.text}</div>
-            <p className="preview-note">
-              The exact request this builder sends. Skill attaches use PUT (overwrite); PATCH merges — but a PATCH containing "components" replaces the whole overlay map, so send the complete set of overrides.
-            </p>
+            {showApi && (
+              <>
+                <span className="preview-title" style={{ color: "var(--muted)" }}>{preview.title}</span>
+                <div className="preview-code">{preview.text}</div>
+                <p className="preview-note">
+                  The exact API request this step sends — copy it to reproduce anything from a terminal or your own code.
+                </p>
+              </>
+            )}
           </div>
         </aside>
       </div>
