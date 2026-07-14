@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useDaily } from "@daily-co/daily-react";
 
 /* ─────────────────────────────────────────────────────────────
@@ -403,6 +403,11 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
   const { recording, elapsed, start: startRec, stop: stopRec } = useTabRecorder();
   const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
+  // Magic Canvas reports a signed pixel shift so the host can slide the video
+  // away from active cards — without it, side cards can cover the face.
+  const [videoShift, setVideoShift] = useState(0);
+  const onCanvasLayout = useCallback((l) => setVideoShift(l?.active ? l.video_shift_x || 0 : 0), []);
+
   // Load @tavus/cvi-ui components if installed (npx @tavus/cvi-ui@latest add conversation magic-canvas).
   // import.meta.glob keeps the build green when they're absent and bundles them when present.
   // Falls back to a plain iframe when they aren't installed.
@@ -448,9 +453,13 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
       return (
         <CVIProvider>
           <div className="cvi-wrap">
-            <Conversation conversationUrl={conversationUrl} onLeave={onExit} />
+            {/* Shift the video away from active canvas cards so they never
+                cover the face — MagicCanvas computes the exact offset. */}
+            <div className="cvi-video-shift" style={{ transform: videoShift ? `translateX(${videoShift}px)` : "none" }}>
+              <Conversation conversationUrl={conversationUrl} onLeave={onExit} />
+            </div>
             {/* Contained inside the stage instead of a full-viewport overlay */}
-            <MagicCanvas className="canvas-contained" onError={(e) => console.error("canvas error", e)} />
+            <MagicCanvas className="canvas-contained" onError={(e) => console.error("canvas error", e)} onLayoutEffectChange={onCanvasLayout} />
             <CallExtras controls={controls} conversationId={conversationId} onForceLeave={onExit} />
           </div>
         </CVIProvider>
@@ -1806,8 +1815,10 @@ export default function TavusExperienceBuilder() {
         .demo-header p { color:var(--muted); font-size:16px; line-height:1.6; max-width:600px; margin:14px auto 0; }
         .demo-stage { width:min(1080px,100%); aspect-ratio:16/9; background:var(--surface); border:1px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:0 20px 60px -24px rgba(20,20,20,.18); display:flex; align-items:center; justify-content:center; position:relative; }
         .demo-stage iframe { width:100%; height:100%; border:none; }
-        .cvi-wrap { position:relative; width:100%; height:100%; background:#0e0f12; }
+        .cvi-wrap { position:relative; width:100%; height:100%; background:#0e0f12; overflow:hidden; }
         .cvi-wrap > * { width:100%; height:100%; }
+        .cvi-video-shift { position:absolute; inset:0; transition:transform .55s cubic-bezier(.22,.9,.3,1); will-change:transform; }
+        .cvi-video-shift > * { width:100%; height:100%; }
         /* Keep Magic Canvas cards inside the stage instead of a full-viewport overlay */
         .canvas-contained { position:absolute !important; inset:0 !important; }
         .interrupt-btn { position:absolute; bottom:18px; right:18px; z-index:30; border-radius:999px; border:none; background:rgba(255,255,255,.92); color:#17181A; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); }
