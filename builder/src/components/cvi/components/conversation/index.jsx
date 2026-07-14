@@ -2,6 +2,7 @@ import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import {
 	DailyAudioTrack,
 	DailyVideo,
+	useDaily,
 	useDevices,
 	useLocalSessionId,
 	useMeetingState,
@@ -181,7 +182,13 @@ export const Conversation = React.memo(({ onLeave, conversationUrl }) => {
 		}
 	}, [meetingState, onLeave]);
 
+	// The provider creates the Daily call object asynchronously, and child
+	// effects run before parent effects — so a mount-only join fires while
+	// `daily` is still null and daily?.join() silently no-ops, leaving the UI
+	// on "Connecting…" forever. Gate on the call object and join once it exists.
+	const daily = useDaily();
 	useEffect(() => {
+		if (!daily) return;
 		joinCall({ url: conversationUrl });
 		// Release the singleton call on unmount: otherwise the next mount's join()
 		// is rejected ("already joined meeting") and the stale room's death ends
@@ -189,7 +196,7 @@ export const Conversation = React.memo(({ onLeave, conversationUrl }) => {
 		return () => {
 			leaveCall();
 		};
-	}, []);
+	}, [daily, joinCall, leaveCall, conversationUrl]);
 
 	const handleLeave = useCallback(() => {
 		leaveCall();
