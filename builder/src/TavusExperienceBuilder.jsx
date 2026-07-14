@@ -561,18 +561,23 @@ export default function TavusExperienceBuilder() {
 
   const [step, setStep] = useState("start");
 
-  // Access-code gate. The server decides whether login is required
-  // (BUILDER_PASSWORD env var set on Vercel); local dev stays open.
-  const [auth, setAuth] = useState({ checked: false, required: false, authed: false });
-  const [passcode, setPasscode] = useState("");
+  // Login gate. Accounts mode (email+password, invite-code signup) when the
+  // server has BUILDER_PASSWORD + Redis; shared-code mode without Redis;
+  // fully open when BUILDER_PASSWORD is unset (local dev).
+  const [auth, setAuth] = useState({ checked: false, required: false, accounts: false, authed: false, email: null });
+  const [authView, setAuthView] = useState("signin"); // signin | signup
+  const [passcode, setPasscode] = useState("");       // legacy shared code
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authInvite, setAuthInvite] = useState("");
   const [authErr, setAuthErr] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
 
   useEffect(() => {
     fetch("/api/login")
       .then((r) => (r.ok ? r.json() : { authRequired: false, authed: true }))
-      .then((d) => setAuth({ checked: true, required: !!d.authRequired, authed: !!d.authed }))
-      .catch(() => setAuth({ checked: true, required: false, authed: true })); // no backend (bare vite) → open
+      .then((d) => setAuth({ checked: true, required: !!d.authRequired, accounts: !!d.accounts, authed: !!d.authed, email: d.email || null }))
+      .catch(() => setAuth({ checked: true, required: false, accounts: false, authed: true, email: null })); // no backend (bare vite) → open
   }, []);
 
   const submitLogin = async (e) => {
@@ -580,22 +585,28 @@ export default function TavusExperienceBuilder() {
     setAuthErr("");
     setAuthBusy(true);
     try {
+      const body = auth.accounts
+        ? { mode: authView, email: authEmail, password: authPassword, invite: authInvite }
+        : { password: passcode };
       const r = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: passcode }),
+        body: JSON.stringify(body),
       });
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        throw new Error(d.error || "Wrong access code.");
-      }
-      setAuth((a) => ({ ...a, authed: true }));
-      setPasscode("");
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error || "Sign-in failed.");
+      setAuth((a) => ({ ...a, authed: true, email: d.email || null }));
+      setPasscode(""); setAuthPassword(""); setAuthInvite("");
     } catch (err) {
       setAuthErr(err.message);
     } finally {
       setAuthBusy(false);
     }
+  };
+
+  const signOut = async () => {
+    await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "signout" }) }).catch(() => {});
+    setAuth((a) => ({ ...a, authed: false, email: null }));
   };
 
   // Setup
@@ -1621,6 +1632,9 @@ export default function TavusExperienceBuilder() {
       btn: { width: "100%", marginTop: 12, background: "#17181A", color: "#fff", border: "none", borderRadius: 999, padding: "11px 18px", font: "inherit", fontWeight: 600, cursor: "pointer", opacity: authBusy ? 0.6 : 1 },
       err: { color: "#D64545", fontSize: 13, marginTop: 12, minHeight: 18 },
     };
+    const canSubmit = auth.accounts
+      ? authEmail && authPassword && (authView === "signin" || authInvite)
+      : passcode;
     return (
       <div style={s.root}>
         {auth.checked && (
@@ -1630,18 +1644,38 @@ export default function TavusExperienceBuilder() {
               <circle cx="13" cy="13" r="4.5" fill="#FF6B5E" />
             </svg>
             <div style={{ fontWeight: 700, fontSize: 18, letterSpacing: -0.3 }}>tavus experience builder</div>
-            <div style={{ color: "#7A7B74", fontSize: 13, marginTop: 6 }}>Enter the access code to continue.</div>
-            <input
-              style={s.input}
-              type="password"
-              autoFocus
-              value={passcode}
-              onChange={(e) => setPasscode(e.target.value)}
-              placeholder="access code"
-            />
-            <button style={s.btn} type="submit" disabled={authBusy || !passcode}>
-              {authBusy ? "Checking…" : "Enter"}
-            </button>
+            {auth.accounts ? (
+              <>
+                <div style={{ color: "#7A7B74", fontSize: 13, marginTop: 6 }}>
+                  {authView === "signin" ? "Sign in to continue." : "Create your account — you'll need the team invite code."}
+                </div>
+                <input style={{ ...s.input, letterSpacing: 0, textAlign: "left" }} type="email" autoFocus value={authEmail}
+                  onChange={(e) => setAuthEmail(e.target.value)} placeholder="you@company.com" autoComplete="email" />
+                <input style={{ ...s.input, marginTop: 8, letterSpacing: 0, textAlign: "left" }} type="password" value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)} placeholder={authView === "signup" ? "choose a password (8+ characters)" : "password"}
+                  autoComplete={authView === "signup" ? "new-password" : "current-password"} />
+                {authView === "signup" && (
+                  <input style={{ ...s.input, marginTop: 8 }} type="password" value={authInvite}
+                    onChange={(e) => setAuthInvite(e.target.value)} placeholder="invite code" autoComplete="off" />
+                )}
+                <button style={s.btn} type="submit" disabled={authBusy || !canSubmit}>
+                  {authBusy ? "One sec…" : authView === "signin" ? "Sign in" : "Create account"}
+                </button>
+                <button type="button" style={{ background: "none", border: "none", color: "#7A7B74", fontSize: 12.5, marginTop: 12, cursor: "pointer", font: "inherit" }}
+                  onClick={() => { setAuthView((v) => (v === "signin" ? "signup" : "signin")); setAuthErr(""); }}>
+                  {authView === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ color: "#7A7B74", fontSize: 13, marginTop: 6 }}>Enter the access code to continue.</div>
+                <input style={s.input} type="password" autoFocus value={passcode}
+                  onChange={(e) => setPasscode(e.target.value)} placeholder="access code" />
+                <button style={s.btn} type="submit" disabled={authBusy || !canSubmit}>
+                  {authBusy ? "Checking…" : "Enter"}
+                </button>
+              </>
+            )}
             <div style={s.err}>{authErr}</div>
           </form>
         )}
@@ -1896,6 +1930,14 @@ export default function TavusExperienceBuilder() {
         </div>
         <div className="status-pill">
           {apiKey ? <>key <b>set</b></> : "key not set"} · {palId ? <>pal <b>{palId.slice(0, 10)}</b></> : "no pal"} · {faceId ? <>face <b>{faceId.slice(0, 10)}</b></> : "no face"}
+          {auth.required && auth.authed && (
+            <> · {auth.email ? auth.email.split("@")[0] : "team"}{" "}
+              <button onClick={signOut} title="Sign out"
+                style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", font: "inherit", fontSize: 11, textDecoration: "underline", padding: 0 }}>
+                sign out
+              </button>
+            </>
+          )}
         </div>
       </header>
 

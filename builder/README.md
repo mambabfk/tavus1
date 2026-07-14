@@ -28,10 +28,13 @@ root — no Root Directory setting needed.
 2. Under **Environment Variables**, add:
    - `ANTHROPIC_API_KEY` — powers persona/vision/demo generation and brand
      theming (required)
-   - `BUILDER_PASSWORD` — shared access code; when set, the app shows a
-     lock screen and the Claude endpoints reject unauthenticated calls.
-     Leave unset to keep the app open (e.g. local dev). Changing it
-     signs everyone out.
+   - `BUILDER_PASSWORD` — enables login. With Redis attached (step 3) this
+     becomes the **invite code** for a real account system: teammates create
+     email+password accounts on the lock screen using this code; sessions
+     are per-user and demos are tagged with their creator. Without Redis it
+     acts as a single shared access code. Unset = open app (local dev).
+     Rotating it signs everyone out (accounts survive) and invalidates the
+     old invite code.
    - `TAVUS_API_KEY` — required for **shareable demo links** (`/d/{slug}`):
      visitors' conversations are created server-side with this key, so link
      recipients never need credentials.

@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { isAuthed } from "./_auth.js";
+import { isAuthed, sessionEmail } from "./_auth.js";
 import { kvAvailable, kvGet, kvSet, kvLpush, kvLtrim } from "./_kv.js";
 
 /* Shareable demo links.
@@ -48,16 +48,18 @@ export default async function handler(req, res) {
   try {
     const slug = crypto.randomBytes(6).toString("base64url");
     const createdAt = new Date().toISOString();
+    const createdBy = sessionEmail(req) || "";
     await kvSet(`demo:${slug}`, {
       v: 1,
       name: String(name).slice(0, 120),
       createdAt,
+      createdBy,
       site,
       controls,
       payload,
     });
     // Index for the stats dashboard (newest first, capped).
-    await kvLpush("demos:index", { slug, name: String(name).slice(0, 120), createdAt });
+    await kvLpush("demos:index", { slug, name: String(name).slice(0, 120), createdAt, createdBy });
     await kvLtrim("demos:index", 0, 499);
     res.status(200).json({ slug });
   } catch (e) {
