@@ -428,6 +428,10 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
   const [videoShift, setVideoShift] = useState(0);
   const onCanvasLayout = useCallback((l) => setVideoShift(l?.active ? l.video_shift_x || 0 : 0), []);
 
+  // True when the logo image is a wordmark (wide) — the brand text is skipped
+  // to avoid "Sendoso Sendoso" in the nav.
+  const [logoIsWordmark, setLogoIsWordmark] = useState(false);
+
   // Load the vendored CVI components (committed under src/components/cvi).
   // The custom call UI is the ONLY call path — there is no hosted-iframe
   // fallback. A load failure (e.g. a chunk lost to a network blip) shows a
@@ -522,11 +526,20 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
       <nav className="demo-nav">
         <div className="demo-brandwrap">
           {site.logoUrl ? (
-            <img src={site.logoUrl} alt="" className="demo-logo" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+            <img
+              src={site.logoUrl}
+              alt={site.brand || ""}
+              className="demo-logo"
+              // Wide image = a wordmark that already spells the brand name —
+              // printing it again reads as "Sendoso Sendoso". Square-ish = a
+              // glyph, so keep the name beside it.
+              onLoad={(e) => setLogoIsWordmark(e.currentTarget.naturalWidth > e.currentTarget.naturalHeight * 2.2)}
+              onError={(e) => { e.currentTarget.style.display = "none"; setLogoIsWordmark(false); }}
+            />
           ) : (
             <span className="demo-monogram">{(site.brand || "T")[0].toUpperCase()}</span>
           )}
-          <span className="demo-brand">{site.brand || "Your Brand"}</span>
+          {!(site.logoUrl && logoIsWordmark) && <span className="demo-brand">{site.brand || "Your Brand"}</span>}
         </div>
         {!visitor && (
           <div style={{ display: "flex", gap: 8 }}>
