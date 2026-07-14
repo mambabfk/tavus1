@@ -1067,7 +1067,8 @@ export default function TavusExperienceBuilder() {
     const text = await res.text();
     let data;
     try { data = JSON.parse(text); } catch { data = { raw: text }; }
-    if (!res.ok) throw new Error(`${res.status}: ${data.message || data.error || text || "request failed"}`);
+    // 304 = "already in that state" (e.g. a PATCH that changes nothing) — success.
+    if (!res.ok && res.status !== 304) throw new Error(`${res.status}: ${data.message || data.error || text || "request failed"}`);
     return data;
   };
 
@@ -1681,21 +1682,31 @@ export default function TavusExperienceBuilder() {
         addLog("ok", "Vision attached (persists on the PAL until you change it).");
       }
 
-      // Voice: apply the chosen Cartesia voice (accent) to the PAL.
+      // Voice + expressive delivery: nice-to-haves — a failure here must never
+      // stop the conversation from launching (some PALs reject TTS-layer ops).
       if (externalVoiceId.trim()) {
-        addLog("info", `Setting the voice to ${externalVoiceName || externalVoiceId}…`);
-        await tavusFetch("PATCH", `/pals/${pal}`, [
-          { op: "add", path: "/layers/tts/external_voice_id", value: externalVoiceId.trim() },
-        ]);
-        addLog("ok", "Voice applied (persists on the PAL until you change it).");
+        try {
+          addLog("info", `Setting the voice to ${externalVoiceName || externalVoiceId}…`);
+          await tavusFetch("PATCH", `/pals/${pal}`, [
+            { op: "add", path: "/layers/tts/external_voice_id", value: externalVoiceId.trim() },
+          ]);
+          addLog("ok", "Voice applied (persists on the PAL until you change it).");
+        } catch (e) {
+          addLog("err", `Voice couldn't be applied (continuing launch): ${e.message}`);
+        }
       }
-
-      // Expressive delivery: sync the emotion-control flag to the PAL.
-      addLog("info", `${emotionControl ? "Enabling" : "Disabling"} expressive delivery…`);
-      await tavusFetch("PATCH", `/pals/${pal}`, [
-        { op: "add", path: "/layers/tts/tts_emotion_control", value: emotionControl },
-      ]);
-      addLog("ok", `Expressive delivery ${emotionControl ? "on — emotion comes through voice and face" : "off — flat, even delivery"}.`);
+      if (!emotionControl) {
+        // Only patch when turned OFF — Tavus defaults it to on.
+        try {
+          addLog("info", "Disabling expressive delivery…");
+          await tavusFetch("PATCH", `/pals/${pal}`, [
+            { op: "add", path: "/layers/tts/tts_emotion_control", value: false },
+          ]);
+          addLog("ok", "Expressive delivery off — flat, even delivery.");
+        } catch (e) {
+          addLog("err", `Expressive-delivery setting failed (continuing launch): ${e.message}`);
+        }
+      }
 
       // Pronunciation: create a dictionary, attach it to the PAL's voice.
       if (speechEnabled && pronunciationRules.length) {

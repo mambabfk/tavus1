@@ -100,14 +100,17 @@ export default async function handler(req, res) {
     const client = new Anthropic();
     const stream = client.messages.stream({
       model: "claude-opus-4-8",
-      max_tokens: 2000,
+      max_tokens: 4000,
       thinking: { type: "adaptive" },
       system: THEME_SYSTEM,
       messages: [{ role: "user", content: promptParts.filter(Boolean).join("\n\n") }],
     });
     const msg = await stream.finalMessage();
     const text = msg.content.find((b) => b.type === "text")?.text ?? "";
-    const parsed = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim());
+    // Tolerate fences or prose around the JSON — grab the outermost object.
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new SyntaxError("no JSON in response");
+    const parsed = JSON.parse(jsonMatch[0]);
 
     if (parsed.logoUrl) {
       try { parsed.logoUrl = new URL(parsed.logoUrl, target.href).href; }
