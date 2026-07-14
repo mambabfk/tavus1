@@ -18,6 +18,21 @@ Rules for the persona prompts you write:
 
 Return ONLY the persona system prompt text. No preamble, no explanation, no code fences.`;
 
+const VISION_SYSTEM = `You configure the vision layer ("perception", model raven-1) of a Tavus PAL — an AI human on a live video call that can continuously watch the user's camera/screen and listen to their tone.
+
+From the user's plain-English description of what the PAL should notice, write awareness queries:
+- VISUAL queries: short present-tense observations Raven continuously checks in the video/screen stream (e.g. "Is more than one person visible?", "Is the user showing a document to the camera?"). Write 3-6.
+- AUDIO queries: tone/emotion/explicit-request checks from the audio stream (e.g. "Is the user expressing frustration?", "Has the user asked to speak to a human?"). Write 0-3, only when the description calls for them.
+
+Each query must be a single, concretely checkable question — no compound questions, no instructions to act (the PAL's prompt handles reactions).
+
+Return EXACTLY this format and nothing else:
+VISUAL:
+- <query>
+- <query>
+AUDIO:
+- <query>`;
+
 function briefToPrompt(brief, context) {
   const lines = ["Write a Tavus persona system prompt for this demo:"];
   const add = (label, v) => { if (v && String(v).trim()) lines.push(`${label}: ${String(v).trim()}`); };
@@ -50,12 +65,29 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { brief = {}, context = {} } = req.body ?? {};
-  const hasInput = ["product", "audience", "goal", "tone", "mustCover", "avoid"]
-    .some((k) => brief[k] && String(brief[k]).trim());
-  if (!hasInput) {
-    res.status(400).json({ error: "Describe the demo first — at least one brief field is required." });
-    return;
+  const { brief = {}, context = {}, kind = "persona", vibe = "" } = req.body ?? {};
+
+  let system;
+  let userPrompt;
+  if (kind === "vision") {
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Describe what the PAL should watch for first." });
+      return;
+    }
+    system = VISION_SYSTEM;
+    const parts = [`What the PAL should notice on the call:\n${String(vibe).trim()}`];
+    if (context.product) parts.push(`Product being demoed: ${context.product}`);
+    if (context.brand) parts.push(`Brand: ${context.brand}`);
+    userPrompt = parts.join("\n\n");
+  } else {
+    const hasInput = ["product", "audience", "goal", "tone", "mustCover", "avoid"]
+      .some((k) => brief[k] && String(brief[k]).trim());
+    if (!hasInput) {
+      res.status(400).json({ error: "Describe the demo first — at least one brief field is required." });
+      return;
+    }
+    system = GENERATOR_SYSTEM;
+    userPrompt = briefToPrompt(brief, context);
   }
 
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -74,8 +106,8 @@ export default async function handler(req, res) {
       model: "claude-opus-4-8",
       max_tokens: 16000,
       thinking: { type: "adaptive" },
-      system: GENERATOR_SYSTEM,
-      messages: [{ role: "user", content: briefToPrompt(brief, context) }],
+      system,
+      messages: [{ role: "user", content: userPrompt }],
     });
 
     stream.on("text", (text) => res.write(text));

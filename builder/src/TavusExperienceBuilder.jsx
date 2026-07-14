@@ -30,10 +30,18 @@ const STEPS = [
   { id: "setup", label: "Setup" },
   { id: "persona", label: "Persona" },
   { id: "guide", label: "Objectives & Guardrails" },
+  { id: "vision", label: "Vision" },
   { id: "presentation", label: "Presentation" },
   { id: "canvas", label: "Magic Canvas" },
+  { id: "speech", label: "Pronunciation" },
   { id: "site", label: "Demo Page" },
   { id: "launch", label: "Launch" },
+];
+
+const SITE_FORMATS = [
+  { v: "desktop", label: "Desktop", desc: "Full page — headline, tagline, wide 16:9 stage. The default." },
+  { v: "phone", label: "Phone", desc: "Portrait stage in a phone frame — preview the mobile-app experience." },
+  { v: "kiosk", label: "Kiosk", desc: "Nothing but the conversation, full screen — for tablets, lobbies, trade-show booths." },
 ];
 
 /* Turn a plain-English line into an API-safe objective/guardrail name */
@@ -78,6 +86,48 @@ const parseGuardrails = (text) => {
     };
   });
 };
+
+/* One rule per line: "word = how to say it". Add [ipa] for IPA notation,
+   [case] for case-sensitive matching. "=" ":" or "->" all work as separators. */
+const parsePronunciation = (text) => {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const rules = [];
+  const seen = new Set();
+  for (const line of lines) {
+    const ipa = /\[ipa\]/i.test(line);
+    const caseSensitive = /\[case\]/i.test(line);
+    const cleaned = line.replace(/\[(ipa|case)\]/gi, "").trim();
+    const m = cleaned.match(/^(.+?)\s*(?:=|:|->)\s*(.+)$/);
+    if (!m) continue;
+    const word = m[1].trim().slice(0, 200);
+    const pron = m[2].trim().slice(0, 500);
+    if (!word || !pron || seen.has(word.toLowerCase())) continue; // API rejects duplicate text
+    seen.add(word.toLowerCase());
+    const rule = { text: word, pronunciation: pron, type: ipa ? "ipa" : "alias" };
+    if (caseSensitive) rule.case_sensitive = true;
+    rules.push(rule);
+  }
+  return rules;
+};
+
+/* Parse Claude's vision draft (VISUAL:/AUDIO: sections with "- query" lines). */
+const parseVisionDraft = (text) => {
+  const visual = [];
+  const audio = [];
+  let target = null;
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (/^visual:?\s*$/i.test(line)) { target = visual; continue; }
+    if (/^audio:?\s*$/i.test(line)) { target = audio; continue; }
+    const m = line.match(/^[-*•]\s*(.+)/);
+    if (m && target) target.push(m[1].trim());
+  }
+  return { visual, audio };
+};
+
+/* First few words of a prompt, for consumer-friendly summaries (no slugs). */
+const shortLabel = (text, max = 38) =>
+  text.length > max ? `${text.slice(0, max).replace(/\s+\S*$/, "")}…` : text;
 
 /* ── Tab recorder: tab video + tab audio mixed with mic → .webm ── */
 function useTabRecorder() {
@@ -240,8 +290,12 @@ function DemoSite({ site, conversationUrl, onStart, onExit, busy }) {
     );
   };
 
+  const format = site.format || "desktop";
   return (
-    <div className="demo-root">
+    <div className={`demo-root demo-${format}`}>
+      {format === "kiosk" && (
+        <button className="kiosk-exit" onClick={onExit} title="Back to builder">×</button>
+      )}
       <nav className="demo-nav">
         <div className="demo-brandwrap">
           {site.logoUrl ? (
@@ -265,16 +319,21 @@ function DemoSite({ site, conversationUrl, onStart, onExit, busy }) {
       </nav>
 
       <main className="demo-main">
-        {(site.headline || !conversationUrl) && (
+        {format === "desktop" && (site.headline || !conversationUrl) && (
           <header className="demo-header">
             <h1>{site.headline || "Talk to our AI expert"}</h1>
             {site.tagline && <p>{site.tagline}</p>}
           </header>
         )}
 
-        <div className="demo-stage">
-          {stage()}
-        </div>
+        {format === "phone" ? (
+          <div className="phone-frame">
+            <div className="phone-notch" />
+            <div className="demo-stage">{stage()}</div>
+          </div>
+        ) : (
+          <div className="demo-stage">{stage()}</div>
+        )}
 
         {conversationUrl && cvi === null && (
           <p className="demo-cta-hint" style={{ marginTop: 14, maxWidth: 560, textAlign: "center" }}>
@@ -349,6 +408,21 @@ export default function TavusExperienceBuilder() {
   const [generating, setGenerating] = useState(false);
   const [personaAttached, setPersonaAttached] = useState(false);
 
+  // Vision (perception layer)
+  const [visionEnabled, setVisionEnabled] = useState(false);
+  const [visionVibe, setVisionVibe] = useState("");
+  const [visualQueriesText, setVisualQueriesText] = useState("");
+  const [audioQueriesText, setAudioQueriesText] = useState("");
+  const [visionGenerating, setVisionGenerating] = useState(false);
+
+  // Pronunciation dictionary
+  const [speechEnabled, setSpeechEnabled] = useState(false);
+  const [pronunciationText, setPronunciationText] = useState("");
+
+  // New-PAL creation (Setup)
+  const [newPalName, setNewPalName] = useState("");
+  const [creatingPal, setCreatingPal] = useState(false);
+
   // Presentation
   const [presentationEnabled, setPresentationEnabled] = useState(false);
   const [docIdsRaw, setDocIdsRaw] = useState("");
@@ -377,7 +451,7 @@ export default function TavusExperienceBuilder() {
 
   // Demo page
   const [site, setSite] = useState({
-    brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation",
+    brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop",
   });
   const setSiteField = (k, v) => setSite((s) => ({ ...s, [k]: v }));
 
@@ -394,6 +468,7 @@ export default function TavusExperienceBuilder() {
   const [activeScenario, setActiveScenario] = useState("");
   const [rememberKey, setRememberKey] = useState(() => !!store.get(APIKEY_KEY, ""));
   const importRef = useRef(null);
+  const logoFileRef = useRef(null);
 
   // Load remembered API key once on mount.
   useEffect(() => {
@@ -412,6 +487,8 @@ export default function TavusExperienceBuilder() {
     v: 1,
     faceId, palId, language, conversationName, callbackUrl, greeting,
     personaBrief, personaDraft,
+    visionEnabled, visionVibe, visualQueriesText, audioQueriesText,
+    speechEnabled, pronunciationText,
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
@@ -425,6 +502,9 @@ export default function TavusExperienceBuilder() {
     setPersonaBrief({ product: "", audience: "", goal: "", tone: "", mustCover: "", avoid: "", ...(c.personaBrief || {}) });
     setPersonaDraft(c.personaDraft ?? "");
     setPersonaAttached(false);
+    setVisionEnabled(!!c.visionEnabled); setVisionVibe(c.visionVibe ?? "");
+    setVisualQueriesText(c.visualQueriesText ?? ""); setAudioQueriesText(c.audioQueriesText ?? "");
+    setSpeechEnabled(!!c.speechEnabled); setPronunciationText(c.pronunciationText ?? "");
     setPresentationEnabled(!!c.presentationEnabled); setDocIdsRaw(c.docIdsRaw ?? "");
     setSlidesTrigger(c.slidesTrigger ?? "walk_the_deck"); setPresentPrompt(c.presentPrompt ?? "");
     setObjectivesEnabled(!!c.objectivesEnabled); setObjectivesText(c.objectivesText ?? "");
@@ -436,7 +516,7 @@ export default function TavusExperienceBuilder() {
     setCanvasStyle(c.canvasStyle ?? "balanced");
     setComponentRules({ ...Object.fromEntries(CANVAS_COMPONENTS.map((x) => [x.key, ""])), ...(c.componentRules || {}) });
     setCanvasPlaybook(c.canvasPlaybook ?? "");
-    setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", ...(c.site || {}) });
+    setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", ...(c.site || {}) });
   };
 
   const saveScenario = () => {
@@ -562,6 +642,22 @@ export default function TavusExperienceBuilder() {
   );
   const guardrailsParsed = useMemo(() => parseGuardrails(guardrailsText), [guardrailsText]);
 
+  const visionPayload = useMemo(() => {
+    const lines = (t) => t.split("\n").map((s) => s.trim().replace(/^[-*•]\s*/, "")).filter(Boolean);
+    const value = { perception_model: "raven-1" };
+    const visual = lines(visualQueriesText);
+    const audio = lines(audioQueriesText);
+    if (visual.length) value.visual_awareness_queries = visual;
+    if (audio.length) value.audio_awareness_queries = audio;
+    return value;
+  }, [visualQueriesText, audioQueriesText]);
+
+  const pronunciationRules = useMemo(() => parsePronunciation(pronunciationText), [pronunciationText]);
+  const pronunciationPayload = useMemo(
+    () => ({ name: `${(site.brand || conversationName || "builder").slice(0, 240)} dictionary`, rules: pronunciationRules }),
+    [site.brand, conversationName, pronunciationRules]
+  );
+
   /* ── curl preview ── */
 
   const curlFor = (method, path, body) =>
@@ -586,13 +682,17 @@ export default function TavusExperienceBuilder() {
         return { title: "POST /guardrails (one per rule)", text: curlFor("POST", "/guardrails", guardrailsParsed[0]) };
       return { title: "POST /objectives", text: curlFor("POST", "/objectives", objectivesPayload) };
     }
+    if (step === "vision")
+      return { title: "PATCH /pals/… (perception)", text: curlFor("PATCH", `/pals/${pal}`, [{ op: "add", path: "/layers/perception", value: visionPayload }]) };
+    if (step === "speech")
+      return { title: "POST /pronunciation-dictionaries", text: curlFor("POST", "/pronunciation-dictionaries", pronunciationPayload) };
     if (step === "presentation")
       return { title: "PUT /pals/…/skills/presentation", text: curlFor("PUT", `/pals/${pal}/skills/presentation`, presentationPayload) };
     if (step === "canvas")
       return { title: "PUT /pals/…/skills/magic_canvas", text: curlFor("PUT", `/pals/${pal}/skills/magic_canvas`, canvasPayload) };
     return { title: "POST /conversations", text: curlFor("POST", "/conversations", conversationPayload) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, palId, apiKey, personaDraft, presentationPayload, canvasPayload, conversationPayload, objectivesPayload, guardrailsParsed, objectivesEnabled, guardrailsEnabled]);
+  }, [step, palId, apiKey, personaDraft, visionPayload, pronunciationPayload, presentationPayload, canvasPayload, conversationPayload, objectivesPayload, guardrailsParsed, objectivesEnabled, guardrailsEnabled]);
 
   /* ── API ── */
 
@@ -658,6 +758,90 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* ── Vision: Claude drafts awareness queries from a plain-English vibe ── */
+
+  const generateVision = async () => {
+    setVisionGenerating(true);
+    try {
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "vision",
+          vibe: visionVibe,
+          context: { product: personaBrief.product, brand: site.brand },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth((a) => ({ ...a, authed: false }));
+        throw new Error(msg || "generation failed");
+      }
+      const { visual, audio } = parseVisionDraft(text);
+      if (!visual.length && !audio.length) throw new Error("Couldn't parse the draft — try rephrasing the description.");
+      setVisualQueriesText(visual.join("\n"));
+      setAudioQueriesText(audio.join("\n"));
+      addLog("ok", `Vision drafted: ${visual.length} visual, ${audio.length} audio checks — edit freely, attach on launch.`);
+    } catch (e) {
+      addLog("err", `Vision generation: ${e.message}`);
+    } finally {
+      setVisionGenerating(false);
+    }
+  };
+
+  /* ── Create a brand-new PAL from the builder ── */
+
+  const createPal = async () => {
+    if (!apiKey.trim()) { addLog("err", "API key is required — enter it above first."); return; }
+    if (!faceId.trim()) { addLog("err", "Face ID is required — a new PAL needs a default face."); return; }
+    if (!newPalName.trim()) { addLog("err", "Give the new PAL a name."); return; }
+    setCreatingPal(true);
+    try {
+      addLog("info", `Creating PAL "${newPalName.trim()}"…`);
+      const body = {
+        pal_name: newPalName.trim(),
+        default_face_id: faceId.trim(),
+        system_prompt: personaDraft.trim() ||
+          `You are a friendly, knowledgeable representative${site.brand ? ` for ${site.brand}` : ""}. Speak naturally and concisely, listen more than you talk, and help the person you're speaking with understand the product. Never invent pricing or commitments.`,
+      };
+      const data = await tavusFetch("POST", "/pals", body);
+      const id = data.pal_id || data.uuid || data.id;
+      if (!id) throw new Error("PAL created but no pal_id in the response.");
+      setPalId(id);
+      setPersonaAttached(!!personaDraft.trim()); // its prompt is already the draft
+      setNewPalName("");
+      addLog("ok", `PAL created: ${id} — it's now set as your PAL ID${personaDraft.trim() ? " (with your persona prompt)" : ""}.`);
+    } catch (e) {
+      addLog("err", `Create PAL: ${e.message}`);
+    } finally {
+      setCreatingPal(false);
+    }
+  };
+
+  /* ── Logo upload: file → downscaled data URL (works offline, no hosting) ── */
+
+  const onLogoFile = (file) => {
+    if (!file || !file.type.startsWith("image/")) { addLog("err", "That file isn't an image."); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 512;
+        const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        setSiteField("logoUrl", canvas.toDataURL("image/png"));
+      };
+      img.onerror = () => addLog("err", "Couldn't read that image.");
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const attachPersona = async () => {
     if (!apiKey.trim() || !palId.trim()) { addLog("err", "API key and PAL ID are required — see Setup."); return; }
     if (!personaDraft.trim()) { addLog("err", "Nothing to attach — generate or write a persona prompt first."); return; }
@@ -718,6 +902,30 @@ export default function TavusExperienceBuilder() {
           { op: "add", path: "/guardrail_ids", value: merged },
         ]);
         addLog("ok", `Guardrails attached (${merged.length} total on the PAL; persists until removed).`);
+      }
+
+      // Vision: attach the perception layer to the PAL (persists like objectives).
+      if (visionEnabled && (visionPayload.visual_awareness_queries || visionPayload.audio_awareness_queries)) {
+        const v = visionPayload.visual_awareness_queries?.length || 0;
+        const a = visionPayload.audio_awareness_queries?.length || 0;
+        addLog("info", `Attaching vision (${v} visual, ${a} audio checks)…`);
+        await tavusFetch("PATCH", `/pals/${pal}`, [
+          { op: "add", path: "/layers/perception", value: visionPayload },
+        ]);
+        addLog("ok", "Vision attached (persists on the PAL until you change it).");
+      }
+
+      // Pronunciation: create a dictionary, attach it to the PAL's voice.
+      if (speechEnabled && pronunciationRules.length) {
+        addLog("info", `Creating pronunciation dictionary (${pronunciationRules.length} rule${pronunciationRules.length > 1 ? "s" : ""})…`);
+        const dict = await tavusFetch("POST", "/pronunciation-dictionaries", pronunciationPayload);
+        const dictId = dict.pronunciation_dictionary_id || dict.uuid || dict.id;
+        addLog("ok", `Dictionary created: ${dictId}`);
+        addLog("info", "Attaching dictionary to the PAL's voice…");
+        await tavusFetch("PATCH", `/pals/${pal}`, [
+          { op: "add", path: "/layers/tts/pronunciation_dictionary_id", value: dictId },
+        ]);
+        addLog("ok", "Pronunciation attached (persists on the PAL until you change it).");
       }
 
       if (presentationEnabled) {
@@ -924,6 +1132,26 @@ export default function TavusExperienceBuilder() {
         .pulsing { animation:recpulse 1.2s infinite; }
         @keyframes recpulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
+        /* format picker icons */
+        .format-viz { display:flex; align-items:center; justify-content:center; height:42px; margin-bottom:8px; }
+        .fv-desktop { width:56px; height:34px; border:2px solid currentColor; border-radius:5px; opacity:.65; }
+        .fv-phone { width:20px; height:38px; border:2px solid currentColor; border-radius:6px; opacity:.65; }
+        .fv-kiosk { width:56px; height:38px; background:currentColor; border-radius:5px; opacity:.35; }
+
+        /* phone format: portrait stage in a device frame */
+        .demo-phone .demo-main { justify-content:center; }
+        .phone-frame { position:relative; width:min(390px, 92vw); aspect-ratio:9/19; background:#0e0f12; border-radius:44px; padding:12px; box-shadow:0 30px 80px -30px rgba(20,20,20,.45), 0 0 0 2px rgba(20,20,20,.9); display:flex; }
+        .phone-notch { position:absolute; top:12px; left:50%; transform:translateX(-50%); width:110px; height:22px; background:#0e0f12; border-radius:0 0 14px 14px; z-index:2; }
+        .demo-phone .demo-stage { width:100%; aspect-ratio:auto; flex:1; border-radius:32px; border:none; }
+
+        /* kiosk format: conversation only, full screen */
+        .demo-kiosk .demo-nav, .demo-kiosk .demo-header, .demo-kiosk .demo-powered { display:none; }
+        .demo-kiosk .demo-main { padding:0; }
+        .demo-kiosk .demo-stage { width:100vw; height:100vh; max-width:none; aspect-ratio:auto; border-radius:0; border:none; }
+        .demo-kiosk .demo-cta { transform:scale(1.25); }
+        .kiosk-exit { position:fixed; top:14px; right:14px; z-index:60; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:rgba(255,255,255,.85); color:var(--muted); font-size:20px; line-height:1; cursor:pointer; opacity:.35; }
+        .kiosk-exit:hover { opacity:1; }
+
         @media (max-width:1100px){ .preview { display:none; } }
         @media (max-width:760px){
           .rail { width:56px; }
@@ -991,6 +1219,8 @@ export default function TavusExperienceBuilder() {
               {s.id === "setup" && canLaunch && <span className="rail-check">●</span>}
               {s.id === "persona" && personaDraft.trim() && <span className="rail-check">●</span>}
               {s.id === "guide" && (objectivesEnabled || guardrailsEnabled) && <span className="rail-check">●</span>}
+              {s.id === "vision" && visionEnabled && <span className="rail-check">●</span>}
+              {s.id === "speech" && speechEnabled && <span className="rail-check">●</span>}
               {s.id === "presentation" && presentationEnabled && <span className="rail-check">●</span>}
               {s.id === "canvas" && canvasEnabled && <span className="rail-check">●</span>}
               {s.id === "site" && site.brand && <span className="rail-check">●</span>}
@@ -1015,6 +1245,15 @@ export default function TavusExperienceBuilder() {
               </Field>
               <Field label="PAL ID" hint="The PAL (persona) that drives the conversation, e.g. p5317866. Skills attach to this PAL.">
                 <input className="mono" value={palId} onChange={(e) => setPalId(e.target.value)} placeholder="p…" />
+              </Field>
+              <Field label="…or create a new PAL" hint={`Needs the API key and Face ID above. ${personaDraft.trim() ? "It will launch with your Persona draft as its prompt." : "Draft a prompt in the Persona step first for a tailored PAL, or create now with a sensible default."}`}>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={newPalName} onChange={(e) => setNewPalName(e.target.value)} placeholder="e.g. Acme Sales Expert"
+                    onKeyDown={(e) => e.key === "Enter" && !creatingPal && createPal()} />
+                  <button className="pill-btn" style={{ flexShrink: 0 }} onClick={createPal} disabled={creatingPal || !newPalName.trim()}>
+                    {creatingPal ? "Creating…" : "Create PAL"}
+                  </button>
+                </div>
               </Field>
               <Field label="Language" hint="Full language name. Multilingual auto-detects the speaker's language and responds in kind.">
                 <select value={language} onChange={(e) => setLanguage(e.target.value)}>
@@ -1094,10 +1333,10 @@ export default function TavusExperienceBuilder() {
                 <Toggle on={objectivesEnabled} onChange={setObjectivesEnabled} />
               </div>
               <p className="field-hint" style={{ maxWidth: 560, marginBottom: 8 }}>
-                One goal per line, in the order the conversation should progress — lines chain automatically into a workflow. Add "| name, email" after a line to extract variables from it.
+                One goal per line, in plain English — top to bottom is the order the conversation follows. Want the PAL to collect details along the way? End a line with "| name, email" and it will capture them.
               </p>
               <Field label="" hint={objectivesEnabled && objectivesPayload.data.length
-                ? `Will create a ${objectivesPayload.data.length}-step workflow: ${objectivesPayload.data.map((o) => o.objective_name).join(" → ")}`
+                ? `Your ${objectivesPayload.data.length}-step flow: ${objectivesPayload.data.map((o, i) => `${i + 1}) ${shortLabel(o.objective_prompt)}`).join("   ")}`
                 : "Best for templated flows (intake, interview, qualification). Free-flowing conversations usually don't need objectives."}>
                 <textarea
                   style={{ minHeight: 110 }}
@@ -1133,6 +1372,73 @@ export default function TavusExperienceBuilder() {
                   value={guardrailsText}
                   onChange={(e) => setGuardrailsText(e.target.value)}
                   placeholder={"Never discuss competitors or their products\nNever quote custom pricing — direct pricing questions to the sales team\nUser is sharing credit card numbers or passwords\nMore than one person is visible in camera view [visual]"}
+                />
+              </Field>
+            </>
+          )}
+
+          {step === "vision" && (
+            <>
+              <div className="skill-head">
+                <h1>Vision</h1>
+                <Toggle on={visionEnabled} onChange={setVisionEnabled} />
+              </div>
+              <p className="lede">
+                Give the PAL eyes and ears. Describe in plain English what it should notice — on camera, on a shared screen, or in the user's tone — and Claude turns that into the checks Tavus's perception model (raven-1) runs continuously during the call. Like objectives, this attaches to the PAL on launch and persists.
+              </p>
+              <Field label="What should it notice?" hint="Plain English — Claude converts this into precise visual and audio checks below.">
+                <textarea
+                  style={{ minHeight: 90 }}
+                  disabled={!visionEnabled}
+                  value={visionVibe}
+                  onChange={(e) => setVisionVibe(e.target.value)}
+                  placeholder={"Notice when they hold up their ID or a document, when someone else walks into frame, and when they sound confused or frustrated so it can slow down and help."}
+                />
+              </Field>
+              <button className="pill-btn primary" style={{ marginBottom: 22 }} onClick={generateVision} disabled={!visionEnabled || visionGenerating || !visionVibe.trim()}>
+                {visionGenerating ? "Drafting…" : (visualQueriesText || audioQueriesText) ? "Regenerate checks" : "Generate checks with Claude"}
+              </button>
+
+              <Field label="Visual checks" hint="One per line — what raven-1 continuously watches for in the camera/screen. Edit freely.">
+                <textarea
+                  style={{ minHeight: 110 }}
+                  disabled={!visionEnabled}
+                  value={visualQueriesText}
+                  onChange={(e) => setVisualQueriesText(e.target.value)}
+                  placeholder={"Is the user holding a document or ID up to the camera?\nIs more than one person visible in the frame?"}
+                />
+              </Field>
+              <Field label="Audio checks" hint="One per line — tone and emotion cues from the user's voice (raven-1 only). Optional.">
+                <textarea
+                  style={{ minHeight: 80 }}
+                  disabled={!visionEnabled}
+                  value={audioQueriesText}
+                  onChange={(e) => setAudioQueriesText(e.target.value)}
+                  placeholder={"Does the user sound confused or frustrated?\nHas the user asked to speak to a human?"}
+                />
+              </Field>
+            </>
+          )}
+
+          {step === "speech" && (
+            <>
+              <div className="skill-head">
+                <h1>Pronunciation</h1>
+                <Toggle on={speechEnabled} onChange={setSpeechEnabled} />
+              </div>
+              <p className="lede">
+                Teach the PAL how to say your product names, acronyms, and people. One rule per line: the word, then how to say it. On launch these become a pronunciation dictionary attached to the PAL's voice — it works with every Tavus voice engine.
+              </p>
+              <Field label="Rules" hint={speechEnabled && pronunciationRules.length
+                ? `${pronunciationRules.length} rule${pronunciationRules.length > 1 ? "s" : ""} ready: ${pronunciationRules.slice(0, 4).map((r) => r.text).join(", ")}${pronunciationRules.length > 4 ? "…" : ""}`
+                : 'Write it how it sounds: "Tavus = TAH-vuss". For phonetic IPA notation add [ipa]; for exact-case matching add [case].'}>
+                <textarea
+                  className="mono"
+                  style={{ minHeight: 140 }}
+                  disabled={!speechEnabled}
+                  value={pronunciationText}
+                  onChange={(e) => setPronunciationText(e.target.value)}
+                  placeholder={"Tavus = TAH-vuss\nCVI = C V I\nNguyen = win\nlive demo = lyve demo"}
                 />
               </Field>
             </>
@@ -1253,8 +1559,18 @@ export default function TavusExperienceBuilder() {
               <Field label="Brand name">
                 <input value={site.brand} onChange={(e) => setSiteField("brand", e.target.value)} placeholder="Acme Health" />
               </Field>
-              <Field label="Logo URL" hint="Optional. Any public image URL; falls back to a monogram if empty or broken.">
-                <input className="mono" value={site.logoUrl} onChange={(e) => setSiteField("logoUrl", e.target.value)} placeholder="https://…/logo.png" />
+              <Field label="Logo" hint="Upload an image (stored with the config — no hosting needed). Falls back to a monogram when empty.">
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <button className="pill-btn" onClick={() => logoFileRef.current?.click()}>Upload logo…</button>
+                  {site.logoUrl && (
+                    <>
+                      <img src={site.logoUrl} alt="logo preview" style={{ height: 30, borderRadius: 7, objectFit: "contain", border: "1px solid var(--border)", background: "#fff", padding: 2 }} />
+                      <button className="pill-btn" style={{ padding: "6px 12px", fontSize: 12, color: "var(--danger)" }} onClick={() => setSiteField("logoUrl", "")}>Remove</button>
+                    </>
+                  )}
+                  <input ref={logoFileRef} type="file" accept="image/*" style={{ display: "none" }}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) onLogoFile(f); e.target.value = ""; }} />
+                </div>
               </Field>
               <Field label="Headline">
                 <input value={site.headline} onChange={(e) => setSiteField("headline", e.target.value)} placeholder="Meet your AI onboarding specialist" />
@@ -1265,6 +1581,22 @@ export default function TavusExperienceBuilder() {
               <Field label="Button label">
                 <input value={site.cta} onChange={(e) => setSiteField("cta", e.target.value)} />
               </Field>
+
+              <div className="subhead">Format</div>
+              <div className="placement-row" style={{ marginBottom: 18 }}>
+                {SITE_FORMATS.map((f) => (
+                  <div key={f.v} className={"placement-card" + ((site.format || "desktop") === f.v ? " on" : "")} onClick={() => setSiteField("format", f.v)}>
+                    <div className="format-viz">
+                      {f.v === "desktop" && <div className="fv-desktop" />}
+                      {f.v === "phone" && <div className="fv-phone" />}
+                      {f.v === "kiosk" && <div className="fv-kiosk" />}
+                    </div>
+                    <div style={{ fontWeight: 600 }}>{f.label}</div>
+                    <div style={{ fontSize: 11.5, marginTop: 4, lineHeight: 1.4 }}>{f.desc}</div>
+                  </div>
+                ))}
+              </div>
+
               <button className="pill-btn" onClick={() => setSiteMode(true)}>Preview the page</button>
             </>
           )}
@@ -1276,6 +1608,8 @@ export default function TavusExperienceBuilder() {
                 On launch: {[
                   objectivesEnabled && objectivesPayload.data.length && "creates & attaches objectives",
                   guardrailsEnabled && guardrailsParsed.length && "creates & attaches guardrails",
+                  visionEnabled && (visionPayload.visual_awareness_queries || visionPayload.audio_awareness_queries) && "attaches Vision",
+                  speechEnabled && pronunciationRules.length && "creates & attaches pronunciation",
                   presentationEnabled && "attaches Presentation",
                   canvasEnabled && "attaches Magic Canvas",
                 ].filter(Boolean).join(", ") || "no customizations selected"}, then creates the conversation and opens it on your demo page.

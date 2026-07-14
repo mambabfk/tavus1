@@ -65,14 +65,24 @@ Left-rail steps, each a slice of one big component's state:
    `[{op:"add", path:"/system_prompt", value}]`. Draft → review → attach; the
    attach never happens without the human seeing the text. The prompt persists
    on the PAL like objectives do.
+   Setup also offers **Create PAL** (`createPal()`): `POST /pals` with
+   `pal_name`, `default_face_id` (uses the Face ID field), and `system_prompt`
+   (the persona draft when present, else a generic default) → fills `palId`.
 2. **Objectives & Guardrails** (`guide`) — plain-English textareas, one item
-   per line, parsed on launch:
+   per line, parsed on launch (slug names are generated internally and never
+   shown in the UI — summaries use `shortLabel(objective_prompt)`):
    - `parseObjectives` — each line → an objective; lines **chain** in order via
      `next_required_objective`. `| var1, var2` suffix → `output_variables`.
      `confirmationMode` (`auto`/`manual`) applies to all.
    - `parseGuardrails` — each line → a guardrail; `[visual]` anywhere in the
      line marks `modality: "visual"` (else `verbal`).
    - `slugName()` turns prose into API-safe `obj_N_…` / `gr_N_…` names.
+2.5. **Vision** (`vision`) — the perception layer. Plain-English "what should
+   it notice" (`visionVibe`) → `generateVision()` calls `/api/generate-persona`
+   with `kind: "vision"`; Claude returns `VISUAL:`/`AUDIO:` sections parsed by
+   `parseVisionDraft` into editable per-line textareas. On launch →
+   `PATCH /pals/{id}` `/layers/perception` with `{perception_model: "raven-1",
+   visual_awareness_queries, audio_awareness_queries}`. Persists on the PAL.
 3. **Presentation** — attach PDF/image decks from the Knowledge Base.
    `docIdsRaw` (comma/newline list → `docIds`), `slidesTrigger`
    (`walk_the_deck` | `on_demand`), optional `presentPrompt`.
@@ -81,7 +91,17 @@ Left-rail steps, each a slice of one big component's state:
    `canvasStyle` (eager/balanced/minimal/on_request), `canvasPlaybook`,
    `placement` (auto/right/left), and `schedulingUrl` (Calendly, activates the
    Scheduling card).
-5. **Demo Page** (`site`) — `brand`, `logoUrl`, `headline`, `tagline`, `cta`.
+4.5. **Pronunciation** (`speech`) — `parsePronunciation`: one rule per line,
+   `word = how to say it` (also `:` / `->`), `[ipa]` → `type: "ipa"`, `[case]`
+   → `case_sensitive`, duplicates dropped. On launch →
+   `POST /pronunciation-dictionaries` then `PATCH /pals/{id}`
+   `/layers/tts/pronunciation_dictionary_id`. Persists on the PAL.
+5. **Demo Page** (`site`) — `brand`, `logoUrl` (set via **file upload** →
+   canvas-downscaled ≤512px data URL, stored in config, no hosting),
+   `headline`, `tagline`, `cta`, and `format`: `desktop` | `phone` (portrait
+   stage in a device bezel) | `kiosk` (chrome-less full-viewport stage with a
+   floating exit button). `DemoSite` switches on `site.format` via
+   `demo-{format}` CSS classes.
 6. **Launch** — runs the whole attach-then-create sequence, logs each step.
 
 ## Launch sequence (`launch()`)
