@@ -2462,10 +2462,11 @@ export default function TavusExperienceBuilder() {
                   {kbLoading ? "Loading…" : kbDocs ? "Refresh" : "Load documents"}
                 </button>
               </div>
-              {kbDocs === null && <p className="field-hint" style={{ maxWidth: 560 }}>Load your Knowledge Base to pick decks — or add new material in the Knowledge Base step.</p>}
+              {kbDocs === null && <p className="field-hint" style={{ maxWidth: 560 }}>Load your Knowledge Base to pick decks — or upload one above.</p>}
+              {kbDocs?.length === 0 && <p className="field-hint" style={{ maxWidth: 560 }}>Your Knowledge Base is empty — upload a deck above or add material in the Knowledge step.</p>}
               {!!kbDocs?.length && (
                 <div className="kb-list" style={{ marginBottom: 6 }}>
-                  {kbDocs.filter((d) => PRESENTABLE.test(d.document_url || "") || docIds.includes(d.document_id)).map((d) => (
+                  {kbDocs.map((d) => (
                     <div key={d.document_id} className="kb-row">
                       <label className="kb-use" style={{ flex: 1, justifyContent: "flex-start" }}>
                         <input type="checkbox" style={{ width: "auto" }} disabled={!presentationEnabled}
@@ -2473,13 +2474,13 @@ export default function TavusExperienceBuilder() {
                           onChange={() => setDocIdsRaw((raw) => toggleIdIn(raw, d.document_id))} />
                         {d.document_name || d.document_id}
                       </label>
+                      {!PRESENTABLE.test(d.document_url || "") && (
+                        <span className="kb-status" title="Couldn't verify the format from the link — slides need a PDF, PPTX, or image. If it is one, it'll present fine.">format?</span>
+                      )}
                       <span className={`kb-status kb-${d.status}`}>{d.status}</span>
                     </div>
                   ))}
                 </div>
-              )}
-              {!!kbDocs?.length && !kbDocs.some((d) => PRESENTABLE.test(d.document_url || "") || docIds.includes(d.document_id)) && (
-                <p className="field-hint" style={{ maxWidth: 560 }}>No slide-compatible documents (.pdf .png .jpg .pptx) in your Knowledge Base yet — add one in the Knowledge Base step.</p>
               )}
 
               {docIds.length > 1 && (
