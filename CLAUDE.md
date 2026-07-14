@@ -132,20 +132,20 @@ Full-screen branded shell rendered when `siteMode` is true.
 - `useTabRecorder()` — records the tab (getDisplayMedia) mixed with mic audio
   via an `AudioContext`, downloads a `.webm`. Independent of Tavus.
 
-### ⚠️ Known issue — custom CVI call UI hangs on "Connecting"
+### Fixed — custom CVI call UI used to hang on "Connecting"
 
-When the `@tavus/cvi-ui` components **are** installed, the custom in-page call
-(`<Conversation conversationUrl=… />`) can **hang on "Connecting…" and never
-join the room**. The **hosted-iframe fallback path works** — i.e. when the CVI
-components are absent and the page renders the plain `<iframe>` against the same
-`conversation_url`, the call connects normally.
+Root cause (confirmed & fixed): the vendored `Conversation` component joined
+in a **mount-only** `useEffect`, but `DailyProvider` creates the Daily call
+object asynchronously and child effects run before parent effects — so
+`useDaily()` was still `null`, `daily?.join()` silently no-oped, and nothing
+retried. The fix (in `components/cvi/components/conversation/index.jsx`)
+gates the join effect on `useDaily()` so it fires once the call object
+exists. **Don't regress this when re-running `npx @tavus/cvi-ui add` — the
+CLI's `--overwrite` will clobber the patched file.**
 
-Practical implication: the iframe path is the reliable demo path today. If you
-touch the `stage()` logic in `DemoSite`, do **not** regress the iframe fallback.
-Root cause is unconfirmed (candidates: CVIProvider/Daily init inside the
-contained `.cvi-wrap`, camera/mic permission handoff, or the
-`canvas-contained` overlay). Reproduce by installing the components so `cvi`
-resolves to an object rather than `null`.
+The hosted-iframe fallback remains in `DemoSite` (components absent → plain
+`<iframe>`; also forceable via `?ui=iframe` on the demo page URL) — keep it
+working; it's the escape hatch.
 
 ## Design system — Alto
 
