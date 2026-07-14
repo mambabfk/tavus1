@@ -717,6 +717,22 @@ export default function TavusExperienceBuilder() {
     setGenerating(true);
     setPersonaDraft("");
     setPersonaAttached(false);
+
+    // "Must avoid" doubles as guardrails — merge those lines into the
+    // Guardrails step (deduped) so rules live in one place.
+    const avoidLines = personaBrief.avoid.split("\n").map((s) => s.trim()).filter(Boolean);
+    if (avoidLines.length) {
+      const existing = new Set(
+        guardrailsText.split("\n").map((s) => s.trim().toLowerCase()).filter(Boolean)
+      );
+      const fresh = avoidLines.filter((l) => !existing.has(l.toLowerCase()));
+      if (fresh.length) {
+        setGuardrailsText((t) => (t.trim() ? `${t.replace(/\s+$/, "")}\n` : "") + fresh.join("\n"));
+        setGuardrailsEnabled(true);
+        addLog("info", `Moved ${fresh.length} "must avoid" item${fresh.length > 1 ? "s" : ""} into Guardrails — they'll attach as real guardrails on launch.`);
+      }
+    }
+
     try {
       const res = await fetch("/api/generate-persona", {
         method: "POST",
@@ -1293,7 +1309,7 @@ export default function TavusExperienceBuilder() {
               <Field label="Must cover" hint="Optional — key points the persona should work in.">
                 <textarea value={personaBrief.mustCover} onChange={(e) => setBriefField("mustCover", e.target.value)} placeholder={"HIPAA compliance\n5-minute setup\nEHR integrations"} />
               </Field>
-              <Field label="Must avoid" hint="Optional — topics or behaviors to steer clear of. Hard rules belong in Guardrails.">
+              <Field label="Must avoid" hint="Optional — one per line. These shape the prompt AND are added to the Guardrails step automatically when you generate, so rules live in one place.">
                 <textarea value={personaBrief.avoid} onChange={(e) => setBriefField("avoid", e.target.value)} placeholder={"Custom pricing\nCompetitor comparisons"} />
               </Field>
 
