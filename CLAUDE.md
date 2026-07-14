@@ -161,9 +161,10 @@ In order, skipping any disabled section:
 
 1. Objectives → `POST /objectives`, then `PATCH /pals/{id}` with
    `[{op:"add", path:"/objectives_id", value}]` (replaces any existing set).
-2. Guardrails → `POST /guardrails` per rule, read existing via
-   `GET /pals/{id}`, **merge** new IDs with existing, then `PATCH /pals/{id}`
-   `/guardrail_ids`.
+2. Guardrails → `POST /guardrails` per rule, then `PATCH /pals/{id}`
+   `/guardrail_ids` with **exactly the new IDs (full replace)** — merging
+   accumulated duplicates across relaunches until PALs hit Tavus's
+   50-guardrail cap and launches 400'd. The builder owns the PAL's set.
 3. Presentation → `PUT /pals/{id}/skills/presentation`.
 4. Magic Canvas → `PUT /pals/{id}/skills/magic_canvas`.
 5. `POST /conversations` → stores `conversation`, flips `siteMode` on to open

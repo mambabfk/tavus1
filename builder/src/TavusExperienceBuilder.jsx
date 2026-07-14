@@ -1648,7 +1648,9 @@ export default function TavusExperienceBuilder() {
         addLog("ok", "Objectives attached (persists on the PAL until you remove it).");
       }
 
-      // Guardrails: create each, then merge with the PAL's existing guardrail_ids.
+      // Guardrails: create each, then REPLACE the PAL's set with exactly these.
+      // (Merging accumulated near-duplicates across relaunches until the PAL
+      // hit Tavus's 50-guardrail cap and launches 400'd.)
       if (guardrailsEnabled && guardrailsParsed.length) {
         addLog("info", `Creating ${guardrailsParsed.length} guardrail${guardrailsParsed.length > 1 ? "s" : ""}…`);
         const newIds = [];
@@ -1658,17 +1660,11 @@ export default function TavusExperienceBuilder() {
           newIds.push(id);
           addLog("ok", `Guardrail ${g.guardrail_name}: ${id}`);
         }
-        let existing = [];
-        try {
-          const palData = await tavusFetch("GET", `/pals/${pal}`);
-          existing = palData.guardrail_ids || [];
-        } catch { addLog("info", "Couldn't read existing guardrails — attaching new ones only."); }
-        const merged = [...new Set([...existing, ...newIds])];
-        addLog("info", "Attaching guardrails to the PAL…");
+        addLog("info", "Attaching guardrails to the PAL (replaces its previous set)…");
         await tavusFetch("PATCH", `/pals/${pal}`, [
-          { op: "add", path: "/guardrail_ids", value: merged },
+          { op: "add", path: "/guardrail_ids", value: newIds },
         ]);
-        addLog("ok", `Guardrails attached (${merged.length} total on the PAL; persists until removed).`);
+        addLog("ok", `Guardrails attached — the PAL now has exactly these ${newIds.length} rule${newIds.length > 1 ? "s" : ""}.`);
       }
 
       // Vision: attach the perception layer to the PAL (persists like objectives).
