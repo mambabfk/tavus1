@@ -232,6 +232,24 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
       "*"
     );
 
+  // S3 recording: Tavus writes the file to the configured bucket, but the
+  // recording does NOT start on its own — the frontend has to kick it off
+  // once the participant has joined. Non-fatal: a recording hiccup must
+  // never take down a live demo.
+  useEffect(() => {
+    if (!daily || !controls.recording) return;
+    let started = false;
+    const startRec = () => {
+      if (started) return;
+      if (daily.meetingState() !== "joined-meeting") return;
+      started = true;
+      try { daily.startRecording(); } catch { /* recording is best-effort */ }
+    };
+    daily.on("joined-meeting", startRec);
+    startRec(); // already joined by the time this mounts
+    return () => { daily.off("joined-meeting", startRec); };
+  }, [daily, controls.recording]);
+
   useEffect(() => {
     if (!daily) return;
 
@@ -670,6 +688,14 @@ export default function TavusExperienceBuilder() {
   const [interruptButton, setInterruptButton] = useState(false);
   const [guardrailEcho, setGuardrailEcho] = useState("");
 
+  // Recording → your S3 bucket (Tavus uploads server-side; no AWS keys here,
+  // just non-secret identifiers — access comes from a one-time IAM role trust).
+  const [recordingEnabled, setRecordingEnabled] = useState(false);
+  const [recS3Bucket, setRecS3Bucket] = useState("");
+  const [recS3Region, setRecS3Region] = useState("");
+  const [recS3RoleArn, setRecS3RoleArn] = useState("");
+  const [recS3ExternalId, setRecS3ExternalId] = useState("");
+
   // New-PAL creation (Persona step)
   const [newPalName, setNewPalName] = useState("");
   const [creatingPal, setCreatingPal] = useState(false);
@@ -764,6 +790,7 @@ export default function TavusExperienceBuilder() {
     visionEnabled, visionVibe, visualQueriesText, audioQueriesText,
     speechEnabled, pronunciationText, emotionControl, externalVoiceId, externalVoiceName,
     maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, wakePhrase, interruptButton, guardrailEcho,
+    recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId,
     toolsEnabled, toolRows, toolWebhook, toolEcho,
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt, talkTrack,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
@@ -787,6 +814,9 @@ export default function TavusExperienceBuilder() {
     setMaxMinutes(c.maxMinutes ?? ""); setTimeWarning(c.timeWarning ?? "");
     setInactivitySeconds(c.inactivitySeconds ?? ""); setInactivityUtterance(c.inactivityUtterance ?? "");
     setWakePhrase(c.wakePhrase ?? ""); setInterruptButton(!!c.interruptButton); setGuardrailEcho(c.guardrailEcho ?? "");
+    setRecordingEnabled(!!c.recordingEnabled);
+    setRecS3Bucket(c.recS3Bucket ?? ""); setRecS3Region(c.recS3Region ?? "");
+    setRecS3RoleArn(c.recS3RoleArn ?? ""); setRecS3ExternalId(c.recS3ExternalId ?? "");
     setToolsEnabled(!!c.toolsEnabled);
     setToolRows(Array.isArray(c.toolRows) && c.toolRows.length ? c.toolRows : [{ name: "", desc: "", fields: "" }]);
     setToolWebhook(c.toolWebhook ?? ""); setToolEcho(c.toolEcho ?? "");
@@ -950,8 +980,21 @@ export default function TavusExperienceBuilder() {
     body.properties = { language };
     const mins = parseInt(maxMinutes, 10);
     if (mins > 0) body.properties.max_call_duration = mins * 60;
+
+    // Recording to the customer's S3 bucket. Tavus does the upload server-side;
+    // the browser only ever handles non-secret identifiers (bucket/role names).
+    if (recordingEnabled && recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim()) {
+      body.properties.enable_recording = true;
+      body.properties.recording_storage = {
+        provider: "s3",
+        bucket_name: recS3Bucket.trim(),
+        bucket_region: recS3Region.trim(),
+        assume_role_arn: recS3RoleArn.trim(),
+      };
+      if (recS3ExternalId.trim()) body.properties.recording_storage.external_id = recS3ExternalId.trim();
+    }
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook, knowledgeIds, wakePhrase, maxMinutes]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
@@ -998,7 +1041,10 @@ export default function TavusExperienceBuilder() {
     guardrailEcho: guardrailEcho.trim(),
     toolWebhook: toolsEnabled ? toolWebhook.trim() : "",
     toolEcho: toolsEnabled ? toolEcho.trim() : "",
-  }), [maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho]);
+    // Recording doesn't start on its own — the call UI must call
+    // daily.startRecording() once joined. CallExtras does that when this is set.
+    recording: recordingEnabled && !!(recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim()),
+  }), [maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn]);
 
   const pronunciationRules = useMemo(() => parsePronunciation(pronunciationText), [pronunciationText]);
   const pronunciationPayload = useMemo(
@@ -1752,6 +1798,13 @@ export default function TavusExperienceBuilder() {
         await tavusFetch("PUT", `/pals/${palId.trim()}/skills/magic_canvas`, canvasPayload);
         addLog("ok", "Magic Canvas skill attached.");
       }
+      if (recordingEnabled) {
+        if (conversationPayload.properties?.recording_storage) {
+          addLog("info", `Recording is on — the call will record to s3://${conversationPayload.properties.recording_storage.bucket_name} once Tavus finishes it.`);
+        } else {
+          addLog("err", "Recording is toggled on but bucket / region / role ARN aren't all filled in (Timing step) — launching WITHOUT recording.");
+        }
+      }
       addLog("info", "Creating conversation…");
       const data = await tavusFetch("POST", "/conversations", conversationPayload);
       setConversation(data);
@@ -2112,7 +2165,7 @@ export default function TavusExperienceBuilder() {
               {s.id === "kb" && knowledgeIds.length > 0 && <span className="rail-check">●</span>}
               {s.id === "speech" && speechEnabled && <span className="rail-check">●</span>}
               {s.id === "tools" && toolsEnabled && toolDefs.length > 0 && <span className="rail-check">●</span>}
-              {s.id === "controls" && (maxMinutes || inactivitySeconds || wakePhrase.trim() || interruptButton || guardrailEcho.trim()) && <span className="rail-check">●</span>}
+              {s.id === "controls" && (maxMinutes || inactivitySeconds || wakePhrase.trim() || interruptButton || guardrailEcho.trim() || recordingEnabled) && <span className="rail-check">●</span>}
               {s.id === "presentation" && presentationEnabled && <span className="rail-check">●</span>}
               {s.id === "canvas" && canvasEnabled && <span className="rail-check">●</span>}
               {s.id === "site" && site.brand && <span className="rail-check">●</span>}
@@ -2929,6 +2982,38 @@ export default function TavusExperienceBuilder() {
               <Field label="" hint="The AI greets once, then stays quiet until someone says this phrase — great for kiosks where people chat nearby. It's guidance (steers the AI), not a hard mute.">
                 <input style={{ maxWidth: 320 }} value={wakePhrase} onChange={(e) => setWakePhrase(e.target.value)} placeholder='e.g. "Hey Ava"' />
               </Field>
+
+              <div className="subhead">Recording → your S3 bucket</div>
+              <div className="skill-head" style={{ marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>⏺ Record every call to S3</span>
+                <Toggle on={recordingEnabled} onChange={setRecordingEnabled} />
+              </div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: recordingEnabled ? 14 : 18 }}>
+                Tavus uploads the finished recording straight into your bucket — including calls started from shared demo links.
+                Files land at <span className="mono">tavus/&lt;conversation_id&gt;/&lt;timestamp&gt;</span>.
+                One-time AWS setup: create the bucket and an IAM role Tavus can assume (a trust policy — no AWS keys ever go in here, only names).
+              </p>
+              {recordingEnabled && (
+                <>
+                  <Field label="S3 bucket name" hint="Just the bucket name, no s3:// prefix.">
+                    <input className="mono" style={{ maxWidth: 360 }} value={recS3Bucket} onChange={(e) => setRecS3Bucket(e.target.value)} placeholder="acme-demo-recordings" />
+                  </Field>
+                  <Field label="Bucket region">
+                    <input className="mono" style={{ maxWidth: 220 }} value={recS3Region} onChange={(e) => setRecS3Region(e.target.value)} placeholder="us-east-1" />
+                  </Field>
+                  <Field label="IAM role ARN" hint="The role in your AWS account that trusts Tavus. Tavus assumes it to write the file — nothing else.">
+                    <input className="mono" value={recS3RoleArn} onChange={(e) => setRecS3RoleArn(e.target.value)} placeholder="arn:aws:iam::123456789012:role/tavus-recording-writer" />
+                  </Field>
+                  <Field label="External ID (optional)" hint="Only if your role's trust policy requires one.">
+                    <input className="mono" style={{ maxWidth: 360 }} value={recS3ExternalId} onChange={(e) => setRecS3ExternalId(e.target.value)} placeholder="leave blank unless your security team set one" />
+                  </Field>
+                  {!(recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim()) && (
+                    <p className="field-hint" style={{ color: "var(--danger)", maxWidth: 560 }}>
+                      Recording stays off until bucket, region, and role ARN are all filled in.
+                    </p>
+                  )}
+                </>
+              )}
             </>
           )}
 

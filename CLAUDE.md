@@ -147,6 +147,18 @@ non-technical users; ids unchanged):
    (silence → echo → 10s grace → leave), `interruptButton`
    (`conversation.interrupt`), `guardrailEcho` (echo on any `*guardrail*`
    app-message event).
+   **Recording → S3** also lives here: `recordingEnabled` + `recS3Bucket`/
+   `recS3Region`/`recS3RoleArn` (+ optional `recS3ExternalId`) →
+   `properties.enable_recording: true` and `properties.recording_storage`
+   (`{provider:"s3", bucket_name, bucket_region, assume_role_arn,
+   external_id?}`) on the conversation payload — non-secret identifiers only;
+   AWS access comes from a one-time IAM role trust to Tavus, never keys.
+   **Gotcha: Tavus does NOT start the recording on its own** — `CallExtras`
+   calls `daily.startRecording()` on `joined-meeting` when
+   `controls.recording` is set (the flag travels in `controlsConfig`, so
+   visitor calls from shared links record too; the storage config rides the
+   stored payload through `demo-launch`). Recordings land at
+   `tavus/<conversation_id>/<epoch_ms>` in the bucket.
 5. **Demo Page** (`site`) — `brand`, `logoUrl` (set via **file upload** →
    canvas-downscaled ≤512px data URL, stored in config, no hosting),
    `headline`, `tagline`, `cta`, and `format`: `desktop` | `phone` (portrait
