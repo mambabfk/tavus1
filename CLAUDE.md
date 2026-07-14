@@ -96,6 +96,14 @@ Left-rail steps, each a slice of one big component's state:
    → `case_sensitive`, duplicates dropped. On launch →
    `POST /pronunciation-dictionaries` then `PATCH /pals/{id}`
    `/layers/tts/pronunciation_dictionary_id`. Persists on the PAL.
+4.7. **Timing & Controls** (`controls`) — `maxMinutes` →
+   `properties.max_call_duration`; `wakePhrase` → a conversational_context
+   instruction. The rest run client-side in `CallExtras` (rendered inside
+   `CVIProvider`, custom call UI only) via Daily app-messages:
+   `timeWarning` (echoed at T−2min), `inactivitySeconds`/`inactivityUtterance`
+   (silence → echo → 10s grace → leave), `interruptButton`
+   (`conversation.interrupt`), `guardrailEcho` (echo on any `*guardrail*`
+   app-message event).
 5. **Demo Page** (`site`) — `brand`, `logoUrl` (set via **file upload** →
    canvas-downscaled ≤512px data URL, stored in config, no hosting),
    `headline`, `tagline`, `cta`, and `format`: `desktop` | `phone` (portrait

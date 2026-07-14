@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useDaily } from "@daily-co/daily-react";
 
 /* ─────────────────────────────────────────────────────────────
    Tavus Experience Builder — Alto edition
@@ -35,6 +36,7 @@ const STEPS = [
   { id: "presentation", label: "Presentation" },
   { id: "canvas", label: "Magic Canvas" },
   { id: "speech", label: "Pronunciation" },
+  { id: "controls", label: "Timing & Controls" },
   { id: "site", label: "Demo Page" },
   { id: "launch", label: "Launch" },
 ];
@@ -144,6 +146,79 @@ const parseVisionDraft = (text) => {
 const shortLabel = (text, max = 38) =>
   text.length > max ? `${text.slice(0, max).replace(/\s+\S*$/, "")}…` : text;
 
+/* ── In-call extras: timers, wake reminders, interrupt button, guardrail echo.
+      Lives INSIDE CVIProvider so it can use the Daily call object; these
+      features need the custom call UI (they're inert in the iframe fallback). */
+function CallExtras({ controls, conversationId, onForceLeave }) {
+  const daily = useDaily();
+
+  const say = (text) =>
+    daily?.sendAppMessage(
+      { message_type: "conversation", event_type: "conversation.echo", conversation_id: conversationId, properties: { text } },
+      "*"
+    );
+
+  const interrupt = () =>
+    daily?.sendAppMessage(
+      { message_type: "conversation", event_type: "conversation.interrupt", conversation_id: conversationId },
+      "*"
+    );
+
+  useEffect(() => {
+    if (!daily) return;
+
+    const timers = [];
+    // Time-limit warning, spoken with 2 minutes left.
+    if (controls.maxSeconds && controls.timeWarning) {
+      const fireAt = (controls.maxSeconds - 120) * 1000;
+      if (fireAt > 5000) timers.push(setTimeout(() => say(controls.timeWarning), fireAt));
+    }
+
+    // Inactivity: quiet for N seconds → spoken reminder → 10s grace → leave.
+    let inactivityTimer;
+    let graceTimer;
+    const armInactivity = () => {
+      clearTimeout(inactivityTimer);
+      clearTimeout(graceTimer);
+      if (!controls.inactivitySeconds || !controls.inactivityUtterance) return;
+      inactivityTimer = setTimeout(() => {
+        say(controls.inactivityUtterance);
+        graceTimer = setTimeout(() => onForceLeave?.(), 10_000);
+      }, controls.inactivitySeconds * 1000);
+    };
+
+    const onAppMessage = (e) => {
+      const d = e?.data;
+      if (!d?.event_type) return;
+      // Anyone talking (user utterances, PAL speech events) counts as engagement.
+      if (/utterance|speaking|respond/i.test(d.event_type)) armInactivity();
+      // Guardrail fired → optional spoken acknowledgement.
+      if (/guardrail/i.test(d.event_type) && controls.guardrailEcho) say(controls.guardrailEcho);
+    };
+    const onSpeaker = () => armInactivity();
+
+    daily.on("app-message", onAppMessage);
+    daily.on("active-speaker-change", onSpeaker);
+    armInactivity();
+
+    return () => {
+      timers.forEach(clearTimeout);
+      clearTimeout(inactivityTimer);
+      clearTimeout(graceTimer);
+      daily.off("app-message", onAppMessage);
+      daily.off("active-speaker-change", onSpeaker);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daily]);
+
+  if (!controls.interruptButton) return null;
+  return (
+    <button className="interrupt-btn" onClick={interrupt} title="Stop the PAL mid-sentence">
+      ✋ Interrupt
+    </button>
+  );
+}
+
 /* ── Tab recorder: tab video + tab audio mixed with mic → .webm ── */
 function useTabRecorder() {
   const [recording, setRecording] = useState(false);
@@ -240,7 +315,7 @@ function Toggle({ on, onChange }) {
 
 /* ── Demo page: minimal Alto shell around the conversation ──── */
 
-function DemoSite({ site, conversationUrl, onStart, onExit, busy }) {
+function DemoSite({ site, conversationUrl, conversationId, controls, onStart, onExit, busy }) {
   const { recording, elapsed, start: startRec, stop: stopRec } = useTabRecorder();
   const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
@@ -292,6 +367,7 @@ function DemoSite({ site, conversationUrl, onStart, onExit, busy }) {
             <Conversation conversationUrl={conversationUrl} onLeave={onExit} />
             {/* Contained inside the stage instead of a full-viewport overlay */}
             <MagicCanvas className="canvas-contained" onError={(e) => console.error("canvas error", e)} />
+            <CallExtras controls={controls} conversationId={conversationId} onForceLeave={onExit} />
           </div>
         </CVIProvider>
       );
@@ -458,6 +534,15 @@ export default function TavusExperienceBuilder() {
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [pronunciationText, setPronunciationText] = useState("");
 
+  // Timing & controls
+  const [maxMinutes, setMaxMinutes] = useState("");          // blank = Tavus default (60 min)
+  const [timeWarning, setTimeWarning] = useState("");        // spoken with 2 minutes left
+  const [inactivitySeconds, setInactivitySeconds] = useState(""); // blank = off
+  const [inactivityUtterance, setInactivityUtterance] = useState("");
+  const [wakePhrase, setWakePhrase] = useState("");
+  const [interruptButton, setInterruptButton] = useState(false);
+  const [guardrailEcho, setGuardrailEcho] = useState("");
+
   // New-PAL creation (Persona step)
   const [newPalName, setNewPalName] = useState("");
   const [creatingPal, setCreatingPal] = useState(false);
@@ -540,6 +625,7 @@ export default function TavusExperienceBuilder() {
     personaBrief, personaDraft,
     visionEnabled, visionVibe, visualQueriesText, audioQueriesText,
     speechEnabled, pronunciationText,
+    maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, wakePhrase, interruptButton, guardrailEcho,
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
@@ -557,6 +643,9 @@ export default function TavusExperienceBuilder() {
     setVisionEnabled(!!c.visionEnabled); setVisionVibe(c.visionVibe ?? "");
     setVisualQueriesText(c.visualQueriesText ?? ""); setAudioQueriesText(c.audioQueriesText ?? "");
     setSpeechEnabled(!!c.speechEnabled); setPronunciationText(c.pronunciationText ?? "");
+    setMaxMinutes(c.maxMinutes ?? ""); setTimeWarning(c.timeWarning ?? "");
+    setInactivitySeconds(c.inactivitySeconds ?? ""); setInactivityUtterance(c.inactivityUtterance ?? "");
+    setWakePhrase(c.wakePhrase ?? ""); setInterruptButton(!!c.interruptButton); setGuardrailEcho(c.guardrailEcho ?? "");
     setPresentationEnabled(!!c.presentationEnabled); setDocIdsRaw(c.docIdsRaw ?? "");
     setSlidesTrigger(c.slidesTrigger ?? "walk_the_deck"); setPresentPrompt(c.presentPrompt ?? "");
     setObjectivesEnabled(!!c.objectivesEnabled); setObjectivesText(c.objectivesText ?? "");
@@ -672,8 +761,15 @@ export default function TavusExperienceBuilder() {
     if (callbackUrl.trim()) body.callback_url = callbackUrl.trim();
     if (greeting.trim()) body.custom_greeting = greeting.trim();
 
+    const parts = [];
+
+    if (wakePhrase.trim()) {
+      parts.push(
+        `Wake phrase: after greeting the user once, stay quiet and do not respond to speech until someone says "${wakePhrase.trim()}" (or a close variation). Once you hear it, engage normally for the rest of the conversation. If people talk among themselves without saying it, remain silent.`
+      );
+    }
+
     if (canvasEnabled) {
-      const parts = [];
       const styleText = {
         eager: "Use Magic Canvas cards frequently and proactively — whenever a card could make information clearer or capture input, show one.",
         balanced: "",
@@ -691,15 +787,17 @@ export default function TavusExperienceBuilder() {
 
       if (placement !== "auto")
         parts.push(`When you show Magic Canvas cards, always set layout.preferred_slot to "safe-area-${placement}" so cards appear on the ${placement} side of the video.`);
-
-      if (parts.length) body.conversational_context = parts.join("\n\n");
     }
+
+    if (parts.length) body.conversational_context = parts.join("\n\n");
 
     if (knowledgeIds.length) body.document_ids = knowledgeIds;
 
     body.properties = { language };
+    const mins = parseInt(maxMinutes, 10);
+    if (mins > 0) body.properties.max_call_duration = mins * 60;
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook, knowledgeIds]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook, knowledgeIds, wakePhrase, maxMinutes]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
@@ -1303,6 +1401,8 @@ export default function TavusExperienceBuilder() {
         .cvi-wrap > * { width:100%; height:100%; }
         /* Keep Magic Canvas cards inside the stage instead of a full-viewport overlay */
         .canvas-contained { position:absolute !important; inset:0 !important; }
+        .interrupt-btn { position:absolute; bottom:18px; right:18px; z-index:30; border-radius:999px; border:none; background:rgba(255,255,255,.92); color:#17181A; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+        .interrupt-btn:hover { background:#fff; }
         .demo-cta { display:flex; flex-direction:column; align-items:center; gap:14px; }
         .demo-cta-hint { color:var(--muted); font-size:13px; }
         .demo-powered { color:var(--muted); font-size:11px; font-family:var(--mono); margin-top:30px; }
@@ -1361,6 +1461,15 @@ export default function TavusExperienceBuilder() {
         <DemoSite
           site={site}
           conversationUrl={conversation?.conversation_url || null}
+          conversationId={conversation?.conversation_id || null}
+          controls={{
+            maxSeconds: parseInt(maxMinutes, 10) > 0 ? parseInt(maxMinutes, 10) * 60 : 0,
+            timeWarning: timeWarning.trim(),
+            inactivitySeconds: parseInt(inactivitySeconds, 10) > 0 ? parseInt(inactivitySeconds, 10) : 0,
+            inactivityUtterance: inactivityUtterance.trim(),
+            interruptButton,
+            guardrailEcho: guardrailEcho.trim(),
+          }}
           onStart={launch}
           onExit={() => setSiteMode(false)}
           busy={busy}
@@ -1418,6 +1527,7 @@ export default function TavusExperienceBuilder() {
               {s.id === "vision" && visionEnabled && <span className="rail-check">●</span>}
               {s.id === "kb" && knowledgeIds.length > 0 && <span className="rail-check">●</span>}
               {s.id === "speech" && speechEnabled && <span className="rail-check">●</span>}
+              {s.id === "controls" && (maxMinutes || inactivitySeconds || wakePhrase.trim() || interruptButton || guardrailEcho.trim()) && <span className="rail-check">●</span>}
               {s.id === "presentation" && presentationEnabled && <span className="rail-check">●</span>}
               {s.id === "canvas" && canvasEnabled && <span className="rail-check">●</span>}
               {s.id === "site" && site.brand && <span className="rail-check">●</span>}
@@ -1869,6 +1979,52 @@ export default function TavusExperienceBuilder() {
               <p className="field-hint" style={{ marginTop: 14, maxWidth: 560 }}>
                 Canvas only fires on video conversations. One card on screen at a time; a new card replaces the current one. Interactions land at your callback URL as canvas.interaction events.
               </p>
+            </>
+          )}
+
+          {step === "controls" && (
+            <>
+              <h1>Timing &amp; Controls</h1>
+              <p className="lede">
+                Shape how the conversation runs: how long it lasts, what the PAL says as time runs out, when to nudge a quiet visitor, a wake phrase, and in-call controls. Spoken lines and the interrupt button work in the custom call UI (the default on your demo page).
+              </p>
+
+              <div className="subhead">Conversation length</div>
+              <Field label="Time limit (minutes)" hint="Blank = Tavus default (60). The call shuts down automatically when time is up.">
+                <input type="number" min="1" max="60" style={{ maxWidth: 140 }} value={maxMinutes} onChange={(e) => setMaxMinutes(e.target.value)} placeholder="e.g. 10" />
+              </Field>
+              <Field label="Two-minutes-left announcement" hint="Spoken word-for-word when 2 minutes remain. Leave blank to skip. Needs a time limit of 3+ minutes.">
+                <textarea value={timeWarning} onChange={(e) => setTimeWarning(e.target.value)}
+                  placeholder="Just a heads up — we have about two minutes left. Is there anything else you'd like to cover?" />
+              </Field>
+
+              <div className="subhead">Quiet-visitor nudge</div>
+              <Field label="Nudge after (seconds of silence)" hint="Blank = off. If nobody speaks for this long, the PAL says the reminder below — and if the silence continues another 10 seconds, the call closes.">
+                <input type="number" min="10" max="600" style={{ maxWidth: 140 }} value={inactivitySeconds} onChange={(e) => setInactivitySeconds(e.target.value)} placeholder="e.g. 45" />
+              </Field>
+              <Field label="Reminder line" hint="Spoken word-for-word at the nudge.">
+                <textarea value={inactivityUtterance} onChange={(e) => setInactivityUtterance(e.target.value)}
+                  placeholder="Still there? I'll close our conversation in about ten seconds unless you'd like to keep going." />
+              </Field>
+
+              <div className="subhead">Wake phrase</div>
+              <Field label="" hint="The PAL greets once, then stays quiet until someone says this phrase — great for kiosks where people chat nearby. Guidance-based (steers the PAL, not a hard mute).">
+                <input style={{ maxWidth: 320 }} value={wakePhrase} onChange={(e) => setWakePhrase(e.target.value)} placeholder='e.g. "Hey Ava"' />
+              </Field>
+
+              <div className="subhead">In-call controls</div>
+              <div className="skill-head" style={{ marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Interrupt button</span>
+                <Toggle on={interruptButton} onChange={setInterruptButton} />
+              </div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 18 }}>
+                Shows a ✋ button on the call that instantly stops the PAL mid-sentence — handy when it's mid-monologue and you want the floor.
+              </p>
+
+              <Field label="When a guardrail is hit, say… (optional)" hint="Spoken word-for-word the moment any guardrail triggers. Leave blank for no spoken reaction.">
+                <textarea value={guardrailEcho} onChange={(e) => setGuardrailEcho(e.target.value)}
+                  placeholder="That's outside what I can help with here — but I'm happy to get you to the right person." />
+              </Field>
             </>
           )}
 
