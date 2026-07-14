@@ -3,6 +3,9 @@
   "functions": {
     "api/generate-persona.js": {
       "maxDuration": 60
+    },
+    "api/brand-theme.js": {
+      "maxDuration": 60
     }
   }
 }

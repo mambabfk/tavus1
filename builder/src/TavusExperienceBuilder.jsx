@@ -31,12 +31,26 @@ const STEPS = [
   { id: "persona", label: "Persona" },
   { id: "guide", label: "Objectives & Guardrails" },
   { id: "vision", label: "Vision" },
+  { id: "kb", label: "Knowledge Base" },
   { id: "presentation", label: "Presentation" },
   { id: "canvas", label: "Magic Canvas" },
   { id: "speech", label: "Pronunciation" },
   { id: "site", label: "Demo Page" },
   { id: "launch", label: "Launch" },
 ];
+
+/* Tavus-hosted LLMs available for a PAL's brain (layers.llm.model). */
+const PAL_LLMS = [
+  { v: "tavus-glm-4.7", label: "GLM 4.7 — recommended", desc: "Best overall: fast, smart, 200K context." },
+  { v: "tavus-gpt-5.2", label: "GPT 5.2", desc: "Strong reasoning; latency less critical." },
+  { v: "tavus-claude-haiku-4.5", label: "Claude Haiku 4.5", desc: "Quick and capable." },
+  { v: "tavus-gemini-3-flash", label: "Gemini 3 Flash", desc: "Fast, current Gemini." },
+  { v: "tavus-gemini-2.5-flash", label: "Gemini 2.5 Flash", desc: "Low latency." },
+  { v: "tavus-gpt-oss", label: "GPT-OSS", desc: "Snappiest, lightweight fallback." },
+];
+
+/* Formats the Knowledge Base can turn into presentation slides. */
+const PRESENTABLE = /\.(pdf|png|jpe?g|pptx)(\?|#|$)/i;
 
 const SITE_FORMATS = [
   { v: "desktop", label: "Desktop", desc: "Full page — headline, tagline, wide 16:9 stage. The default." },
@@ -260,7 +274,7 @@ function DemoSite({ site, conversationUrl, onStart, onExit, busy }) {
     if (!conversationUrl) {
       return (
         <div className="demo-cta">
-          <button className="pill-btn primary big" onClick={onStart} disabled={busy}>
+          <button className="pill-btn primary big" onClick={handleStart} disabled={busy}>
             {busy ? "Connecting…" : site.cta || "Start the conversation"}
           </button>
           <span className="demo-cta-hint">Camera and microphone required</span>
@@ -292,10 +306,34 @@ function DemoSite({ site, conversationUrl, onStart, onExit, busy }) {
   };
 
   const format = site.format || "desktop";
+
+  // Kiosk = take over the physical screen. Fullscreen needs a user gesture,
+  // so it rides on the start-conversation click (and a manual ⛶ button).
+  const goFullscreen = () => document.documentElement.requestFullscreen?.().catch(() => {});
+  const exitFullscreen = () => { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); };
+  const handleStart = () => {
+    if (format === "kiosk") goFullscreen();
+    onStart();
+  };
+  const handleExit = () => { exitFullscreen(); onExit(); };
+
+  // Theme override: Claude-extracted brand colors/font applied as CSS vars.
+  const t = site.theme || null;
+  const themeVars = t ? Object.fromEntries(
+    [
+      ["--canvas", t.canvas], ["--surface", t.surface], ["--border", t.border],
+      ["--text", t.text], ["--muted", t.muted], ["--accent", t.accent],
+      ["--font", t.font],
+    ].filter(([, v]) => v)
+  ) : undefined;
+
   return (
-    <div className={`demo-root demo-${format}`}>
+    <div className={`demo-root demo-${format}`} style={themeVars}>
       {format === "kiosk" && (
-        <button className="kiosk-exit" onClick={onExit} title="Back to builder">×</button>
+        <>
+          <button className="kiosk-exit" onClick={handleExit} title="Back to builder">×</button>
+          <button className="kiosk-exit kiosk-fs" onClick={goFullscreen} title="Fullscreen (kiosk)">⛶</button>
+        </>
       )}
       <nav className="demo-nav">
         <div className="demo-brandwrap">
@@ -420,9 +458,19 @@ export default function TavusExperienceBuilder() {
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [pronunciationText, setPronunciationText] = useState("");
 
-  // New-PAL creation (Setup)
+  // New-PAL creation (Persona step)
   const [newPalName, setNewPalName] = useState("");
   const [creatingPal, setCreatingPal] = useState(false);
+  const [palLlm, setPalLlm] = useState("tavus-glm-4.7");
+
+  // Knowledge Base
+  const [kbDocs, setKbDocs] = useState(null); // null = not loaded yet
+  const [kbLoading, setKbLoading] = useState(false);
+  const [kbUrl, setKbUrl] = useState("");
+  const [kbName, setKbName] = useState("");
+  const [kbCrawl, setKbCrawl] = useState(false);
+  const [kbAdding, setKbAdding] = useState(false);
+  const [knowledgeIdsRaw, setKnowledgeIdsRaw] = useState(""); // docs the PAL can reference in-call
 
   // Presentation
   const [presentationEnabled, setPresentationEnabled] = useState(false);
@@ -470,6 +518,8 @@ export default function TavusExperienceBuilder() {
   const [rememberKey, setRememberKey] = useState(() => !!store.get(APIKEY_KEY, ""));
   const importRef = useRef(null);
   const logoFileRef = useRef(null);
+  const [brandUrl, setBrandUrl] = useState("");
+  const [theming, setTheming] = useState(false);
 
   // Load remembered API key once on mount.
   useEffect(() => {
@@ -493,6 +543,7 @@ export default function TavusExperienceBuilder() {
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
+    palLlm, knowledgeIdsRaw,
     site,
   });
 
@@ -517,7 +568,9 @@ export default function TavusExperienceBuilder() {
     setCanvasStyle(c.canvasStyle ?? "balanced");
     setComponentRules({ ...Object.fromEntries(CANVAS_COMPONENTS.map((x) => [x.key, ""])), ...(c.componentRules || {}) });
     setCanvasPlaybook(c.canvasPlaybook ?? "");
-    setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", ...(c.site || {}) });
+    setPalLlm(c.palLlm ?? "tavus-glm-4.7");
+    setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
+    setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
   };
 
   const saveScenario = () => {
@@ -583,6 +636,15 @@ export default function TavusExperienceBuilder() {
     () => docIdsRaw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean),
     [docIdsRaw]
   );
+  const knowledgeIds = useMemo(
+    () => knowledgeIdsRaw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean),
+    [knowledgeIdsRaw]
+  );
+  // Toggle an id inside a whitespace/comma-separated raw string (order-preserving).
+  const toggleIdIn = (raw, id) => {
+    const ids = raw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+    return (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]).join("\n");
+  };
 
   /* ── Payloads ── */
 
@@ -633,9 +695,11 @@ export default function TavusExperienceBuilder() {
       if (parts.length) body.conversational_context = parts.join("\n\n");
     }
 
+    if (knowledgeIds.length) body.document_ids = knowledgeIds;
+
     body.properties = { language };
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook, knowledgeIds]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
@@ -685,6 +749,8 @@ export default function TavusExperienceBuilder() {
     }
     if (step === "vision")
       return { title: "PATCH /pals/… (perception)", text: curlFor("PATCH", `/pals/${pal}`, [{ op: "add", path: "/layers/perception", value: visionPayload }]) };
+    if (step === "kb")
+      return { title: "POST /documents", text: curlFor("POST", "/documents", { document_url: kbUrl.trim() || "https://…/deck.pdf", ...(kbName.trim() ? { document_name: kbName.trim() } : {}), ...(kbCrawl ? { crawl: { depth: 2, max_pages: 25 } } : {}) }) };
     if (step === "speech")
       return { title: "POST /pronunciation-dictionaries", text: curlFor("POST", "/pronunciation-dictionaries", pronunciationPayload) };
     if (step === "presentation")
@@ -693,7 +759,7 @@ export default function TavusExperienceBuilder() {
       return { title: "PUT /pals/…/skills/magic_canvas", text: curlFor("PUT", `/pals/${pal}/skills/magic_canvas`, canvasPayload) };
     return { title: "POST /conversations", text: curlFor("POST", "/conversations", conversationPayload) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, palId, apiKey, personaDraft, visionPayload, pronunciationPayload, presentationPayload, canvasPayload, conversationPayload, objectivesPayload, guardrailsParsed, objectivesEnabled, guardrailsEnabled]);
+  }, [step, palId, apiKey, personaDraft, visionPayload, pronunciationPayload, presentationPayload, canvasPayload, conversationPayload, objectivesPayload, guardrailsParsed, objectivesEnabled, guardrailsEnabled, kbUrl, kbName, kbCrawl]);
 
   /* ── API ── */
 
@@ -811,20 +877,21 @@ export default function TavusExperienceBuilder() {
     }
   };
 
-  /* ── Create a brand-new PAL from the builder ── */
+  /* ── Create a brand-new PAL (Persona step) ── */
 
   const createPal = async () => {
-    if (!apiKey.trim()) { addLog("err", "API key is required — enter it above first."); return; }
-    if (!faceId.trim()) { addLog("err", "Face ID is required — a new PAL needs a default face."); return; }
+    if (!apiKey.trim()) { addLog("err", "API key is required — see Setup."); return; }
+    if (!faceId.trim()) { addLog("err", "Face ID is required (Setup) — a new PAL needs a default face."); return; }
     if (!newPalName.trim()) { addLog("err", "Give the new PAL a name."); return; }
     setCreatingPal(true);
     try {
-      addLog("info", `Creating PAL "${newPalName.trim()}"…`);
+      addLog("info", `Creating PAL "${newPalName.trim()}" (${palLlm})…`);
       const body = {
         pal_name: newPalName.trim(),
         default_face_id: faceId.trim(),
         system_prompt: personaDraft.trim() ||
           `You are a friendly, knowledgeable representative${site.brand ? ` for ${site.brand}` : ""}. Speak naturally and concisely, listen more than you talk, and help the person you're speaking with understand the product. Never invent pricing or commitments.`,
+        layers: { llm: { model: palLlm } },
       };
       const data = await tavusFetch("POST", "/pals", body);
       const id = data.pal_id || data.uuid || data.id;
@@ -832,11 +899,104 @@ export default function TavusExperienceBuilder() {
       setPalId(id);
       setPersonaAttached(!!personaDraft.trim()); // its prompt is already the draft
       setNewPalName("");
-      addLog("ok", `PAL created: ${id} — it's now set as your PAL ID${personaDraft.trim() ? " (with your persona prompt)" : ""}.`);
+      addLog("ok", `PAL created: ${id} — set as your PAL ID${personaDraft.trim() ? " with your persona prompt" : ""}.`);
     } catch (e) {
       addLog("err", `Create PAL: ${e.message}`);
     } finally {
       setCreatingPal(false);
+    }
+  };
+
+  /* ── Knowledge Base: add by URL, list, rename, delete ── */
+
+  const fetchKbDocs = async (silent = false) => {
+    if (!apiKey.trim()) { if (!silent) addLog("err", "Enter your Tavus API key in Setup first."); return; }
+    setKbLoading(true);
+    try {
+      const d = await tavusFetch("GET", "/documents");
+      setKbDocs(d.data || d.documents || []);
+    } catch (e) {
+      if (!silent) addLog("err", `Knowledge Base: ${e.message}`);
+    } finally {
+      setKbLoading(false);
+    }
+  };
+
+  const addKbDoc = async () => {
+    const url = kbUrl.trim();
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url)) { addLog("err", "That doesn't look like a URL — it needs to start with https://"); return; }
+    setKbAdding(true);
+    try {
+      const body = { document_url: url };
+      if (kbName.trim()) body.document_name = kbName.trim();
+      if (kbCrawl) body.crawl = { depth: 2, max_pages: 25 };
+      addLog("info", kbCrawl ? "Crawling the site into the Knowledge Base…" : "Adding to the Knowledge Base…");
+      const doc = await tavusFetch("POST", "/documents", body);
+      addLog("ok", `"${doc.document_name || url}" added (${doc.document_id}) — processing takes a few minutes; hit Refresh to check.`);
+      setKbUrl(""); setKbName(""); setKbCrawl(false);
+      fetchKbDocs(true);
+    } catch (e) {
+      addLog("err", `Add document: ${e.message}`);
+    } finally {
+      setKbAdding(false);
+    }
+  };
+
+  const renameKbDoc = async (id, name) => {
+    try {
+      await tavusFetch("PATCH", `/documents/${id}`, { document_name: name });
+      setKbDocs((docs) => docs?.map((d) => (d.document_id === id ? { ...d, document_name: name } : d)) ?? docs);
+      addLog("ok", `Renamed to "${name}".`);
+    } catch (e) {
+      addLog("err", `Rename: ${e.message}`);
+    }
+  };
+
+  const deleteKbDoc = async (id, name) => {
+    if (!window.confirm(`Delete "${name || id}" from the Knowledge Base? This removes it for every PAL that uses it.`)) return;
+    try {
+      await tavusFetch("DELETE", `/documents/${id}`);
+      setKbDocs((docs) => docs?.filter((d) => d.document_id !== id) ?? docs);
+      setKnowledgeIdsRaw((raw) => raw.split(/[\s,]+/).filter((x) => x && x !== id).join("\n"));
+      setDocIdsRaw((raw) => raw.split(/[\s,]+/).filter((x) => x && x !== id).join("\n"));
+      addLog("ok", "Document deleted.");
+    } catch (e) {
+      addLog("err", `Delete: ${e.message}`);
+    }
+  };
+
+  /* ── Brand theme: Claude restyles the demo page from a company URL ── */
+
+  const themeFromUrl = async () => {
+    const url = brandUrl.trim();
+    if (!url) return;
+    setTheming(true);
+    try {
+      addLog("info", "Reading the site and drafting a matching theme…");
+      const res = await fetch("/api/brand-theme", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: /^https?:\/\//i.test(url) ? url : `https://${url}` }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(j.error || `${res.status}: theming failed`);
+      }
+      setSite((s) => ({
+        ...s,
+        brand: j.brand || s.brand,
+        headline: j.headline || s.headline,
+        tagline: j.tagline || s.tagline,
+        logoUrl: s.logoUrl || j.logoUrl || "",
+        theme: { ...(j.colors || {}), font: j.font || "" },
+      }));
+      addLog("ok", `Demo page themed to ${j.brand || url} — preview it, tweak anything you like.`);
+    } catch (e) {
+      addLog("err", `Brand theme: ${e.message}`);
+    } finally {
+      setTheming(false);
     }
   };
 
@@ -1152,6 +1312,21 @@ export default function TavusExperienceBuilder() {
         .pulsing { animation:recpulse 1.2s infinite; }
         @keyframes recpulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
+        /* knowledge base list */
+        .kb-list { display:flex; flex-direction:column; gap:6px; max-width:640px; margin-top:10px; }
+        .kb-row { display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:8px 12px; }
+        .kb-name { flex:1; border:1px solid transparent; background:none; padding:4px 6px; border-radius:var(--r-sm); font-size:13px; }
+        .kb-name:hover, .kb-name:focus { border-color:var(--border); background:var(--surface-2); }
+        .kb-status { font-family:var(--mono); font-size:10.5px; padding:3px 8px; border-radius:999px; background:var(--surface-2); color:var(--muted); flex-shrink:0; }
+        .kb-ready { color:var(--ok); }
+        .kb-error { color:var(--danger); }
+        .kb-processing, .kb-started, .kb-recrawling { color:#B8860B; }
+        .kb-use { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); cursor:pointer; flex-shrink:0; }
+        .kb-del, .kb-move { border:none; background:none; color:var(--muted); cursor:pointer; font-size:13px; padding:2px 6px; border-radius:6px; flex-shrink:0; }
+        .kb-del:hover { color:var(--danger); background:var(--surface-2); }
+        .kb-move:hover:not(:disabled) { color:var(--text); background:var(--surface-2); }
+        .kb-move:disabled { opacity:.25; cursor:default; }
+
         /* format picker icons */
         .format-viz { display:flex; align-items:center; justify-content:center; height:42px; margin-bottom:8px; }
         .fv-desktop { width:56px; height:34px; border:2px solid currentColor; border-radius:5px; opacity:.65; }
@@ -1171,6 +1346,7 @@ export default function TavusExperienceBuilder() {
         .demo-kiosk .demo-cta { transform:scale(1.25); }
         .kiosk-exit { position:fixed; top:14px; right:14px; z-index:60; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:rgba(255,255,255,.85); color:var(--muted); font-size:20px; line-height:1; cursor:pointer; opacity:.35; }
         .kiosk-exit:hover { opacity:1; }
+        .kiosk-fs { top:60px; font-size:15px; }
 
         @media (max-width:1100px){ .preview { display:none; } }
         @media (max-width:760px){
@@ -1240,6 +1416,7 @@ export default function TavusExperienceBuilder() {
               {s.id === "persona" && personaDraft.trim() && <span className="rail-check">●</span>}
               {s.id === "guide" && (objectivesEnabled || guardrailsEnabled) && <span className="rail-check">●</span>}
               {s.id === "vision" && visionEnabled && <span className="rail-check">●</span>}
+              {s.id === "kb" && knowledgeIds.length > 0 && <span className="rail-check">●</span>}
               {s.id === "speech" && speechEnabled && <span className="rail-check">●</span>}
               {s.id === "presentation" && presentationEnabled && <span className="rail-check">●</span>}
               {s.id === "canvas" && canvasEnabled && <span className="rail-check">●</span>}
@@ -1263,17 +1440,8 @@ export default function TavusExperienceBuilder() {
               <Field label="Face ID" hint="The face that appears on the call, e.g. r79e1c033f.">
                 <input className="mono" value={faceId} onChange={(e) => setFaceId(e.target.value)} placeholder="r…" />
               </Field>
-              <Field label="PAL ID" hint="The PAL (persona) that drives the conversation, e.g. p5317866. Skills attach to this PAL.">
-                <input className="mono" value={palId} onChange={(e) => setPalId(e.target.value)} placeholder="p…" />
-              </Field>
-              <Field label="…or create a new PAL" hint={`Needs the API key and Face ID above. ${personaDraft.trim() ? "It will launch with your Persona draft as its prompt." : "Draft a prompt in the Persona step first for a tailored PAL, or create now with a sensible default."}`}>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input value={newPalName} onChange={(e) => setNewPalName(e.target.value)} placeholder="e.g. Acme Sales Expert"
-                    onKeyDown={(e) => e.key === "Enter" && !creatingPal && createPal()} />
-                  <button className="pill-btn" style={{ flexShrink: 0 }} onClick={createPal} disabled={creatingPal || !newPalName.trim()}>
-                    {creatingPal ? "Creating…" : "Create PAL"}
-                  </button>
-                </div>
+              <Field label="PAL ID" hint="Filled automatically when you create a persona in the Persona step — or paste an existing p… ID here.">
+                <input className="mono" value={palId} onChange={(e) => setPalId(e.target.value)} placeholder="p… (or create one in the Persona step)" />
               </Field>
               <Field label="Language" hint="Full language name. Multilingual auto-detects the speaker's language and responds in kind.">
                 <select value={language} onChange={(e) => setLanguage(e.target.value)}>
@@ -1317,19 +1485,12 @@ export default function TavusExperienceBuilder() {
                 <textarea value={personaBrief.avoid} onChange={(e) => setBriefField("avoid", e.target.value)} placeholder={"Custom pricing\nCompetitor comparisons"} />
               </Field>
 
-              <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
-                <button className="pill-btn primary" onClick={generatePersona} disabled={generating}>
-                  {generating && !personaDraft ? "Drafting…" : personaDraft ? "Regenerate" : "Generate with Claude"}
-                </button>
-                {personaDraft.trim() && (
-                  <button className="pill-btn" onClick={attachPersona} disabled={generating || personaAttached}>
-                    {personaAttached ? "Attached ✓" : "Attach to PAL"}
-                  </button>
-                )}
-              </div>
+              <button className="pill-btn primary" style={{ marginBottom: 18 }} onClick={generatePersona} disabled={generating}>
+                {generating && !personaDraft ? "Drafting…" : personaDraft ? "Regenerate" : "Generate with Claude"}
+              </button>
 
               <Field label="System prompt draft" hint={personaDraft
-                ? "Edit freely — this exact text is what gets attached to the PAL."
+                ? "Edit freely — this exact text becomes the persona."
                 : "Generated here; you can also paste or write your own."}>
                 <textarea
                   style={{ minHeight: 260, fontSize: 13, lineHeight: 1.6 }}
@@ -1338,6 +1499,29 @@ export default function TavusExperienceBuilder() {
                   placeholder="You are…"
                 />
               </Field>
+
+              <div className="subhead">Create the persona</div>
+              <Field label="" hint="Creates a brand-new PAL with this prompt as its brain and sets it as your PAL ID. Needs the API key and Face ID from Setup.">
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <input style={{ flex: "1 1 180px" }} value={newPalName} onChange={(e) => setNewPalName(e.target.value)} placeholder="Name it — e.g. Acme Sales Expert"
+                    onKeyDown={(e) => e.key === "Enter" && !creatingPal && createPal()} />
+                  <select style={{ width: "auto", flex: "0 1 auto" }} value={palLlm} onChange={(e) => setPalLlm(e.target.value)} title="The LLM that powers this PAL">
+                    {PAL_LLMS.map((m) => <option key={m.v} value={m.v}>{m.label}</option>)}
+                  </select>
+                  <button className="pill-btn primary" style={{ flexShrink: 0 }} onClick={createPal} disabled={creatingPal || !newPalName.trim()}>
+                    {creatingPal ? "Creating…" : "Create PAL"}
+                  </button>
+                </div>
+                <span className="field-hint">{PAL_LLMS.find((m) => m.v === palLlm)?.desc}</span>
+              </Field>
+
+              <div className="subhead" style={{ marginTop: 8 }}>…or update an existing PAL</div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 10 }}>
+                {palId.trim() ? <>Attaches this prompt to <span className="mono">{palId.trim()}</span> (replaces its current one).</> : "Paste a PAL ID in Setup first."}
+              </p>
+              <button className="pill-btn" onClick={attachPersona} disabled={generating || personaAttached || !personaDraft.trim() || !palId.trim()}>
+                {personaAttached ? "Attached ✓" : "Attach to existing PAL"}
+              </button>
             </>
           )}
 
@@ -1464,14 +1648,130 @@ export default function TavusExperienceBuilder() {
             </>
           )}
 
+          {step === "kb" && (
+            <>
+              <h1>Knowledge Base</h1>
+              <p className="lede">
+                Give the PAL material to know and present. Add any public link — a PDF, deck, doc, image, spreadsheet, or a whole website — and Tavus processes it in the background (a few minutes). Tick "PAL can use" to let the PAL reference a document when answering in this demo.
+              </p>
+
+              <Field label="Add by link" hint="Supports .pdf .docx .pptx .txt .csv .xlsx .png .jpg — or any website URL. Files on your computer need a shareable link first (Drive, Dropbox, Slack…).">
+                <input className="mono" value={kbUrl} onChange={(e) => setKbUrl(e.target.value)} placeholder="https://…/deck.pdf or https://yourcompany.com"
+                  onKeyDown={(e) => e.key === "Enter" && !kbAdding && addKbDoc()} />
+              </Field>
+              <Field label="Name (optional)">
+                <input value={kbName} onChange={(e) => setKbName(e.target.value)} placeholder="Q3 sales deck" />
+              </Field>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, maxWidth: 560 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+                  <input type="checkbox" style={{ width: "auto" }} checked={kbCrawl} onChange={(e) => setKbCrawl(e.target.checked)} />
+                  It's a website — crawl linked pages too
+                </label>
+                <button className="pill-btn primary" style={{ marginLeft: "auto" }} onClick={addKbDoc} disabled={kbAdding || !kbUrl.trim()}>
+                  {kbAdding ? "Adding…" : "Add to Knowledge Base"}
+                </button>
+              </div>
+
+              <div className="skill-head" style={{ marginTop: 10 }}>
+                <div className="subhead" style={{ margin: 0 }}>Your documents</div>
+                <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => fetchKbDocs()} disabled={kbLoading}>
+                  {kbLoading ? "Loading…" : kbDocs ? "Refresh" : "Load documents"}
+                </button>
+              </div>
+              {kbDocs === null && <p className="field-hint" style={{ maxWidth: 560 }}>Click "Load documents" to list everything in this account's Knowledge Base.</p>}
+              {kbDocs?.length === 0 && <p className="field-hint">No documents yet — add one above.</p>}
+              {!!kbDocs?.length && (
+                <div className="kb-list">
+                  {kbDocs.map((d) => (
+                    <div key={d.document_id} className="kb-row">
+                      <input
+                        className="kb-name"
+                        defaultValue={d.document_name || d.document_id}
+                        title="Click to rename — saves when you click away"
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          if (v && v !== (d.document_name || d.document_id)) renameKbDoc(d.document_id, v);
+                        }}
+                      />
+                      <span className={`kb-status kb-${d.status}`}>{d.status}{d.status === "processing" && d.progress != null ? ` ${d.progress}%` : ""}</span>
+                      <label className="kb-use" title="Let the PAL reference this document when answering in this demo">
+                        <input type="checkbox" style={{ width: "auto" }}
+                          checked={knowledgeIds.includes(d.document_id)}
+                          onChange={() => setKnowledgeIdsRaw((raw) => toggleIdIn(raw, d.document_id))} />
+                        PAL can use
+                      </label>
+                      <button className="kb-del" title="Delete from Knowledge Base" onClick={() => deleteKbDoc(d.document_id, d.document_name)}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="field-hint" style={{ marginTop: 12, maxWidth: 560 }}>
+                {knowledgeIds.length
+                  ? `${knowledgeIds.length} document${knowledgeIds.length > 1 ? "s" : ""} will be available to the PAL in this demo's conversations.`
+                  : "Nothing selected yet — the PAL won't reference the Knowledge Base in this demo."} To have the PAL present a deck as slides, pick it in the Presentation step.
+              </p>
+            </>
+          )}
+
           {step === "presentation" && (
             <>
               <div className="skill-head">
                 <h1>Presentation</h1>
                 <Toggle on={presentationEnabled} onChange={setPresentationEnabled} />
               </div>
-              <p className="lede">The PAL presents PDF decks and images from your Knowledge Base as a live screen share. PDFs must be 50 pages or fewer and fully processed before attaching. Slides appear inside the conversation automatically.</p>
-              <Field label="Document IDs" hint="Comma or newline separated. IDs come from the Create Document API — documents must already exist in your Knowledge Base.">
+              <p className="lede">The PAL presents PDF decks and images from your Knowledge Base as a live screen share. PDFs must be 50 pages or fewer and fully processed ("ready") before launching. Slides appear inside the conversation automatically.</p>
+
+              <div className="skill-head" style={{ marginTop: 4 }}>
+                <div className="subhead" style={{ margin: 0 }}>Pick from your Knowledge Base</div>
+                <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => fetchKbDocs()} disabled={kbLoading}>
+                  {kbLoading ? "Loading…" : kbDocs ? "Refresh" : "Load documents"}
+                </button>
+              </div>
+              {kbDocs === null && <p className="field-hint" style={{ maxWidth: 560 }}>Load your Knowledge Base to pick decks — or add new material in the Knowledge Base step.</p>}
+              {!!kbDocs?.length && (
+                <div className="kb-list" style={{ marginBottom: 6 }}>
+                  {kbDocs.filter((d) => PRESENTABLE.test(d.document_url || "") || docIds.includes(d.document_id)).map((d) => (
+                    <div key={d.document_id} className="kb-row">
+                      <label className="kb-use" style={{ flex: 1, justifyContent: "flex-start" }}>
+                        <input type="checkbox" style={{ width: "auto" }} disabled={!presentationEnabled}
+                          checked={docIds.includes(d.document_id)}
+                          onChange={() => setDocIdsRaw((raw) => toggleIdIn(raw, d.document_id))} />
+                        {d.document_name || d.document_id}
+                      </label>
+                      <span className={`kb-status kb-${d.status}`}>{d.status}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!!kbDocs?.length && !kbDocs.some((d) => PRESENTABLE.test(d.document_url || "") || docIds.includes(d.document_id)) && (
+                <p className="field-hint" style={{ maxWidth: 560 }}>No slide-compatible documents (.pdf .png .jpg .pptx) in your Knowledge Base yet — add one in the Knowledge Base step.</p>
+              )}
+
+              {docIds.length > 1 && (
+                <>
+                  <div className="subhead" style={{ marginTop: 14 }}>Deck order</div>
+                  <div className="kb-list" style={{ maxWidth: 560 }}>
+                    {docIds.map((id, i) => {
+                      const doc = kbDocs?.find((d) => d.document_id === id);
+                      return (
+                        <div key={id} className="kb-row">
+                          <span style={{ color: "var(--muted)", fontSize: 12, width: 18 }}>{i + 1}.</span>
+                          <span style={{ flex: 1, fontSize: 13 }}>{doc?.document_name || id}</span>
+                          <button className="kb-move" disabled={i === 0} onClick={() => {
+                            const ids = [...docIds]; [ids[i - 1], ids[i]] = [ids[i], ids[i - 1]]; setDocIdsRaw(ids.join("\n"));
+                          }}>↑</button>
+                          <button className="kb-move" disabled={i === docIds.length - 1} onClick={() => {
+                            const ids = [...docIds]; [ids[i + 1], ids[i]] = [ids[i], ids[i + 1]]; setDocIdsRaw(ids.join("\n"));
+                          }}>↓</button>
+                          <button className="kb-del" title="Remove from the deck" onClick={() => setDocIdsRaw(docIds.filter((x) => x !== id).join("\n"))}>✕</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              <Field label="Document IDs (advanced)" hint="The picker fills this for you — but you can paste IDs directly too. Order here is the deck order.">
                 <textarea className="mono" value={docIdsRaw} onChange={(e) => setDocIdsRaw(e.target.value)} placeholder={"d1234567890\nd2468101214"} />
               </Field>
               <Field label="Slides trigger">
@@ -1576,6 +1876,25 @@ export default function TavusExperienceBuilder() {
             <>
               <h1>Demo Page</h1>
               <p className="lede">The launched conversation opens on a clean, branded page — the conversation stage front and center. Canvas cards and presentation slides appear inside the stage automatically.</p>
+
+              <Field label="Match their website" hint="Paste the company's site and Claude restyles this page to their brand — colors, name, headline, logo. Everything stays editable below.">
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input className="mono" value={brandUrl} onChange={(e) => setBrandUrl(e.target.value)} placeholder="https://acme.com"
+                    onKeyDown={(e) => e.key === "Enter" && !theming && themeFromUrl()} />
+                  <button className="pill-btn primary" style={{ flexShrink: 0 }} onClick={themeFromUrl} disabled={theming || !brandUrl.trim()}>
+                    {theming ? "Theming…" : "Theme it"}
+                  </button>
+                </div>
+                {site.theme && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                    {["canvas", "surface", "accent", "text"].map((k) => site.theme[k] && (
+                      <span key={k} title={`${k}: ${site.theme[k]}`} style={{ width: 16, height: 16, borderRadius: 5, background: site.theme[k], border: "1px solid var(--border)" }} />
+                    ))}
+                    <button className="pill-btn" style={{ padding: "3px 10px", fontSize: 11, marginLeft: 4 }} onClick={() => setSiteField("theme", null)}>Reset to Alto</button>
+                  </span>
+                )}
+              </Field>
+
               <Field label="Brand name">
                 <input value={site.brand} onChange={(e) => setSiteField("brand", e.target.value)} placeholder="Acme Health" />
               </Field>
@@ -1630,6 +1949,7 @@ export default function TavusExperienceBuilder() {
                   guardrailsEnabled && guardrailsParsed.length && "creates & attaches guardrails",
                   visionEnabled && (visionPayload.visual_awareness_queries || visionPayload.audio_awareness_queries) && "attaches Vision",
                   speechEnabled && pronunciationRules.length && "creates & attaches pronunciation",
+                  knowledgeIds.length && `gives the PAL ${knowledgeIds.length} knowledge doc${knowledgeIds.length > 1 ? "s" : ""}`,
                   presentationEnabled && "attaches Presentation",
                   canvasEnabled && "attaches Magic Canvas",
                 ].filter(Boolean).join(", ") || "no customizations selected"}, then creates the conversation and opens it on your demo page.
