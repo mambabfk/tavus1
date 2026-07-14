@@ -1,0 +1,12 @@
+# The Python docs-Q&A server shares this repo but is NOT part of the Vercel
+# deploy (it runs on Render — see Procfile/render.yaml). Excluding it stops
+# Vercel's zero-config Python detection from trying to serve server.py.
+*.py
+docs_store/
+_seed/
+frontend/
+requirements.txt
+requirements-bridge.txt
+Procfile
+render.yaml
+DEMO_SCRIPT.md
