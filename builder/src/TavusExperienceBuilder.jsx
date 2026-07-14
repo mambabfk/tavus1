@@ -50,8 +50,9 @@ const slugName = (text, prefix, i) => {
   return `${prefix}_${i + 1}_${s || "item"}`;
 };
 
-/* One objective per line. Optional "| var1, var2" suffix extracts variables.
-   Lines chain in order via next_required_objective. */
+/* One objective per line; lines chain in order via next_required_objective.
+   Legacy: a "| var1, var2" suffix still extracts output_variables (kept for
+   old saved scenarios) but the syntax is no longer surfaced in the UI. */
 const parseObjectives = (text, confirmationMode) => {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
   const items = lines.map((line, i) => {
@@ -763,7 +764,10 @@ export default function TavusExperienceBuilder() {
         setPersonaDraft("");
         let msg = text.replace(/^\[error\]\s*/, "");
         try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
-        if (res.status === 401) setAuth((a) => ({ ...a, authed: false })); // session expired → back to gate
+        // 401 → login required (session expired, or the password was set after
+        // this tab loaded). Force `required` too, so the lock screen appears
+        // even when the initial /api/login check predates the password.
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
         throw new Error(msg || `${res.status}: generation failed`);
       }
       addLog("ok", "Persona prompt drafted — review it, then attach to the PAL.");
@@ -792,7 +796,7 @@ export default function TavusExperienceBuilder() {
       if (!res.ok || text.startsWith("[error]")) {
         let msg = text.replace(/^\[error\]\s*/, "");
         try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
-        if (res.status === 401) setAuth((a) => ({ ...a, authed: false }));
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
         throw new Error(msg || "generation failed");
       }
       const { visual, audio } = parseVisionDraft(text);
@@ -1349,7 +1353,7 @@ export default function TavusExperienceBuilder() {
                 <Toggle on={objectivesEnabled} onChange={setObjectivesEnabled} />
               </div>
               <p className="field-hint" style={{ maxWidth: 560, marginBottom: 8 }}>
-                One goal per line, in plain English — top to bottom is the order the conversation follows. Want the PAL to collect details along the way? End a line with "| name, email" and it will capture them.
+                One goal per line, in plain English — top to bottom is the order the conversation follows. If the PAL should collect something, just say so in the goal ("Ask for their name and email").
               </p>
               <Field label="" hint={objectivesEnabled && objectivesPayload.data.length
                 ? `Your ${objectivesPayload.data.length}-step flow: ${objectivesPayload.data.map((o, i) => `${i + 1}) ${shortLabel(o.objective_prompt)}`).join("   ")}`
@@ -1359,7 +1363,7 @@ export default function TavusExperienceBuilder() {
                   disabled={!objectivesEnabled}
                   value={objectivesText}
                   onChange={(e) => setObjectivesText(e.target.value)}
-                  placeholder={"Ask which product line they're evaluating | product_line\nUnderstand their budget and timeline | budget, timeline\nConfirm who else is involved in the decision | stakeholders\nBook a follow-up meeting"}
+                  placeholder={"Ask which product they're evaluating\nUnderstand their budget and timeline\nAsk who else is involved in the decision\nBook a follow-up meeting"}
                 />
               </Field>
               {objectivesEnabled && (
