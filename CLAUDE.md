@@ -111,6 +111,17 @@ Left-rail steps, each a slice of one big component's state:
    → `case_sensitive`, duplicates dropped. On launch →
    `POST /pronunciation-dictionaries` then `PATCH /pals/{id}`
    `/layers/tts/pronunciation_dictionary_id`. Persists on the PAL.
+4.6. **Integrations** (`tools`) — plain-English ability rows
+   ({name, desc, fields}) → `toolDefs` (OpenAI function shape, slugged names,
+   comma fields → required string params) → on launch
+   `PATCH /pals/{id}` `/layers/llm/tools`. `toolWebhook`/`toolEcho` travel in
+   `controlsConfig`; `CallExtras` forwards `conversation.tool_call`
+   app-messages to the webhook as `text/plain` JSON (no CORS preflight —
+   works with Zapier/Make catch hooks) and optionally echoes a confirmation.
+4.65. **Calls & Data** (`calls`) — pull-based, straight from Tavus:
+   `GET /conversations` list + `GET /conversations/{id}?verbose=true` for
+   transcript (`transcription`-type event), perception analyses, and raw JSON
+   download. Covers visitor calls from shared links too (same Tavus account).
 4.7. **Timing & Controls** (`controls`) — `maxMinutes` →
    `properties.max_call_duration`; `wakePhrase` → a conversational_context
    instruction. The rest run client-side in `CallExtras` (rendered inside

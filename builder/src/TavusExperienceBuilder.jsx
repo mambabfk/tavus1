@@ -36,9 +36,11 @@ const STEPS = [
   { id: "presentation", label: "Presentation" },
   { id: "canvas", label: "Magic Canvas" },
   { id: "speech", label: "Pronunciation" },
+  { id: "tools", label: "Integrations" },
   { id: "controls", label: "Timing & Controls" },
   { id: "site", label: "Demo Page" },
   { id: "launch", label: "Launch" },
+  { id: "calls", label: "Calls & Data" },
 ];
 
 /* Tavus-hosted LLMs available for a PAL's brain (layers.llm.model). */
@@ -258,6 +260,22 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
       if (/utterance|speaking|respond/i.test(d.event_type)) armInactivity();
       // Guardrail fired → optional spoken acknowledgement.
       if (/guardrail/i.test(d.event_type) && controls.guardrailEcho) say(controls.guardrailEcho);
+      // Custom tool call → forward to the configured webhook (Zapier/Make/…).
+      // text/plain body avoids a CORS preflight so any catch-hook accepts it.
+      if (/tool_?call/i.test(d.event_type) && !/result/i.test(d.event_type) && controls.toolWebhook) {
+        fetch(controls.toolWebhook, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            source: "tavus-demo",
+            conversation_id: conversationId,
+            tool: d.properties?.name || d.properties?.function_name || "",
+            arguments: d.properties?.arguments ?? d.properties?.args ?? null,
+            at: new Date().toISOString(),
+          }),
+        }).catch(() => {});
+        if (controls.toolEcho) say(controls.toolEcho);
+      }
     };
     const onSpeaker = () => armInactivity();
 
@@ -607,6 +625,18 @@ export default function TavusExperienceBuilder() {
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [pronunciationText, setPronunciationText] = useState("");
 
+  // Integrations (custom LLM tools → any webhook)
+  const [toolsEnabled, setToolsEnabled] = useState(false);
+  const [toolRows, setToolRows] = useState([{ name: "", desc: "", fields: "" }]);
+  const [toolWebhook, setToolWebhook] = useState("");
+  const [toolEcho, setToolEcho] = useState("");
+
+  // Calls & data (pulled straight from Tavus)
+  const [callsList, setCallsList] = useState(null);
+  const [callsLoading, setCallsLoading] = useState(false);
+  const [callDetail, setCallDetail] = useState(null);
+  const [callDetailLoading, setCallDetailLoading] = useState(false);
+
   // Timing & controls
   const [maxMinutes, setMaxMinutes] = useState("");          // blank = Tavus default (60 min)
   const [timeWarning, setTimeWarning] = useState("");        // spoken with 2 minutes left
@@ -705,6 +735,7 @@ export default function TavusExperienceBuilder() {
     visionEnabled, visionVibe, visualQueriesText, audioQueriesText,
     speechEnabled, pronunciationText,
     maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, wakePhrase, interruptButton, guardrailEcho,
+    toolsEnabled, toolRows, toolWebhook, toolEcho,
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
@@ -725,6 +756,9 @@ export default function TavusExperienceBuilder() {
     setMaxMinutes(c.maxMinutes ?? ""); setTimeWarning(c.timeWarning ?? "");
     setInactivitySeconds(c.inactivitySeconds ?? ""); setInactivityUtterance(c.inactivityUtterance ?? "");
     setWakePhrase(c.wakePhrase ?? ""); setInterruptButton(!!c.interruptButton); setGuardrailEcho(c.guardrailEcho ?? "");
+    setToolsEnabled(!!c.toolsEnabled);
+    setToolRows(Array.isArray(c.toolRows) && c.toolRows.length ? c.toolRows : [{ name: "", desc: "", fields: "" }]);
+    setToolWebhook(c.toolWebhook ?? ""); setToolEcho(c.toolEcho ?? "");
     setPresentationEnabled(!!c.presentationEnabled); setDocIdsRaw(c.docIdsRaw ?? "");
     setSlidesTrigger(c.slidesTrigger ?? "walk_the_deck"); setPresentPrompt(c.presentPrompt ?? "");
     setObjectivesEnabled(!!c.objectivesEnabled); setObjectivesText(c.objectivesText ?? "");
@@ -894,6 +928,26 @@ export default function TavusExperienceBuilder() {
     return value;
   }, [visualQueriesText, audioQueriesText]);
 
+  /* Plain-English tool rows → OpenAI function-shape tools for the PAL's LLM. */
+  const toolDefs = useMemo(() => toolRows
+    .filter((r) => r.name.trim() && r.desc.trim())
+    .map((r) => {
+      const name = r.name.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60) || "tool";
+      const fields = r.fields.split(",").map((f) => f.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_")).filter(Boolean);
+      return {
+        type: "function",
+        function: {
+          name,
+          description: r.desc.trim(),
+          parameters: {
+            type: "object",
+            properties: Object.fromEntries(fields.map((f) => [f, { type: "string" }])),
+            required: fields,
+          },
+        },
+      };
+    }), [toolRows]);
+
   const controlsConfig = useMemo(() => ({
     maxSeconds: parseInt(maxMinutes, 10) > 0 ? parseInt(maxMinutes, 10) * 60 : 0,
     timeWarning: timeWarning.trim(),
@@ -901,7 +955,9 @@ export default function TavusExperienceBuilder() {
     inactivityUtterance: inactivityUtterance.trim(),
     interruptButton,
     guardrailEcho: guardrailEcho.trim(),
-  }), [maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho]);
+    toolWebhook: toolsEnabled ? toolWebhook.trim() : "",
+    toolEcho: toolsEnabled ? toolEcho.trim() : "",
+  }), [maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho]);
 
   const pronunciationRules = useMemo(() => parsePronunciation(pronunciationText), [pronunciationText]);
   const pronunciationPayload = useMemo(
@@ -939,13 +995,23 @@ export default function TavusExperienceBuilder() {
       return { title: "POST /documents", text: curlFor("POST", "/documents", { document_url: kbUrl.trim() || "https://…/deck.pdf", ...(kbName.trim() ? { document_name: kbName.trim() } : {}), ...(kbCrawl ? { crawl: { depth: 2, max_pages: 25 } } : {}) }) };
     if (step === "speech")
       return { title: "POST /pronunciation-dictionaries", text: curlFor("POST", "/pronunciation-dictionaries", pronunciationPayload) };
+    if (step === "tools")
+      return { title: "PATCH /pals/… (llm tools)", text: curlFor("PATCH", `/pals/${pal}`, [{ op: "add", path: "/layers/llm/tools", value: toolDefs }]) };
+    if (step === "calls")
+      return {
+        title: "GET /conversations/{id}?verbose=true",
+        text: [
+          `curl ${API_BASE}/conversations/{conversation_id}?verbose=true \\`,
+          `  -H "x-api-key: ${apiKey ? "••••••••" : "<your-api-key>"}"`,
+        ].join("\n"),
+      };
     if (step === "presentation")
       return { title: "PUT /pals/…/skills/presentation", text: curlFor("PUT", `/pals/${pal}/skills/presentation`, presentationPayload) };
     if (step === "canvas")
       return { title: "PUT /pals/…/skills/magic_canvas", text: curlFor("PUT", `/pals/${pal}/skills/magic_canvas`, canvasPayload) };
     return { title: "POST /conversations", text: curlFor("POST", "/conversations", conversationPayload) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, palId, apiKey, personaDraft, visionPayload, pronunciationPayload, presentationPayload, canvasPayload, conversationPayload, objectivesPayload, guardrailsParsed, objectivesEnabled, guardrailsEnabled, kbUrl, kbName, kbCrawl]);
+  }, [step, palId, apiKey, personaDraft, visionPayload, pronunciationPayload, presentationPayload, canvasPayload, conversationPayload, objectivesPayload, guardrailsParsed, objectivesEnabled, guardrailsEnabled, kbUrl, kbName, kbCrawl, toolDefs]);
 
   /* ── API ── */
 
@@ -1152,6 +1218,45 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* ── Calls & data: pulled straight from Tavus (source of truth) ── */
+
+  const fetchCalls = async () => {
+    if (!apiKey.trim()) { addLog("err", "Enter your Tavus API key in Setup first."); return; }
+    setCallsLoading(true);
+    setCallDetail(null);
+    try {
+      const d = await tavusFetch("GET", "/conversations");
+      setCallsList(d.data || d.conversations || []);
+    } catch (e) {
+      addLog("err", `Calls: ${e.message}`);
+    } finally {
+      setCallsLoading(false);
+    }
+  };
+
+  const openCall = async (id) => {
+    setCallDetailLoading(true);
+    try {
+      const d = await tavusFetch("GET", `/conversations/${id}?verbose=true`);
+      setCallDetail(d);
+    } catch (e) {
+      addLog("err", `Call detail: ${e.message}`);
+    } finally {
+      setCallDetailLoading(false);
+    }
+  };
+
+  const downloadCall = () => {
+    if (!callDetail) return;
+    const blob = new Blob([JSON.stringify(callDetail, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `tavus-call-${callDetail.conversation_id || "data"}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+
   /* ── Shareable demo link: store the snapshot server-side, mint /d/{slug} ── */
 
   const shareDemo = async () => {
@@ -1240,11 +1345,19 @@ export default function TavusExperienceBuilder() {
     if (!url) return;
     setTheming(true);
     try {
-      addLog("info", "Reading the site and drafting a matching theme…");
+      addLog("info", "Reading the site and drafting a matching theme + copy…");
+      // Give Claude the use case so page copy speaks the brand's diction FOR
+      // this demo (HR copy for HR, sales diction for sales, etc.).
+      const useCase = [
+        ideaText.trim(),
+        personaBrief.goal && `Goal: ${personaBrief.goal}`,
+        personaBrief.audience && `Audience: ${personaBrief.audience}`,
+        personaBrief.product && `Product focus: ${personaBrief.product}`,
+      ].filter(Boolean).join("\n");
       const res = await fetch("/api/brand-theme", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: /^https?:\/\//i.test(url) ? url : `https://${url}` }),
+        body: JSON.stringify({ url: /^https?:\/\//i.test(url) ? url : `https://${url}`, useCase }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -1256,10 +1369,12 @@ export default function TavusExperienceBuilder() {
         brand: j.brand || s.brand,
         headline: j.headline || s.headline,
         tagline: j.tagline || s.tagline,
+        cta: j.cta || s.cta,
         logoUrl: s.logoUrl || j.logoUrl || "",
         theme: { ...(j.colors || {}), font: j.font || "" },
       }));
-      addLog("ok", `Demo page themed to ${j.brand || url} — preview it, tweak anything you like.`);
+      if (j.greeting && !greeting.trim()) setGreeting(j.greeting);
+      addLog("ok", `Demo page themed to ${j.brand || url} — colors, copy${j.greeting && !greeting.trim() ? ", greeting" : ""} drafted for this use case. Tweak anything below.`);
     } catch (e) {
       addLog("err", `Brand theme: ${e.message}`);
     } finally {
@@ -1373,6 +1488,15 @@ export default function TavusExperienceBuilder() {
           { op: "add", path: "/layers/tts/pronunciation_dictionary_id", value: dictId },
         ]);
         addLog("ok", "Pronunciation attached (persists on the PAL until you change it).");
+      }
+
+      // Integrations: attach custom tools to the PAL's LLM (persists on the PAL).
+      if (toolsEnabled && toolDefs.length) {
+        addLog("info", `Attaching ${toolDefs.length} custom tool${toolDefs.length > 1 ? "s" : ""} to the PAL…`);
+        await tavusFetch("PATCH", `/pals/${pal}`, [
+          { op: "add", path: "/layers/llm/tools", value: toolDefs },
+        ]);
+        addLog("ok", `Tools attached: ${toolDefs.map((t) => t.function.name).join(", ")}.`);
       }
 
       if (presentationEnabled) {
@@ -1585,6 +1709,13 @@ export default function TavusExperienceBuilder() {
 
         .idea-box { background:var(--accent-soft); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px 20px; margin-bottom:26px; max-width:600px; }
 
+        /* calls & data */
+        .transcript { display:flex; flex-direction:column; gap:8px; max-width:640px; margin-top:8px; }
+        .t-row { display:flex; gap:10px; font-size:13px; line-height:1.55; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:9px 12px; }
+        .t-row.t-assistant { background:var(--surface-2); }
+        .t-role { font-weight:600; flex-shrink:0; min-width:56px; color:var(--muted); font-size:12px; padding-top:1px; }
+        .perception-card { max-width:640px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-md); padding:12px 14px; font-size:13px; line-height:1.6; white-space:pre-wrap; margin-bottom:8px; }
+
         /* knowledge base list */
         .kb-list { display:flex; flex-direction:column; gap:6px; max-width:640px; margin-top:10px; }
         .kb-row { display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:8px 12px; }
@@ -1693,6 +1824,7 @@ export default function TavusExperienceBuilder() {
               {s.id === "vision" && visionEnabled && <span className="rail-check">●</span>}
               {s.id === "kb" && knowledgeIds.length > 0 && <span className="rail-check">●</span>}
               {s.id === "speech" && speechEnabled && <span className="rail-check">●</span>}
+              {s.id === "tools" && toolsEnabled && toolDefs.length > 0 && <span className="rail-check">●</span>}
               {s.id === "controls" && (maxMinutes || inactivitySeconds || wakePhrase.trim() || interruptButton || guardrailEcho.trim()) && <span className="rail-check">●</span>}
               {s.id === "presentation" && presentationEnabled && <span className="rail-check">●</span>}
               {s.id === "canvas" && canvasEnabled && <span className="rail-check">●</span>}
@@ -2164,6 +2296,124 @@ export default function TavusExperienceBuilder() {
             </>
           )}
 
+          {step === "tools" && (
+            <>
+              <div className="skill-head">
+                <h1>Integrations</h1>
+                <Toggle on={toolsEnabled} onChange={setToolsEnabled} />
+              </div>
+              <p className="lede">
+                Give the PAL abilities in plain English — "book a meeting", "create a CRM lead", "file a ticket". When the PAL decides to use one mid-conversation, the call fires into any webhook you point at (Zapier, Make, n8n, your own endpoint) with the details it collected. This is the "Tavus plugs into anything" demo: no code on the Tavus side.
+              </p>
+
+              {toolRows.map((row, i) => (
+                <div key={i} className="kb-row" style={{ maxWidth: 640, marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+                  <input style={{ flex: "1 1 140px" }} disabled={!toolsEnabled} value={row.name} placeholder="Ability — e.g. Book a meeting"
+                    onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, name: e.target.value } : r))} />
+                  <input style={{ flex: "2 1 220px" }} disabled={!toolsEnabled} value={row.desc} placeholder="When to use it — e.g. When they agree to a follow-up call"
+                    onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, desc: e.target.value } : r))} />
+                  <input style={{ flex: "1 1 150px" }} disabled={!toolsEnabled} value={row.fields} placeholder="Details to collect — name, email"
+                    onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, fields: e.target.value } : r))} />
+                  {toolRows.length > 1 && (
+                    <button className="kb-del" onClick={() => setToolRows((rs) => rs.filter((_, j) => j !== i))}>✕</button>
+                  )}
+                </div>
+              ))}
+              <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13, marginBottom: 20 }} disabled={!toolsEnabled}
+                onClick={() => setToolRows((rs) => [...rs, { name: "", desc: "", fields: "" }])}>+ Add ability</button>
+
+              <Field label="Send tool calls to (webhook URL)" hint="Any HTTPS endpoint — a Zapier 'Catch Hook', Make, n8n, or your own API. Each call posts JSON: { tool, arguments, conversation_id }. Fires live from the demo page.">
+                <input className="mono" disabled={!toolsEnabled} value={toolWebhook} onChange={(e) => setToolWebhook(e.target.value)} placeholder="https://hooks.zapier.com/hooks/catch/…" />
+              </Field>
+              <Field label="Spoken confirmation (optional)" hint="Said by the PAL right after it uses an ability.">
+                <input disabled={!toolsEnabled} value={toolEcho} onChange={(e) => setToolEcho(e.target.value)} placeholder="Done — I've sent that over to the team." />
+              </Field>
+              <p className="field-hint" style={{ maxWidth: 560 }}>
+                On launch the abilities attach to the PAL ({toolDefs.length ? toolDefs.map((t) => t.function.name).join(", ") : "none defined yet"}) and persist on it. The webhook forwarding works on the demo page's custom call UI — including shared /d/ links.
+              </p>
+            </>
+          )}
+
+          {step === "calls" && (
+            <>
+              <div className="skill-head">
+                <h1>Calls &amp; Data</h1>
+                <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={fetchCalls} disabled={callsLoading}>
+                  {callsLoading ? "Loading…" : callsList ? "Refresh" : "Load calls"}
+                </button>
+              </div>
+              <p className="lede">
+                Every conversation on this account — including ones visitors started from shared links. Open a call for its full transcript, what the PAL saw (perception analysis), and the raw event data. Pulled live from Tavus, so it's always complete.
+              </p>
+
+              {callDetail ? (
+                <>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                    <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => setCallDetail(null)}>← All calls</button>
+                    <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={downloadCall}>Download JSON</button>
+                  </div>
+                  <p className="field-hint">
+                    <span className="mono">{callDetail.conversation_id}</span> · {callDetail.conversation_name || "unnamed"} · {callDetail.status}
+                  </p>
+                  {(() => {
+                    const events = callDetail.events || [];
+                    const tEvent = events.find((e) => /transcription/i.test(e.event_type || ""));
+                    const transcript = tEvent?.properties?.transcript;
+                    const pEvents = events.filter((e) => /perception/i.test(e.event_type || ""));
+                    return (
+                      <>
+                        <div className="subhead">Transcript</div>
+                        {Array.isArray(transcript) && transcript.length ? (
+                          <div className="transcript">
+                            {transcript.filter((m) => m.role !== "system").map((m, i) => (
+                              <div key={i} className={`t-row t-${m.role}`}>
+                                <span className="t-role">{m.role === "assistant" ? (site.brand || "PAL") : "Visitor"}</span>
+                                <span>{typeof m.content === "string" ? m.content : JSON.stringify(m.content)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="field-hint">No transcript yet — it appears shortly after a call ends.</p>
+                        )}
+                        <div className="subhead">What the PAL saw &amp; heard (perception)</div>
+                        {pEvents.length ? pEvents.map((e, i) => (
+                          <div key={i} className="perception-card">
+                            {typeof e.properties?.analysis === "string" ? e.properties.analysis : JSON.stringify(e.properties, null, 2)}
+                          </div>
+                        )) : (
+                          <p className="field-hint">No perception analysis — enable Vision on the PAL to get end-of-call visual summaries.</p>
+                        )}
+                        <div className="subhead">All events ({events.length})</div>
+                        <p className="field-hint">Everything Tavus recorded for this call — tool calls, guardrail triggers, shutdown reason — is in the JSON download above.</p>
+                      </>
+                    );
+                  })()}
+                </>
+              ) : (
+                <>
+                  {callsList === null && <p className="field-hint">Click "Load calls" to list conversations (needs the API key from Setup).</p>}
+                  {callsList?.length === 0 && <p className="field-hint">No conversations yet.</p>}
+                  {!!callsList?.length && (
+                    <div className="kb-list">
+                      {callsList.map((c) => (
+                        <div key={c.conversation_id} className="kb-row">
+                          <span style={{ flex: 1, fontSize: 13 }}>
+                            {c.conversation_name || <span className="mono" style={{ fontSize: 12 }}>{c.conversation_id}</span>}
+                          </span>
+                          <span className={`kb-status ${c.status === "ended" ? "" : "kb-ready"}`}>{c.status}</span>
+                          <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}>{(c.created_at || "").slice(0, 16).replace("T", " ")}</span>
+                          <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => openCall(c.conversation_id)} disabled={callDetailLoading}>
+                            {callDetailLoading ? "…" : "View"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+
           {step === "controls" && (
             <>
               <h1>Timing &amp; Controls</h1>
@@ -2288,6 +2538,7 @@ export default function TavusExperienceBuilder() {
                   visionEnabled && (visionPayload.visual_awareness_queries || visionPayload.audio_awareness_queries) && "attaches Vision",
                   speechEnabled && pronunciationRules.length && "creates & attaches pronunciation",
                   knowledgeIds.length && `gives the PAL ${knowledgeIds.length} knowledge doc${knowledgeIds.length > 1 ? "s" : ""}`,
+                  toolsEnabled && toolDefs.length && `attaches ${toolDefs.length} custom tool${toolDefs.length > 1 ? "s" : ""}`,
                   presentationEnabled && "attaches Presentation",
                   canvasEnabled && "attaches Magic Canvas",
                 ].filter(Boolean).join(", ") || "no customizations selected"}, then creates the conversation and opens it on your demo page.
