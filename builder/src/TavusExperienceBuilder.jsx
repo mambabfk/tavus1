@@ -198,7 +198,10 @@ function DemoSite({ site, conversationUrl, onStart, onExit, busy }) {
     };
     Promise.all([load("cvi-provider"), load("conversation"), load("magic-canvas")])
       .then(([p, c, m]) => alive && setCvi({ CVIProvider: p.CVIProvider, Conversation: c.Conversation, MagicCanvas: m.MagicCanvas }))
-      .catch(() => alive && setCvi(null));
+      .catch((e) => {
+        console.warn("[builder] custom CVI UI unavailable, using hosted iframe:", e);
+        if (alive) setCvi(null);
+      });
     return () => { alive = false; };
   }, []);
 
