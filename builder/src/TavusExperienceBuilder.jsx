@@ -655,6 +655,13 @@ export default function TavusExperienceBuilder() {
   const setBriefField = (k, v) => setPersonaBrief((b) => ({ ...b, [k]: v }));
   const [personaDraft, setPersonaDraft] = useState("");
   const [personaFeedback, setPersonaFeedback] = useState("");
+
+  // Test drive: text-only conversation against the PAL (chat mode — same PAL
+  // config, no video pipeline). Validates behavior before booting a real call.
+  const [chatConvId, setChatConvId] = useState("");
+  const [chatLog, setChatLog] = useState([]); // {role: "user"|"pal"|"sys", text}
+  const [chatInput, setChatInput] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [personaAttached, setPersonaAttached] = useState(false);
 
@@ -1219,19 +1226,28 @@ export default function TavusExperienceBuilder() {
     }
   };
 
-  /* Revise the current draft from plain-English feedback ("less salesy",
-     "mention the Pro tier", …) — an edit, not a regenerate-from-brief. */
+  /* Revise from plain-English feedback ("less salesy", "stop looping on the
+     email ask", …) — an edit, not a regenerate. Prompt AND objectives are
+     revised together: objectives drive the flow mechanically, so flow feedback
+     has to land there, not just in prompt prose. */
   const revisePersona = async () => {
     if (!personaDraft.trim() || !personaFeedback.trim()) return;
     setGenerating(true);
     const previous = personaDraft;
-    setPersonaDraft("");
     setPersonaAttached(false);
     try {
       const res = await fetch("/api/generate-persona", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "revise", draft: previous, vibe: personaFeedback }),
+        body: JSON.stringify({
+          kind: "revise",
+          draft: previous,
+          vibe: personaFeedback,
+          context: {
+            objectives: objectivesEnabled ? objectivesText : "",
+            guardrails: guardrailsEnabled ? guardrailsText : "",
+          },
+        }),
       });
       if (!res.ok && !res.body) throw new Error(`${res.status}: revision failed`);
       const reader = res.body.getReader();
@@ -1241,22 +1257,128 @@ export default function TavusExperienceBuilder() {
         const { done, value } = await reader.read();
         if (done) break;
         text += decoder.decode(value, { stream: true });
-        setPersonaDraft(text);
       }
       if (text.startsWith("[error]") || !res.ok) {
-        setPersonaDraft(previous); // never lose the draft to a failed revision
         let msg = text.replace(/^\[error\]\s*/, "");
         try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
         if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
         throw new Error(msg || `${res.status}: revision failed`);
       }
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("Claude's revision came back malformed — try again.");
+      const rev = JSON.parse(jsonMatch[0]);
+      if (!rev.prompt || !String(rev.prompt).trim()) throw new Error("Claude's revision came back empty — try again.");
+
+      setPersonaDraft(String(rev.prompt));
+      const changed = ["prompt"];
+      if (Array.isArray(rev.objectives)) {
+        setObjectivesText(rev.objectives.join("\n"));
+        setObjectivesEnabled(true);
+        changed.push("goals");
+      }
+      if (Array.isArray(rev.guardrails)) {
+        setGuardrailsText(rev.guardrails.join("\n"));
+        setGuardrailsEnabled(true);
+        changed.push("rules");
+      }
       setPersonaFeedback("");
-      addLog("ok", "Draft revised — review it, then re-attach so the PAL picks it up.");
+      if (rev.note) addLog("info", `Revision: ${rev.note}`);
+      addLog("ok", `Revised ${changed.join(" + ")}. Re-attach the prompt now; ${changed.includes("goals") ? "the updated goals re-attach on your next launch." : "goals were untouched."}`);
     } catch (e) {
-      if (!personaDraft) setPersonaDraft(previous);
+      setPersonaDraft(previous); // never lose the draft to a failed revision
       addLog("err", `Persona revision: ${e.message}`);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  /* ── Test drive: text-only chat against the PAL (no video, no camera).
+        POST /conversations {chat:true} → /respond per turn (poll until ready).
+        Runs the PAL's ATTACHED config — attach the latest prompt first. ── */
+
+  const startTestDrive = async () => {
+    if (!apiKey.trim() || !palId.trim()) { addLog("err", "API key and PAL ID are required — see Setup."); return; }
+    setChatBusy(true);
+    try {
+      const body = { persona_id: palId.trim(), chat: true, conversation_name: "Builder test drive" };
+      if (greeting.trim()) body.custom_greeting = greeting.trim();
+      const d = await tavusFetch("POST", "/conversations", body);
+      setChatConvId(d.conversation_id);
+      setChatLog(greeting.trim() ? [{ role: "pal", text: greeting.trim() }] : []);
+      addLog("ok", `Test drive started (${d.conversation_id}) — type at your PAL below. Text turns are billed like conversation time, but there's no video.`);
+    } catch (e) {
+      addLog("err", `Test drive: ${e.message}`);
+    } finally {
+      setChatBusy(false);
+    }
+  };
+
+  const sendTestTurn = async () => {
+    const text = chatInput.trim();
+    if (!text || !chatConvId || chatBusy) return;
+    setChatInput("");
+    setChatLog((l) => [...l, { role: "user", text }]);
+    setChatBusy(true);
+    try {
+      const sent = await tavusFetch("POST", `/conversations/${chatConvId}/respond`, { text, timeout_s: 30 });
+      let reply = sent?.status === "ready" ? sent.text : null;
+      if (reply == null) {
+        const deadline = Date.now() + 30_000;
+        while (Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 700));
+          const poll = await tavusFetch("GET", `/conversations/${chatConvId}/respond`);
+          if (poll?.status === "ready") { reply = poll.text; break; }
+        }
+      }
+      if (reply == null) throw new Error("no reply within 30s — the conversation may have ended");
+      setChatLog((l) => [...l, { role: "pal", text: reply || "(empty reply)" }]);
+    } catch (e) {
+      setChatLog((l) => [...l, { role: "sys", text: `⚠ ${e.message}` }]);
+    } finally {
+      setChatBusy(false);
+    }
+  };
+
+  const endTestDrive = async () => {
+    const id = chatConvId;
+    setChatConvId("");
+    setChatBusy(false);
+    if (id) {
+      try { await tavusFetch("POST", `/conversations/${id}/end`); addLog("info", "Test drive ended."); }
+      catch { /* already ended is fine */ }
+    }
+  };
+
+  /* ── Preflight: validate the full launch config without starting a call.
+        Objectives → POST /objectives/validate (shape check, nothing saved);
+        conversation → POST /conversations {test_mode:true} (Tavus validates
+        and creates it pre-ended — no PAL joins, no cost, no concurrency). ── */
+
+  const [preflighting, setPreflighting] = useState(false);
+  const preflight = async () => {
+    if (!canLaunch) { addLog("err", "API key, Face ID, and PAL ID are required — see Setup."); return; }
+    setPreflighting(true);
+    let ok = true;
+    try {
+      if (objectivesEnabled && objectivesPayload.data.length) {
+        try {
+          await tavusFetch("POST", "/objectives/validate", objectivesPayload);
+          addLog("ok", `Preflight: goals check out (${objectivesPayload.data.length} steps, chain is valid).`);
+        } catch (e) {
+          ok = false;
+          addLog("err", `Preflight: goals failed validation — ${e.message}`);
+        }
+      }
+      try {
+        await tavusFetch("POST", "/conversations", { ...conversationPayload, properties: { ...conversationPayload.properties }, test_mode: true });
+        addLog("ok", "Preflight: Tavus accepted the full conversation config (test mode — nothing was started, no cost). Recording storage, IDs, and properties are all valid.");
+      } catch (e) {
+        ok = false;
+        addLog("err", `Preflight: conversation config rejected — ${e.message}`);
+      }
+      if (ok) addLog("ok", "Preflight passed ✓ — this demo should launch cleanly.");
+    } finally {
+      setPreflighting(false);
     }
   };
 
@@ -2384,7 +2506,7 @@ export default function TavusExperienceBuilder() {
               </Field>
 
               {personaDraft.trim() && (
-                <Field label="Revise with feedback" hint='Watched a call and want it different? Say what to change — "less salesy", "push the demo booking earlier", "mention the Pro tier by name" — and Claude edits the draft above, keeping the rest intact. Re-attach afterwards so the PAL picks it up.'>
+                <Field label="Revise with feedback" hint='Watched a call and want it different? Say what to change — "less salesy", "stop looping on the email ask", "book the demo earlier" — and Claude edits the draft above AND the Goals & Rules step together (goals drive the conversation flow, so flow fixes land there, not just in the prompt). Re-attach the prompt afterwards; updated goals re-attach on your next launch.'>
                   <div style={{ display: "flex", gap: 8 }}>
                     <input value={personaFeedback} onChange={(e) => setPersonaFeedback(e.target.value)}
                       placeholder="e.g. Too formal — make it warmer, and stop asking two questions in a row"
@@ -2418,6 +2540,38 @@ export default function TavusExperienceBuilder() {
               <button className="pill-btn" onClick={attachPersona} disabled={generating || personaAttached || !personaDraft.trim() || !palId.trim()}>
                 {personaAttached ? "Attached ✓" : "Attach to existing PAL"}
               </button>
+
+              <div className="subhead" style={{ marginTop: 26 }}>Test drive — no video</div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 10 }}>
+                Type at your PAL before booting a real call. Runs the exact config on the PAL — persona, goals, rules, knowledge —
+                just without the video pipeline, so turns come back in seconds. <b>Tests what's attached</b>: hit Attach above after
+                drafting or revising, or you'll be talking to the old prompt. Billed like conversation time (a text turn is tiny).
+              </p>
+              {!chatConvId ? (
+                <button className="pill-btn primary" onClick={startTestDrive} disabled={chatBusy || !palId.trim() || !apiKey.trim()}>
+                  {chatBusy ? "Starting…" : "▶ Start test drive"}
+                </button>
+              ) : (
+                <div style={{ maxWidth: 640 }}>
+                  <div className="transcript" style={{ maxHeight: 300, overflowY: "auto", marginBottom: 10 }}>
+                    {chatLog.length === 0 && <p className="field-hint" style={{ padding: 10 }}>Say something — "hi" is a fine start.</p>}
+                    {chatLog.map((m, i) => (
+                      <div key={i} className={`t-row t-${m.role === "pal" ? "assistant" : m.role}`}>
+                        <span className="t-role">{m.role === "pal" ? (site.brand || "PAL") : m.role === "user" ? "You" : "!"}</span>
+                        <span>{m.text}</span>
+                      </div>
+                    ))}
+                    {chatBusy && <div className="t-row t-assistant"><span className="t-role">{site.brand || "PAL"}</span><span style={{ opacity: 0.5 }}>thinking…</span></div>}
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="Try the openers a real visitor would use…"
+                      onKeyDown={(e) => e.key === "Enter" && sendTestTurn()} disabled={chatBusy} />
+                    <button className="pill-btn primary" style={{ flexShrink: 0 }} onClick={sendTestTurn} disabled={chatBusy || !chatInput.trim()}>Send</button>
+                    <button className="pill-btn" style={{ flexShrink: 0 }} onClick={endTestDrive}>End</button>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -3249,6 +3403,10 @@ export default function TavusExperienceBuilder() {
               <div style={{ display: "flex", gap: 10 }}>
                 <button className="pill-btn primary big" disabled={!canLaunch || busy} onClick={launch}>
                   {busy ? "Working…" : "Launch demo"}
+                </button>
+                <button className="pill-btn" disabled={!canLaunch || busy || preflighting} onClick={preflight}
+                  title="Validates the whole config with Tavus — goals chain, IDs, recording storage — without starting a call. Free.">
+                  {preflighting ? "Checking…" : "✓ Preflight check"}
                 </button>
                 {conversation?.conversation_url && (
                   <button className="pill-btn" onClick={() => setSiteMode(true)}>Reopen page</button>

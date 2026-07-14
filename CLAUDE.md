@@ -97,11 +97,21 @@ non-technical users; ids unchanged):
    `[{op:"add", path:"/system_prompt", value}]`. Draft → review → attach; the
    attach never happens without the human seeing the text.
    **Revise with feedback** (`revisePersona()`, `kind: "revise"`): a one-line
-   feedback field under the draft ("less salesy", "book the demo earlier")
-   sends draft + feedback; Claude returns an *edit* of the prompt (not a
-   regenerate), streamed back into the textarea; on failure the previous
-   draft is restored. Re-attach afterwards. The prompt persists
-   on the PAL like objectives do.
+   feedback field under the draft sends draft + current objectives/guardrails
+   text + feedback; Claude returns JSON `{prompt, objectives|null,
+   guardrails|null, note}` — an *edit*, not a regenerate. Objectives are
+   revised together with the prompt because they drive flow mechanically
+   (a prompt-only edit leaves the PAL looping on stale objectives — learned
+   from user pain). Frontend applies all three; goals re-attach on next
+   launch, prompt needs manual re-attach; failure restores the prior draft.
+   **Test drive** (`startTestDrive()` etc.): text-only chat against the PAL —
+   `POST /conversations {persona_id, chat: true}`, then per turn
+   `POST /conversations/{id}/respond {text, timeout_s}` (if not immediately
+   `status:"ready"`, poll `GET …/respond`), `POST …/end` to finish. Runs the
+   PAL's ATTACHED config (attach first!); no video pipeline; billed like
+   conversation time. Endpoint shape confirmed from the `tavus-cli` package
+   (not in public API reference — may change).
+   The prompt persists on the PAL like objectives do.
    Setup also offers **Create PAL** (`createPal()`): `POST /pals` with
    `pal_name`, `default_face_id` (uses the Face ID field), and `system_prompt`
    (the persona draft when present, else a generic default) → fills `palId`.
@@ -183,6 +193,10 @@ non-technical users; ids unchanged):
    floating exit button). `DemoSite` switches on `site.format` via
    `demo-{format}` CSS classes.
 6. **Launch** — runs the whole attach-then-create sequence, logs each step.
+   Also **Preflight check** (`preflight()`): `POST /objectives/validate`
+   (shape/chain check, nothing saved) + `POST /conversations` with
+   `test_mode: true` (Tavus validates the full payload incl. recording
+   storage; conversation is created pre-ended — no PAL joins, no cost).
 
 ## Launch sequence (`launch()`)
 

@@ -19,15 +19,25 @@ Rules for the persona prompts you write:
 
 Return ONLY the persona system prompt text. No preamble, no explanation, no code fences.`;
 
-const REVISE_SYSTEM = `You revise system prompts for Tavus PALs (personas) — AI humans that hold live, face-to-face video conversations as product demos.
+const REVISE_SYSTEM = `You revise the configuration of a Tavus PAL (persona) — an AI human that holds live, face-to-face video conversations as product demos.
 
-You are given the CURRENT persona prompt and the operator's feedback from watching it in a real call. Apply the feedback precisely:
-- Change exactly what the feedback asks for — rewrite, add, or remove those parts decisively rather than hedging.
-- Leave everything the feedback doesn't touch as close to the original as possible: same structure, same voice, same level of detail. This is an edit, not a rewrite.
-- Keep every persona-prompt rule intact: voice-first spoken style (short sentences, contractions, no markdown, no stage directions), second person, one question at a time, never claims to be human, never invents pricing/features/commitments, 250–500 words.
-- If a piece of feedback conflicts with those rules (e.g. "add bullet points"), honor the intent in a voice-safe way instead.
+You are given the CURRENT system prompt, the CURRENT objectives (the structured, ordered flow the conversation MUST follow — attached to the PAL separately from the prompt), the CURRENT guardrails, and the operator's feedback from watching a real call.
 
-Return ONLY the complete revised persona prompt text. No preamble, no explanation, no diff, no code fences.`;
+CRITICAL: objectives drive the conversation flow mechanically — the PAL works through them in order and won't move on until one completes. If the feedback describes flow problems (stuck repeating a step, looping, skipping ahead, pushing something at the wrong time), the fix lives in the OBJECTIVES list; editing prompt prose alone will not change the flow. When feedback implies a flow change, revise the objectives. When it's purely voice/knowledge/personality, leave objectives null.
+
+Apply the feedback precisely and return ONLY valid JSON (no code fences, no commentary):
+{
+  "prompt": "the complete revised system prompt",
+  "objectives": ["Goal 1 in plain English", "Goal 2", "..."] or null when unchanged,
+  "guardrails": ["Rule 1 in plain English", "..."] or null when unchanged,
+  "note": "One short sentence: what changed and where (prompt / goals / rules)"
+}
+
+Rules:
+- Change exactly what the feedback asks for; keep everything else as close to the original as possible. This is an edit, not a rewrite.
+- Prompt: voice-first spoken style (short sentences, contractions, no markdown, no stage directions), second person, one question at a time, never claims to be human, never invents pricing/features/commitments, 250–500 words.
+- Objectives: plain English, one goal per line-item, in conversation order (they chain top to bottom).
+- Keep the prompt and objectives CONSISTENT with each other — if the flow changes in one, mirror it in the other.`;
 
 const VISION_SYSTEM = `You configure the vision layer ("perception", model raven-1) of a Tavus PAL — an AI human on a live video call that can continuously watch the user's camera/screen and listen to their tone.
 
@@ -138,7 +148,11 @@ export default async function handler(req, res) {
       return;
     }
     system = REVISE_SYSTEM;
-    userPrompt = `CURRENT PERSONA PROMPT:\n${String(draft).trim().slice(0, 20000)}\n\nOPERATOR FEEDBACK — apply this:\n${String(vibe).trim().slice(0, 4000)}`;
+    const parts = [`CURRENT SYSTEM PROMPT:\n${String(draft).trim().slice(0, 20000)}`];
+    parts.push(`CURRENT OBJECTIVES (ordered flow; one per line):\n${String(context.objectives ?? "").trim().slice(0, 4000) || "(none configured)"}`);
+    parts.push(`CURRENT GUARDRAILS (one per line):\n${String(context.guardrails ?? "").trim().slice(0, 4000) || "(none configured)"}`);
+    parts.push(`OPERATOR FEEDBACK — apply this:\n${String(vibe).trim().slice(0, 4000)}`);
+    userPrompt = parts.join("\n\n");
   } else if (kind === "talktrack") {
     if (!String(vibe).trim()) {
       res.status(400).json({ error: "Describe the demo / deck first so Claude knows what to script." });
