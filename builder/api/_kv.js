@@ -29,6 +29,11 @@ export function kvSet(key, value) {
   return redis(["SET", key, JSON.stringify(value)]);
 }
 
+/* SET with an expiry — for data that should age out on its own. */
+export function kvSetEx(key, value, ttlSeconds) {
+  return redis(["SET", key, JSON.stringify(value), "EX", String(ttlSeconds)]);
+}
+
 /* Increment with a TTL set on first touch — for rate limits / day counters. */
 export async function kvIncr(key, ttlSeconds) {
   const n = await redis(["INCR", key]);

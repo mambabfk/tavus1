@@ -678,6 +678,7 @@ export default function TavusExperienceBuilder() {
   const [callsLoading, setCallsLoading] = useState(false);
   const [callDetail, setCallDetail] = useState(null);
   const [callDetailLoading, setCallDetailLoading] = useState(false);
+  const [recMap, setRecMap] = useState({}); // conversation_id → recording location
 
   // Timing & controls
   const [maxMinutes, setMaxMinutes] = useState("");          // blank = Tavus default (60 min)
@@ -944,6 +945,15 @@ export default function TavusExperienceBuilder() {
     if (conversationName.trim()) body.conversation_name = conversationName.trim();
     if (callbackUrl.trim()) body.callback_url = callbackUrl.trim();
     if (greeting.trim()) body.custom_greeting = greeting.trim();
+
+    // When recording is on, route callbacks through our hook so the Calls &
+    // Data step can show where each recording landed. A user-configured
+    // webhook still gets every event — the hook forwards via ?fwd=.
+    const recordingActive = recordingEnabled && !!(recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim());
+    if (recordingActive && typeof window !== "undefined") {
+      const hook = `${window.location.origin}/api/recording-hook`;
+      body.callback_url = callbackUrl.trim() ? `${hook}?fwd=${encodeURIComponent(callbackUrl.trim())}` : hook;
+    }
 
     const parts = [];
 
@@ -1412,7 +1422,10 @@ export default function TavusExperienceBuilder() {
         if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
         throw new Error(j.error || "couldn't load stats");
       }
-      if (slug) setDemoDetail(j);
+      if (slug) {
+        setDemoDetail(j);
+        fetchRecordings((j.convos || []).map((c) => c.id).filter(Boolean));
+      }
       else { setDemoStats(j.demos || []); setDemoDetail(null); }
     } catch (e) {
       addLog("err", `Dashboard: ${e.message}`);
@@ -1429,7 +1442,9 @@ export default function TavusExperienceBuilder() {
     setCallDetail(null);
     try {
       const d = await tavusFetch("GET", "/conversations");
-      setCallsList(d.data || d.conversations || []);
+      const list = d.data || d.conversations || [];
+      setCallsList(list);
+      fetchRecordings(list.map((c) => c.conversation_id).filter(Boolean));
     } catch (e) {
       addLog("err", `Calls: ${e.message}`);
     } finally {
@@ -1437,11 +1452,23 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* Recording locations captured by /api/recording-hook — best-effort. */
+  const fetchRecordings = async (ids) => {
+    if (!ids.length) return;
+    try {
+      const res = await fetch(`/api/recordings?ids=${ids.slice(0, 100).join(",")}`);
+      if (!res.ok) return;
+      const map = await res.json();
+      if (map && typeof map === "object") setRecMap((m) => ({ ...m, ...map }));
+    } catch { /* recordings panel is optional decoration */ }
+  };
+
   const openCall = async (id) => {
     setCallDetailLoading(true);
     try {
       const d = await tavusFetch("GET", `/conversations/${id}?verbose=true`);
       setCallDetail(d);
+      if (!recMap[id]) fetchRecordings([id]);
     } catch (e) {
       addLog("err", `Call detail: ${e.message}`);
     } finally {
@@ -2853,6 +2880,7 @@ export default function TavusExperienceBuilder() {
                     {demoDetail.convos.map((c) => (
                       <div key={c.id} className="kb-row">
                         <span className="mono" style={{ flex: 1, fontSize: 12 }}>{c.id}</span>
+                        {recMap[c.id]?.uri && <span title={`Recorded: ${recMap[c.id].uri}`} style={{ flexShrink: 0 }}>⏺</span>}
                         <span style={{ color: "var(--muted)", fontSize: 11.5 }}>{(c.at || "").slice(0, 16).replace("T", " ")}</span>
                         <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => openCall(c.id)} disabled={callDetailLoading}>
                           Transcript
@@ -2899,8 +2927,35 @@ export default function TavusExperienceBuilder() {
                     const tEvent = events.find((e) => /transcription/i.test(e.event_type || ""));
                     const transcript = tEvent?.properties?.transcript;
                     const pEvents = events.filter((e) => /perception/i.test(e.event_type || ""));
+                    const rec = recMap[callDetail.conversation_id];
                     return (
                       <>
+                        <div className="subhead">Recording</div>
+                        {rec?.uri && !rec.error ? (
+                          <div className="kb-row" style={{ maxWidth: 640, marginBottom: 14 }}>
+                            <span className="mono" style={{ flex: 1, fontSize: 12, overflowWrap: "anywhere" }}>{rec.uri}</span>
+                            {rec.duration > 0 && <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}>{Math.round(rec.duration / 60)}m {Math.round(rec.duration % 60)}s</span>}
+                            <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0 }}
+                              onClick={() => navigator.clipboard?.writeText(rec.uri).catch(() => {})}>
+                              Copy path
+                            </button>
+                            {rec.bucket && (
+                              <a className="pill-btn" style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0, textDecoration: "none" }}
+                                href={`https://s3.console.aws.amazon.com/s3/buckets/${encodeURIComponent(rec.bucket)}?prefix=${encodeURIComponent(rec.key.replace(/[^/]*$/, ""))}`}
+                                target="_blank" rel="noreferrer">
+                                Open in S3 ↗
+                              </a>
+                            )}
+                          </div>
+                        ) : rec?.error ? (
+                          <p className="field-hint" style={{ color: "var(--danger)", maxWidth: 560 }}>
+                            Recording delivery failed: {rec.error} — usually a trust-policy or region mismatch on the IAM role.
+                          </p>
+                        ) : (
+                          <p className="field-hint">
+                            None captured for this call. Recordings appear here when the Timing step's S3 recording is on (the location arrives a minute or so after the call ends; it's a download in S3 — add .mp4 to the filename to play it).
+                          </p>
+                        )}
                         <div className="subhead">Transcript</div>
                         {Array.isArray(transcript) && transcript.length ? (
                           <div className="transcript">
@@ -2939,6 +2994,7 @@ export default function TavusExperienceBuilder() {
                           <span style={{ flex: 1, fontSize: 13 }}>
                             {c.conversation_name || <span className="mono" style={{ fontSize: 12 }}>{c.conversation_id}</span>}
                           </span>
+                          {recMap[c.conversation_id]?.uri && <span title={`Recorded: ${recMap[c.conversation_id].uri}`} style={{ flexShrink: 0 }}>⏺</span>}
                           <span className={`kb-status ${c.status === "ended" ? "" : "kb-ready"}`}>{c.status}</span>
                           <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}>{(c.created_at || "").slice(0, 16).replace("T", " ")}</span>
                           <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => openCall(c.conversation_id)} disabled={callDetailLoading}>
@@ -2990,7 +3046,8 @@ export default function TavusExperienceBuilder() {
               </div>
               <p className="field-hint" style={{ maxWidth: 560, marginBottom: recordingEnabled ? 14 : 18 }}>
                 Tavus uploads the finished recording straight into your bucket — including calls started from shared demo links.
-                Files land at <span className="mono">tavus/&lt;conversation_id&gt;/&lt;timestamp&gt;</span>.
+                Files land at <span className="mono">tavus/&lt;conversation_id&gt;/&lt;timestamp&gt;</span>, and each call's recording
+                location shows up in <b>Results</b> next to its transcript a minute or so after the call ends.
                 One-time AWS setup: create the bucket and an IAM role Tavus can assume (a trust policy — no AWS keys ever go in here, only names).
               </p>
               {recordingEnabled && (

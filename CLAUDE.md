@@ -158,7 +158,16 @@ non-technical users; ids unchanged):
    `controls.recording` is set (the flag travels in `controlsConfig`, so
    visitor calls from shared links record too; the storage config rides the
    stored payload through `demo-launch`). Recordings land at
-   `tavus/<conversation_id>/<epoch_ms>` in the bucket.
+   `tavus/<conversation_id>/<epoch_ms>` in the bucket (MP4, no extension).
+   **Recording visibility**: when recording is on, `conversationPayload`
+   points `callback_url` at `/api/recording-hook` (public POST; a
+   user-entered webhook still gets every event — it rides along as `?fwd=`,
+   SSRF-guarded). The hook stores `application.recording_ready` /
+   `recording_copy_failed` under `rec:{conversation_id}` in Redis (90-day
+   TTL, hourly abuse cap, always answers 200). `GET /api/recordings?ids=`
+   (builder session required) returns the map; the Calls & Data step shows a
+   ⏺ badge per recorded call and a Recording panel (s3:// URI, copy, S3
+   console link) above the transcript.
 5. **Demo Page** (`site`) — `brand`, `logoUrl` (set via **file upload** →
    canvas-downscaled ≤512px data URL, stored in config, no hosting),
    `headline`, `tagline`, `cta`, and `format`: `desktop` | `phone` (portrait

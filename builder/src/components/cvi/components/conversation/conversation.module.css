@@ -226,11 +226,13 @@
 	height: 100%;
 }
 
-/* Self view container — pinned to top-right so captions own the bottom band. */
+/* Self view container — pinned to top-RIGHT: slide titles live top-left, so
+   previews there sat directly on top of deck headings while presenting.
+   Captions/controls own the bottom band, interrupt button owns bottom-right. */
 .selfViewContainer {
 	position: absolute;
 	top: 1rem;
-	left: 1rem;
+	right: 1rem;
 	display: flex;
 	align-items: flex-end;
 	flex-direction: column;
