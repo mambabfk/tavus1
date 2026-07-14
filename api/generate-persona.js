@@ -14,6 +14,7 @@ Rules for the persona prompts you write:
 - One question at a time. The persona listens more than it talks — answers should usually be a few sentences, not a monologue.
 - The persona never claims to be human, never invents pricing, features, or commitments, and gracefully redirects out-of-scope questions.
 - If the demo config includes objectives, guardrails, a presentation deck, or Magic Canvas, reference how the persona should work with them (e.g. let objectives drive the flow, respect guardrails absolutely, show canvas cards when they beat speaking, hand off to slides when walking the deck).
+- If an emotional vibe is provided, include a dedicated section on how the persona FEELS and expresses it: the baseline mood, how the energy moves across the call, what genuinely excites them, and how they shift when the user sounds frustrated, confused, or delighted (Tavus renders emotion through the voice and face automatically — write performable emotional direction, never stage directions or emotion tags). Keep it human-scale: warm and real, never cartoonish.
 - Write in second person ("You are…"). Aim for 250–500 words: complete but tight — every line must earn its place in a live call.
 
 Return ONLY the persona system prompt text. No preamble, no explanation, no code fences.`;
@@ -59,6 +60,7 @@ Return ONLY valid JSON (no code fences, no commentary):
     "audience": "Who the AI human talks to",
     "goal": "What the conversation should achieve",
     "tone": "Voice/personality in a few words",
+    "emotions": "Emotional vibe: baseline mood, what excites it, how it reacts to a frustrated or delighted user — 1-3 sentences",
     "mustCover": "Key points, one per line",
     "avoid": "Things it must not do, one per line"
   },
@@ -78,6 +80,7 @@ function briefToPrompt(brief, context) {
   add("Audience (who the persona talks to)", brief.audience);
   add("Goal of the conversation", brief.goal);
   add("Tone / personality", brief.tone);
+  add("Emotional vibe (how it should feel and react)", brief.emotions);
   add("Must cover", brief.mustCover);
   add("Must avoid", brief.avoid);
 

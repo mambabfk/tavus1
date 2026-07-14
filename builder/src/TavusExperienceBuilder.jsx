@@ -630,7 +630,7 @@ export default function TavusExperienceBuilder() {
 
   // Persona (Claude-drafted system prompt)
   const [personaBrief, setPersonaBrief] = useState({
-    product: "", audience: "", goal: "", tone: "", mustCover: "", avoid: "",
+    product: "", audience: "", goal: "", tone: "", emotions: "", mustCover: "", avoid: "",
   });
   const setBriefField = (k, v) => setPersonaBrief((b) => ({ ...b, [k]: v }));
   const [personaDraft, setPersonaDraft] = useState("");
@@ -644,9 +644,17 @@ export default function TavusExperienceBuilder() {
   const [audioQueriesText, setAudioQueriesText] = useState("");
   const [visionGenerating, setVisionGenerating] = useState(false);
 
-  // Pronunciation dictionary
+  // Pronunciation dictionary + expressive delivery
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [pronunciationText, setPronunciationText] = useState("");
+  const [emotionControl, setEmotionControl] = useState(true);
+
+  // Voice & accent (Cartesia catalog via /api/voices)
+  const [externalVoiceId, setExternalVoiceId] = useState("");
+  const [externalVoiceName, setExternalVoiceName] = useState("");
+  const [voiceQuery, setVoiceQuery] = useState("");
+  const [voiceResults, setVoiceResults] = useState(null);
+  const [voiceLoading, setVoiceLoading] = useState(false);
 
   // Integrations (custom LLM tools → any webhook)
   const [toolsEnabled, setToolsEnabled] = useState(false);
@@ -764,7 +772,7 @@ export default function TavusExperienceBuilder() {
     faceId, palId, language, conversationName, callbackUrl, greeting,
     personaBrief, personaDraft,
     visionEnabled, visionVibe, visualQueriesText, audioQueriesText,
-    speechEnabled, pronunciationText,
+    speechEnabled, pronunciationText, emotionControl, externalVoiceId, externalVoiceName,
     maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, wakePhrase, interruptButton, guardrailEcho,
     toolsEnabled, toolRows, toolWebhook, toolEcho,
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt,
@@ -778,12 +786,14 @@ export default function TavusExperienceBuilder() {
     if (!c || typeof c !== "object") return;
     setFaceId(c.faceId ?? ""); setPalId(c.palId ?? ""); setLanguage(c.language ?? "english");
     setConversationName(c.conversationName ?? ""); setCallbackUrl(c.callbackUrl ?? ""); setGreeting(c.greeting ?? "");
-    setPersonaBrief({ product: "", audience: "", goal: "", tone: "", mustCover: "", avoid: "", ...(c.personaBrief || {}) });
+    setPersonaBrief({ product: "", audience: "", goal: "", tone: "", emotions: "", mustCover: "", avoid: "", ...(c.personaBrief || {}) });
     setPersonaDraft(c.personaDraft ?? "");
     setPersonaAttached(false);
     setVisionEnabled(!!c.visionEnabled); setVisionVibe(c.visionVibe ?? "");
     setVisualQueriesText(c.visualQueriesText ?? ""); setAudioQueriesText(c.audioQueriesText ?? "");
     setSpeechEnabled(!!c.speechEnabled); setPronunciationText(c.pronunciationText ?? "");
+    setEmotionControl(c.emotionControl !== false);
+    setExternalVoiceId(c.externalVoiceId ?? ""); setExternalVoiceName(c.externalVoiceName ?? "");
     setMaxMinutes(c.maxMinutes ?? ""); setTimeWarning(c.timeWarning ?? "");
     setInactivitySeconds(c.inactivitySeconds ?? ""); setInactivityUtterance(c.inactivityUtterance ?? "");
     setWakePhrase(c.wakePhrase ?? ""); setInterruptButton(!!c.interruptButton); setGuardrailEcho(c.guardrailEcho ?? "");
@@ -1257,6 +1267,25 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* ── Voice search: Cartesia catalog by accent/vibe ── */
+
+  const searchVoices = async () => {
+    setVoiceLoading(true);
+    try {
+      const res = await fetch(`/api/voices?q=${encodeURIComponent(voiceQuery.trim())}`);
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(j.error || "voice search failed");
+      }
+      setVoiceResults(j.voices || []);
+    } catch (e) {
+      addLog("err", `Voices: ${e.message}`);
+    } finally {
+      setVoiceLoading(false);
+    }
+  };
+
   const renameKbDoc = async (id, name) => {
     try {
       await tavusFetch("PATCH", `/documents/${id}`, { document_name: name });
@@ -1606,6 +1635,22 @@ export default function TavusExperienceBuilder() {
         ]);
         addLog("ok", "Vision attached (persists on the PAL until you change it).");
       }
+
+      // Voice: apply the chosen Cartesia voice (accent) to the PAL.
+      if (externalVoiceId.trim()) {
+        addLog("info", `Setting the voice to ${externalVoiceName || externalVoiceId}…`);
+        await tavusFetch("PATCH", `/pals/${pal}`, [
+          { op: "add", path: "/layers/tts/external_voice_id", value: externalVoiceId.trim() },
+        ]);
+        addLog("ok", "Voice applied (persists on the PAL until you change it).");
+      }
+
+      // Expressive delivery: sync the emotion-control flag to the PAL.
+      addLog("info", `${emotionControl ? "Enabling" : "Disabling"} expressive delivery…`);
+      await tavusFetch("PATCH", `/pals/${pal}`, [
+        { op: "add", path: "/layers/tts/tts_emotion_control", value: emotionControl },
+      ]);
+      addLog("ok", `Expressive delivery ${emotionControl ? "on — emotion comes through voice and face" : "off — flat, even delivery"}.`);
 
       // Pronunciation: create a dictionary, attach it to the PAL's voice.
       if (speechEnabled && pronunciationRules.length) {
@@ -2100,6 +2145,10 @@ export default function TavusExperienceBuilder() {
               <Field label="Tone / personality" hint="Optional.">
                 <input value={personaBrief.tone} onChange={(e) => setBriefField("tone", e.target.value)} placeholder="Warm, expert, gets to the point" />
               </Field>
+              <Field label="Emotional vibe" hint="Optional — how it should feel and react. Tavus performs this through the voice and face automatically; Claude turns your vibe into real emotional direction in the prompt.">
+                <textarea style={{ minHeight: 64 }} value={personaBrief.emotions} onChange={(e) => setBriefField("emotions", e.target.value)}
+                  placeholder={"Warm and upbeat by default. Gets genuinely excited showing the product. If the visitor sounds frustrated or confused, slows down, softens, and reassures."} />
+              </Field>
               <Field label="Must cover" hint="Optional — key points the persona should work in.">
                 <textarea value={personaBrief.mustCover} onChange={(e) => setBriefField("mustCover", e.target.value)} placeholder={"HIPAA compliance\n5-minute setup\nEHR integrations"} />
               </Field>
@@ -2258,6 +2307,48 @@ export default function TavusExperienceBuilder() {
               </div>
               <p className="lede">
                 Teach the PAL how to say your product names, acronyms, and people. One rule per line: the word, then how to say it. On launch these become a pronunciation dictionary attached to the PAL's voice — it works with every Tavus voice engine.
+              </p>
+
+              <div className="subhead">Voice &amp; accent</div>
+              <Field label="" hint='Search Cartesia&apos;s voice library by accent, language, or vibe — try "british", "australian male", "warm spanish". The pick applies to the PAL on launch.'>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={voiceQuery} onChange={(e) => setVoiceQuery(e.target.value)} placeholder='e.g. "british female warm"'
+                    onKeyDown={(e) => e.key === "Enter" && !voiceLoading && searchVoices()} />
+                  <button className="pill-btn" style={{ flexShrink: 0 }} onClick={searchVoices} disabled={voiceLoading}>
+                    {voiceLoading ? "Searching…" : "Search voices"}
+                  </button>
+                </div>
+                {externalVoiceId && (
+                  <span className="field-hint" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    Current pick: <b>{externalVoiceName || externalVoiceId}</b>
+                    <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11 }} onClick={() => { setExternalVoiceId(""); setExternalVoiceName(""); }}>Clear</button>
+                  </span>
+                )}
+              </Field>
+              {voiceResults && (
+                <div className="kb-list" style={{ marginBottom: 20 }}>
+                  {voiceResults.length === 0 && <p className="field-hint">No matches — try broader words ("british", "german", "young").</p>}
+                  {voiceResults.map((v) => (
+                    <div key={v.id} className="kb-row">
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{v.name} {v.language && <span className="kb-status" style={{ marginLeft: 6 }}>{v.language}</span>}</div>
+                        <div style={{ fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.description}</div>
+                      </div>
+                      <button className={"pill-btn" + (externalVoiceId === v.id ? " primary" : "")} style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0 }}
+                        onClick={() => { setExternalVoiceId(v.id); setExternalVoiceName(v.name); }}>
+                        {externalVoiceId === v.id ? "Selected ✓" : "Use this voice"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="skill-head" style={{ marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>Expressive delivery</span>
+                <Toggle on={emotionControl} onChange={setEmotionControl} />
+              </div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 20 }}>
+                On: the voice and face carry real emotion, guided by the "Emotional vibe" you set in the Persona step. Off: flat, even delivery (rarely what you want for demos). Applied on launch.
               </p>
               <Field label="Rules" hint={speechEnabled && pronunciationRules.length
                 ? `${pronunciationRules.length} rule${pronunciationRules.length > 1 ? "s" : ""} ready: ${pronunciationRules.slice(0, 4).map((r) => r.text).join(", ")}${pronunciationRules.length > 4 ? "…" : ""}`
