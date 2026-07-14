@@ -662,6 +662,7 @@ export default function TavusExperienceBuilder() {
   const [chatLog, setChatLog] = useState([]); // {role: "user"|"pal"|"sys", text}
   const [chatInput, setChatInput] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
+  const [chatError, setChatError] = useState(""); // shown inline — the launch log isn't visible on this step
   const [generating, setGenerating] = useState(false);
   const [personaAttached, setPersonaAttached] = useState(false);
 
@@ -788,6 +789,7 @@ export default function TavusExperienceBuilder() {
   // Scenarios (named snapshots of the full builder config)
   const [scenarios, setScenarios] = useState(() => store.get(SCENARIOS_KEY, {}));
   const [scenarioName, setScenarioName] = useState("");
+  const [savedFlash, setSavedFlash] = useState(false); // "Saved ✓" blink on the footer Save
   const [activeScenario, setActiveScenario] = useState("");
   const [rememberKey, setRememberKey] = useState(() => !!store.get(APIKEY_KEY, ""));
   const importRef = useRef(null);
@@ -871,13 +873,17 @@ export default function TavusExperienceBuilder() {
   };
 
   const saveScenario = () => {
-    const name = (scenarioName || activeScenario || "").trim();
+    // Falls back to a sensible name so the footer Save works on any step
+    // without first typing a name in the top bar.
+    const name = (scenarioName || activeScenario || site.brand || conversationName || "My demo").trim();
     if (!name) return;
     const next = { ...scenarios, [name]: collectConfig() };
     setScenarios(next);
     const ok = store.set(SCENARIOS_KEY, next);
     setActiveScenario(name);
     setScenarioName("");
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 1600);
     addLog(ok ? "ok" : "info", ok ? `Scenario "${name}" saved.` : `Scenario "${name}" saved for this session only — storage is blocked in this environment. Use Export for a file.`);
   };
 
@@ -1297,8 +1303,9 @@ export default function TavusExperienceBuilder() {
         Runs the PAL's ATTACHED config — attach the latest prompt first. ── */
 
   const startTestDrive = async () => {
-    if (!apiKey.trim() || !palId.trim()) { addLog("err", "API key and PAL ID are required — see Setup."); return; }
+    if (!apiKey.trim() || !palId.trim()) { setChatError("Needs the Tavus API key and PAL ID from the Account step first."); return; }
     setChatBusy(true);
+    setChatError("");
     try {
       const body = { persona_id: palId.trim(), chat: true, conversation_name: "Builder test drive" };
       if (greeting.trim()) body.custom_greeting = greeting.trim();
@@ -1307,6 +1314,7 @@ export default function TavusExperienceBuilder() {
       setChatLog(greeting.trim() ? [{ role: "pal", text: greeting.trim() }] : []);
       addLog("ok", `Test drive started (${d.conversation_id}) — type at your PAL below. Text turns are billed like conversation time, but there's no video.`);
     } catch (e) {
+      setChatError(`Couldn't start: ${e.message}`);
       addLog("err", `Test drive: ${e.message}`);
     } finally {
       setChatBusy(false);
@@ -2548,9 +2556,18 @@ export default function TavusExperienceBuilder() {
                 drafting or revising, or you'll be talking to the old prompt. Billed like conversation time (a text turn is tiny).
               </p>
               {!chatConvId ? (
-                <button className="pill-btn primary" onClick={startTestDrive} disabled={chatBusy || !palId.trim() || !apiKey.trim()}>
-                  {chatBusy ? "Starting…" : "▶ Start test drive"}
-                </button>
+                <>
+                  <button className="pill-btn primary" onClick={startTestDrive} disabled={chatBusy || !palId.trim() || !apiKey.trim()}>
+                    {chatBusy ? "Starting…" : "▶ Start test drive"}
+                  </button>
+                  {(!apiKey.trim() || !palId.trim()) && (
+                    <p className="field-hint" style={{ marginTop: 8 }}>
+                      Grayed out because {[!apiKey.trim() && "the Tavus API key", !palId.trim() && "the PAL ID"].filter(Boolean).join(" and ")}{" "}
+                      {!apiKey.trim() && !palId.trim() ? "are" : "is"} missing — set it on the <b>Account</b> step (or load a saved scenario from the top bar).
+                    </p>
+                  )}
+                  {chatError && <p className="field-hint" style={{ color: "var(--danger)", marginTop: 8, maxWidth: 560 }}>{chatError}</p>}
+                </>
               ) : (
                 <div style={{ maxWidth: 640 }}>
                   <div className="transcript" style={{ maxHeight: 300, overflowY: "auto", marginBottom: 10 }}>
@@ -3462,6 +3479,10 @@ export default function TavusExperienceBuilder() {
                 ) : <span />}
                 <span className="flow-pos">{STEPS[idx]?.group} · {idx + 1} of {STEPS.length}</span>
                 <span style={{ display: "flex", gap: 8 }}>
+                  <button className="pill-btn" onClick={saveScenario}
+                    title={`Saves the whole demo${activeScenario ? ` to "${activeScenario}"` : scenarioName.trim() ? ` as "${scenarioName.trim()}"` : " (named after your brand/demo)"} — everything except the API key. Same as Save in the top bar.`}>
+                    {savedFlash ? "Saved ✓" : "💾 Save"}
+                  </button>
                   {step !== "launch" && (
                     <button className="pill-btn" disabled={!canLaunch} title={canLaunch ? "Jump to Launch & Share" : "Needs your Tavus key + Face + PAL first (Account / Persona)"}
                       onClick={() => setStep("launch")}>🚀 Launch</button>
