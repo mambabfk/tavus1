@@ -1,4 +1,4 @@
-import { kvAvailable, kvGet, kvIncr } from "./_kv.js";
+import { kvAvailable, kvGet, kvIncr, kvLpush, kvLtrim, kvSetRaw } from "./_kv.js";
 
 /* Public endpoint: a visitor on /d/{slug} presses Start. We create a fresh
    Tavus conversation server-side with the team's TAVUS_API_KEY — visitors
@@ -38,6 +38,18 @@ export default async function handler(req, res) {
       res.status(502).json({ error: `Tavus: ${data.message || data.error || r.status}` });
       return;
     }
+    // Per-demo stats (best-effort — never blocks the launch).
+    try {
+      const now = new Date();
+      await kvIncr(`stats:${slug}:launches`);
+      await kvIncr(`stats:${slug}:d:${now.toISOString().slice(0, 10)}`, 90 * 86400);
+      await kvSetRaw(`stats:${slug}:last`, now.toISOString());
+      if (data.conversation_id) {
+        await kvLpush(`stats:${slug}:convos`, { id: data.conversation_id, at: now.toISOString() });
+        await kvLtrim(`stats:${slug}:convos`, 0, 499);
+      }
+    } catch { /* stats are non-critical */ }
+
     res.status(200).json({
       conversation_url: data.conversation_url,
       conversation_id: data.conversation_id,

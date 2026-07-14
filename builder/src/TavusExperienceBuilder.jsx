@@ -631,6 +631,11 @@ export default function TavusExperienceBuilder() {
   const [toolWebhook, setToolWebhook] = useState("");
   const [toolEcho, setToolEcho] = useState("");
 
+  // Demo dashboard (per-slug stats from Redis)
+  const [demoStats, setDemoStats] = useState(null);
+  const [demoStatsLoading, setDemoStatsLoading] = useState(false);
+  const [demoDetail, setDemoDetail] = useState(null);
+
   // Calls & data (pulled straight from Tavus)
   const [callsList, setCallsList] = useState(null);
   const [callsLoading, setCallsLoading] = useState(false);
@@ -1218,6 +1223,26 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* ── Demo dashboard: per-link stats stored by /api/demo-launch ── */
+
+  const fetchDemoStats = async (slug = "") => {
+    setDemoStatsLoading(true);
+    try {
+      const res = await fetch(`/api/demo-stats${slug ? `?slug=${encodeURIComponent(slug)}` : ""}`);
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(j.error || "couldn't load stats");
+      }
+      if (slug) setDemoDetail(j);
+      else { setDemoStats(j.demos || []); setDemoDetail(null); }
+    } catch (e) {
+      addLog("err", `Dashboard: ${e.message}`);
+    } finally {
+      setDemoStatsLoading(false);
+    }
+  };
+
   /* ── Calls & data: pulled straight from Tavus (source of truth) ── */
 
   const fetchCalls = async () => {
@@ -1708,6 +1733,12 @@ export default function TavusExperienceBuilder() {
         @keyframes recpulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
         .idea-box { background:var(--accent-soft); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px 20px; margin-bottom:26px; max-width:600px; }
+
+        /* demo dashboard */
+        .stat-bars { display:flex; align-items:flex-end; gap:5px; padding:10px 12px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); width:fit-content; }
+        .stat-col { display:flex; flex-direction:column; align-items:center; gap:3px; }
+        .stat-bar { width:16px; background:var(--accent); border-radius:3px 3px 0 0; }
+        .stat-day { font-family:var(--mono); font-size:9px; color:var(--muted); }
 
         /* calls & data */
         .transcript { display:flex; flex-direction:column; gap:8px; max-width:640px; margin-top:8px; }
@@ -2345,6 +2376,71 @@ export default function TavusExperienceBuilder() {
               <p className="lede">
                 Every conversation on this account — including ones visitors started from shared links. Open a call for its full transcript, what the PAL saw (perception analysis), and the raw event data. Pulled live from Tavus, so it's always complete.
               </p>
+
+              <div className="skill-head">
+                <div className="subhead" style={{ margin: 0 }}>Shared-demo dashboard</div>
+                <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => fetchDemoStats()} disabled={demoStatsLoading}>
+                  {demoStatsLoading ? "Loading…" : demoStats ? "Refresh" : "Load dashboard"}
+                </button>
+              </div>
+              {demoStats === null && !demoDetail && (
+                <p className="field-hint" style={{ maxWidth: 560 }}>Stats per shared link: total starts, activity by day, and each visitor conversation (click through to its transcript).</p>
+              )}
+              {demoDetail ? (
+                <div style={{ maxWidth: 640, marginBottom: 24 }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>
+                    <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12 }} onClick={() => setDemoDetail(null)}>← All demos</button>
+                    <span className="mono" style={{ fontSize: 12.5 }}>/d/{demoDetail.slug}</span>
+                    <span className="field-hint" style={{ margin: 0 }}>{demoDetail.launches} start{demoDetail.launches === 1 ? "" : "s"} total</span>
+                  </div>
+                  <div className="stat-bars" title="Starts per day, last 14 days">
+                    {demoDetail.days.map((d) => {
+                      const max = Math.max(...demoDetail.days.map((x) => x.count), 1);
+                      return (
+                        <div key={d.date} className="stat-col" title={`${d.date}: ${d.count}`}>
+                          <div className="stat-bar" style={{ height: `${Math.max(3, (d.count / max) * 44)}px`, opacity: d.count ? 1 : 0.25 }} />
+                          <span className="stat-day">{d.date.slice(8)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="subhead" style={{ marginTop: 14 }}>Visitor conversations ({demoDetail.convos.length})</div>
+                  {demoDetail.convos.length === 0 && <p className="field-hint">None yet — share the link!</p>}
+                  <div className="kb-list">
+                    {demoDetail.convos.map((c) => (
+                      <div key={c.id} className="kb-row">
+                        <span className="mono" style={{ flex: 1, fontSize: 12 }}>{c.id}</span>
+                        <span style={{ color: "var(--muted)", fontSize: 11.5 }}>{(c.at || "").slice(0, 16).replace("T", " ")}</span>
+                        <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => openCall(c.id)} disabled={callDetailLoading}>
+                          Transcript
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : demoStats && (
+                demoStats.length === 0
+                  ? <p className="field-hint" style={{ marginBottom: 20 }}>No shared links yet — create one on the Launch step.</p>
+                  : (
+                    <div className="kb-list" style={{ marginBottom: 24 }}>
+                      {demoStats.map((d) => (
+                        <div key={d.slug} className="kb-row">
+                          <span style={{ flex: 1, fontSize: 13 }}>{d.name || d.slug}</span>
+                          <span className="mono" style={{ fontSize: 11.5, color: "var(--muted)" }}>/d/{d.slug}</span>
+                          <span className="kb-status" title="Total starts">{d.launches} ▶</span>
+                          <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }} title="Last activity">
+                            {d.last ? d.last.slice(0, 16).replace("T", " ") : "—"}
+                          </span>
+                          <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => fetchDemoStats(d.slug)} disabled={demoStatsLoading}>
+                            Stats
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )
+              )}
+
+              <div className="subhead">All calls on this account</div>
 
               {callDetail ? (
                 <>

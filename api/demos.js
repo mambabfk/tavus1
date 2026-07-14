@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { isAuthed } from "./_auth.js";
-import { kvAvailable, kvGet, kvSet } from "./_kv.js";
+import { kvAvailable, kvGet, kvSet, kvLpush, kvLtrim } from "./_kv.js";
 
 /* Shareable demo links.
    POST (builder session required): store an immutable snapshot of a demo
@@ -47,14 +47,18 @@ export default async function handler(req, res) {
 
   try {
     const slug = crypto.randomBytes(6).toString("base64url");
+    const createdAt = new Date().toISOString();
     await kvSet(`demo:${slug}`, {
       v: 1,
       name: String(name).slice(0, 120),
-      createdAt: new Date().toISOString(),
+      createdAt,
       site,
       controls,
       payload,
     });
+    // Index for the stats dashboard (newest first, capped).
+    await kvLpush("demos:index", { slug, name: String(name).slice(0, 120), createdAt });
+    await kvLtrim("demos:index", 0, 499);
     res.status(200).json({ slug });
   } catch (e) {
     res.status(502).json({ error: `Storage: ${e.message}` });
