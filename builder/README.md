@@ -17,13 +17,30 @@ plus one serverless function.
 
 ## Deploy (Vercel)
 
+**Easiest — dashboard import (recommended):**
+
+1. Go to [vercel.com/new](https://vercel.com/new) and import the
+   `mambabfk/tavus1` GitHub repo.
+2. Set **Root Directory** to `builder` (framework auto-detects as Vite).
+3. Under **Environment Variables**, add `ANTHROPIC_API_KEY`.
+4. Deploy. Every push to the connected branch auto-deploys from then on.
+
+**Or via CLI** — run everything **from inside this `builder/` directory**
+(running `vercel` from elsewhere deploys the wrong folder):
+
 ```bash
-cd builder
+git clone https://github.com/mambabfk/tavus1.git
+cd tavus1/builder
 npm install
-npx vercel                  # link/create the project; set root to builder/
-npx vercel env add ANTHROPIC_API_KEY   # paste the key (Production + Preview)
+npx vercel                                        # link/create the project
+npx vercel env add ANTHROPIC_API_KEY production   # paste the key when prompted
+npx vercel env add ANTHROPIC_API_KEY preview
 npx vercel --prod
 ```
+
+Note: Vercel CLI v56+ requires the environment name
+(`production` / `preview` / `development`) as the second argument to
+`env add`.
 
 Vercel auto-detects Vite; `vercel.json` bumps the persona function to a 60s
 max duration so long generations don't get cut off.
