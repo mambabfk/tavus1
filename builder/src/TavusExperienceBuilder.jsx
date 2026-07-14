@@ -1314,8 +1314,9 @@ export default function TavusExperienceBuilder() {
       setChatLog(greeting.trim() ? [{ role: "pal", text: greeting.trim() }] : []);
       addLog("ok", `Test drive started (${d.conversation_id}) — type at your PAL below. Text turns are billed like conversation time, but there's no video.`);
     } catch (e) {
-      setChatError(`Couldn't start: ${e.message}`);
-      addLog("err", `Test drive: ${e.message}`);
+      const msg = /<html|<!doctype/i.test(e.message) ? `${e.message.slice(0, 3)}: Tavus server error — try again in a moment` : e.message;
+      setChatError(`Couldn't start: ${msg}`);
+      addLog("err", `Test drive: ${msg}`);
     } finally {
       setChatBusy(false);
     }
@@ -1328,20 +1329,41 @@ export default function TavusExperienceBuilder() {
     setChatLog((l) => [...l, { role: "user", text }]);
     setChatBusy(true);
     try {
-      const sent = await tavusFetch("POST", `/conversations/${chatConvId}/respond`, { text, timeout_s: 30 });
-      let reply = sent?.status === "ready" ? sent.text : null;
-      if (reply == null) {
-        const deadline = Date.now() + 30_000;
-        while (Date.now() < deadline) {
-          await new Promise((r) => setTimeout(r, 700));
-          const poll = await tavusFetch("GET", `/conversations/${chatConvId}/respond`);
-          if (poll?.status === "ready") { reply = poll.text; break; }
+      // The chat pipeline can 500 transiently right after start (still warming
+      // up) — retry sends with backoff instead of surfacing the first blip.
+      let sent = null;
+      for (let attempt = 0; ; attempt++) {
+        try {
+          sent = await tavusFetch("POST", `/conversations/${chatConvId}/respond`, { text, timeout_s: 30 });
+          break;
+        } catch (e) {
+          if (attempt >= 2 || !/^5\d\d/.test(e.message)) throw e;
+          setChatLog((l) => (l[l.length - 1]?.role === "sys" ? l : [...l, { role: "sys", text: "warming up, retrying…" }]));
+          await new Promise((r) => setTimeout(r, 1800 * (attempt + 1)));
         }
       }
-      if (reply == null) throw new Error("no reply within 30s — the conversation may have ended");
-      setChatLog((l) => [...l, { role: "pal", text: reply || "(empty reply)" }]);
+      let reply = sent?.status === "ready" ? sent.text : null;
+      if (reply == null) {
+        const deadline = Date.now() + 45_000;
+        while (Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 800));
+          try {
+            const poll = await tavusFetch("GET", `/conversations/${chatConvId}/respond`);
+            if (poll?.status === "ready") { reply = poll.text; break; }
+          } catch { /* transient poll errors — keep polling until the deadline */ }
+        }
+      }
+      if (reply == null) throw new Error("no reply within 45s");
+      setChatLog((l) => [...l.filter((m) => m.role !== "sys"), { role: "pal", text: reply || "(empty reply)" }]);
     } catch (e) {
-      setChatLog((l) => [...l, { role: "sys", text: `⚠ ${e.message}` }]);
+      // Raw HTML 500 pages help nobody — translate, and check whether the
+      // conversation quietly ended (idle test conversations shut down).
+      let msg = /<html|<!doctype/i.test(e.message) ? `${e.message.slice(0, 3)}: Tavus server error` : e.message;
+      try {
+        const c = await tavusFetch("GET", `/conversations/${chatConvId}`);
+        if (c?.status === "ended") msg = "This test conversation has ended (idle test drives shut down after a few minutes). Hit End, then start a fresh one.";
+      } catch { /* keep original message */ }
+      setChatLog((l) => [...l, { role: "sys", text: `⚠ ${msg}` }]);
     } finally {
       setChatBusy(false);
     }
@@ -2553,7 +2575,8 @@ export default function TavusExperienceBuilder() {
               <p className="field-hint" style={{ maxWidth: 560, marginBottom: 10 }}>
                 Type at your PAL before booting a real call. Runs the exact config on the PAL — persona, goals, rules, knowledge —
                 just without the video pipeline, so turns come back in seconds. <b>Tests what's attached</b>: hit Attach above after
-                drafting or revising, or you'll be talking to the old prompt. Billed like conversation time (a text turn is tiny).
+                drafting or revising, or you'll be talking to the old prompt. Covers persona, goals, rules, and knowledge —
+                video-only skills (slides, canvas) don't run in text mode. Billed like conversation time (a text turn is tiny).
               </p>
               {!chatConvId ? (
                 <>
