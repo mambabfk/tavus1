@@ -28,6 +28,7 @@ const CANVAS_COMPONENTS = [
 
 const STEPS = [
   { id: "setup", label: "Setup" },
+  { id: "persona", label: "Persona" },
   { id: "guide", label: "Objectives & Guardrails" },
   { id: "presentation", label: "Presentation" },
   { id: "canvas", label: "Magic Canvas" },
@@ -179,15 +180,17 @@ function DemoSite({ site, conversationUrl, onStart, onExit, busy }) {
   const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   // Load @tavus/cvi-ui components if installed (npx @tavus/cvi-ui@latest add conversation magic-canvas).
-  // Falls back to a plain iframe when they aren't present.
+  // import.meta.glob keeps the build green when they're absent and bundles them when present.
+  // Falls back to a plain iframe when they aren't installed.
   const [cvi, setCvi] = useState(undefined); // undefined=loading, null=unavailable, object=ready
   useEffect(() => {
     let alive = true;
-    Promise.all([
-      import("./components/cvi/components/cvi-provider"),
-      import("./components/cvi/components/conversation"),
-      import("./components/cvi/components/magic-canvas"),
-    ])
+    const mods = import.meta.glob("./components/cvi/components/*/index.{tsx,ts,jsx,js}");
+    const load = (name) => {
+      const key = Object.keys(mods).find((k) => k.includes(`/${name}/`));
+      return key ? mods[key]() : Promise.reject(new Error(`${name} not installed`));
+    };
+    Promise.all([load("cvi-provider"), load("conversation"), load("magic-canvas")])
       .then(([p, c, m]) => alive && setCvi({ CVIProvider: p.CVIProvider, Conversation: c.Conversation, MagicCanvas: m.MagicCanvas }))
       .catch(() => alive && setCvi(null));
     return () => { alive = false; };
@@ -291,6 +294,15 @@ export default function TavusExperienceBuilder() {
   const [callbackUrl, setCallbackUrl] = useState("");
   const [greeting, setGreeting] = useState("");
 
+  // Persona (Claude-drafted system prompt)
+  const [personaBrief, setPersonaBrief] = useState({
+    product: "", audience: "", goal: "", tone: "", mustCover: "", avoid: "",
+  });
+  const setBriefField = (k, v) => setPersonaBrief((b) => ({ ...b, [k]: v }));
+  const [personaDraft, setPersonaDraft] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [personaAttached, setPersonaAttached] = useState(false);
+
   // Presentation
   const [presentationEnabled, setPresentationEnabled] = useState(false);
   const [docIdsRaw, setDocIdsRaw] = useState("");
@@ -353,6 +365,7 @@ export default function TavusExperienceBuilder() {
   const collectConfig = () => ({
     v: 1,
     faceId, palId, language, conversationName, callbackUrl, greeting,
+    personaBrief, personaDraft,
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
@@ -363,6 +376,9 @@ export default function TavusExperienceBuilder() {
     if (!c || typeof c !== "object") return;
     setFaceId(c.faceId ?? ""); setPalId(c.palId ?? ""); setLanguage(c.language ?? "english");
     setConversationName(c.conversationName ?? ""); setCallbackUrl(c.callbackUrl ?? ""); setGreeting(c.greeting ?? "");
+    setPersonaBrief({ product: "", audience: "", goal: "", tone: "", mustCover: "", avoid: "", ...(c.personaBrief || {}) });
+    setPersonaDraft(c.personaDraft ?? "");
+    setPersonaAttached(false);
     setPresentationEnabled(!!c.presentationEnabled); setDocIdsRaw(c.docIdsRaw ?? "");
     setSlidesTrigger(c.slidesTrigger ?? "walk_the_deck"); setPresentPrompt(c.presentPrompt ?? "");
     setObjectivesEnabled(!!c.objectivesEnabled); setObjectivesText(c.objectivesText ?? "");
@@ -512,6 +528,13 @@ export default function TavusExperienceBuilder() {
 
   const preview = useMemo(() => {
     const pal = palId.trim() || "{pal_id}";
+    if (step === "persona")
+      return {
+        title: "PATCH /pals/… (system_prompt)",
+        text: curlFor("PATCH", `/pals/${pal}`, [
+          { op: "add", path: "/system_prompt", value: personaDraft.trim() || "<generated persona prompt>" },
+        ]),
+      };
     if (step === "guide") {
       if (guardrailsEnabled && guardrailsParsed.length && !(objectivesEnabled && objectivesPayload.data.length))
         return { title: "POST /guardrails (one per rule)", text: curlFor("POST", "/guardrails", guardrailsParsed[0]) };
@@ -523,7 +546,7 @@ export default function TavusExperienceBuilder() {
       return { title: "PUT /pals/…/skills/magic_canvas", text: curlFor("PUT", `/pals/${pal}/skills/magic_canvas`, canvasPayload) };
     return { title: "POST /conversations", text: curlFor("POST", "/conversations", conversationPayload) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, palId, apiKey, presentationPayload, canvasPayload, conversationPayload, objectivesPayload, guardrailsParsed, objectivesEnabled, guardrailsEnabled]);
+  }, [step, palId, apiKey, personaDraft, presentationPayload, canvasPayload, conversationPayload, objectivesPayload, guardrailsParsed, objectivesEnabled, guardrailsEnabled]);
 
   /* ── API ── */
 
@@ -540,6 +563,68 @@ export default function TavusExperienceBuilder() {
     try { data = JSON.parse(text); } catch { data = { raw: text }; }
     if (!res.ok) throw new Error(`${res.status}: ${data.message || data.error || text || "request failed"}`);
     return data;
+  };
+
+  /* ── Persona: Claude drafts the system prompt via the backend ── */
+
+  const generatePersona = async () => {
+    setGenerating(true);
+    setPersonaDraft("");
+    setPersonaAttached(false);
+    try {
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          brief: personaBrief,
+          context: {
+            brand: site.brand,
+            objectives: objectivesEnabled ? objectivesText.trim() : "",
+            guardrails: guardrailsEnabled ? guardrailsText.trim() : "",
+            presentation: presentationEnabled && docIds.length > 0,
+            canvas: canvasEnabled,
+            canvasPlaybook: canvasEnabled ? canvasPlaybook.trim() : "",
+          },
+        }),
+      });
+      if (!res.ok && !res.body) throw new Error(`${res.status}: generation failed`);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let text = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        text += decoder.decode(value, { stream: true });
+        setPersonaDraft(text);
+      }
+      if (text.startsWith("[error]") || !res.ok) {
+        setPersonaDraft("");
+        throw new Error(text.replace(/^\[error\]\s*/, "") || `${res.status}: generation failed`);
+      }
+      addLog("ok", "Persona prompt drafted — review it, then attach to the PAL.");
+    } catch (e) {
+      addLog("err", `Persona generation: ${e.message}`);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const attachPersona = async () => {
+    if (!apiKey.trim() || !palId.trim()) { addLog("err", "API key and PAL ID are required — see Setup."); return; }
+    if (!personaDraft.trim()) { addLog("err", "Nothing to attach — generate or write a persona prompt first."); return; }
+    setGenerating(true);
+    try {
+      addLog("info", "Attaching persona prompt to the PAL…");
+      await tavusFetch("PATCH", `/pals/${palId.trim()}`, [
+        { op: "add", path: "/system_prompt", value: personaDraft.trim() },
+      ]);
+      setPersonaAttached(true);
+      addLog("ok", "Persona prompt attached (persists on the PAL until you change it).");
+    } catch (e) {
+      addLog("err", e.message + " — if this is a network/CORS block, copy the curl from the preview panel and run it from a terminal.");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const canLaunch = apiKey.trim() && faceId.trim() && palId.trim();
@@ -817,6 +902,7 @@ export default function TavusExperienceBuilder() {
             <button key={s.id} className={"rail-btn" + (step === s.id ? " active" : "")} onClick={() => setStep(s.id)}>
               <span className="rail-label">{s.label}</span>
               {s.id === "setup" && canLaunch && <span className="rail-check">●</span>}
+              {s.id === "persona" && personaDraft.trim() && <span className="rail-check">●</span>}
               {s.id === "guide" && (objectivesEnabled || guardrailsEnabled) && <span className="rail-check">●</span>}
               {s.id === "presentation" && presentationEnabled && <span className="rail-check">●</span>}
               {s.id === "canvas" && canvasEnabled && <span className="rail-check">●</span>}
@@ -856,6 +942,55 @@ export default function TavusExperienceBuilder() {
               </Field>
               <Field label="Custom greeting" hint="Optional. The PAL speaks this first, uninterrupted.">
                 <textarea value={greeting} onChange={(e) => setGreeting(e.target.value)} placeholder="Hi — I'm ready to walk you through the deck whenever you are." />
+              </Field>
+            </>
+          )}
+
+          {step === "persona" && (
+            <>
+              <h1>Persona</h1>
+              <p className="lede">
+                Describe the demo in plain English and Claude drafts the PAL's system prompt — voice-first, demo-ready, aware of your objectives, guardrails, and Canvas setup. Review and edit the draft, then attach it. Like objectives, the prompt lives on the PAL itself and persists across conversations.
+              </p>
+              <Field label="Product / company" hint="What is being demoed, in a sentence or two.">
+                <input value={personaBrief.product} onChange={(e) => setBriefField("product", e.target.value)} placeholder="Acme Health — AI-powered patient intake for clinics" />
+              </Field>
+              <Field label="Audience" hint="Who the persona will be talking to.">
+                <input value={personaBrief.audience} onChange={(e) => setBriefField("audience", e.target.value)} placeholder="Clinic operations leads evaluating intake tools" />
+              </Field>
+              <Field label="Goal of the conversation">
+                <input value={personaBrief.goal} onChange={(e) => setBriefField("goal", e.target.value)} placeholder="Qualify their needs and book a follow-up with sales" />
+              </Field>
+              <Field label="Tone / personality" hint="Optional.">
+                <input value={personaBrief.tone} onChange={(e) => setBriefField("tone", e.target.value)} placeholder="Warm, expert, gets to the point" />
+              </Field>
+              <Field label="Must cover" hint="Optional — key points the persona should work in.">
+                <textarea value={personaBrief.mustCover} onChange={(e) => setBriefField("mustCover", e.target.value)} placeholder={"HIPAA compliance\n5-minute setup\nEHR integrations"} />
+              </Field>
+              <Field label="Must avoid" hint="Optional — topics or behaviors to steer clear of. Hard rules belong in Guardrails.">
+                <textarea value={personaBrief.avoid} onChange={(e) => setBriefField("avoid", e.target.value)} placeholder={"Custom pricing\nCompetitor comparisons"} />
+              </Field>
+
+              <div style={{ display: "flex", gap: 10, marginBottom: 18 }}>
+                <button className="pill-btn primary" onClick={generatePersona} disabled={generating}>
+                  {generating && !personaDraft ? "Drafting…" : personaDraft ? "Regenerate" : "Generate with Claude"}
+                </button>
+                {personaDraft.trim() && (
+                  <button className="pill-btn" onClick={attachPersona} disabled={generating || personaAttached}>
+                    {personaAttached ? "Attached ✓" : "Attach to PAL"}
+                  </button>
+                )}
+              </div>
+
+              <Field label="System prompt draft" hint={personaDraft
+                ? "Edit freely — this exact text is what gets attached to the PAL."
+                : "Generated here; you can also paste or write your own."}>
+                <textarea
+                  style={{ minHeight: 260, fontSize: 13, lineHeight: 1.6 }}
+                  value={personaDraft}
+                  onChange={(e) => { setPersonaDraft(e.target.value); setPersonaAttached(false); }}
+                  placeholder="You are…"
+                />
               </Field>
             </>
           )}

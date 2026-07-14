@@ -1,23 +1,32 @@
 # CLAUDE.md — Tavus Experience Builder
 
 > Scope note: this file documents the **Tavus Experience Builder** demo tool
-> (`TavusExperienceBuilder.jsx`). The Python files at the repo root
-> (`server.py`, `bridge.py`, `docs_store/`, etc.) are a **separate** project —
-> the Tavus Docs Q&A server, documented in `README.md`. This CLAUDE.md is only
-> about the React builder.
+> (the `builder/` directory). The Python files at the repo root (`server.py`,
+> `bridge.py`, `docs_store/`, etc.) are a **separate** project — the Tavus
+> Docs Q&A server, documented in `README.md`. This CLAUDE.md is only about
+> the React builder.
 
 ## What this is
 
-A single-file React app for **building and launching Tavus CVI demos** without
-touching code. A solutions engineer points it at a Tavus account, configures a
-PAL (persona) — presentation mode, Magic Canvas, objectives, guardrails — and
-launches a live conversation onto a clean, branded demo page. It calls the
-Tavus REST API (`https://tavusapi.com/v2`) directly from the browser; there is
-no backend of its own.
+A React app for **building and launching Tavus CVI demos** without touching
+code. A solutions engineer points it at a Tavus account, configures a PAL
+(persona) — Claude-drafted system prompt, presentation mode, Magic Canvas,
+objectives, guardrails — and launches a live conversation onto a clean,
+branded demo page. Tavus REST calls (`https://tavusapi.com/v2`) go directly
+from the browser; Claude calls go through a serverless backend that holds the
+Anthropic key.
 
-The entire app is `TavusExperienceBuilder.jsx` — one default-exported
-component, all CSS inlined in a `<style>` block, no build config in this repo.
-It is meant to be dropped into a Vite React project.
+## Layout & deployment
+
+`builder/` is a Vercel project (see `builder/README.md` for deploy steps):
+
+- `builder/src/TavusExperienceBuilder.jsx` — the whole UI: one
+  default-exported component, all CSS inlined in a `<style>` block.
+- `builder/api/generate-persona.js` — Vercel serverless function that calls
+  Claude (`claude-opus-4-8`, `@anthropic-ai/sdk`, adaptive thinking, streamed
+  as plain text) to draft a persona system prompt. Requires the
+  `ANTHROPIC_API_KEY` env var on Vercel — the key never reaches the browser.
+- `builder/vercel.json` — bumps the function's `maxDuration` to 60s.
 
 ## Mental model
 
@@ -40,6 +49,14 @@ Left-rail steps, each a slice of one big component's state:
 
 1. **Setup** — `apiKey`, `faceId`, `palId`, `language`, `conversationName`,
    `callbackUrl` (webhook), `greeting`. `canLaunch` requires key + face + PAL.
+1.5. **Persona** — plain-English brief (`personaBrief`: product, audience,
+   goal, tone, mustCover, avoid) → `generatePersona()` POSTs brief + current
+   builder context (objectives, guardrails, canvas playbook, presentation) to
+   `/api/generate-persona` and streams the draft into an editable
+   `personaDraft` textarea → `attachPersona()` PATCHes the PAL with
+   `[{op:"add", path:"/system_prompt", value}]`. Draft → review → attach; the
+   attach never happens without the human seeing the text. The prompt persists
+   on the PAL like objectives do.
 2. **Objectives & Guardrails** (`guide`) — plain-English textareas, one item
    per line, parsed on launch:
    - `parseObjectives` — each line → an objective; lines **chain** in order via
@@ -95,8 +112,10 @@ to copy that curl and run it from a terminal/backend.
 
 Full-screen branded shell rendered when `siteMode` is true.
 
-- **Call UI is chosen at runtime.** On mount it dynamically imports the Tavus
-  CVI components (`./components/cvi/components/{cvi-provider,conversation,magic-canvas}`).
+- **Call UI is chosen at runtime.** On mount it loads the Tavus CVI components
+  via `import.meta.glob("./components/cvi/components/*/index.{tsx,ts,jsx,js}")` —
+  glob (not a static dynamic import) so the Vite build stays green when the
+  components aren't installed, and bundles them lazily when they are.
   - `cvi === undefined` → loading
   - `cvi` object → render custom `<CVIProvider><Conversation/><MagicCanvas/></CVIProvider>`
   - `cvi === null` → components not installed → fall back to a plain `<iframe
@@ -136,7 +155,8 @@ storage is blocked** (e.g. the claude.ai preview iframe) — saves succeed in a
 real local Vite app.
 
 - **Scenarios** (`SCENARIOS_KEY = "tavus_builder_scenarios_v1"`) — named
-  snapshots of the full builder config (everything except the API key).
+  snapshots of the full builder config (everything except the API key),
+  including `personaBrief` and `personaDraft`.
   `collectConfig()` / `applyConfig()` are the serialize/restore pair; keep them
   in sync when adding a new field. Save/Load/Delete plus **Export/Import** to a
   JSON file (the file path works even when localStorage is blocked).
