@@ -1660,11 +1660,25 @@ export default function TavusExperienceBuilder() {
           newIds.push(id);
           addLog("ok", `Guardrail ${g.guardrail_name}: ${id}`);
         }
-        addLog("info", "Attaching guardrails to the PAL (replaces its previous set)…");
-        await tavusFetch("PATCH", `/pals/${pal}`, [
-          { op: "add", path: "/guardrail_ids", value: newIds },
-        ]);
-        addLog("ok", `Guardrails attached — the PAL now has exactly these ${newIds.length} rule${newIds.length > 1 ? "s" : ""}.`);
+        addLog("info", "Attaching guardrails to the PAL (overwrites its previous set)…");
+        try {
+          // "replace" has unambiguous overwrite semantics; "add" on an array
+          // can be treated as append by some servers (how the pile-up began).
+          await tavusFetch("PATCH", `/pals/${pal}`, [
+            { op: "replace", path: "/guardrail_ids", value: newIds },
+          ]);
+        } catch (err) {
+          // A PAL created without guardrails may not have the member yet —
+          // "replace" requires it to exist, so fall back to "add".
+          if (/does not exist|not found|invalid path/i.test(err.message)) {
+            await tavusFetch("PATCH", `/pals/${pal}`, [
+              { op: "add", path: "/guardrail_ids", value: newIds },
+            ]);
+          } else {
+            throw err;
+          }
+        }
+        addLog("ok", `Guardrails set — the PAL now has exactly these ${newIds.length} rule${newIds.length > 1 ? "s" : ""}.`);
       }
 
       // Vision: attach the perception layer to the PAL (persists like objectives).
