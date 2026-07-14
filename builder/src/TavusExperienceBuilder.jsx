@@ -689,6 +689,8 @@ export default function TavusExperienceBuilder() {
   const [docIdsRaw, setDocIdsRaw] = useState("");
   const [slidesTrigger, setSlidesTrigger] = useState("walk_the_deck");
   const [presentPrompt, setPresentPrompt] = useState("");
+  const [talkTrack, setTalkTrack] = useState([]); // per-slide speaker notes
+  const [talkTrackDrafting, setTalkTrackDrafting] = useState(false);
 
   // Objectives & Guardrails
   const [objectivesEnabled, setObjectivesEnabled] = useState(false);
@@ -763,7 +765,7 @@ export default function TavusExperienceBuilder() {
     speechEnabled, pronunciationText, emotionControl, externalVoiceId, externalVoiceName,
     maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, wakePhrase, interruptButton, guardrailEcho,
     toolsEnabled, toolRows, toolWebhook, toolEcho,
-    presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt,
+    presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt, talkTrack,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
     palLlm, knowledgeIdsRaw,
@@ -790,6 +792,7 @@ export default function TavusExperienceBuilder() {
     setToolWebhook(c.toolWebhook ?? ""); setToolEcho(c.toolEcho ?? "");
     setPresentationEnabled(!!c.presentationEnabled); setDocIdsRaw(c.docIdsRaw ?? "");
     setSlidesTrigger(c.slidesTrigger ?? "walk_the_deck"); setPresentPrompt(c.presentPrompt ?? "");
+    setTalkTrack(Array.isArray(c.talkTrack) ? c.talkTrack : []);
     setObjectivesEnabled(!!c.objectivesEnabled); setObjectivesText(c.objectivesText ?? "");
     setConfirmationMode(c.confirmationMode ?? "auto");
     setGuardrailsEnabled(!!c.guardrailsEnabled); setGuardrailsText(c.guardrailsText ?? "");
@@ -882,9 +885,18 @@ export default function TavusExperienceBuilder() {
   const presentationPayload = useMemo(() => {
     const config = { document_ids: docIds };
     if (slidesTrigger) config.slides_trigger = slidesTrigger;
-    if (presentPrompt.trim()) config.prompt = presentPrompt.trim();
+    const promptParts = [];
+    if (presentPrompt.trim()) promptParts.push(presentPrompt.trim());
+    const track = talkTrack.map((t, i) => ({ t: String(t || "").trim(), n: i + 1 })).filter((x) => x.t);
+    if (track.length) {
+      promptParts.push(
+        "Slide-by-slide talk track — follow it as you present, in your own natural voice:\n" +
+        track.map(({ t, n }) => `Slide ${n}: ${t}`).join("\n")
+      );
+    }
+    if (promptParts.length) config.prompt = promptParts.join("\n\n");
     return { config };
-  }, [docIds, slidesTrigger, presentPrompt]);
+  }, [docIds, slidesTrigger, presentPrompt, talkTrack]);
 
   const canvasPayload = useMemo(() => {
     const overlay = {};
@@ -1252,6 +1264,51 @@ export default function TavusExperienceBuilder() {
       addLog("err", `Upload: ${msg.includes("BLOB_READ_WRITE_TOKEN") || msg.includes("No token") ? "File storage isn't set up — in Vercel: Storage → Create Database → Blob, attach it, redeploy." : msg}`);
     } finally {
       setKbAdding(false);
+    }
+  };
+
+  /* ── Talk track: Claude drafts per-slide speaker notes ── */
+
+  const draftTalkTrack = async () => {
+    const slideCount = talkTrack.length || 8;
+    const vibe = [
+      ideaText.trim(),
+      personaBrief.product && `Product: ${personaBrief.product}`,
+      personaBrief.goal && `Goal: ${personaBrief.goal}`,
+      personaBrief.audience && `Audience: ${personaBrief.audience}`,
+      `The deck has ${slideCount} slides.`,
+      talkTrack.some((t) => t?.trim()) && `Current notes to improve on:\n${talkTrack.map((t, i) => `${i + 1}: ${t || "(empty)"}`).join("\n")}`,
+    ].filter(Boolean).join("\n");
+    if (!ideaText.trim() && !personaBrief.product) {
+      addLog("err", "Describe the demo first (New Demo or Persona step) so Claude knows what the deck is about.");
+      return;
+    }
+    setTalkTrackDrafting(true);
+    try {
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "talktrack", vibe }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || "drafting failed");
+      }
+      const rows = [];
+      for (const line of text.split("\n")) {
+        const m = line.trim().match(/^(?:slide\s*)?(\d+)\s*[:.)-]\s*(.+)/i);
+        if (m) rows[parseInt(m[1], 10) - 1] = m[2].trim();
+      }
+      if (!rows.length) throw new Error("Couldn't parse the draft — try again.");
+      setTalkTrack(rows.map((r) => r || ""));
+      addLog("ok", `Talk track drafted for ${rows.length} slides — align it with your actual deck, Claude hasn't seen the slides.`);
+    } catch (e) {
+      addLog("err", `Talk track: ${e.message}`);
+    } finally {
+      setTalkTrackDrafting(false);
     }
   };
 
@@ -2505,9 +2562,48 @@ export default function TavusExperienceBuilder() {
                 </div>
                 <span className="field-hint">Walk the deck: the deck drives the conversation end to end. On demand: the PAL pulls the relevant slide when the conversation calls for it.</span>
               </Field>
-              <Field label="Presenter prompt" hint="Optional instructions for how the PAL should present.">
+              <Field label="Presenter style" hint="Optional — how it should present overall.">
                 <textarea value={presentPrompt} onChange={(e) => setPresentPrompt(e.target.value)} placeholder="Walk the participant through the deck one slide at a time. Pause for questions after each section." />
               </Field>
+
+              <div className="skill-head" style={{ marginTop: 10 }}>
+                <div className="subhead" style={{ margin: 0 }}>Talk track — what to say on each slide</div>
+                <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={draftTalkTrack} disabled={!presentationEnabled || talkTrackDrafting}>
+                  {talkTrackDrafting ? "Drafting…" : "✨ Draft talk track"}
+                </button>
+              </div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 10 }}>
+                Speaker notes per slide — the AI follows them in its own voice as it presents. Claude can draft them from your use case (it can't see the slides, so give the draft a read).
+              </p>
+              {talkTrack.length === 0 && (
+                <button className="pill-btn" style={{ marginBottom: 8 }} disabled={!presentationEnabled}
+                  onClick={() => setTalkTrack(["", "", "", ""])}>+ Start a talk track</button>
+              )}
+              {talkTrack.length > 0 && (
+                <div className="kb-list" style={{ maxWidth: 640, marginBottom: 8 }}>
+                  {talkTrack.map((note, i) => (
+                    <div key={i} className="kb-row" style={{ alignItems: "flex-start" }}>
+                      <span style={{ color: "var(--muted)", fontSize: 12, width: 52, paddingTop: 8, flexShrink: 0 }}>Slide {i + 1}</span>
+                      <textarea
+                        style={{ minHeight: 44, fontSize: 12.5, flex: 1 }}
+                        disabled={!presentationEnabled}
+                        value={note}
+                        onChange={(e) => setTalkTrack((t) => t.map((x, j) => (j === i ? e.target.value : x)))}
+                        placeholder="What should it say here? End with a question to keep it two-way."
+                      />
+                      <button className="kb-del" title="Remove this slide's note" onClick={() => setTalkTrack((t) => t.filter((_, j) => j !== i))}>✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {talkTrack.length > 0 && (
+                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12 }} disabled={!presentationEnabled}
+                    onClick={() => setTalkTrack((t) => [...t, ""])}>+ Add slide</button>
+                  <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12, color: "var(--danger)" }}
+                    onClick={() => setTalkTrack([])}>Clear track</button>
+                </div>
+              )}
             </>
           )}
 

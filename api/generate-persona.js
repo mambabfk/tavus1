@@ -45,6 +45,15 @@ Cards make conversations tactile, but they are easily overused — a great plan 
 }
 Rules: bias toward "balanced" or "minimal"; write rules ONLY for cards that clearly earn their place (2-4 of them); disable the rest; a card must do something speech can't (capture a choice, show data, book time). No markdown.`;
 
+const TALKTRACK_SYSTEM = `You write slide-by-slide talk tracks for an AI human presenting a deck on a live video call.
+
+Given the demo's use case (and optionally what's on the slides), write speaker notes for each slide: what to SAY and what to ask. Spoken style — short sentences, contractions, no markdown. Each slide gets 1-3 sentences plus, where natural, one engaging question to keep it a conversation rather than a lecture.
+
+Return EXACTLY this format, one line per slide, nothing else:
+1: <talk track for slide 1>
+2: <talk track for slide 2>
+...`;
+
 const DEMO_SYSTEM = `You design complete Tavus CVI demo templates. Given a plain-English idea for a demo, draft every configurable element so it reads coherently for THAT use case — never recycle wording from unrelated products.
 
 Return ONLY valid JSON (no code fences, no commentary):
@@ -109,7 +118,14 @@ export default async function handler(req, res) {
 
   let system;
   let userPrompt;
-  if (kind === "canvas") {
+  if (kind === "talktrack") {
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Describe the demo / deck first so Claude knows what to script." });
+      return;
+    }
+    system = TALKTRACK_SYSTEM;
+    userPrompt = `Write the talk track:\n${String(vibe).trim()}`;
+  } else if (kind === "canvas") {
     if (!String(vibe).trim()) {
       res.status(400).json({ error: "Describe the demo's use case first (New Demo or Persona step)." });
       return;
