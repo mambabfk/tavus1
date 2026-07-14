@@ -47,10 +47,14 @@ const PreviewVideos = React.memo(() => {
 	const { isScreenSharing } = useLocalScreenshare();
 	const replicaIds = useReplicaIDs();
 	const replicaId = replicaIds[0];
+	// When the PAL presents slides (its screenVideo track), keep its face
+	// visible as a small preview beside the local camera.
+	const replicaScreenState = useScreenVideoTrack(replicaId);
+	const isReplicaPresenting = !replicaScreenState.isOff;
 
 	return (
 		<>
-			{isScreenSharing && <VideoPreview id={replicaId} />}
+			{(isScreenSharing || isReplicaPresenting) && <VideoPreview id={replicaId} />}
 			<VideoPreview id={localId} />
 		</>
 	);
@@ -70,6 +74,10 @@ const MainVideo = React.memo(() => {
 	const meetingState = useMeetingState();
 	const isScreenSharing = !screenVideoState.isOff;
 	const replicaId = replicaIds[0];
+	// Slides from the presentation skill arrive as the REPLICA participant's
+	// screenVideo track (not the local user's) — subscribe or they never show.
+	const replicaScreenState = useScreenVideoTrack(replicaId);
+	const isReplicaPresenting = !replicaScreenState.isOff;
 	const [hasReplicaConnected, setHasReplicaConnected] = useState(false);
 
 	useEffect(() => {
@@ -90,17 +98,22 @@ const MainVideo = React.memo(() => {
 		return <ConnectingState />;
 	}
 
+	// Priority: the user's own screenshare > the PAL's slides > the PAL's face.
+	const showingScreen = isScreenSharing || isReplicaPresenting;
+	const mainSessionId = isScreenSharing ? localId : isReplicaPresenting ? replicaId : replicaId;
+	const mainType = showingScreen ? 'screenVideo' : 'video';
+
 	return (
 		<div
-			className={`${styles.mainVideoContainer} ${isScreenSharing ? styles.mainVideoContainerScreenSharing : ''}`}
+			className={`${styles.mainVideoContainer} ${showingScreen ? styles.mainVideoContainerScreenSharing : ''}`}
 		>
 			<DailyVideo
 				automirror
-				sessionId={isScreenSharing ? localId : replicaId}
-				type={isScreenSharing ? 'screenVideo' : 'video'}
+				sessionId={mainSessionId}
+				type={mainType}
 				className={`${styles.mainVideo}
-				${isScreenSharing ? styles.mainVideoScreenSharing : ''}
-				${videoState.isOff ? styles.mainVideoHidden : ''}`}
+				${showingScreen ? styles.mainVideoScreenSharing : ''}
+				${videoState.isOff && !showingScreen ? styles.mainVideoHidden : ''}`}
 			/>
 
 			<DailyAudioTrack sessionId={replicaId} />
