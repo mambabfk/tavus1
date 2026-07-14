@@ -4,6 +4,9 @@
   "installCommand": "npm install && cd builder && npm ci",
   "buildCommand": "cd builder && npm run build",
   "outputDirectory": "builder/dist",
+  "rewrites": [
+    { "source": "/d/:slug", "destination": "/index.html" }
+  ],
   "functions": {
     "api/generate-persona.js": {
       "maxDuration": 60

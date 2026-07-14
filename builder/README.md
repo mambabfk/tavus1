@@ -26,11 +26,19 @@ root — no Root Directory setting needed.
 1. Go to [vercel.com/new](https://vercel.com/new) and import the
    `mambabfk/tavus1` GitHub repo. Leave every build setting as-is.
 2. Under **Environment Variables**, add:
-   - `ANTHROPIC_API_KEY` — powers persona generation (required)
+   - `ANTHROPIC_API_KEY` — powers persona/vision/demo generation and brand
+     theming (required)
    - `BUILDER_PASSWORD` — shared access code; when set, the app shows a
-     lock screen and the Claude endpoint rejects unauthenticated calls.
+     lock screen and the Claude endpoints reject unauthenticated calls.
      Leave unset to keep the app open (e.g. local dev). Changing it
      signs everyone out.
+   - `TAVUS_API_KEY` — required for **shareable demo links** (`/d/{slug}`):
+     visitors' conversations are created server-side with this key, so link
+     recipients never need credentials.
+3. For shareable demo links, add storage: Vercel dashboard → **Storage →
+   Create Database → Upstash Redis** → attach to this project (this injects
+   `KV_REST_API_URL`/`KV_REST_API_TOKEN` automatically) → redeploy. Without
+   it, everything works except link sharing.
 3. Deploy, then in **Project → Settings → Git** set **Production Branch** to
    the branch that carries the builder (unless it's already merged to the
    default branch). Every push auto-deploys from then on.

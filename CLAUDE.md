@@ -31,7 +31,22 @@ Anthropic key.
   `generate-persona` requires the HMAC session cookie (stateless — derived
   from the password, so rotating the password revokes all sessions). Unset =
   open (local dev).
-- `builder/vercel.json` — bumps the function's `maxDuration` to 60s.
+- `builder/api/demos.js` + `builder/api/demo-launch.js` + `builder/api/_kv.js`
+  — **shareable demo links**. `POST /api/demos` (builder session required)
+  stores an immutable snapshot `{name, site, controls, payload}` in Upstash
+  Redis (`KV_REST_API_URL`/`UPSTASH_REDIS_REST_URL` env pairs, zero-dep REST
+  client) under `demo:{slug}` → `/d/{slug}` (vercel.json rewrite → SPA).
+  `GET /api/demos?slug=` is public but strips `payload`; visitors launch via
+  `POST /api/demo-launch` which creates the Tavus conversation server-side
+  with the `TAVUS_API_KEY` env var (rate-limited per slug/hour). The frontend
+  `VisitorDemo` component (`?demo=` or `/d/` detection, before the auth gate)
+  renders `DemoSite` standalone.
+- `kind: "demo"` on `generate-persona` — "Start from an idea" (Setup step):
+  Claude returns a full template JSON (site copy, greeting, personaBrief,
+  objectives, guardrails, visionVibe, canvasPlaybook) applied across all
+  steps; everything stays hand-editable, persona draft is cleared as stale.
+- `builder/vercel.json` — bumps the function's `maxDuration` to 60s; rewrite
+  for `/d/:slug`.
 - Note: the repo **root** `api/`, `vercel.json`, `package.json`, and
   `.vercelignore` mirror `builder/` so the Vercel project can build from the
   repo root with zero config. Keep root `api/` in sync with `builder/api/`.

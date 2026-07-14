@@ -33,6 +33,32 @@ VISUAL:
 AUDIO:
 - <query>`;
 
+const DEMO_SYSTEM = `You design complete Tavus CVI demo templates. Given a plain-English idea for a demo, draft every configurable element so it reads coherently for THAT use case — never recycle wording from unrelated products.
+
+Return ONLY valid JSON (no code fences, no commentary):
+{
+  "conversationName": "Short internal label for this demo",
+  "brand": "Brand/company name to show on the page",
+  "headline": "Hero headline for the demo page, in the brand's voice",
+  "tagline": "One supporting sentence",
+  "cta": "Button label to start the conversation (2-5 words)",
+  "greeting": "The exact opening line the AI human speaks first",
+  "personaBrief": {
+    "product": "What is being demoed, 1-2 sentences",
+    "audience": "Who the AI human talks to",
+    "goal": "What the conversation should achieve",
+    "tone": "Voice/personality in a few words",
+    "mustCover": "Key points, one per line",
+    "avoid": "Things it must not do, one per line"
+  },
+  "objectives": ["Goal 1 in plain English", "Goal 2", "..."],
+  "guardrails": ["Rule 1 in plain English", "..."],
+  "visionVibe": "One or two sentences on what the AI should notice on camera / in tone, or empty string if vision adds nothing here",
+  "canvasPlaybook": "Plain-English direction for when to show interactive cards (question/chart/scheduling...), or empty string"
+}
+
+Rules: 3-5 objectives in conversation order; 2-4 guardrails; every string speaks specifically to the described use case; greetings and page copy are warm and concise; no markdown anywhere.`;
+
 function briefToPrompt(brief, context) {
   const lines = ["Write a Tavus persona system prompt for this demo:"];
   const add = (label, v) => { if (v && String(v).trim()) lines.push(`${label}: ${String(v).trim()}`); };
@@ -69,7 +95,14 @@ export default async function handler(req, res) {
 
   let system;
   let userPrompt;
-  if (kind === "vision") {
+  if (kind === "demo") {
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Describe the demo you want first." });
+      return;
+    }
+    system = DEMO_SYSTEM;
+    userPrompt = `Design a demo template for this idea:\n${String(vibe).trim()}`;
+  } else if (kind === "vision") {
     if (!String(vibe).trim()) {
       res.status(400).json({ error: "Describe what the PAL should watch for first." });
       return;

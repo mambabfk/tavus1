@@ -146,6 +146,70 @@ const parseVisionDraft = (text) => {
 const shortLabel = (text, max = 38) =>
   text.length > max ? `${text.slice(0, max).replace(/\s+\S*$/, "")}…` : text;
 
+/* ── Visitor mode: /d/{slug} (or ?demo=slug) renders a shared demo — no
+      builder, no login. Config comes from /api/demos; Start creates a fresh
+      conversation server-side via /api/demo-launch. ── */
+function VisitorDemo({ slug }) {
+  const [demo, setDemo] = useState(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [conversation, setConversation] = useState(null);
+
+  useEffect(() => {
+    fetch(`/api/demos?slug=${encodeURIComponent(slug)}`)
+      .then(async (r) => {
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || "This demo link isn't available.");
+        setDemo(j);
+        document.title = j.site?.brand ? `${j.site.brand} — live demo` : "Live demo";
+      })
+      .catch((e) => setError(e.message));
+  }, [slug]);
+
+  const start = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await fetch("/api/demo-launch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "Couldn't start the conversation — try again.");
+      setConversation(j);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const center = { minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F5F4F1", color: "#17181A", fontFamily: "'Instrument Sans', system-ui, sans-serif", fontSize: 14, textAlign: "center", padding: 24 };
+  if (error && !demo) return <div style={center}>{error}</div>;
+  if (!demo) return <div style={center}>Loading…</div>;
+
+  return (
+    <>
+      <DemoSite
+        site={demo.site || {}}
+        controls={demo.controls || {}}
+        conversationUrl={conversation?.conversation_url || null}
+        conversationId={conversation?.conversation_id || null}
+        onStart={start}
+        onExit={() => setConversation(null)}
+        busy={busy}
+        visitor
+      />
+      {error && (
+        <div style={{ position: "fixed", bottom: 16, left: "50%", transform: "translateX(-50%)", zIndex: 99, background: "#fff", border: "1px solid #E6E4DF", color: "#D64545", borderRadius: 999, padding: "9px 18px", fontSize: 13, fontFamily: "'Instrument Sans', system-ui, sans-serif", boxShadow: "0 4px 14px rgba(0,0,0,.12)" }}>
+          {error}
+        </div>
+      )}
+    </>
+  );
+}
+
 /* ── In-call extras: timers, wake reminders, interrupt button, guardrail echo.
       Lives INSIDE CVIProvider so it can use the Daily call object; these
       features need the custom call UI (they're inert in the iframe fallback). */
@@ -315,7 +379,7 @@ function Toggle({ on, onChange }) {
 
 /* ── Demo page: minimal Alto shell around the conversation ──── */
 
-function DemoSite({ site, conversationUrl, conversationId, controls, onStart, onExit, busy }) {
+function DemoSite({ site, conversationUrl, conversationId, controls, onStart, onExit, busy, visitor = false }) {
   const { recording, elapsed, start: startRec, stop: stopRec } = useTabRecorder();
   const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
@@ -420,17 +484,19 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
           )}
           <span className="demo-brand">{site.brand || "Your Brand"}</span>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            className={"pill-btn ghost" + (recording ? " rec-on" : "")}
-            onClick={recording ? stopRec : startRec}
-            title={recording ? "Stop and download the recording" : 'Record this tab — pick "This Tab" and keep tab audio on'}
-          >
-            <span className={"rec-dot" + (recording ? " pulsing" : "")} />
-            {recording ? `Stop · ${fmt(elapsed)}` : "Record"}
-          </button>
-          <button className="pill-btn ghost" onClick={onExit}>← Builder</button>
-        </div>
+        {!visitor && (
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className={"pill-btn ghost" + (recording ? " rec-on" : "")}
+              onClick={recording ? stopRec : startRec}
+              title={recording ? "Stop and download the recording" : 'Record this tab — pick "This Tab" and keep tab audio on'}
+            >
+              <span className={"rec-dot" + (recording ? " pulsing" : "")} />
+              {recording ? `Stop · ${fmt(elapsed)}` : "Record"}
+            </button>
+            <button className="pill-btn ghost" onClick={onExit}>← Builder</button>
+          </div>
+        )}
       </nav>
 
       <main className="demo-main">
@@ -466,6 +532,13 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
 /* ── Main app ──────────────────────────────────────────────── */
 
 export default function TavusExperienceBuilder() {
+  // Visitor mode: shared demo links (/d/{slug} or ?demo=slug) bypass the
+  // builder and its login entirely — the link itself is the access.
+  const [demoSlug] = useState(() => {
+    const m = window.location.pathname.match(/^\/d\/([A-Za-z0-9_-]{6,24})/);
+    return m ? m[1] : new URLSearchParams(window.location.search).get("demo");
+  });
+
   const [step, setStep] = useState("setup");
 
   // Access-code gate. The server decides whether login is required
@@ -595,6 +668,12 @@ export default function TavusExperienceBuilder() {
   const [conversation, setConversation] = useState(null);
   const [siteMode, setSiteMode] = useState(false);
   const [copied, setCopied] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
+  const [sharing, setSharing] = useState(false);
+
+  // "Start from an idea" — Claude drafts the entire template
+  const [ideaText, setIdeaText] = useState("");
+  const [ideating, setIdeating] = useState(false);
 
   // Scenarios (named snapshots of the full builder config)
   const [scenarios, setScenarios] = useState(() => store.get(SCENARIOS_KEY, {}));
@@ -814,6 +893,15 @@ export default function TavusExperienceBuilder() {
     if (audio.length) value.audio_awareness_queries = audio;
     return value;
   }, [visualQueriesText, audioQueriesText]);
+
+  const controlsConfig = useMemo(() => ({
+    maxSeconds: parseInt(maxMinutes, 10) > 0 ? parseInt(maxMinutes, 10) * 60 : 0,
+    timeWarning: timeWarning.trim(),
+    inactivitySeconds: parseInt(inactivitySeconds, 10) > 0 ? parseInt(inactivitySeconds, 10) : 0,
+    inactivityUtterance: inactivityUtterance.trim(),
+    interruptButton,
+    guardrailEcho: guardrailEcho.trim(),
+  }), [maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho]);
 
   const pronunciationRules = useMemo(() => parsePronunciation(pronunciationText), [pronunciationText]);
   const pronunciationPayload = useMemo(
@@ -1064,6 +1152,87 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* ── Shareable demo link: store the snapshot server-side, mint /d/{slug} ── */
+
+  const shareDemo = async () => {
+    if (!palId.trim() || !faceId.trim()) { addLog("err", "The demo needs a Face ID and PAL ID before it can be shared — see Setup."); return; }
+    setSharing(true);
+    try {
+      const res = await fetch("/api/demos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: conversationName || site.brand || "demo",
+          site,
+          controls: controlsConfig,
+          payload: conversationPayload,
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(j.error || `${res.status}: sharing failed`);
+      }
+      const url = `${window.location.origin}/d/${j.slug}`;
+      setShareUrl(url);
+      addLog("ok", `Shareable link ready: ${url}`);
+    } catch (e) {
+      addLog("err", `Share: ${e.message}`);
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  /* ── "Start from an idea": Claude drafts the whole template, all editable ── */
+
+  const draftDemo = async () => {
+    if (!ideaText.trim()) return;
+    setIdeating(true);
+    try {
+      addLog("info", "Drafting the whole demo from your idea…");
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "demo", vibe: ideaText }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || "drafting failed");
+      }
+      const t = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim());
+
+      if (t.conversationName) setConversationName(t.conversationName);
+      if (t.greeting) setGreeting(t.greeting);
+      setSite((s) => ({
+        ...s,
+        brand: t.brand || s.brand,
+        headline: t.headline || s.headline,
+        tagline: t.tagline || s.tagline,
+        cta: t.cta || s.cta,
+      }));
+      if (t.personaBrief) setPersonaBrief((b) => ({ ...b, ...t.personaBrief }));
+      if (Array.isArray(t.objectives) && t.objectives.length) {
+        setObjectivesText(t.objectives.join("\n"));
+        setObjectivesEnabled(true);
+      }
+      if (Array.isArray(t.guardrails) && t.guardrails.length) {
+        setGuardrailsText(t.guardrails.join("\n"));
+        setGuardrailsEnabled(true);
+      }
+      if (t.visionVibe) { setVisionVibe(t.visionVibe); setVisionEnabled(true); }
+      if (t.canvasPlaybook) { setCanvasPlaybook(t.canvasPlaybook); setCanvasEnabled(true); }
+      setPersonaDraft(""); setPersonaAttached(false); // brief changed → draft is stale
+      addLog("ok", "Demo drafted — every step is filled in. Walk the rail to review and edit, then generate the persona.");
+    } catch (e) {
+      addLog("err", `Draft demo: ${e.message}`);
+    } finally {
+      setIdeating(false);
+    }
+  };
+
   /* ── Brand theme: Claude restyles the demo page from a company URL ── */
 
   const themeFromUrl = async () => {
@@ -1240,6 +1409,8 @@ export default function TavusExperienceBuilder() {
 
   /* ── UI ── */
 
+  if (demoSlug) return <VisitorDemo slug={demoSlug} />;
+
   // Access-code gate renders before anything else. Self-contained styling so
   // the main <style> block (below) doesn't need to load for the lock screen.
   if (!auth.checked || (auth.required && !auth.authed)) {
@@ -1412,6 +1583,8 @@ export default function TavusExperienceBuilder() {
         .pulsing { animation:recpulse 1.2s infinite; }
         @keyframes recpulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
+        .idea-box { background:var(--accent-soft); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px 20px; margin-bottom:26px; max-width:600px; }
+
         /* knowledge base list */
         .kb-list { display:flex; flex-direction:column; gap:6px; max-width:640px; margin-top:10px; }
         .kb-row { display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:8px 12px; }
@@ -1462,14 +1635,7 @@ export default function TavusExperienceBuilder() {
           site={site}
           conversationUrl={conversation?.conversation_url || null}
           conversationId={conversation?.conversation_id || null}
-          controls={{
-            maxSeconds: parseInt(maxMinutes, 10) > 0 ? parseInt(maxMinutes, 10) * 60 : 0,
-            timeWarning: timeWarning.trim(),
-            inactivitySeconds: parseInt(inactivitySeconds, 10) > 0 ? parseInt(inactivitySeconds, 10) : 0,
-            inactivityUtterance: inactivityUtterance.trim(),
-            interruptButton,
-            guardrailEcho: guardrailEcho.trim(),
-          }}
+          controls={controlsConfig}
           onStart={launch}
           onExit={() => setSiteMode(false)}
           busy={busy}
@@ -1540,6 +1706,22 @@ export default function TavusExperienceBuilder() {
             <>
               <h1>Setup</h1>
               <p className="lede">Point the builder at your account and the PAL you want to configure. Everything else layers on top of this.</p>
+
+              <div className="idea-box">
+                <div className="subhead" style={{ marginTop: 0 }}>✨ Start from an idea</div>
+                <p className="field-hint" style={{ maxWidth: 560, marginBottom: 8 }}>
+                  Describe the demo and Claude drafts every step for that exact use case — persona brief, objectives, guardrails, vision, canvas playbook, greeting, page copy. Nothing is locked: walk the rail afterwards and edit anything.
+                </p>
+                <textarea
+                  style={{ minHeight: 74, maxWidth: 560 }}
+                  value={ideaText}
+                  onChange={(e) => setIdeaText(e.target.value)}
+                  placeholder={"An internal HR onboarding assistant for new Salesforce employees — walks them through week-one setup, benefits enrollment, and who to meet. Friendly, unhurried."}
+                />
+                <button className="pill-btn primary" style={{ marginTop: 10 }} onClick={draftDemo} disabled={ideating || !ideaText.trim()}>
+                  {ideating ? "Drafting the demo…" : "Draft the whole demo"}
+                </button>
+              </div>
               <Field label="Tavus API key" hint="For production, calls belong on your backend.">
                 <input className="mono" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="tvs-…" />
                 <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--muted)", cursor: "pointer" }}>
@@ -2119,6 +2301,25 @@ export default function TavusExperienceBuilder() {
                 )}
               </div>
               {!canLaunch && <p className="field-hint" style={{ marginTop: 10 }}>Complete Setup first — API key, Face ID, and PAL ID are required.</p>}
+              <div className="subhead" style={{ marginTop: 26 }}>Shareable demo link</div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 10 }}>
+                Mints a permanent link (like {window.location.origin}/d/x7Kp2q) anyone can open — no login, no keys. Each visitor gets their own fresh conversation. <b>Launch once first</b> so objectives, guardrails, vision, and skills are attached to the PAL; the link snapshots the demo as it is now (edit → share again for a new link).
+              </p>
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <button className="pill-btn" onClick={shareDemo} disabled={sharing || !palId.trim() || !faceId.trim()}>
+                  {sharing ? "Creating…" : shareUrl ? "Create a new link" : "Create shareable link"}
+                </button>
+                {shareUrl && (
+                  <>
+                    <span className="mono" style={{ fontSize: 12.5 }}>{shareUrl}</span>
+                    <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12 }} onClick={() => copy(shareUrl, "share")}>
+                      {copied === "share" ? "Copied" : "Copy"}
+                    </button>
+                    <a className="pill-btn" style={{ padding: "5px 12px", fontSize: 12, textDecoration: "none" }} href={shareUrl} target="_blank" rel="noreferrer">Open</a>
+                  </>
+                )}
+              </div>
+
               {conversation?.conversation_url && (
                 <p className="field-hint" style={{ marginTop: 12 }}>
                   Room link:{" "}
