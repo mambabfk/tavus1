@@ -1,0 +1,9 @@
+{
+  "name": "tavus1-deploy",
+  "private": true,
+  "type": "module",
+  "description": "Repo-root deploy shim so Vercel can import this repo with zero config. The actual app lives in builder/; the docs server (Python) is unaffected.",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0"
+  }
+}

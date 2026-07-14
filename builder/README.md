@@ -17,13 +17,18 @@ plus one serverless function.
 
 ## Deploy (Vercel)
 
-**Easiest — dashboard import (recommended):**
+**Easiest — dashboard import (recommended, zero config):**
+
+The repo root carries a deploy shim (`/vercel.json`, `/package.json`,
+`/api/generate-persona.js`) so Vercel builds this app straight from the repo
+root — no Root Directory setting needed.
 
 1. Go to [vercel.com/new](https://vercel.com/new) and import the
-   `mambabfk/tavus1` GitHub repo.
-2. Set **Root Directory** to `builder` (framework auto-detects as Vite).
-3. Under **Environment Variables**, add `ANTHROPIC_API_KEY`.
-4. Deploy. Every push to the connected branch auto-deploys from then on.
+   `mambabfk/tavus1` GitHub repo. Leave every build setting as-is.
+2. Under **Environment Variables**, add `ANTHROPIC_API_KEY`.
+3. Deploy, then in **Project → Settings → Git** set **Production Branch** to
+   the branch that carries the builder (unless it's already merged to the
+   default branch). Every push auto-deploys from then on.
 
 **Or via CLI** — run everything **from inside this `builder/` directory**
 (running `vercel` from elsewhere deploys the wrong folder):

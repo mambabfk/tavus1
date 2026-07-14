@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm install && cd builder && npm ci",
+  "buildCommand": "cd builder && npm run build",
+  "outputDirectory": "builder/dist",
+  "functions": {
+    "api/generate-persona.js": {
+      "maxDuration": 60
+    }
+  }
+}
