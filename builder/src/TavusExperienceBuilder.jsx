@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useDaily } from "@daily-co/daily-react";
+import { upload as blobUpload } from "@vercel/blob/client";
 
 /* ─────────────────────────────────────────────────────────────
    Tavus Experience Builder — Alto edition
@@ -739,6 +740,8 @@ export default function TavusExperienceBuilder() {
   const [rememberKey, setRememberKey] = useState(() => !!store.get(APIKEY_KEY, ""));
   const importRef = useRef(null);
   const logoFileRef = useRef(null);
+  const kbFileRef = useRef(null);
+  const deckFileRef = useRef(null);
   const [brandUrl, setBrandUrl] = useState("");
   const [theming, setTheming] = useState(false);
   const [showApi, setShowApi] = useState(() => store.get(SHOWAPI_KEY, true));
@@ -1218,6 +1221,37 @@ export default function TavusExperienceBuilder() {
       fetchKbDocs(true);
     } catch (e) {
       addLog("err", `Add document: ${e.message}`);
+    } finally {
+      setKbAdding(false);
+    }
+  };
+
+  /* Upload a local file → Vercel Blob (direct from the browser) → Tavus KB.
+     From the Slides step, the new doc also joins the deck automatically. */
+  const uploadKbFile = async (file, { addToDeck = false } = {}) => {
+    if (!file) return;
+    if (!apiKey.trim()) { addLog("err", "Enter your Tavus API key in Setup first."); return; }
+    if (file.size > 50 * 1024 * 1024) { addLog("err", "That file is over Tavus's 50MB document limit."); return; }
+    setKbAdding(true);
+    try {
+      addLog("info", `Uploading "${file.name}" (${(file.size / 1e6).toFixed(1)}MB)…`);
+      const blob = await blobUpload(file.name, file, { access: "public", handleUploadUrl: "/api/blob-upload" });
+      addLog("info", "Uploaded — adding to the Knowledge Base…");
+      const doc = await tavusFetch("POST", "/documents", {
+        document_url: blob.url,
+        document_name: kbName.trim() || file.name.replace(/\.[^.]+$/, ""),
+      });
+      addLog("ok", `"${doc.document_name || file.name}" added (${doc.document_id}) — processing takes a few minutes; hit Refresh to check.`);
+      if (addToDeck && doc.document_id) {
+        setDocIdsRaw((raw) => (raw.trim() ? `${raw.trim()}\n${doc.document_id}` : doc.document_id));
+        setPresentationEnabled(true);
+        addLog("info", "Added to the deck — it can present once the document shows \"ready\".");
+      }
+      setKbName("");
+      fetchKbDocs(true);
+    } catch (e) {
+      const msg = String(e.message || e);
+      addLog("err", `Upload: ${msg.includes("BLOB_READ_WRITE_TOKEN") || msg.includes("No token") ? "File storage isn't set up — in Vercel: Storage → Create Database → Blob, attach it, redeploy." : msg}`);
     } finally {
       setKbAdding(false);
     }
@@ -2254,7 +2288,7 @@ export default function TavusExperienceBuilder() {
               <Field label="Name (optional)">
                 <input value={kbName} onChange={(e) => setKbName(e.target.value)} placeholder="Q3 sales deck" />
               </Field>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, maxWidth: 560 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8, maxWidth: 560 }}>
                 <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
                   <input type="checkbox" style={{ width: "auto" }} checked={kbCrawl} onChange={(e) => setKbCrawl(e.target.checked)} />
                   It's a website — crawl linked pages too
@@ -2262,6 +2296,15 @@ export default function TavusExperienceBuilder() {
                 <button className="pill-btn primary" style={{ marginLeft: "auto" }} onClick={addKbDoc} disabled={kbAdding || !kbUrl.trim()}>
                   {kbAdding ? "Adding…" : "Add to Knowledge Base"}
                 </button>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, maxWidth: 560 }}>
+                <span className="field-hint" style={{ margin: 0 }}>…or straight from your computer:</span>
+                <button className="pill-btn" onClick={() => kbFileRef.current?.click()} disabled={kbAdding}>
+                  {kbAdding ? "Working…" : "Upload a file"}
+                </button>
+                <input ref={kbFileRef} type="file" style={{ display: "none" }}
+                  accept=".pdf,.pptx,.docx,.doc,.txt,.csv,.xlsx,.png,.jpg,.jpeg"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadKbFile(f); e.target.value = ""; }} />
               </div>
 
               <div className="skill-head" style={{ marginTop: 10 }}>
@@ -2313,8 +2356,17 @@ export default function TavusExperienceBuilder() {
               </div>
               <p className="lede">The PAL presents PDF decks and images from your Knowledge Base as a live screen share. PDFs must be 50 pages or fewer and fully processed ("ready") before launching. Slides appear inside the conversation automatically.</p>
 
+              <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
+                <button className="pill-btn primary" onClick={() => deckFileRef.current?.click()} disabled={kbAdding || !presentationEnabled}>
+                  {kbAdding ? "Uploading…" : "⬆ Upload a deck"}
+                </button>
+                <span className="field-hint" style={{ margin: 0 }}>PDF or PPTX from your computer — lands in the Knowledge Base and joins this deck.</span>
+                <input ref={deckFileRef} type="file" style={{ display: "none" }} accept=".pdf,.pptx,.png,.jpg,.jpeg"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadKbFile(f, { addToDeck: true }); e.target.value = ""; }} />
+              </div>
+
               <div className="skill-head" style={{ marginTop: 4 }}>
-                <div className="subhead" style={{ margin: 0 }}>Pick from your Knowledge Base</div>
+                <div className="subhead" style={{ margin: 0 }}>…or pick from your Knowledge Base</div>
                 <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => fetchKbDocs()} disabled={kbLoading}>
                   {kbLoading ? "Loading…" : kbDocs ? "Refresh" : "Load documents"}
                 </button>

@@ -13,6 +13,7 @@
     "@daily-co/daily-js": "^0.91.0",
     "@daily-co/daily-react": "^0.25.3",
     "@modelcontextprotocol/ext-apps": "^1.7.4",
+    "@vercel/blob": "^2.6.1",
     "jotai": "^2.20.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

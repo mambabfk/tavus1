@@ -38,10 +38,15 @@ root — no Root Directory setting needed.
    - `TAVUS_API_KEY` — required for **shareable demo links** (`/d/{slug}`):
      visitors' conversations are created server-side with this key, so link
      recipients never need credentials.
-3. For shareable demo links, add storage: Vercel dashboard → **Storage →
-   Create Database → Upstash Redis** → attach to this project (this injects
-   `KV_REST_API_URL`/`KV_REST_API_TOKEN` automatically) → redeploy. Without
-   it, everything works except link sharing.
+3. Storage attachments (Vercel dashboard → **Storage → Create Database**,
+   attach each to this project, then redeploy):
+   - **Upstash Redis** — powers shareable demo links, the stats dashboard,
+     and user accounts (injects `KV_REST_API_URL`/`KV_REST_API_TOKEN`).
+   - **Blob** — powers "upload a file/deck from your computer" in the
+     Knowledge and Slides steps (injects `BLOB_READ_WRITE_TOKEN`); files
+     upload straight from the browser and feed the Tavus Knowledge Base.
+   Without them, everything else still works — the app tells you exactly
+   which attachment a feature is missing.
 3. Deploy, then in **Project → Settings → Git** set **Production Branch** to
    the branch that carries the builder (unless it's already merged to the
    default branch). Every push auto-deploys from then on.
