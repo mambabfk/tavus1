@@ -185,6 +185,12 @@ function DemoSite({ site, conversationUrl, onStart, onExit, busy }) {
   const [cvi, setCvi] = useState(undefined); // undefined=loading, null=unavailable, object=ready
   useEffect(() => {
     let alive = true;
+    // Escape hatch: ?ui=iframe forces the Tavus-hosted call UI even when the
+    // custom components are installed (they have a known connect-hang risk).
+    if (new URLSearchParams(window.location.search).get("ui") === "iframe") {
+      setCvi(null);
+      return () => { alive = false; };
+    }
     const mods = import.meta.glob("./components/cvi/components/*/index.{tsx,ts,jsx,js}");
     const load = (name) => {
       const key = Object.keys(mods).find((k) => k.includes(`/${name}/`));
