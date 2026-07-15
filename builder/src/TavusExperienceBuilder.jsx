@@ -3198,6 +3198,48 @@ export default function TavusExperienceBuilder() {
                   )
               )}
 
+              {!callDetail && !!callsList?.length && (() => {
+                // Recordings as their own category — every call that produced a
+                // file in the bucket, no per-call digging.
+                const recorded = callsList.filter((c) => recMap[c.conversation_id]?.uri);
+                return (
+                  <>
+                    <div className="subhead">⏺ Recordings ({recorded.length})</div>
+                    {recorded.length === 0 ? (
+                      <p className="field-hint" style={{ maxWidth: 560, marginBottom: 20 }}>
+                        None captured yet. Calls record when S3 recording (Timing step) is on at launch; the file's location lands here a minute or so after each call ends.
+                      </p>
+                    ) : (
+                      <div className="kb-list" style={{ marginBottom: 24 }}>
+                        {recorded.map((c) => {
+                          const rec = recMap[c.conversation_id];
+                          return (
+                            <div key={c.conversation_id} className="kb-row">
+                              <span style={{ flex: 1, fontSize: 13 }}>
+                                {c.conversation_name || <span className="mono" style={{ fontSize: 12 }}>{c.conversation_id}</span>}
+                              </span>
+                              {rec.duration > 0 && <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}>{Math.floor(rec.duration / 60)}m {Math.round(rec.duration % 60)}s</span>}
+                              <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}>{(c.created_at || "").slice(0, 16).replace("T", " ")}</span>
+                              <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => navigator.clipboard?.writeText(rec.uri).catch(() => {})} title={rec.uri}>
+                                Copy path
+                              </button>
+                              {rec.bucket && (
+                                <a className="pill-btn" style={{ padding: "4px 12px", fontSize: 12, textDecoration: "none" }}
+                                  href={`https://s3.console.aws.amazon.com/s3/buckets/${encodeURIComponent(rec.bucket)}?prefix=${encodeURIComponent((rec.key || "").replace(/[^/]*$/, ""))}`}
+                                  target="_blank" rel="noreferrer">S3 ↗</a>
+                              )}
+                              <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => openCall(c.conversation_id)} disabled={callDetailLoading}>
+                                Transcript
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+
               <div className="subhead">All calls on this account{callsList?.length ? ` (${callsList.length})` : ""}</div>
 
               {callDetail ? (
