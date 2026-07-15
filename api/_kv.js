@@ -55,3 +55,4 @@ export async function kvMget(keys) {
 }
 
 export const kvSetRaw = (key, value) => redis(["SET", key, String(value)]);
+export const kvGetRaw = (key) => redis(["GET", key]);

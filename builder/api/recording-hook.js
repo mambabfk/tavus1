@@ -1,4 +1,4 @@
-import { kvAvailable, kvSetEx, kvIncr } from "./_kv.js";
+import { kvAvailable, kvSetEx, kvIncr, kvSetRaw } from "./_kv.js";
 
 /* Public endpoint: receives Tavus application callbacks. When recording to
    the customer's bucket is on, the builder sets the conversation's
@@ -45,6 +45,16 @@ export default async function handler(req, res) {
     }).catch(() => {}).finally(() => clearTimeout(t));
   }
 
+  // Telemetry for /api/health: proves whether Tavus's callbacks reach this
+  // hook at all — the usual failure is a call whose callback_url never
+  // pointed here (launched before the feature, or recording off at launch).
+  try {
+    if (kvAvailable()) {
+      await kvIncr("rechook:seen");
+      await kvSetRaw("rechook:lastevent", `${eventType || "(no event_type)"} · ${convId || "?"} · ${new Date().toISOString()}`);
+    }
+  } catch { /* telemetry only */ }
+
   // Store recording events so the builder can show them next to transcripts.
   try {
     if (
@@ -65,6 +75,8 @@ export default async function handler(req, res) {
           error: String(p.error_message ?? "").slice(0, 500),
           at: new Date().toISOString(),
         }, TTL);
+        await kvIncr("rechook:stored");
+        await kvSetRaw("rechook:laststored", `${convId} · ${new Date().toISOString()}`);
       }
     }
   } catch { /* storage is best-effort — never make Tavus retry */ }

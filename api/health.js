@@ -1,5 +1,5 @@
 import { isAuthed } from "./_auth.js";
-import { kvAvailable, kvGet } from "./_kv.js";
+import { kvAvailable, kvGet, kvGetRaw } from "./_kv.js";
 
 /* Config diagnostics for the deployment: which env vars exist (booleans
    only — never values) and whether the Tavus key + Redis actually respond.
@@ -36,6 +36,20 @@ export default async function handler(req, res) {
   if (out.redis_attached) {
     try { await kvGet("health:probe"); out.redis_works = true; }
     catch (e) { out.redis_works = false; out.redis_error = e.message; }
+  }
+
+  // Recording-hook telemetry: has Tavus ever reached /api/recording-hook,
+  // and did any recording_ready get stored? Zero events = the calls'
+  // callback_url never pointed at the hook.
+  if (out.redis_works) {
+    try {
+      out.recording_hook = {
+        events_received: Number(await kvGetRaw("rechook:seen")) || 0,
+        recordings_stored: Number(await kvGetRaw("rechook:stored")) || 0,
+        last_event: (await kvGetRaw("rechook:lastevent")) || null,
+        last_stored: (await kvGetRaw("rechook:laststored")) || null,
+      };
+    } catch { /* telemetry only */ }
   }
 
   res.status(200).json(out);
