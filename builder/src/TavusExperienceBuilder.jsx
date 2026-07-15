@@ -284,8 +284,8 @@ const BUILDER_CSS = `
         /* Keep Magic Canvas cards inside the stage instead of a full-viewport overlay */
         .canvas-contained { position:absolute !important; inset:0 !important; }
         .interrupt-btn { position:absolute; bottom:18px; right:18px; z-index:30; border-radius:999px; border:none; background:rgba(255,255,255,.92); color:#17181A; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); }
-        .rec-live { position:absolute; top:14px; left:14px; z-index:30; display:inline-flex; align-items:center; gap:7px; background:rgba(0,0,0,.55); color:#fff; border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; letter-spacing:.3px; }
-        .rec-live .rec-dot { width:8px; height:8px; border-radius:50%; background:#FF4D4D; animation:recpulse 1.2s infinite; }
+        /* pointer-events:none — must never block call controls under it */
+        .rec-live { position:absolute; top:14px; left:14px; z-index:30; pointer-events:none; display:inline-flex; align-items:center; gap:7px; background:rgba(0,0,0,.55); color:#fff; border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; letter-spacing:.3px; }
         .rec-live.rec-fail { background:rgba(214,69,69,.92); }
         .interrupt-btn:hover { background:#fff; }
         .demo-cta { display:flex; flex-direction:column; align-items:center; gap:14px; }
@@ -541,9 +541,8 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
 
   return (
     <>
-      {controls.recording && recStatus === "recording" && (
-        <span className="rec-live" title="This call is being recorded to your S3 bucket"><span className="rec-dot" />REC</span>
-      )}
+      {/* No badge while recording works — it covered call buttons. Only a
+          failure warrants pixels, and it's click-transparent. */}
       {controls.recording && recStatus === "error" && (
         <span className="rec-live rec-fail" title="daily recording-error — the call continues but may not be recorded">⚠ recording failed</span>
       )}
