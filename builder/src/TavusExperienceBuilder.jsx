@@ -1876,15 +1876,42 @@ export default function TavusExperienceBuilder() {
     }
   };
 
-  const downloadCall = () => {
-    if (!callDetail) return;
-    const blob = new Blob([JSON.stringify(callDetail, null, 2)], { type: "application/json" });
+  const saveFile = (filename, text, type = "text/plain") => {
+    const blob = new Blob([text], { type });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `tavus-call-${callDetail.conversation_id || "data"}.json`;
+    a.download = filename;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+
+  /* Each kind of call data as its own artifact — transcripts and analyses
+     feed different systems than raw events, so don't force one blob. */
+  const callTranscript = () =>
+    (callDetail?.events || []).find((e) => /transcription/i.test(e.event_type || ""))?.properties?.transcript;
+  const callPerception = () =>
+    (callDetail?.events || []).filter((e) => /perception/i.test(e.event_type || ""))
+      .map((e) => (typeof e.properties?.analysis === "string" ? e.properties.analysis : JSON.stringify(e.properties, null, 2)));
+
+  const downloadCall = () => {
+    if (!callDetail) return;
+    saveFile(`tavus-call-${callDetail.conversation_id || "data"}.json`, JSON.stringify(callDetail, null, 2), "application/json");
+  };
+  const downloadTranscript = (fmt) => {
+    const t = callTranscript();
+    if (!Array.isArray(t) || !callDetail) return;
+    const id = callDetail.conversation_id || "call";
+    if (fmt === "json") { saveFile(`tavus-transcript-${id}.json`, JSON.stringify(t, null, 2), "application/json"); return; }
+    const text = t.filter((m) => m.role !== "system")
+      .map((m) => `${m.role === "assistant" ? (site.brand || "PAL") : "Visitor"}: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
+      .join("\n\n");
+    saveFile(`tavus-transcript-${id}.txt`, text);
+  };
+  const downloadPerception = () => {
+    const p = callPerception();
+    if (!p.length || !callDetail) return;
+    saveFile(`tavus-perception-${callDetail.conversation_id || "call"}.txt`, p.join("\n\n---\n\n"));
   };
 
   /* ── Shareable demo link: store the snapshot server-side, mint /d/{slug} ── */
@@ -3175,9 +3202,15 @@ export default function TavusExperienceBuilder() {
 
               {callDetail ? (
                 <>
-                  <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
                     <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => setCallDetail(null)}>← All calls</button>
-                    <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={downloadCall}>Download JSON</button>
+                    <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => downloadTranscript("txt")}
+                      disabled={!Array.isArray(callTranscript())} title="Readable speaker-labeled transcript">Transcript .txt</button>
+                    <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={() => downloadTranscript("json")}
+                      disabled={!Array.isArray(callTranscript())} title="Structured transcript with roles + timestamps">Transcript .json</button>
+                    <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={downloadPerception}
+                      disabled={!callPerception().length} title="What the PAL saw & heard (Vision analyses)">Perception .txt</button>
+                    <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={downloadCall} title="Everything — every event Tavus recorded">Full data .json</button>
                   </div>
                   <p className="field-hint">
                     <span className="mono">{callDetail.conversation_id}</span> · {callDetail.conversation_name || "unnamed"} · {callDetail.status}
@@ -3291,15 +3324,32 @@ export default function TavusExperienceBuilder() {
                           ))}
                           {!shown.length && <p className="field-hint">Nothing matches this filter.</p>}
                         </div>
-                        {pageCount > 1 && (
-                          <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12 }}>
-                            <button className="pill-btn" style={{ padding: "5px 14px", fontSize: 12 }} disabled={page === 0}
-                              onClick={() => setCallsPage(page - 1)}>← Newer</button>
-                            <span className="field-hint" style={{ margin: 0 }}>Page {page + 1} of {pageCount}</span>
-                            <button className="pill-btn" style={{ padding: "5px 14px", fontSize: 12 }} disabled={page >= pageCount - 1}
-                              onClick={() => setCallsPage(page + 1)}>Older →</button>
-                          </div>
-                        )}
+                        {pageCount > 1 && (() => {
+                          // Numbered pager: all pages when few; first/last plus a
+                          // window around the current page (with gaps) when many.
+                          const nums = [];
+                          for (let i = 0; i < pageCount; i++) {
+                            if (pageCount <= 9 || i === 0 || i === pageCount - 1 || Math.abs(i - page) <= 2) nums.push(i);
+                            else if (nums[nums.length - 1] !== "gap") nums.push("gap");
+                          }
+                          return (
+                            <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 12, flexWrap: "wrap" }}>
+                              <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12 }} disabled={page === 0}
+                                onClick={() => setCallsPage(page - 1)}>←</button>
+                              {nums.map((n, i) => n === "gap"
+                                ? <span key={`g${i}`} style={{ color: "var(--muted)", fontSize: 12 }}>…</span>
+                                : (
+                                  <button key={n} className={"pill-btn" + (n === page ? " primary" : "")}
+                                    style={{ padding: "5px 11px", fontSize: 12 }} onClick={() => setCallsPage(n)}>
+                                    {n + 1}
+                                  </button>
+                                ))}
+                              <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12 }} disabled={page >= pageCount - 1}
+                                onClick={() => setCallsPage(page + 1)}>→</button>
+                              <span className="field-hint" style={{ margin: "0 0 0 6px" }}>{matches.length} calls</span>
+                            </div>
+                          );
+                        })()}
                       </>
                     );
                   })()}
