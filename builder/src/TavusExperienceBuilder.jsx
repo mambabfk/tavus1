@@ -867,6 +867,7 @@ export default function TavusExperienceBuilder() {
   const [callsError, setCallsError] = useState(""); // inline — launch log isn't visible on the Results step
   const [callsFilter, setCallsFilter] = useState(""); // the API key is account-wide; scope the view here
   const [onlyMyPal, setOnlyMyPal] = useState(false);
+  const [callsPage, setCallsPage] = useState(0); // client-side pagination, 25 per page
   const [recMap, setRecMap] = useState({}); // conversation_id → recording location
 
   // Timing & controls
@@ -3252,23 +3253,27 @@ export default function TavusExperienceBuilder() {
                     const palOf = (c) => c.persona_id || c.pal_id || "";
                     const hasPalField = callsList.some((c) => palOf(c));
                     const q = callsFilter.trim().toLowerCase();
-                    const shown = callsList.filter((c) => {
+                    const matches = callsList.filter((c) => {
                       if (onlyMyPal && palId.trim() && hasPalField && palOf(c) !== palId.trim()) return false;
                       if (!q) return true;
                       return `${c.conversation_name || ""} ${c.conversation_id || ""}`.toLowerCase().includes(q);
                     });
+                    const PER_PAGE = 25;
+                    const pageCount = Math.max(1, Math.ceil(matches.length / PER_PAGE));
+                    const page = Math.min(callsPage, pageCount - 1); // clamp — filters can shrink the list
+                    const shown = matches.slice(page * PER_PAGE, (page + 1) * PER_PAGE);
                     return (
                       <>
                         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
-                          <input style={{ maxWidth: 260 }} value={callsFilter} onChange={(e) => setCallsFilter(e.target.value)}
+                          <input style={{ maxWidth: 260 }} value={callsFilter} onChange={(e) => { setCallsFilter(e.target.value); setCallsPage(0); }}
                             placeholder="Filter by demo name or ID…" />
                           {hasPalField && palId.trim() && (
                             <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--muted)", cursor: "pointer" }}>
-                              <input type="checkbox" checked={onlyMyPal} onChange={(e) => setOnlyMyPal(e.target.checked)} />
+                              <input type="checkbox" checked={onlyMyPal} onChange={(e) => { setOnlyMyPal(e.target.checked); setCallsPage(0); }} />
                               only my current PAL ({palId.trim().slice(0, 10)}…)
                             </label>
                           )}
-                          {(q || onlyMyPal) && <span className="field-hint" style={{ margin: 0 }}>{shown.length} of {callsList.length}</span>}
+                          {(q || onlyMyPal) && <span className="field-hint" style={{ margin: 0 }}>{matches.length} of {callsList.length}</span>}
                         </div>
                         <div className="kb-list">
                           {shown.map((c) => (
@@ -3286,6 +3291,15 @@ export default function TavusExperienceBuilder() {
                           ))}
                           {!shown.length && <p className="field-hint">Nothing matches this filter.</p>}
                         </div>
+                        {pageCount > 1 && (
+                          <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12 }}>
+                            <button className="pill-btn" style={{ padding: "5px 14px", fontSize: 12 }} disabled={page === 0}
+                              onClick={() => setCallsPage(page - 1)}>← Newer</button>
+                            <span className="field-hint" style={{ margin: 0 }}>Page {page + 1} of {pageCount}</span>
+                            <button className="pill-btn" style={{ padding: "5px 14px", fontSize: 12 }} disabled={page >= pageCount - 1}
+                              onClick={() => setCallsPage(page + 1)}>Older →</button>
+                          </div>
+                        )}
                       </>
                     );
                   })()}
