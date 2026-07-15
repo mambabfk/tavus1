@@ -16,6 +16,7 @@ export default async function handler(req, res) {
     redis_attached: kvAvailable(),
     redis_works: null,
     blob_store_set: !!process.env.BLOB_READ_WRITE_TOKEN,
+    recording_downloads_set: !!(process.env.RECORDINGS_AWS_ACCESS_KEY_ID && process.env.RECORDINGS_AWS_SECRET_ACCESS_KEY),
     cartesia_key_set: !!process.env.CARTESIA_API_KEY,
     login_configured: !!process.env.BUILDER_PASSWORD,
   };

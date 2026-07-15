@@ -3240,6 +3240,11 @@ export default function TavusExperienceBuilder() {
                               </span>
                               {rec.duration > 0 && <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}>{Math.floor(rec.duration / 60)}m {Math.round(rec.duration % 60)}s</span>}
                               <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}>{(c.created_at || "").slice(0, 16).replace("T", " ")}</span>
+                              <a className="pill-btn" style={{ padding: "4px 12px", fontSize: 12, textDecoration: "none" }}
+                                href={`/api/recording-url?id=${c.conversation_id}`} target="_blank" rel="noreferrer"
+                                title="Downloads the MP4 (15-min signed link — needs the read-only AWS key on the server)">
+                                ⭳ Download
+                              </a>
                               <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => navigator.clipboard?.writeText(rec.uri).catch(() => {})} title={rec.uri}>
                                 Copy path
                               </button>
@@ -3290,6 +3295,10 @@ export default function TavusExperienceBuilder() {
                           <div className="kb-row" style={{ maxWidth: 640, marginBottom: 14 }}>
                             <span className="mono" style={{ flex: 1, fontSize: 12, overflowWrap: "anywhere" }}>{rec.uri}</span>
                             {rec.duration > 0 && <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}>{Math.round(rec.duration / 60)}m {Math.round(rec.duration % 60)}s</span>}
+                            <a className="pill-btn" style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0, textDecoration: "none" }}
+                              href={`/api/recording-url?id=${callDetail.conversation_id}`} target="_blank" rel="noreferrer">
+                              ⭳ Download
+                            </a>
                             <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0 }}
                               onClick={() => navigator.clipboard?.writeText(rec.uri).catch(() => {})}>
                               Copy path
