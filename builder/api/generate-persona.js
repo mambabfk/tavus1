@@ -99,7 +99,8 @@ Return ONLY valid JSON (no code fences, no commentary):
   "canvasPlaybook": "Plain-English direction for when to show interactive cards (question/chart/scheduling...), or empty string"
 }
 
-Rules: 3-5 objectives in conversation order; 2-4 guardrails; every string speaks specifically to the described use case; greetings and page copy are warm and concise; no markdown anywhere.`;
+Rules: 3-5 objectives in conversation order; 2-4 guardrails; every string speaks specifically to the described use case; greetings and page copy are warm and concise; no markdown anywhere.
+Company names: when the idea names or implies a REAL company (by name or website), use that exact real name everywhere — NEVER substitute an invented brand ("StrideLab" for Nike is a failure). Only invent a fictional brand when the idea is explicitly hypothetical or names no company at all. For real companies, don't fabricate specific product claims or statistics — stay in their actual public positioning, general where unsure.`;
 
 function briefToPrompt(brief, context) {
   const lines = ["Write a Tavus persona system prompt for this demo:"];

@@ -1996,15 +1996,21 @@ export default function TavusExperienceBuilder() {
 
   /* ── "Start from an idea": Claude drafts the whole template, all editable ── */
 
-  const draftDemo = async () => {
+  const draftDemo = async (knownBrand = "") => {
     if (!ideaText.trim()) return;
     setIdeating(true);
     try {
       addLog("info", "Drafting the whole demo from your idea…");
+      // Anchor the draft to the REAL company when we know it (from the URL /
+      // theming) — otherwise Claude invents a plausible fictional brand.
+      const parts = [ideaText];
+      const company = String(knownBrand || "").trim() || site.brand.trim();
+      if (company) parts.push(`The prospect/company is ${company} — the REAL company. Use its real name and public positioning everywhere (page copy, greeting, persona, goals). Never invent a substitute brand name. Don't invent specific claims or product facts you're not sure of — stay accurate-but-general where unsure.`);
+      else if (brandUrl.trim()) parts.push(`The prospect's website is ${brandUrl.trim()} — the REAL company behind that domain. Use its real name; never invent a substitute brand name.`);
       const res = await fetch("/api/generate-persona", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "demo", vibe: ideaText }),
+        body: JSON.stringify({ kind: "demo", vibe: parts.join("\n\n") }),
       });
       const text = await res.text();
       if (!res.ok || text.startsWith("[error]")) {
@@ -2081,8 +2087,10 @@ export default function TavusExperienceBuilder() {
       }));
       if (j.greeting && !greeting.trim()) setGreeting(j.greeting);
       addLog("ok", `Demo page themed to ${j.brand || url} — colors, copy${j.greeting && !greeting.trim() ? ", greeting" : ""} drafted for this use case. Tweak anything below.`);
+      return j; // so callers (Draft my demo) can hand the real brand to draftDemo
     } catch (e) {
       addLog("err", `Brand theme: ${e.message}`);
+      return null;
     } finally {
       setTheming(false);
     }
@@ -2535,11 +2543,15 @@ export default function TavusExperienceBuilder() {
                   />
                 </Field>
                 <button className="pill-btn primary big" onClick={async () => {
-                  if (ideaText.trim()) await draftDemo();
-                  if (brandUrl.trim()) await themeFromUrl();
+                  // Theme FIRST: it reads the real site and returns the real
+                  // company name, which the demo draft then builds around —
+                  // otherwise the draft invents a fictional brand ("StrideLab"
+                  // for a sneaker idea) that soaks into greeting/goals/persona.
+                  const theme = brandUrl.trim() ? await themeFromUrl() : null;
+                  if (ideaText.trim()) await draftDemo(theme?.brand || "");
                   setStep("persona");
                 }} disabled={ideating || theming || (!ideaText.trim() && !brandUrl.trim())}>
-                  {ideating ? "Drafting the demo…" : theming ? "Matching their brand…" : "✨ Draft my demo"}
+                  {theming ? "Matching their brand…" : ideating ? "Drafting the demo…" : "✨ Draft my demo"}
                 </button>
                 <p className="field-hint" style={{ marginTop: 10 }}>
                   Takes ~30 seconds. You land on the Persona step to review — every word stays editable.
