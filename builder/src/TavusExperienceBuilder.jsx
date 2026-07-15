@@ -865,6 +865,8 @@ export default function TavusExperienceBuilder() {
   const [callDetail, setCallDetail] = useState(null);
   const [callDetailLoading, setCallDetailLoading] = useState(false);
   const [callsError, setCallsError] = useState(""); // inline — launch log isn't visible on the Results step
+  const [callsFilter, setCallsFilter] = useState(""); // the API key is account-wide; scope the view here
+  const [onlyMyPal, setOnlyMyPal] = useState(false);
   const [recMap, setRecMap] = useState({}); // conversation_id → recording location
 
   // Timing & controls
@@ -3244,23 +3246,49 @@ export default function TavusExperienceBuilder() {
                 <>
                   {callsList === null && <p className="field-hint">Click "Load calls" to list conversations (needs the API key from Setup).</p>}
                   {callsList?.length === 0 && <p className="field-hint">No conversations yet.</p>}
-                  {!!callsList?.length && (
-                    <div className="kb-list">
-                      {callsList.map((c) => (
-                        <div key={c.conversation_id} className="kb-row">
-                          <span style={{ flex: 1, fontSize: 13 }}>
-                            {c.conversation_name || <span className="mono" style={{ fontSize: 12 }}>{c.conversation_id}</span>}
-                          </span>
-                          {recMap[c.conversation_id]?.uri && <span title={`Recorded: ${recMap[c.conversation_id].uri}`} style={{ flexShrink: 0 }}>⏺</span>}
-                          <span className={`kb-status ${c.status === "ended" ? "" : "kb-ready"}`}>{c.status}</span>
-                          <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}>{(c.created_at || "").slice(0, 16).replace("T", " ")}</span>
-                          <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => openCall(c.conversation_id)} disabled={callDetailLoading}>
-                            {callDetailLoading ? "…" : "View"}
-                          </button>
+                  {!!callsList?.length && (() => {
+                    // The API key is account-wide (everyone's calls) — scope the
+                    // view client-side: text search + only-my-PAL toggle.
+                    const palOf = (c) => c.persona_id || c.pal_id || "";
+                    const hasPalField = callsList.some((c) => palOf(c));
+                    const q = callsFilter.trim().toLowerCase();
+                    const shown = callsList.filter((c) => {
+                      if (onlyMyPal && palId.trim() && hasPalField && palOf(c) !== palId.trim()) return false;
+                      if (!q) return true;
+                      return `${c.conversation_name || ""} ${c.conversation_id || ""}`.toLowerCase().includes(q);
+                    });
+                    return (
+                      <>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+                          <input style={{ maxWidth: 260 }} value={callsFilter} onChange={(e) => setCallsFilter(e.target.value)}
+                            placeholder="Filter by demo name or ID…" />
+                          {hasPalField && palId.trim() && (
+                            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--muted)", cursor: "pointer" }}>
+                              <input type="checkbox" checked={onlyMyPal} onChange={(e) => setOnlyMyPal(e.target.checked)} />
+                              only my current PAL ({palId.trim().slice(0, 10)}…)
+                            </label>
+                          )}
+                          {(q || onlyMyPal) && <span className="field-hint" style={{ margin: 0 }}>{shown.length} of {callsList.length}</span>}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <div className="kb-list">
+                          {shown.map((c) => (
+                            <div key={c.conversation_id} className="kb-row">
+                              <span style={{ flex: 1, fontSize: 13 }}>
+                                {c.conversation_name || <span className="mono" style={{ fontSize: 12 }}>{c.conversation_id}</span>}
+                              </span>
+                              {recMap[c.conversation_id]?.uri && <span title={`Recorded: ${recMap[c.conversation_id].uri}`} style={{ flexShrink: 0 }}>⏺</span>}
+                              <span className={`kb-status ${c.status === "ended" ? "" : "kb-ready"}`}>{c.status}</span>
+                              <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}>{(c.created_at || "").slice(0, 16).replace("T", " ")}</span>
+                              <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => openCall(c.conversation_id)} disabled={callDetailLoading}>
+                                {callDetailLoading ? "…" : "View"}
+                              </button>
+                            </div>
+                          ))}
+                          {!shown.length && <p className="field-hint">Nothing matches this filter.</p>}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </>
               )}
             </>
