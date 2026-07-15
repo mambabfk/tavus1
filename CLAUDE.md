@@ -243,8 +243,8 @@ Full-screen branded shell rendered when `siteMode` is true.
   - `cvi` object → render custom `<CVIProvider><Conversation/><MagicCanvas/></CVIProvider>`
   - `cvi === null` → chunk load failure → a "Reload" prompt. There is **no
     iframe fallback** and no `?ui=` escape hatch.
-- `useTabRecorder()` — records the tab (getDisplayMedia) mixed with mic audio
-  via an `AudioContext`, downloads a `.webm`. Independent of Tavus.
+- (The old `useTabRecorder` tab-capture button was removed once server-side
+  S3 recording shipped — don't reintroduce a second recording path.)
 
 ### Fixed — custom CVI call UI used to hang on "Connecting"
 
