@@ -284,6 +284,9 @@ const BUILDER_CSS = `
         /* Keep Magic Canvas cards inside the stage instead of a full-viewport overlay */
         .canvas-contained { position:absolute !important; inset:0 !important; }
         .interrupt-btn { position:absolute; bottom:18px; right:18px; z-index:30; border-radius:999px; border:none; background:rgba(255,255,255,.92); color:#17181A; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+        .rec-live { position:absolute; top:14px; left:14px; z-index:30; display:inline-flex; align-items:center; gap:7px; background:rgba(0,0,0,.55); color:#fff; border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; letter-spacing:.3px; }
+        .rec-live .rec-dot { width:8px; height:8px; border-radius:50%; background:#FF4D4D; animation:recpulse 1.2s infinite; }
+        .rec-live.rec-fail { background:rgba(214,69,69,.92); }
         .interrupt-btn:hover { background:#fff; }
         .demo-cta { display:flex; flex-direction:column; align-items:center; gap:14px; }
         .demo-cta-hint { color:var(--muted); font-size:13px; }
@@ -439,19 +442,42 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
   // S3 recording: Tavus writes the file to the configured bucket, but the
   // recording does NOT start on its own — the frontend has to kick it off
   // once the participant has joined. Non-fatal: a recording hiccup must
-  // never take down a live demo.
+  // never take down a live demo. recStatus drives the on-screen ⏺ REC badge
+  // so "is it actually recording?" is answerable at a glance.
+  const [recStatus, setRecStatus] = useState(""); // "" | "starting" | "recording" | "error"
   useEffect(() => {
     if (!daily || !controls.recording) return;
     let started = false;
+    let retryTimer;
     const startRec = () => {
       if (started) return;
       if (daily.meetingState() !== "joined-meeting") return;
       started = true;
-      try { daily.startRecording(); } catch { /* recording is best-effort */ }
+      setRecStatus("starting");
+      try { daily.startRecording(); } catch { setRecStatus("error"); }
+    };
+    const onStarted = () => setRecStatus("recording");
+    const onStopped = () => setRecStatus((s) => (s === "error" ? s : ""));
+    const onError = () => {
+      // One retry — recording infra can hiccup right at join time.
+      setRecStatus("error");
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(() => {
+        try { daily.startRecording(); setRecStatus("starting"); } catch { /* stay in error */ }
+      }, 2500);
     };
     daily.on("joined-meeting", startRec);
+    daily.on("recording-started", onStarted);
+    daily.on("recording-stopped", onStopped);
+    daily.on("recording-error", onError);
     startRec(); // already joined by the time this mounts
-    return () => { daily.off("joined-meeting", startRec); };
+    return () => {
+      clearTimeout(retryTimer);
+      daily.off("joined-meeting", startRec);
+      daily.off("recording-started", onStarted);
+      daily.off("recording-stopped", onStopped);
+      daily.off("recording-error", onError);
+    };
   }, [daily, controls.recording]);
 
   useEffect(() => {
@@ -517,11 +543,20 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daily]);
 
-  if (!controls.interruptButton) return null;
   return (
-    <button className="interrupt-btn" onClick={interrupt} title="Stop the PAL mid-sentence">
-      ✋ Interrupt
-    </button>
+    <>
+      {controls.recording && recStatus === "recording" && (
+        <span className="rec-live" title="This call is being recorded to your S3 bucket"><span className="rec-dot" />REC</span>
+      )}
+      {controls.recording && recStatus === "error" && (
+        <span className="rec-live rec-fail" title="daily recording-error — the call continues but may not be recorded">⚠ recording failed</span>
+      )}
+      {controls.interruptButton && (
+        <button className="interrupt-btn" onClick={interrupt} title="Stop the PAL mid-sentence">
+          ✋ Interrupt
+        </button>
+      )}
+    </>
   );
 }
 
