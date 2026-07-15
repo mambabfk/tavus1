@@ -291,10 +291,6 @@ const BUILDER_CSS = `
         .demo-cta { display:flex; flex-direction:column; align-items:center; gap:14px; }
         .demo-cta-hint { color:var(--muted); font-size:13px; }
         .demo-powered { color:var(--muted); font-size:11px; font-family:var(--mono); margin-top:30px; }
-        .rec-dot { width:9px; height:9px; border-radius:50%; background:var(--danger); }
-        .rec-on { background:var(--danger); border-color:var(--danger); color:#fff; font-variant-numeric:tabular-nums; }
-        .rec-on .rec-dot { background:#fff; }
-        .pulsing { animation:recpulse 1.2s infinite; }
         @keyframes recpulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
         .idea-box { background:var(--accent-soft); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px 20px; margin-bottom:26px; max-width:600px; }
@@ -560,67 +556,6 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
   );
 }
 
-/* ── Tab recorder: tab video + tab audio mixed with mic → .webm ── */
-function useTabRecorder() {
-  const [recording, setRecording] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const recRef = useRef(null);
-  const streamsRef = useRef([]);
-  const timerRef = useRef(null);
-
-  const stop = () => {
-    if (recRef.current && recRef.current.state !== "inactive") recRef.current.stop();
-  };
-
-  const start = async () => {
-    try {
-      const display = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 30 }, audio: true });
-      let mic = null;
-      try { mic = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { /* mic denied */ }
-
-      const ctx = new AudioContext();
-      const dest = ctx.createMediaStreamDestination();
-      if (display.getAudioTracks().length) ctx.createMediaStreamSource(new MediaStream(display.getAudioTracks())).connect(dest);
-      if (mic) ctx.createMediaStreamSource(mic).connect(dest);
-
-      const mixed = new MediaStream([...display.getVideoTracks(), ...dest.stream.getAudioTracks()]);
-      streamsRef.current = [display, mic, ctx].filter(Boolean);
-
-      const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus") ? "video/webm;codecs=vp9,opus" : "video/webm";
-      const rec = new MediaRecorder(mixed, { mimeType: mime, videoBitsPerSecond: 5_000_000 });
-      const chunks = [];
-      rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
-      rec.onstop = () => {
-        const blob = new Blob(chunks, { type: "video/webm" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `tavus-demo-${new Date().toISOString().replace(/[:.]/g, "-")}.webm`;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 5000);
-        streamsRef.current.forEach((s) => {
-          if (s.getTracks) s.getTracks().forEach((t) => t.stop());
-          else if (s.close) s.close();
-        });
-        streamsRef.current = [];
-        clearInterval(timerRef.current);
-        setRecording(false);
-        setElapsed(0);
-      };
-      display.getVideoTracks()[0].addEventListener("ended", stop);
-
-      recRef.current = rec;
-      rec.start(1000);
-      setRecording(true);
-      const t0 = Date.now();
-      timerRef.current = setInterval(() => setElapsed(Math.floor((Date.now() - t0) / 1000)), 500);
-    } catch { /* user cancelled share picker */ }
-  };
-
-  useEffect(() => () => { clearInterval(timerRef.current); }, []);
-  return { recording, elapsed, start, stop };
-}
-
 /* ── Safe storage: persists in a normal browser (your local Vite app);
       silently no-ops where storage is blocked (e.g. claude.ai preview). ── */
 const store = {
@@ -659,9 +594,6 @@ function Toggle({ on, onChange }) {
 /* ── Demo page: minimal Alto shell around the conversation ──── */
 
 function DemoSite({ site, conversationUrl, conversationId, controls, onStart, onExit, busy, visitor = false }) {
-  const { recording, elapsed, start: startRec, stop: stopRec } = useTabRecorder();
-  const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-
   // Magic Canvas reports a signed pixel shift so the host can slide the video
   // away from active cards — without it, side cards can cover the face.
   const [videoShift, setVideoShift] = useState(0);
@@ -782,14 +714,6 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
         </div>
         {!visitor && (
           <div style={{ display: "flex", gap: 8 }}>
-            <button
-              className={"pill-btn ghost" + (recording ? " rec-on" : "")}
-              onClick={recording ? stopRec : startRec}
-              title={recording ? "Stop and download the recording" : 'Record this tab — pick "This Tab" and keep tab audio on'}
-            >
-              <span className={"rec-dot" + (recording ? " pulsing" : "")} />
-              {recording ? `Stop · ${fmt(elapsed)}` : "Record"}
-            </button>
             <button className="pill-btn ghost" onClick={onExit}>← Builder</button>
           </div>
         )}
