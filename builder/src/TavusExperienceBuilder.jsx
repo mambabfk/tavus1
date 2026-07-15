@@ -864,6 +864,7 @@ export default function TavusExperienceBuilder() {
   const [callsLoading, setCallsLoading] = useState(false);
   const [callDetail, setCallDetail] = useState(null);
   const [callDetailLoading, setCallDetailLoading] = useState(false);
+  const [callsError, setCallsError] = useState(""); // inline — launch log isn't visible on the Results step
   const [recMap, setRecMap] = useState({}); // conversation_id → recording location
 
   // Timing & controls
@@ -1818,8 +1819,10 @@ export default function TavusExperienceBuilder() {
   /* ── Calls & data: pulled straight from Tavus (source of truth) ── */
 
   const fetchCalls = async () => {
-    if (!apiKey.trim()) { addLog("err", "Enter your Tavus API key in Setup first."); return; }
+    // Errors render inline — the launch log isn't visible on this step.
+    if (!apiKey.trim()) { setCallsError("Needs the Tavus API key — set it on the Account step, or load a saved scenario from the top bar."); return; }
     setCallsLoading(true);
+    setCallsError("");
     setCallDetail(null);
     try {
       const d = await tavusFetch("GET", "/conversations");
@@ -1827,6 +1830,7 @@ export default function TavusExperienceBuilder() {
       setCallsList(list);
       fetchRecordings(list.map((c) => c.conversation_id).filter(Boolean));
     } catch (e) {
+      setCallsError(`Couldn't load calls: ${e.message}`);
       addLog("err", `Calls: ${e.message}`);
     } finally {
       setCallsLoading(false);
@@ -1849,8 +1853,10 @@ export default function TavusExperienceBuilder() {
     try {
       const d = await tavusFetch("GET", `/conversations/${id}?verbose=true`);
       setCallDetail(d);
+      setCallsError("");
       if (!recMap[id]) fetchRecordings([id]);
     } catch (e) {
+      setCallsError(`Couldn't open that call: ${e.message}`);
       addLog("err", `Call detail: ${e.message}`);
     } finally {
       setCallDetailLoading(false);
@@ -3086,6 +3092,7 @@ export default function TavusExperienceBuilder() {
               <p className="lede">
                 Every conversation on this account — including ones visitors started from shared links. Open a call for its full transcript, what the PAL saw (perception analysis), and the raw event data. Pulled live from Tavus, so it's always complete.
               </p>
+              {callsError && <p className="field-hint" style={{ color: "var(--danger)", maxWidth: 560, marginTop: -6, marginBottom: 14 }}>{callsError}</p>}
 
               <div className="skill-head">
                 <div className="subhead" style={{ margin: 0 }}>Shared-demo dashboard</div>
