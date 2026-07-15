@@ -1408,8 +1408,11 @@ export default function TavusExperienceBuilder() {
      email ask", …) — an edit, not a regenerate. Prompt AND objectives are
      revised together: objectives drive the flow mechanically, so flow feedback
      has to land there, not just in prompt prose. */
-  const revisePersona = async () => {
-    if (!personaDraft.trim() || !personaFeedback.trim()) return;
+  const revisePersona = async (feedbackOverride) => {
+    // Callable two ways: from the feedback field (uses personaFeedback state)
+    // or programmatically with an instruction string (canvas inject).
+    const feedback = typeof feedbackOverride === "string" ? feedbackOverride : personaFeedback;
+    if (!personaDraft.trim() || !feedback.trim()) return;
     setGenerating(true);
     const previous = personaDraft;
     setPersonaAttached(false);
@@ -1420,7 +1423,7 @@ export default function TavusExperienceBuilder() {
         body: JSON.stringify({
           kind: "revise",
           draft: previous,
-          vibe: personaFeedback,
+          vibe: feedback,
           context: {
             objectives: objectivesEnabled ? objectivesText : "",
             guardrails: guardrailsEnabled ? guardrailsText : "",
@@ -1468,6 +1471,26 @@ export default function TavusExperienceBuilder() {
     } finally {
       setGenerating(false);
     }
+  };
+
+  /* Canvas → prompt: cards only appear when the conversation creates their
+     moment; this asks Claude to weave those moments (and show-instructions)
+     into the persona itself, via the same revise machinery. */
+  const injectCanvasIntoPrompt = async () => {
+    if (!personaDraft.trim()) {
+      addLog("err", "Canvas inject: draft a persona first (Persona step) — there's no prompt to weave the cards into.");
+      return;
+    }
+    const cards = CANVAS_COMPONENTS
+      .filter((c) => components[c.key])
+      .map((c) => `- ${c.label} card${componentRules[c.key].trim() ? `: ${componentRules[c.key].trim()}` : " (no rule written — pick a sensible moment or ignore it)"}`);
+    const parts = [
+      "Weave the Magic Canvas cards into the persona so the conversation actually CREATES the moment each card needs, then shows it. Add or adjust a section instructing the persona, for each card below, to (a) steer the conversation toward that moment naturally and (b) show the card the instant the moment happens. If a card's moment requires a beat the conversation doesn't have yet (e.g. 'added to cart' needs an add-to-cart beat), add that beat to the flow — and mirror it in the objectives.",
+      `Enabled cards:\n${cards.join("\n")}`,
+    ];
+    if (canvasPlaybook.trim()) parts.push(`Canvas playbook:\n${canvasPlaybook.trim()}`);
+    if (schedulingUrl.trim()) parts.push("A live Calendly booking card is available — treat booking time as a real closing move.");
+    await revisePersona(parts.join("\n\n"));
   };
 
   /* ── Test drive: text-only chat against the PAL (no video, no camera).
@@ -3105,9 +3128,20 @@ export default function TavusExperienceBuilder() {
               </div>
               <p className="lede">Interactive cards next to the video — polls, charts, live booking — that make the conversation tactile. The trick is restraint: a few well-timed cards beat a slideshow. Let Claude plan it, then adjust.</p>
 
-              <button className="pill-btn primary" style={{ marginBottom: 18 }} onClick={generateCanvasPlan} disabled={!canvasEnabled || canvasPlanning}>
-                {canvasPlanning ? "Planning…" : "✨ Suggest a canvas plan"}
-              </button>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                <button className="pill-btn primary" onClick={generateCanvasPlan} disabled={!canvasEnabled || canvasPlanning}>
+                  {canvasPlanning ? "Planning…" : "✨ Suggest a canvas plan"}
+                </button>
+                <button className="pill-btn" onClick={injectCanvasIntoPrompt} disabled={!canvasEnabled || generating || !personaDraft.trim()}
+                  title={personaDraft.trim() ? "Claude rewrites the persona (and goals if needed) so the conversation creates each card's moment" : "Draft a persona first — there's no prompt to inject into yet"}>
+                  {generating ? "Weaving…" : "🪡 Inject into prompt"}
+                </button>
+              </div>
+              <p className="field-hint" style={{ maxWidth: 620, marginBottom: 18 }}>
+                Cards only appear when the conversation reaches their moment — a rule alone can't fire if the moment never happens.
+                <b> Inject into prompt</b> weaves each card's moment into the persona (and goals) so the conversation steers there.
+                Re-attach the prompt on the Persona step afterwards, then relaunch.
+              </p>
 
               <div className="comp-grid">
                 {CANVAS_COMPONENTS.map((c) => (
