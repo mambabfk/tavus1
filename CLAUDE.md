@@ -26,11 +26,14 @@ Anthropic key.
   Claude (`claude-opus-4-8`, `@anthropic-ai/sdk`, adaptive thinking, streamed
   as plain text) to draft a persona system prompt. Requires the
   `ANTHROPIC_API_KEY` env var on Vercel — the key never reaches the browser.
-- `builder/api/login.js` + `builder/api/_auth.js` — shared access-code login.
-  When `BUILDER_PASSWORD` is set, the UI gates behind a lock screen and
-  `generate-persona` requires the HMAC session cookie (stateless — derived
-  from the password, so rotating the password revokes all sessions). Unset =
-  open (local dev).
+- `builder/api/login.js` + `builder/api/_auth.js` — login. When
+  `BUILDER_PASSWORD` is set + Redis attached: per-user email/password
+  accounts (scrypt in Redis); sign-up needs an invite — either the shared
+  `BUILDER_PASSWORD` or a **per-person single-use code** (`TVS-XXXXXXXX`,
+  minted by any signed-in user via `api/invites.js`, 30-day unused TTL,
+  burned on use; "Team access" panel on the Account step). Sessions are HMAC
+  cookies derived from the password — rotating it signs everyone out but
+  keeps accounts. Unset = open (local dev).
 - `builder/api/demos.js` + `builder/api/demo-launch.js` + `builder/api/_kv.js`
   — **shareable demo links**. `POST /api/demos` (builder session required)
   stores an immutable snapshot `{name, site, controls, payload}` in Upstash

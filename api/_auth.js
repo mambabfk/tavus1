@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { kvAvailable, kvGet, kvSet, kvIncr } from "./_kv.js";
+import { kvAvailable, kvGet, kvSet, kvSetEx, kvIncr } from "./_kv.js";
 
 /* Auth for the builder.
    - Accounts mode (BUILDER_PASSWORD set + Redis attached): per-user email +
@@ -67,14 +67,28 @@ export const clearSessionCookie = () =>
 const normEmail = (e) => String(e ?? "").trim().toLowerCase();
 const hashPassword = (pw, salt) => crypto.scryptSync(String(pw), salt, 32).toString("base64url");
 
+/* Per-person single-use invite codes (invite:{TVS-XXXXXXXX} in Redis).
+   The shared BUILDER_PASSWORD still works as a team-wide fallback code. */
+export const normInviteCode = (s) => String(s ?? "").trim().toUpperCase();
+export const isInviteCodeShape = (s) => /^TVS-[A-Z2-9]{8}$/.test(normInviteCode(s));
+
 export async function createAccount(email, password, invite) {
   email = normEmail(email);
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("That doesn't look like an email address.");
   if (String(password ?? "").length < 8) throw new Error("Password needs at least 8 characters.");
-  if (!safeEqual(invite, process.env.BUILDER_PASSWORD)) throw new Error("Wrong invite code.");
+
+  let personal = null;
+  if (isInviteCodeShape(invite)) personal = await kvGet(`invite:${normInviteCode(invite)}`);
+  if (personal?.usedBy) throw new Error("That invite code has already been used — ask for a fresh one.");
+  if (!personal && !safeEqual(invite, process.env.BUILDER_PASSWORD)) throw new Error("Wrong invite code.");
+
   if (await kvGet(`user:${email}`)) throw new Error("That account already exists — sign in instead.");
   const salt = crypto.randomBytes(16).toString("base64url");
   await kvSet(`user:${email}`, { salt, hash: hashPassword(password, salt), createdAt: new Date().toISOString() });
+  if (personal) {
+    // Burn the code; keep the used record around for the team list.
+    await kvSetEx(`invite:${normInviteCode(invite)}`, { ...personal, usedBy: email, usedAt: new Date().toISOString() }, 90 * 86400);
+  }
   return email;
 }
 

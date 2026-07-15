@@ -853,6 +853,12 @@ export default function TavusExperienceBuilder() {
   const [toolWebhook, setToolWebhook] = useState("");
   const [toolEcho, setToolEcho] = useState("");
 
+  // Team invites (per-person, single-use sign-up codes)
+  const [invites, setInvites] = useState(null);
+  const [invitesLoading, setInvitesLoading] = useState(false);
+  const [inviteCreating, setInviteCreating] = useState(false);
+  const [inviteError, setInviteError] = useState("");
+
   // Demo dashboard (per-slug stats from Redis)
   const [demoStats, setDemoStats] = useState(null);
   const [demoStatsLoading, setDemoStatsLoading] = useState(false);
@@ -2299,6 +2305,39 @@ export default function TavusExperienceBuilder() {
     } catch { /* clipboard blocked */ }
   };
 
+  /* ── Team invites: per-person, single-use sign-up codes ── */
+
+  const loadInvites = async () => {
+    setInvitesLoading(true);
+    setInviteError("");
+    try {
+      const r = await fetch("/api/invites");
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "couldn't load invites");
+      setInvites(j.invites || []);
+    } catch (e) {
+      setInviteError(e.message);
+    } finally {
+      setInvitesLoading(false);
+    }
+  };
+
+  const createInvite = async () => {
+    setInviteCreating(true);
+    setInviteError("");
+    try {
+      const r = await fetch("/api/invites", { method: "POST" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "couldn't create invite");
+      setInvites((l) => [{ code: j.code, usedBy: null, expired: false, createdAt: new Date().toISOString() }, ...(l || [])]);
+      copy(j.code, `inv-${j.code}`); // fresh code straight onto the clipboard
+    } catch (e) {
+      setInviteError(e.message);
+    } finally {
+      setInviteCreating(false);
+    }
+  };
+
   /* ── UI ── */
 
   if (demoSlug) return <VisitorDemo slug={demoSlug} />;
@@ -2521,6 +2560,50 @@ export default function TavusExperienceBuilder() {
               <Field label="Custom greeting" hint="Optional. The PAL speaks this first, uninterrupted.">
                 <textarea value={greeting} onChange={(e) => setGreeting(e.target.value)} placeholder="Hi — I'm ready to walk you through the deck whenever you are." />
               </Field>
+
+              {auth.required && auth.authed && (
+                <>
+                  <div className="skill-head" style={{ marginTop: 26 }}>
+                    <div className="subhead" style={{ margin: 0 }}>Team access</div>
+                    <button className="pill-btn primary" style={{ padding: "6px 14px", fontSize: 13 }} onClick={createInvite} disabled={inviteCreating}>
+                      {inviteCreating ? "Creating…" : "+ New invite code"}
+                    </button>
+                  </div>
+                  <p className="field-hint" style={{ maxWidth: 560, marginBottom: 10 }}>
+                    Each code admits <b>one</b> teammate: send it to them, they hit "Create account" on the lock screen with their own
+                    email + password + the code. Codes burn on use and expire after 30 days unused — the list shows who used what.
+                  </p>
+                  {inviteError && <p className="field-hint" style={{ color: "var(--danger)" }}>{inviteError}</p>}
+                  {invites === null ? (
+                    <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13 }} onClick={loadInvites} disabled={invitesLoading}>
+                      {invitesLoading ? "Loading…" : "Show invites"}
+                    </button>
+                  ) : invites.length === 0 ? (
+                    <p className="field-hint">No invites yet — mint one with the button above.</p>
+                  ) : (
+                    <div className="kb-list" style={{ maxWidth: 640 }}>
+                      {invites.map((inv) => (
+                        <div key={inv.code} className="kb-row">
+                          <span className="mono" style={{ flex: 1, fontSize: 12.5 }}>{inv.code}</span>
+                          {inv.expired ? (
+                            <span className="kb-status">expired</span>
+                          ) : inv.usedBy ? (
+                            <span style={{ color: "var(--muted)", fontSize: 11.5 }} title={inv.usedAt}>used by {inv.usedBy}</span>
+                          ) : (
+                            <>
+                              <span className="kb-status kb-ready">unused</span>
+                              <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }}
+                                onClick={() => copy(inv.code, `inv-${inv.code}`)}>
+                                {copied === `inv-${inv.code}` ? "Copied" : "Copy"}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </>
           )}
 
