@@ -1486,6 +1486,7 @@ export default function TavusExperienceBuilder() {
       .map((c) => `- ${c.label} card${componentRules[c.key].trim() ? `: ${componentRules[c.key].trim()}` : " (no rule written — pick a sensible moment or ignore it)"}`);
     const parts = [
       "Weave the Magic Canvas cards into the persona so the conversation actually CREATES the moment each card needs, then shows it. Add or adjust a section instructing the persona, for each card below, to (a) steer the conversation toward that moment naturally and (b) show the card the instant the moment happens. If a card's moment requires a beat the conversation doesn't have yet (e.g. 'added to cart' needs an add-to-cart beat), add that beat to the flow — and mirror it in the objectives.",
+      "Two hard rules to include: the persona NEVER speaks stage directions — never says 'show card', reads card instructions aloud, or narrates that it is displaying something; cards happen silently alongside natural speech. And whenever the visitor offers a specific detail worth capturing (a size, an email, a preference), that is an input-card moment — capture it with the card while acknowledging it in speech.",
       `Enabled cards:\n${cards.join("\n")}`,
     ];
     if (canvasPlaybook.trim()) parts.push(`Canvas playbook:\n${canvasPlaybook.trim()}`);
