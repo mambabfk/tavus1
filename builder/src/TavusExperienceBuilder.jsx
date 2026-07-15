@@ -1825,10 +1825,20 @@ export default function TavusExperienceBuilder() {
     setCallsError("");
     setCallDetail(null);
     try {
-      const d = await tavusFetch("GET", "/conversations");
-      const list = d.data || d.conversations || [];
-      setCallsList(list);
-      fetchRecordings(list.map((c) => c.conversation_id).filter(Boolean));
+      // The list endpoint is paginated — walk every page (capped at 500 calls
+      // so a huge account can't hang the tab).
+      const all = [];
+      for (let page = 1; page <= 10; page++) {
+        const d = await tavusFetch("GET", `/conversations?limit=50&page=${page}`);
+        const batch = d.data || d.conversations || [];
+        all.push(...batch);
+        const total = d.total_count ?? d.total;
+        if (!batch.length || batch.length < 50 || (total != null && all.length >= total)) break;
+      }
+      setCallsList(all);
+      if (all.length >= 500) addLog("info", "Results shows the 500 most recent calls — older ones exist but aren't listed.");
+      const ids = all.map((c) => c.conversation_id).filter(Boolean);
+      for (let i = 0; i < ids.length; i += 100) fetchRecordings(ids.slice(i, i + 100));
     } catch (e) {
       setCallsError(`Couldn't load calls: ${e.message}`);
       addLog("err", `Calls: ${e.message}`);
@@ -3158,7 +3168,7 @@ export default function TavusExperienceBuilder() {
                   )
               )}
 
-              <div className="subhead">All calls on this account</div>
+              <div className="subhead">All calls on this account{callsList?.length ? ` (${callsList.length})` : ""}</div>
 
               {callDetail ? (
                 <>
