@@ -1827,18 +1827,39 @@ export default function TavusExperienceBuilder() {
     setCallsError("");
     setCallDetail(null);
     try {
-      // The list endpoint is paginated — walk every page (capped at 500 calls
-      // so a huge account can't hang the tab).
-      const all = [];
-      for (let page = 1; page <= 10; page++) {
-        const d = await tavusFetch("GET", `/conversations?limit=50&page=${page}`);
-        const batch = d.data || d.conversations || [];
-        all.push(...batch);
-        const total = d.total_count ?? d.total;
-        if (!batch.length || batch.length < 50 || (total != null && all.length >= total)) break;
+      // The list endpoint is paginated OLDEST-FIRST — walking from page 1
+      // returns the account's ancient history and recent calls never appear.
+      // Read the total, fetch the LAST pages, and sort newest-first (500 cap).
+      const PER = 50, MAX_PAGES = 10;
+      const first = await tavusFetch("GET", `/conversations?limit=${PER}&page=1`);
+      const firstBatch = first.data || first.conversations || [];
+      const total = first.total_count ?? first.total ?? null;
+      let all = [...firstBatch];
+      if (total != null && total > PER) {
+        const lastPage = Math.ceil(total / PER);
+        const startPage = Math.max(2, lastPage - MAX_PAGES + 1);
+        const pages = [];
+        for (let pg = startPage; pg <= lastPage; pg++) pages.push(pg);
+        const chunks = await Promise.all(pages.map((pg) =>
+          tavusFetch("GET", `/conversations?limit=${PER}&page=${pg}`).then((d) => d.data || d.conversations || []).catch(() => [])
+        ));
+        all = startPage > 2 ? chunks.flat() : [...firstBatch, ...chunks.flat()];
+      } else if (total == null && firstBatch.length === PER) {
+        // No total reported — fall back to a forward walk.
+        for (let pg = 2; pg <= MAX_PAGES; pg++) {
+          const d = await tavusFetch("GET", `/conversations?limit=${PER}&page=${pg}`);
+          const batch = d.data || d.conversations || [];
+          all.push(...batch);
+          if (batch.length < PER) break;
+        }
       }
+      const seen = new Set();
+      all = all
+        .filter((c) => c.conversation_id && !seen.has(c.conversation_id) && seen.add(c.conversation_id))
+        .sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")))
+        .slice(0, 500);
       setCallsList(all);
-      if (all.length >= 500) addLog("info", "Results shows the 500 most recent calls — older ones exist but aren't listed.");
+      if (total != null && total > all.length) addLog("info", `Results shows the ${all.length} most recent of ${total} lifetime calls.`);
       const ids = all.map((c) => c.conversation_id).filter(Boolean);
       for (let i = 0; i < ids.length; i += 100) fetchRecordings(ids.slice(i, i + 100));
     } catch (e) {
