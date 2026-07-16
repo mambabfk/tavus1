@@ -1404,6 +1404,23 @@ export default function TavusExperienceBuilder() {
 
   /* ── Persona: Claude drafts the system prompt via the backend ── */
 
+  /* Presentation setup as Claude context. Generate AND revise send this —
+     the persona can only integrate the deck when Claude knows the trigger
+     mode, the operator's directions, and the talk track (was a bare boolean,
+     which is why revise feedback about presenting had nothing to work with). */
+  const presentationContext = () => {
+    if (!presentationEnabled || docIds.length === 0) return null;
+    const track = talkTrack
+      .map((t, i) => ({ n: i + 1, t: String(t || "").trim() }))
+      .filter((x) => x.t);
+    return {
+      slidesTrigger,
+      prompt: presentPrompt.trim(),
+      slideCount: talkTrack.length,
+      talkTrack: track.map(({ n, t }) => `Slide ${n}: ${t}`).join("\n").slice(0, 3000),
+    };
+  };
+
   const generatePersona = async () => {
     setGenerating(true);
     setPersonaDraft("");
@@ -1434,7 +1451,7 @@ export default function TavusExperienceBuilder() {
             brand: site.brand,
             objectives: objectivesEnabled ? objectivesText.trim() : "",
             guardrails: guardrailsEnabled ? guardrailsText.trim() : "",
-            presentation: presentationEnabled && docIds.length > 0,
+            presentation: presentationContext(),
             canvas: canvasEnabled,
             canvasPlaybook: canvasEnabled ? canvasPlaybook.trim() : "",
           },
@@ -1491,6 +1508,7 @@ export default function TavusExperienceBuilder() {
           context: {
             objectives: objectivesEnabled ? objectivesText : "",
             guardrails: guardrailsEnabled ? guardrailsText : "",
+            presentation: presentationContext(),
           },
         }),
       });
@@ -1535,6 +1553,38 @@ export default function TavusExperienceBuilder() {
     } finally {
       setGenerating(false);
     }
+  };
+
+  /* Slides → prompt: the presentation skill shares the deck, but the persona
+     only presents WELL when the prompt owns the beat — when the deck starts,
+     the pacing, resuming after questions, closing it. Same revise machinery
+     as the canvas inject. */
+  const injectPresentationIntoPrompt = async () => {
+    if (!personaDraft.trim()) {
+      addLog("err", "Slides inject: draft a persona first (Persona step) — there's no prompt to weave the deck into.");
+      return;
+    }
+    if (!presentationEnabled || docIds.length === 0) {
+      addLog("err", "Slides inject: turn on Slides and attach a deck first.");
+      return;
+    }
+    const parts = [
+      slidesTrigger === "walk_the_deck"
+        ? "Integrate the slide deck into the persona as the backbone of the call. Add or adjust a dedicated presenting section: open with a short personal beat to build rapport, then transition into the deck and WALK IT — one slide at a time, a couple of spoken sentences per slide in the persona's own voice, and a check-in question every slide or two so it stays a conversation, not a lecture. Mirror the deck walk in the objectives so the flow actually reaches the deck and finishes it."
+        : "Integrate the slide deck into the persona as an on-demand asset. Add or adjust a dedicated presenting section: the persona offers or opens slides only when the visitor asks or the moment clearly calls for one, presents the relevant slide in its own voice, then returns to open conversation. Mirror any beat this needs in the objectives.",
+      "Hard rules to include: while a slide is up, speak to THAT slide only — never read it verbatim, never describe slides that aren't visible. When the visitor interrupts with a question, answer it fully, then resume exactly where the deck left off. Close the deck cleanly before moving to next steps (booking, wrap-up). Never speak stage directions — no 'let me show slide three', no narrating that it is presenting; transitions happen naturally in speech.",
+    ];
+    if (presentPrompt.trim()) parts.push(`Operator's presenting directions — fold these in:\n${presentPrompt.trim()}`);
+    const track = talkTrack
+      .map((t, i) => ({ n: i + 1, t: String(t || "").trim() }))
+      .filter((x) => x.t);
+    if (track.length) {
+      parts.push(
+        `Slide-by-slide talk track (already attached to the presentation skill — make the persona's flow consistent with it, don't copy it verbatim):\n` +
+        track.map(({ n, t }) => `Slide ${n}: ${t}`).join("\n").slice(0, 3000)
+      );
+    }
+    await revisePersona(parts.join("\n\n"));
   };
 
   /* Canvas → prompt: cards only appear when the conversation creates their
@@ -3163,6 +3213,18 @@ export default function TavusExperienceBuilder() {
               <Field label="Presenter style" hint="Optional — how it should present overall.">
                 <textarea value={presentPrompt} onChange={(e) => setPresentPrompt(e.target.value)} placeholder="Walk the participant through the deck one slide at a time. Pause for questions after each section." />
               </Field>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                <button className="pill-btn" onClick={injectPresentationIntoPrompt} disabled={!presentationEnabled || docIds.length === 0 || generating || !personaDraft.trim()}
+                  title={personaDraft.trim() ? "Claude rewrites the persona (and goals if needed) so the call actually reaches the deck and presents it well" : "Draft a persona first — there's no prompt to inject into yet"}>
+                  {generating ? "Weaving…" : "🪡 Inject into prompt"}
+                </button>
+              </div>
+              <p className="field-hint" style={{ maxWidth: 620, marginBottom: 18 }}>
+                The skill shares the slides, but the persona decides when the deck starts, the pacing, and how to resume after questions.
+                <b> Inject into prompt</b> weaves the deck — trigger, presenter style, talk track — into the persona (and goals) so presenting actually happens.
+                Re-attach the prompt on the Persona step afterwards, then relaunch.
+              </p>
 
               <div className="skill-head" style={{ marginTop: 10 }}>
                 <div className="subhead" style={{ margin: 0 }}>Talk track — what to say on each slide</div>

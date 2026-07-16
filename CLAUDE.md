@@ -101,8 +101,10 @@ non-technical users; ids unchanged):
    attach never happens without the human seeing the text.
    **Revise with feedback** (`revisePersona()`, `kind: "revise"`): a one-line
    feedback field under the draft sends draft + current objectives/guardrails
-   text + feedback; Claude returns JSON `{prompt, objectives|null,
-   guardrails|null, note}` — an *edit*, not a regenerate. Objectives are
+   text + presentation setup (`presentationContext()`: trigger, presenter
+   style, talk track — generate sends the same object) + feedback; Claude
+   returns JSON `{prompt, objectives|null, guardrails|null, note}` — an
+   *edit*, not a regenerate. Objectives are
    revised together with the prompt because they drive flow mechanically
    (a prompt-only edit leaves the PAL looping on stale objectives — learned
    from user pain). Frontend applies all three; goals re-attach on next
@@ -135,7 +137,11 @@ non-technical users; ids unchanged):
    visual_awareness_queries, audio_awareness_queries}`. Persists on the PAL.
 3. **Presentation** — attach PDF/image decks from the Knowledge Base.
    `docIdsRaw` (comma/newline list → `docIds`), `slidesTrigger`
-   (`walk_the_deck` | `on_demand`), optional `presentPrompt`.
+   (`walk_the_deck` | `on_demand`), optional `presentPrompt`, per-slide
+   `talkTrack`. **Inject into prompt** (`injectPresentationIntoPrompt()`,
+   mirrors the canvas inject): weaves the deck — trigger mode, presenter
+   style, talk track — into the persona + objectives via the revise
+   machinery, so the flow actually reaches and finishes the deck.
 4. **Magic Canvas** — interactive cards beside the video. Seven components
    (`CANVAS_COMPONENTS`); all on by default. Per-card enable + free-text rule,
    `canvasStyle` (eager/balanced/minimal/on_request), `canvasPlaybook`,
