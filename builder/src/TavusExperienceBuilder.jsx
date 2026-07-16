@@ -292,13 +292,21 @@ const BUILDER_CSS = `
            screen region instead of cards overlaying (cutting into) the video. */
         /* width/height:auto — size from the insets; the .cvi-wrap > * 100% sizing
            would otherwise win the over-constraint tie and pin the pane full-width */
-        .cvi-video-pane { position:absolute; inset:0; width:auto; height:auto; transition:left .55s cubic-bezier(.22,.9,.3,1), right .55s cubic-bezier(.22,.9,.3,1); }
+        .cvi-video-pane { position:absolute; inset:0; width:auto; height:auto; overflow:hidden; transition:left .55s cubic-bezier(.22,.9,.3,1), right .55s cubic-bezier(.22,.9,.3,1); }
         .cvi-video-pane > * { width:100%; height:100%; }
+        /* The vendored conversation container is aspect-ratio:16/9 + max-height:90vh —
+           exact fit for a full 16:9 stage, but a letterboxed strip (black bars) once
+           the pane narrows for the split. Make it fill the pane; the video itself is
+           object-fit:cover so it crops instead of squishing. Structural selector
+           because the module class names are hashed. */
+        .cvi-wrap .cvi-video-pane > * > * { height:100%; max-height:none; aspect-ratio:auto; border-radius:0; }
         .canvas-split-right .cvi-video-pane { right:var(--canvas-panel-w); }
         .canvas-split-left .cvi-video-pane { left:var(--canvas-panel-w); }
-        .canvas-panel { position:absolute; top:0; bottom:0; width:var(--canvas-panel-w); background:#17181d; opacity:0; transition:opacity .45s ease; pointer-events:none; }
-        .canvas-panel-right { right:0; border-left:1px solid rgba(255,255,255,.09); }
-        .canvas-panel-left { left:0; border-right:1px solid rgba(255,255,255,.09); }
+        /* A light sheet (site canvas color), not a dark strip — it should read as
+           the card's own screen, matching the page, never as a dead black region. */
+        .canvas-panel { position:absolute; top:0; bottom:0; width:var(--canvas-panel-w); background:var(--canvas,#F5F4F1); opacity:0; transition:opacity .45s ease; pointer-events:none; }
+        .canvas-panel-right { right:0; border-left:1px solid var(--border,#E6E4DF); }
+        .canvas-panel-left { left:0; border-right:1px solid var(--border,#E6E4DF); }
         .canvas-split .canvas-panel { opacity:1; }
         /* Keep Magic Canvas cards inside the stage instead of a full-viewport overlay */
         .canvas-contained { position:absolute !important; inset:0 !important; }
