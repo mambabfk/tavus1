@@ -251,6 +251,14 @@ const BUILDER_CSS = `
         .pill-btn.big { padding:15px 32px; font-size:16px; }
         .pill-btn.ghost { background:var(--surface); }
 
+        /* Global toast: the latest log line, visible on every step (the full
+           log only lives on Launch). z above the demo overlay (z-50). */
+        .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:200; display:flex; align-items:center; gap:12px; background:#17181A; color:#fff; border-radius:999px; padding:11px 20px; font-size:13px; line-height:1.45; max-width:min(760px,92vw); box-shadow:0 8px 28px rgba(0,0,0,.28); }
+        .toast-err { background:#B93B3B; }
+        .toast-ok { background:#1D7A4C; }
+        .toast button { background:none; border:none; color:#fff; opacity:.7; font-size:16px; cursor:pointer; padding:0 2px; line-height:1; }
+        .toast button:hover { opacity:1; }
+
         .log { max-width:640px; margin-top:20px; display:flex; flex-direction:column; gap:6px; }
         .log-row { font-family:var(--mono); font-size:12px; display:flex; gap:10px; line-height:1.5; }
         .log-t { color:var(--muted); flex-shrink:0; }
@@ -948,6 +956,8 @@ export default function TavusExperienceBuilder() {
   // Launch
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState([]);
+  const [toast, setToast] = useState(null); // latest log line, shown on every step
+  const toastTimer = useRef(null);
   const [conversation, setConversation] = useState(null);
   const [siteMode, setSiteMode] = useState(false);
   const [copied, setCopied] = useState("");
@@ -1322,7 +1332,14 @@ export default function TavusExperienceBuilder() {
 
   /* ── API ── */
 
-  const addLog = (kind, msg) => setLog((l) => [...l, { kind, msg, t: new Date().toLocaleTimeString() }]);
+  /* Log entries also flash as a global toast — the full log only renders on
+     the Launch step, and errors elsewhere used to vanish into it silently. */
+  const addLog = (kind, msg) => {
+    setLog((l) => [...l, { kind, msg, t: new Date().toLocaleTimeString() }]);
+    setToast({ kind, msg });
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), kind === "err" ? 15000 : 6000);
+  };
 
   const tavusFetch = async (method, path, body) => {
     const res = await fetch(`${API_BASE}${path}`, {
@@ -3832,6 +3849,13 @@ export default function TavusExperienceBuilder() {
           </div>
         </aside>
       </div>
+
+      {toast && (
+        <div className={`toast toast-${toast.kind}`} role="status">
+          <span>{toast.msg}</span>
+          <button onClick={() => setToast(null)} aria-label="Dismiss">×</button>
+        </div>
+      )}
     </div>
   );
 }
