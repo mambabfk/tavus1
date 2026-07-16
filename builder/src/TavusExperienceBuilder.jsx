@@ -314,6 +314,9 @@ const BUILDER_CSS = `
            100vw, which overflows a stage narrower than the viewport). */
         .canvas-contained [data-canvas-slot="safe-area-right"],
         .canvas-contained [data-canvas-slot="safe-area-left"] { width:calc(var(--canvas-panel-w) - 32px); }
+        /* Alto-style card chrome on the panel — the module's flat 8px card
+           washes out against the light panel background. */
+        .canvas-contained [data-canvas-card] { border-radius:16px; border:1px solid var(--border,#E6E4DF); box-shadow:0 22px 48px -20px rgba(20,20,20,.30); }
         /* Call controls stay over the video, not under the canvas panel */
         .canvas-split-right .interrupt-btn { right:calc(var(--canvas-panel-w) + 18px); }
         .canvas-split-left .rec-live { left:calc(var(--canvas-panel-w) + 14px); }
@@ -1225,6 +1228,17 @@ export default function TavusExperienceBuilder() {
       }[canvasStyle];
       if (styleText) parts.push(styleText);
 
+      // Always-on formatting contract for card content. Without it models pack
+      // whole lists into one run-on paragraph with inline dashes — unreadable
+      // on the card (seen in live demos).
+      parts.push(
+        "Magic Canvas card formatting (every card, no exceptions):\n" +
+        "- Cards render markdown. Any list goes one item per line as real markdown bullets (\"- item\") — never chained into a single paragraph with dashes, commas, or semicolons.\n" +
+        "- Keep cards scannable: title of 2-5 words, at most 6 bullets, each bullet under 8 words. Say the detail out loud instead of cramming it onto the card.\n" +
+        "- One idea per card; show a new card for a new topic instead of appending to an old one.\n" +
+        "- Prefer the structured card for the job — Question for choices, Input for capturing details, Calendar for dates — over a Text card describing the same thing."
+      );
+
       const rules = CANVAS_COMPONENTS
         .filter((c) => components[c.key] && componentRules[c.key].trim())
         .map((c) => `- ${c.label} card: ${componentRules[c.key].trim()}`);
@@ -1536,7 +1550,7 @@ export default function TavusExperienceBuilder() {
       .map((c) => `- ${c.label} card${componentRules[c.key].trim() ? `: ${componentRules[c.key].trim()}` : " (no rule written — pick a sensible moment or ignore it)"}`);
     const parts = [
       "Weave the Magic Canvas cards into the persona so the conversation actually CREATES the moment each card needs, then shows it. Add or adjust a section instructing the persona, for each card below, to (a) steer the conversation toward that moment naturally and (b) show the card the instant the moment happens. If a card's moment requires a beat the conversation doesn't have yet (e.g. 'added to cart' needs an add-to-cart beat), add that beat to the flow — and mirror it in the objectives.",
-      "Two hard rules to include: the persona NEVER speaks stage directions — never says 'show card', reads card instructions aloud, or narrates that it is displaying something; cards happen silently alongside natural speech. And whenever the visitor offers a specific detail worth capturing (a size, an email, a preference), that is an input-card moment — capture it with the card while acknowledging it in speech.",
+      "Three hard rules to include: the persona NEVER speaks stage directions — never says 'show card', reads card instructions aloud, or narrates that it is displaying something; cards happen silently alongside natural speech. Whenever the visitor offers a specific detail worth capturing (a size, an email, a preference), that is an input-card moment — capture it with the card while acknowledging it in speech. And card content is formatted for scanning: markdown bullets one item per line (never a run-on paragraph with inline dashes), title of 2-5 words, at most 6 bullets of under 8 words each.",
       `Enabled cards:\n${cards.join("\n")}`,
     ];
     if (canvasPlaybook.trim()) parts.push(`Canvas playbook:\n${canvasPlaybook.trim()}`);
