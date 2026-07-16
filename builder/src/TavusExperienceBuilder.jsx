@@ -2008,11 +2008,15 @@ export default function TavusExperienceBuilder() {
       const company = String(knownBrand || "").trim() || site.brand.trim();
       if (company) parts.push(`The prospect/company is ${company} — the REAL company. Use its real name and public positioning everywhere (page copy, greeting, persona, goals). Never invent a substitute brand name. Don't invent specific claims or product facts you're not sure of — stay accurate-but-general where unsure.`);
       else if (brandUrl.trim()) parts.push(`The prospect's website is ${brandUrl.trim()} — the REAL company behind that domain. Use its real name; never invent a substitute brand name.`);
+      // Hard timeout: a hung serverless call must not freeze the wizard.
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 90_000);
       const res = await fetch("/api/generate-persona", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind: "demo", vibe: parts.join("\n\n") }),
-      });
+        signal: ctrl.signal,
+      }).finally(() => clearTimeout(timer));
       const text = await res.text();
       if (!res.ok || text.startsWith("[error]")) {
         let msg = text.replace(/^\[error\]\s*/, "");
@@ -2045,7 +2049,7 @@ export default function TavusExperienceBuilder() {
       setPersonaDraft(""); setPersonaAttached(false); // brief changed → draft is stale
       addLog("ok", "Demo drafted — every step is filled in. Walk the rail to review and edit, then generate the persona.");
     } catch (e) {
-      addLog("err", `Draft demo: ${e.message}`);
+      addLog("err", `Draft demo: ${e.name === "AbortError" ? "took too long (90s) and was cancelled — try again; if it keeps happening, shorten the idea text" : e.message}`);
     } finally {
       setIdeating(false);
     }
@@ -2067,11 +2071,15 @@ export default function TavusExperienceBuilder() {
         personaBrief.audience && `Audience: ${personaBrief.audience}`,
         personaBrief.product && `Product focus: ${personaBrief.product}`,
       ].filter(Boolean).join("\n");
+      // Hard timeout: a hung serverless call must not freeze the wizard.
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 75_000);
       const res = await fetch("/api/brand-theme", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: /^https?:\/\//i.test(url) ? url : `https://${url}`, useCase }),
-      });
+        signal: ctrl.signal,
+      }).finally(() => clearTimeout(timer));
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
@@ -2090,7 +2098,7 @@ export default function TavusExperienceBuilder() {
       addLog("ok", `Demo page themed to ${j.brand || url} — colors, copy${j.greeting && !greeting.trim() ? ", greeting" : ""} drafted for this use case. Tweak anything below.`);
       return j; // so callers (Draft my demo) can hand the real brand to draftDemo
     } catch (e) {
-      addLog("err", `Brand theme: ${e.message}`);
+      addLog("err", `Brand theme: ${e.name === "AbortError" ? "took too long (75s) and was skipped — draft continues; theme the page later from Page & Brand" : e.message}`);
       return null;
     } finally {
       setTheming(false);
