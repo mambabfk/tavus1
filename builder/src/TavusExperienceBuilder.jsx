@@ -285,12 +285,30 @@ const BUILDER_CSS = `
         .demo-header p { color:var(--muted); font-size:16px; line-height:1.6; max-width:600px; margin:14px auto 0; }
         .demo-stage { width:min(1080px,100%); aspect-ratio:16/9; background:var(--surface); border:1px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:0 20px 60px -24px rgba(20,20,20,.18); display:flex; align-items:center; justify-content:center; position:relative; }
         .demo-stage iframe { width:100%; height:100%; border:none; }
-        .cvi-wrap { position:relative; width:100%; height:100%; background:#0e0f12; overflow:hidden; }
+        .cvi-wrap { position:relative; width:100%; height:100%; background:#0e0f12; overflow:hidden; --canvas-panel-w:min(480px, 46%); }
         .cvi-wrap > * { width:100%; height:100%; }
-        .cvi-video-shift { position:absolute; inset:0; transition:transform .55s cubic-bezier(.22,.9,.3,1); will-change:transform; }
-        .cvi-video-shift > * { width:100%; height:100%; }
+        /* Split layout: an active side card claims a dedicated panel and the
+           video pane RESIZES into the remaining width — the canvas gets its own
+           screen region instead of cards overlaying (cutting into) the video. */
+        /* width/height:auto — size from the insets; the .cvi-wrap > * 100% sizing
+           would otherwise win the over-constraint tie and pin the pane full-width */
+        .cvi-video-pane { position:absolute; inset:0; width:auto; height:auto; transition:left .55s cubic-bezier(.22,.9,.3,1), right .55s cubic-bezier(.22,.9,.3,1); }
+        .cvi-video-pane > * { width:100%; height:100%; }
+        .canvas-split-right .cvi-video-pane { right:var(--canvas-panel-w); }
+        .canvas-split-left .cvi-video-pane { left:var(--canvas-panel-w); }
+        .canvas-panel { position:absolute; top:0; bottom:0; width:var(--canvas-panel-w); background:#17181d; opacity:0; transition:opacity .45s ease; pointer-events:none; }
+        .canvas-panel-right { right:0; border-left:1px solid rgba(255,255,255,.09); }
+        .canvas-panel-left { left:0; border-right:1px solid rgba(255,255,255,.09); }
+        .canvas-split .canvas-panel { opacity:1; }
         /* Keep Magic Canvas cards inside the stage instead of a full-viewport overlay */
         .canvas-contained { position:absolute !important; inset:0 !important; }
+        /* Fit the side slots to the panel (the vendored module sizes them off
+           100vw, which overflows a stage narrower than the viewport). */
+        .canvas-contained [data-canvas-slot="safe-area-right"],
+        .canvas-contained [data-canvas-slot="safe-area-left"] { width:calc(var(--canvas-panel-w) - 32px); }
+        /* Call controls stay over the video, not under the canvas panel */
+        .canvas-split-right .interrupt-btn { right:calc(var(--canvas-panel-w) + 18px); }
+        .canvas-split-left .rec-live { left:calc(var(--canvas-panel-w) + 14px); }
         .interrupt-btn { position:absolute; bottom:18px; right:18px; z-index:30; border-radius:999px; border:none; background:rgba(255,255,255,.92); color:#17181A; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); }
         /* pointer-events:none — must never block call controls under it */
         .rec-live { position:absolute; top:14px; left:14px; z-index:30; pointer-events:none; display:inline-flex; align-items:center; gap:7px; background:rgba(0,0,0,.55); color:#fff; border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; letter-spacing:.3px; }
@@ -601,10 +619,13 @@ function Toggle({ on, onChange }) {
 /* ── Demo page: minimal Alto shell around the conversation ──── */
 
 function DemoSite({ site, conversationUrl, conversationId, controls, onStart, onExit, busy, visitor = false }) {
-  // Magic Canvas reports a signed pixel shift so the host can slide the video
-  // away from active cards — without it, side cards can cover the face.
-  const [videoShift, setVideoShift] = useState(0);
-  const onCanvasLayout = useCallback((l) => setVideoShift(l?.active ? l.video_shift_x || 0 : 0), []);
+  // Magic Canvas layout: when a side card is active the stage splits into a
+  // video pane + a dedicated canvas panel (the card never overlays the video).
+  // The side is kept after deactivation so the exit slide goes back the same way.
+  const [canvasPanel, setCanvasPanel] = useState({ active: false, side: "right" });
+  const onCanvasLayout = useCallback((l) => {
+    setCanvasPanel((prev) => ({ active: Boolean(l?.active), side: (l?.active && l.side) || prev.side }));
+  }, []);
 
   // True when the logo image is a wordmark (wide) — the brand text is skipped
   // to avoid "Sendoso Sendoso" in the nav.
@@ -647,14 +668,18 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
     }
     if (cvi) {
       const { CVIProvider, Conversation, MagicCanvas } = cvi;
+      // Phone format is too narrow to split — cards keep the overlay behavior there.
+      const split = canvasPanel.active && format !== "phone";
       return (
         <CVIProvider>
-          <div className="cvi-wrap">
-            {/* Shift the video away from active canvas cards so they never
-                cover the face — MagicCanvas computes the exact offset. */}
-            <div className="cvi-video-shift" style={{ transform: videoShift ? `translateX(${videoShift}px)` : "none" }}>
+          <div className={"cvi-wrap" + (split ? ` canvas-split canvas-split-${canvasPanel.side}` : "")}>
+            {/* The video pane resizes into the space the canvas panel doesn't
+                claim, so active cards get their own screen region beside the
+                video instead of cutting into it. */}
+            <div className="cvi-video-pane">
               <Conversation conversationUrl={conversationUrl} onLeave={onExit} />
             </div>
+            <div className={`canvas-panel canvas-panel-${canvasPanel.side}`} aria-hidden="true" />
             {/* Contained inside the stage instead of a full-viewport overlay */}
             <MagicCanvas className="canvas-contained" onError={(e) => console.error("canvas error", e)} onLayoutEffectChange={onCanvasLayout} />
             <CallExtras controls={controls} conversationId={conversationId} onForceLeave={onExit} />
