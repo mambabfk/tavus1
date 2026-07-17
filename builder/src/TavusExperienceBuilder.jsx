@@ -453,12 +453,19 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
     if (!daily || !controls.recording) return;
     let started = false;
     let retryTimer;
+    // Bare startRecording() uses the room default, which composes only the
+    // digital human — pass an explicit layout so the visitor is in the file.
+    const recOpts =
+      controls.recordingLayout === "pal" ? undefined
+      : controls.recordingLayout === "speaker" ? { layout: { preset: "active-participant" } }
+      : { layout: { preset: "default" } }; // everyone, side by side
+    const kickoff = () => (recOpts ? daily.startRecording(recOpts) : daily.startRecording());
     const startRec = () => {
       if (started) return;
       if (daily.meetingState() !== "joined-meeting") return;
       started = true;
       setRecStatus("starting");
-      try { daily.startRecording(); } catch { setRecStatus("error"); }
+      try { kickoff(); } catch { setRecStatus("error"); }
     };
     const onStarted = () => setRecStatus("recording");
     const onStopped = () => setRecStatus((s) => (s === "error" ? s : ""));
@@ -467,7 +474,7 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
       setRecStatus("error");
       clearTimeout(retryTimer);
       retryTimer = setTimeout(() => {
-        try { daily.startRecording(); setRecStatus("starting"); } catch { /* stay in error */ }
+        try { kickoff(); setRecStatus("starting"); } catch { /* stay in error */ }
       }, 2500);
     };
     daily.on("joined-meeting", startRec);
@@ -901,9 +908,10 @@ export default function TavusExperienceBuilder() {
   const [recS3Region, setRecS3Region] = useState(() => store.get(REC_KEY, {}).region ?? "");
   const [recS3RoleArn, setRecS3RoleArn] = useState(() => store.get(REC_KEY, {}).roleArn ?? "");
   const [recS3ExternalId, setRecS3ExternalId] = useState(() => store.get(REC_KEY, {}).externalId ?? "");
+  const [recLayout, setRecLayout] = useState(() => store.get(REC_KEY, {}).layout ?? "everyone"); // everyone | speaker | pal
   useEffect(() => {
-    store.set(REC_KEY, { enabled: recordingEnabled, bucket: recS3Bucket, region: recS3Region, roleArn: recS3RoleArn, externalId: recS3ExternalId });
-  }, [recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId]);
+    store.set(REC_KEY, { enabled: recordingEnabled, bucket: recS3Bucket, region: recS3Region, roleArn: recS3RoleArn, externalId: recS3ExternalId, layout: recLayout });
+  }, [recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout]);
 
   // New-PAL creation (Persona step)
   const [newPalName, setNewPalName] = useState("");
@@ -1002,7 +1010,7 @@ export default function TavusExperienceBuilder() {
     visionEnabled, visionVibe, visualQueriesText, audioQueriesText,
     speechEnabled, pronunciationText, emotionControl, externalVoiceId, externalVoiceName,
     maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, wakePhrase, interruptButton, guardrailEcho,
-    recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId,
+    recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout,
     toolsEnabled, toolRows, toolWebhook, toolEcho,
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt, talkTrack,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
@@ -1034,6 +1042,7 @@ export default function TavusExperienceBuilder() {
     setRecS3Region(c.recS3Region ?? savedRec.region ?? "");
     setRecS3RoleArn(c.recS3RoleArn ?? savedRec.roleArn ?? "");
     setRecS3ExternalId(c.recS3ExternalId ?? savedRec.externalId ?? "");
+    setRecLayout(c.recLayout ?? savedRec.layout ?? "everyone");
     setToolsEnabled(!!c.toolsEnabled);
     setToolRows(Array.isArray(c.toolRows) && c.toolRows.length ? c.toolRows : [{ name: "", desc: "", fields: "" }]);
     setToolWebhook(c.toolWebhook ?? ""); setToolEcho(c.toolEcho ?? "");
@@ -1274,7 +1283,8 @@ export default function TavusExperienceBuilder() {
     // Recording doesn't start on its own — the call UI must call
     // daily.startRecording() once joined. CallExtras does that when this is set.
     recording: recordingEnabled && !!(recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim()),
-  }), [maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn]);
+    recordingLayout: recLayout,
+  }), [maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout]);
 
   const pronunciationRules = useMemo(() => parsePronunciation(pronunciationText), [pronunciationText]);
   const pronunciationPayload = useMemo(
@@ -3639,6 +3649,13 @@ export default function TavusExperienceBuilder() {
                   </Field>
                   <Field label="External ID (optional)" hint="Only if your role's trust policy requires one.">
                     <input className="mono" style={{ maxWidth: 360 }} value={recS3ExternalId} onChange={(e) => setRecS3ExternalId(e.target.value)} placeholder="leave blank unless your security team set one" />
+                  </Field>
+                  <Field label="What gets recorded" hint="Everyone = AI human and visitor side by side (best for demo review). Speaker focus = whoever is talking fills the frame. AI human only = the old behavior.">
+                    <div className="seg">
+                      {[["everyone", "Everyone"], ["speaker", "Speaker focus"], ["pal", "AI human only"]].map(([v, label]) => (
+                        <button key={v} className={recLayout === v ? "on" : ""} onClick={() => setRecLayout(v)}>{label}</button>
+                      ))}
+                    </div>
                   </Field>
                   {!(recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim()) && (
                     <p className="field-hint" style={{ color: "var(--danger)", maxWidth: 560 }}>
