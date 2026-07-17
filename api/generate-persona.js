@@ -14,6 +14,7 @@ Rules for the persona prompts you write:
 - One question at a time. The persona listens more than it talks — answers should usually be a few sentences, not a monologue.
 - The persona never claims to be human, never invents pricing, features, or commitments, and gracefully redirects out-of-scope questions.
 - If the demo config includes objectives, guardrails, a presentation deck, or Magic Canvas, reference how the persona should work with them (e.g. let objectives drive the flow, respect guardrails absolutely, show canvas cards when they beat speaking, hand off to slides when walking the deck).
+- When a presentation deck is attached, write a dedicated presenting section: when the deck starts (walk-the-deck mode: soon after a short rapport beat, and it is the backbone of the call; on-demand mode: only when the visitor asks or the moment calls for it), pacing (one slide at a time, a couple of sentences per slide in its own voice, a check-in question every slide or two), interruptions (answer fully, then resume exactly where the deck left off), and the close (finish the deck cleanly before next steps). It speaks to the visible slide only — never reads it verbatim, never narrates that it is presenting.
 - If an emotional vibe is provided, include a dedicated section on how the persona FEELS and expresses it: the baseline mood, how the energy moves across the call, what genuinely excites them, and how they shift when the user sounds frustrated, confused, or delighted (Tavus renders emotion through the voice and face automatically — write performable emotional direction, never stage directions or emotion tags). Keep it human-scale: warm and real, never cartoonish.
 - Write in second person ("You are…"). Aim for 250–500 words: complete but tight — every line must earn its place in a live call.
 
@@ -24,6 +25,8 @@ const REVISE_SYSTEM = `You revise the configuration of a Tavus PAL (persona) —
 You are given the CURRENT system prompt, the CURRENT objectives (the structured, ordered flow the conversation MUST follow — attached to the PAL separately from the prompt), the CURRENT guardrails, and the operator's feedback from watching a real call.
 
 CRITICAL: objectives drive the conversation flow mechanically — the PAL works through them in order and won't move on until one completes. If the feedback describes flow problems (stuck repeating a step, looping, skipping ahead, pushing something at the wrong time), the fix lives in the OBJECTIVES list; editing prompt prose alone will not change the flow. When feedback implies a flow change, revise the objectives. When it's purely voice/knowledge/personality, leave objectives null.
+
+When a CURRENT PRESENTATION SETUP is provided, the PAL presents a slide deck via a separate skill: the skill shares the slides, but the PROMPT drives when the deck starts, the pacing (one slide at a time, check-in questions), how interruptions resume, and how the deck closes. Feedback about presenting/slides lands in the prompt's presenting section (create one if missing), and the prompt must stay consistent with the setup's trigger mode and talk track. If the flow never reaches the deck, that's an objectives problem too — mirror the deck walk in the objectives.
 
 Apply the feedback precisely and return ONLY valid JSON (no code fences, no commentary):
 {
@@ -117,11 +120,30 @@ function briefToPrompt(brief, context) {
   add("Brand name on the demo page", context.brand);
   if (context.objectives) lines.push(`The PAL has structured objectives attached (one per line, in order):\n${context.objectives}`);
   if (context.guardrails) lines.push(`The PAL has guardrails attached (one per line):\n${context.guardrails}`);
-  if (context.presentation) lines.push("The PAL has a presentation deck attached and can screen-share slides.");
+  lines.push(...presentationContextLines(context.presentation));
   if (context.canvasPlaybook) lines.push(`Magic Canvas playbook for this demo:\n${context.canvasPlaybook}`);
   else if (context.canvas) lines.push("Magic Canvas is enabled — the PAL can show interactive cards beside the video.");
 
   return lines.join("\n\n");
+}
+
+/* Presentation setup → prompt-context lines. Accepts the rich object the
+   builder now sends ({slidesTrigger, prompt, slideCount, talkTrack}) and the
+   legacy boolean older clients sent. */
+function presentationContextLines(pres) {
+  if (!pres) return [];
+  if (typeof pres !== "object") {
+    return ["The PAL has a presentation deck attached and can screen-share slides."];
+  }
+  const trigger = pres.slidesTrigger === "on_demand"
+    ? "on demand — it presents a slide only when the visitor asks or the moment clearly calls for it"
+    : "walk the deck — the deck is the backbone of the call and the persona is expected to present it end to end";
+  const lines = [
+    `The PAL has a presentation deck attached and can screen-share slides (trigger: ${trigger}${pres.slideCount ? `; ~${pres.slideCount} slides` : ""}).`,
+  ];
+  if (pres.prompt) lines.push(`Operator's presenting directions:\n${String(pres.prompt).slice(0, 2000)}`);
+  if (pres.talkTrack) lines.push(`Slide-by-slide talk track (attached to the presentation skill — keep the persona's flow consistent with it):\n${String(pres.talkTrack).slice(0, 3000)}`);
+  return lines;
 }
 
 export default async function handler(req, res) {
@@ -152,6 +174,8 @@ export default async function handler(req, res) {
     const parts = [`CURRENT SYSTEM PROMPT:\n${String(draft).trim().slice(0, 20000)}`];
     parts.push(`CURRENT OBJECTIVES (ordered flow; one per line):\n${String(context.objectives ?? "").trim().slice(0, 4000) || "(none configured)"}`);
     parts.push(`CURRENT GUARDRAILS (one per line):\n${String(context.guardrails ?? "").trim().slice(0, 4000) || "(none configured)"}`);
+    const presLines = presentationContextLines(context.presentation);
+    if (presLines.length) parts.push(`CURRENT PRESENTATION SETUP:\n${presLines.join("\n\n")}`);
     parts.push(`OPERATOR FEEDBACK — apply this:\n${String(vibe).trim().slice(0, 4000)}`);
     userPrompt = parts.join("\n\n");
   } else if (kind === "talktrack") {

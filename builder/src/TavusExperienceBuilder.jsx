@@ -285,12 +285,41 @@ const BUILDER_CSS = `
         .demo-header p { color:var(--muted); font-size:16px; line-height:1.6; max-width:600px; margin:14px auto 0; }
         .demo-stage { width:min(1080px,100%); aspect-ratio:16/9; background:var(--surface); border:1px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:0 20px 60px -24px rgba(20,20,20,.18); display:flex; align-items:center; justify-content:center; position:relative; }
         .demo-stage iframe { width:100%; height:100%; border:none; }
-        .cvi-wrap { position:relative; width:100%; height:100%; background:#0e0f12; overflow:hidden; }
+        .cvi-wrap { position:relative; width:100%; height:100%; background:#0e0f12; overflow:hidden; --canvas-panel-w:min(480px, 46%); }
         .cvi-wrap > * { width:100%; height:100%; }
-        .cvi-video-shift { position:absolute; inset:0; transition:transform .55s cubic-bezier(.22,.9,.3,1); will-change:transform; }
-        .cvi-video-shift > * { width:100%; height:100%; }
+        /* Split layout: an active side card claims a dedicated panel and the
+           video pane RESIZES into the remaining width — the canvas gets its own
+           screen region instead of cards overlaying (cutting into) the video. */
+        /* width/height:auto — size from the insets; the .cvi-wrap > * 100% sizing
+           would otherwise win the over-constraint tie and pin the pane full-width */
+        .cvi-video-pane { position:absolute; inset:0; width:auto; height:auto; overflow:hidden; transition:left .55s cubic-bezier(.22,.9,.3,1), right .55s cubic-bezier(.22,.9,.3,1); }
+        .cvi-video-pane > * { width:100%; height:100%; }
+        /* The vendored conversation container is aspect-ratio:16/9 + max-height:90vh —
+           exact fit for a full 16:9 stage, but a letterboxed strip (black bars) once
+           the pane narrows for the split. Make it fill the pane; the video itself is
+           object-fit:cover so it crops instead of squishing. Structural selector
+           because the module class names are hashed. */
+        .cvi-wrap .cvi-video-pane > * > * { height:100%; max-height:none; aspect-ratio:auto; border-radius:0; }
+        .canvas-split-right .cvi-video-pane { right:var(--canvas-panel-w); }
+        .canvas-split-left .cvi-video-pane { left:var(--canvas-panel-w); }
+        /* A light sheet (site canvas color), not a dark strip — it should read as
+           the card's own screen, matching the page, never as a dead black region. */
+        .canvas-panel { position:absolute; top:0; bottom:0; width:var(--canvas-panel-w); background:var(--canvas,#F5F4F1); opacity:0; transition:opacity .45s ease; pointer-events:none; }
+        .canvas-panel-right { right:0; border-left:1px solid var(--border,#E6E4DF); }
+        .canvas-panel-left { left:0; border-right:1px solid var(--border,#E6E4DF); }
+        .canvas-split .canvas-panel { opacity:1; }
         /* Keep Magic Canvas cards inside the stage instead of a full-viewport overlay */
         .canvas-contained { position:absolute !important; inset:0 !important; }
+        /* Fit the side slots to the panel (the vendored module sizes them off
+           100vw, which overflows a stage narrower than the viewport). */
+        .canvas-contained [data-canvas-slot="safe-area-right"],
+        .canvas-contained [data-canvas-slot="safe-area-left"] { width:calc(var(--canvas-panel-w) - 32px); }
+        /* Alto-style card chrome on the panel — the module's flat 8px card
+           washes out against the light panel background. */
+        .canvas-contained [data-canvas-card] { border-radius:16px; border:1px solid var(--border,#E6E4DF); box-shadow:0 22px 48px -20px rgba(20,20,20,.30); }
+        /* Call controls stay over the video, not under the canvas panel */
+        .canvas-split-right .interrupt-btn { right:calc(var(--canvas-panel-w) + 18px); }
+        .canvas-split-left .rec-live { left:calc(var(--canvas-panel-w) + 14px); }
         .interrupt-btn { position:absolute; bottom:18px; right:18px; z-index:30; border-radius:999px; border:none; background:rgba(255,255,255,.92); color:#17181A; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); }
         /* pointer-events:none — must never block call controls under it */
         .rec-live { position:absolute; top:14px; left:14px; z-index:30; pointer-events:none; display:inline-flex; align-items:center; gap:7px; background:rgba(0,0,0,.55); color:#fff; border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; letter-spacing:.3px; }
@@ -608,10 +637,13 @@ function Toggle({ on, onChange }) {
 /* ── Demo page: minimal Alto shell around the conversation ──── */
 
 function DemoSite({ site, conversationUrl, conversationId, controls, onStart, onExit, busy, visitor = false }) {
-  // Magic Canvas reports a signed pixel shift so the host can slide the video
-  // away from active cards — without it, side cards can cover the face.
-  const [videoShift, setVideoShift] = useState(0);
-  const onCanvasLayout = useCallback((l) => setVideoShift(l?.active ? l.video_shift_x || 0 : 0), []);
+  // Magic Canvas layout: when a side card is active the stage splits into a
+  // video pane + a dedicated canvas panel (the card never overlays the video).
+  // The side is kept after deactivation so the exit slide goes back the same way.
+  const [canvasPanel, setCanvasPanel] = useState({ active: false, side: "right" });
+  const onCanvasLayout = useCallback((l) => {
+    setCanvasPanel((prev) => ({ active: Boolean(l?.active), side: (l?.active && l.side) || prev.side }));
+  }, []);
 
   // True when the logo image is a wordmark (wide) — the brand text is skipped
   // to avoid "Sendoso Sendoso" in the nav.
@@ -654,14 +686,18 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
     }
     if (cvi) {
       const { CVIProvider, Conversation, MagicCanvas } = cvi;
+      // Phone format is too narrow to split — cards keep the overlay behavior there.
+      const split = canvasPanel.active && format !== "phone";
       return (
         <CVIProvider>
-          <div className="cvi-wrap">
-            {/* Shift the video away from active canvas cards so they never
-                cover the face — MagicCanvas computes the exact offset. */}
-            <div className="cvi-video-shift" style={{ transform: videoShift ? `translateX(${videoShift}px)` : "none" }}>
+          <div className={"cvi-wrap" + (split ? ` canvas-split canvas-split-${canvasPanel.side}` : "")}>
+            {/* The video pane resizes into the space the canvas panel doesn't
+                claim, so active cards get their own screen region beside the
+                video instead of cutting into it. */}
+            <div className="cvi-video-pane">
               <Conversation conversationUrl={conversationUrl} onLeave={onExit} />
             </div>
+            <div className={`canvas-panel canvas-panel-${canvasPanel.side}`} aria-hidden="true" />
             {/* Contained inside the stage instead of a full-viewport overlay */}
             <MagicCanvas className="canvas-contained" onError={(e) => console.error("canvas error", e)} onLayoutEffectChange={onCanvasLayout} />
             <CallExtras controls={controls} conversationId={conversationId} onForceLeave={onExit} />
@@ -1201,6 +1237,17 @@ export default function TavusExperienceBuilder() {
       }[canvasStyle];
       if (styleText) parts.push(styleText);
 
+      // Always-on formatting contract for card content. Without it models pack
+      // whole lists into one run-on paragraph with inline dashes — unreadable
+      // on the card (seen in live demos).
+      parts.push(
+        "Magic Canvas card formatting (every card, no exceptions):\n" +
+        "- Cards render markdown. Any list goes one item per line as real markdown bullets (\"- item\") — never chained into a single paragraph with dashes, commas, or semicolons.\n" +
+        "- Keep cards scannable: title of 2-5 words, at most 6 bullets, each bullet under 8 words. Say the detail out loud instead of cramming it onto the card.\n" +
+        "- One idea per card; show a new card for a new topic instead of appending to an old one.\n" +
+        "- Prefer the structured card for the job — Question for choices, Input for capturing details, Calendar for dates — over a Text card describing the same thing."
+      );
+
       const rules = CANVAS_COMPONENTS
         .filter((c) => components[c.key] && componentRules[c.key].trim())
         .map((c) => `- ${c.label} card: ${componentRules[c.key].trim()}`);
@@ -1367,6 +1414,23 @@ export default function TavusExperienceBuilder() {
 
   /* ── Persona: Claude drafts the system prompt via the backend ── */
 
+  /* Presentation setup as Claude context. Generate AND revise send this —
+     the persona can only integrate the deck when Claude knows the trigger
+     mode, the operator's directions, and the talk track (was a bare boolean,
+     which is why revise feedback about presenting had nothing to work with). */
+  const presentationContext = () => {
+    if (!presentationEnabled || docIds.length === 0) return null;
+    const track = talkTrack
+      .map((t, i) => ({ n: i + 1, t: String(t || "").trim() }))
+      .filter((x) => x.t);
+    return {
+      slidesTrigger,
+      prompt: presentPrompt.trim(),
+      slideCount: talkTrack.length,
+      talkTrack: track.map(({ n, t }) => `Slide ${n}: ${t}`).join("\n").slice(0, 3000),
+    };
+  };
+
   const generatePersona = async () => {
     setGenerating(true);
     setPersonaDraft("");
@@ -1397,7 +1461,7 @@ export default function TavusExperienceBuilder() {
             brand: site.brand,
             objectives: objectivesEnabled ? objectivesText.trim() : "",
             guardrails: guardrailsEnabled ? guardrailsText.trim() : "",
-            presentation: presentationEnabled && docIds.length > 0,
+            presentation: presentationContext(),
             canvas: canvasEnabled,
             canvasPlaybook: canvasEnabled ? canvasPlaybook.trim() : "",
           },
@@ -1454,6 +1518,7 @@ export default function TavusExperienceBuilder() {
           context: {
             objectives: objectivesEnabled ? objectivesText : "",
             guardrails: guardrailsEnabled ? guardrailsText : "",
+            presentation: presentationContext(),
           },
         }),
       });
@@ -1500,6 +1565,38 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* Slides → prompt: the presentation skill shares the deck, but the persona
+     only presents WELL when the prompt owns the beat — when the deck starts,
+     the pacing, resuming after questions, closing it. Same revise machinery
+     as the canvas inject. */
+  const injectPresentationIntoPrompt = async () => {
+    if (!personaDraft.trim()) {
+      addLog("err", "Slides inject: draft a persona first (Persona step) — there's no prompt to weave the deck into.");
+      return;
+    }
+    if (!presentationEnabled || docIds.length === 0) {
+      addLog("err", "Slides inject: turn on Slides and attach a deck first.");
+      return;
+    }
+    const parts = [
+      slidesTrigger === "walk_the_deck"
+        ? "Integrate the slide deck into the persona as the backbone of the call. Add or adjust a dedicated presenting section: open with a short personal beat to build rapport, then transition into the deck and WALK IT — one slide at a time, a couple of spoken sentences per slide in the persona's own voice, and a check-in question every slide or two so it stays a conversation, not a lecture. Mirror the deck walk in the objectives so the flow actually reaches the deck and finishes it."
+        : "Integrate the slide deck into the persona as an on-demand asset. Add or adjust a dedicated presenting section: the persona offers or opens slides only when the visitor asks or the moment clearly calls for one, presents the relevant slide in its own voice, then returns to open conversation. Mirror any beat this needs in the objectives.",
+      "Hard rules to include: while a slide is up, speak to THAT slide only — never read it verbatim, never describe slides that aren't visible. When the visitor interrupts with a question, answer it fully, then resume exactly where the deck left off. Close the deck cleanly before moving to next steps (booking, wrap-up). Never speak stage directions — no 'let me show slide three', no narrating that it is presenting; transitions happen naturally in speech.",
+    ];
+    if (presentPrompt.trim()) parts.push(`Operator's presenting directions — fold these in:\n${presentPrompt.trim()}`);
+    const track = talkTrack
+      .map((t, i) => ({ n: i + 1, t: String(t || "").trim() }))
+      .filter((x) => x.t);
+    if (track.length) {
+      parts.push(
+        `Slide-by-slide talk track (already attached to the presentation skill — make the persona's flow consistent with it, don't copy it verbatim):\n` +
+        track.map(({ n, t }) => `Slide ${n}: ${t}`).join("\n").slice(0, 3000)
+      );
+    }
+    await revisePersona(parts.join("\n\n"));
+  };
+
   /* Canvas → prompt: cards only appear when the conversation creates their
      moment; this asks Claude to weave those moments (and show-instructions)
      into the persona itself, via the same revise machinery. */
@@ -1513,7 +1610,7 @@ export default function TavusExperienceBuilder() {
       .map((c) => `- ${c.label} card${componentRules[c.key].trim() ? `: ${componentRules[c.key].trim()}` : " (no rule written — pick a sensible moment or ignore it)"}`);
     const parts = [
       "Weave the Magic Canvas cards into the persona so the conversation actually CREATES the moment each card needs, then shows it. Add or adjust a section instructing the persona, for each card below, to (a) steer the conversation toward that moment naturally and (b) show the card the instant the moment happens. If a card's moment requires a beat the conversation doesn't have yet (e.g. 'added to cart' needs an add-to-cart beat), add that beat to the flow — and mirror it in the objectives.",
-      "Two hard rules to include: the persona NEVER speaks stage directions — never says 'show card', reads card instructions aloud, or narrates that it is displaying something; cards happen silently alongside natural speech. And whenever the visitor offers a specific detail worth capturing (a size, an email, a preference), that is an input-card moment — capture it with the card while acknowledging it in speech.",
+      "Three hard rules to include: the persona NEVER speaks stage directions — never says 'show card', reads card instructions aloud, or narrates that it is displaying something; cards happen silently alongside natural speech. Whenever the visitor offers a specific detail worth capturing (a size, an email, a preference), that is an input-card moment — capture it with the card while acknowledging it in speech. And card content is formatted for scanning: markdown bullets one item per line (never a run-on paragraph with inline dashes), title of 2-5 words, at most 6 bullets of under 8 words each.",
       `Enabled cards:\n${cards.join("\n")}`,
     ];
     if (canvasPlaybook.trim()) parts.push(`Canvas playbook:\n${canvasPlaybook.trim()}`);
@@ -3126,6 +3223,18 @@ export default function TavusExperienceBuilder() {
               <Field label="Presenter style" hint="Optional — how it should present overall.">
                 <textarea value={presentPrompt} onChange={(e) => setPresentPrompt(e.target.value)} placeholder="Walk the participant through the deck one slide at a time. Pause for questions after each section." />
               </Field>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                <button className="pill-btn" onClick={injectPresentationIntoPrompt} disabled={!presentationEnabled || docIds.length === 0 || generating || !personaDraft.trim()}
+                  title={personaDraft.trim() ? "Claude rewrites the persona (and goals if needed) so the call actually reaches the deck and presents it well" : "Draft a persona first — there's no prompt to inject into yet"}>
+                  {generating ? "Weaving…" : "🪡 Inject into prompt"}
+                </button>
+              </div>
+              <p className="field-hint" style={{ maxWidth: 620, marginBottom: 18 }}>
+                The skill shares the slides, but the persona decides when the deck starts, the pacing, and how to resume after questions.
+                <b> Inject into prompt</b> weaves the deck — trigger, presenter style, talk track — into the persona (and goals) so presenting actually happens.
+                Re-attach the prompt on the Persona step afterwards, then relaunch.
+              </p>
 
               <div className="skill-head" style={{ marginTop: 10 }}>
                 <div className="subhead" style={{ margin: 0 }}>Talk track — what to say on each slide</div>
