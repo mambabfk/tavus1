@@ -44,7 +44,11 @@ const VideoPreview = React.memo(({ id }) => {
 
 const PreviewVideos = React.memo(() => {
 	const localId = useLocalSessionId();
-	const { isScreenSharing } = useLocalScreenshare();
+	const { isScreenSharing: rawScreenSharing } = useLocalScreenshare();
+	// The builder's full-stage recording publishes this tab as a screenshare
+	// purely as a recording tap — rendering it here would show an infinite
+	// mirror. The host sets a window flag while that capture is live.
+	const isScreenSharing = rawScreenSharing && !(typeof window !== 'undefined' && window.__tavusStageCapture);
 	const replicaIds = useReplicaIDs();
 	const replicaId = replicaIds[0];
 	// When the PAL presents slides (its screenVideo track), keep its face
@@ -72,7 +76,8 @@ const MainVideo = React.memo(() => {
 	const videoState = useVideoTrack(replicaIds[0]);
 	const screenVideoState = useScreenVideoTrack(localId);
 	const meetingState = useMeetingState();
-	const isScreenSharing = !screenVideoState.isOff;
+	// Ignore the builder's stage-capture share (recording tap, see above).
+	const isScreenSharing = !screenVideoState.isOff && !(typeof window !== 'undefined' && window.__tavusStageCapture);
 	const replicaId = replicaIds[0];
 	// Slides from the presentation skill arrive as the REPLICA participant's
 	// screenVideo track (not the local user's) — subscribe or they never show.

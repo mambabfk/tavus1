@@ -332,6 +332,8 @@ const BUILDER_CSS = `
         /* pointer-events:none — must never block call controls under it */
         .rec-live { position:absolute; top:14px; left:14px; z-index:30; pointer-events:none; display:inline-flex; align-items:center; gap:7px; background:rgba(0,0,0,.55); color:#fff; border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; letter-spacing:.3px; }
         .rec-live.rec-fail { background:rgba(214,69,69,.92); }
+        .stage-rec-btn { position:absolute; bottom:18px; left:18px; z-index:30; border-radius:999px; border:none; background:rgba(214,69,69,.94); color:#fff; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); display:inline-flex; align-items:center; gap:8px; }
+        .stage-rec-btn:hover { background:rgba(214,69,69,1); }
         .interrupt-btn:hover { background:#fff; }
         .demo-cta { display:flex; flex-direction:column; align-items:center; gap:14px; }
         .demo-cta-hint { color:var(--muted); font-size:13px; }
@@ -465,8 +467,11 @@ function VisitorDemo({ slug }) {
 /* ── In-call extras: timers, wake reminders, interrupt button, guardrail echo.
       Lives INSIDE CVIProvider so it can use the Daily call object; these
       features need the custom call UI (they're inert in the iframe fallback). */
-function CallExtras({ controls, conversationId, onForceLeave }) {
+function CallExtras({ controls, conversationId, onForceLeave, visitor = false }) {
   const daily = useDaily();
+  // "Full stage" recording is builder-only (visitors must never see a share
+  // prompt) — visitor calls with a stage snapshot fall back to the grid.
+  const stageMode = controls.recordingLayout === "stage" && !visitor;
 
   const say = (text) =>
     daily?.sendAppMessage(
@@ -486,6 +491,37 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
   // never take down a live demo. recStatus drives the on-screen ⏺ REC badge
   // so "is it actually recording?" is answerable at a glance.
   const [recStatus, setRecStatus] = useState(""); // "" | "starting" | "recording" | "error"
+
+  /* Full-stage capture: getDisplayMedia needs a user gesture, so it rides the
+     ⏺ button click. The tab is published into the call as a screenshare and
+     the recording composes it dominant — canvas + avatar + humans + all audio
+     in one file. The vendored UI ignores this share (window flag) so the
+     visitor's own screen doesn't show a mirror tunnel. */
+  const startStageRecording = async () => {
+    if (!daily) return;
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: 15 },
+        audio: false, // audio comes from the call's own mic + replica tracks
+        preferCurrentTab: true, // Chrome pre-selects this tab; other browsers show the picker
+        selfBrowserSurface: "include",
+      });
+      window.__tavusStageCapture = true;
+      daily.startScreenShare({ mediaStream: stream });
+      stream.getVideoTracks()[0].addEventListener("ended", () => {
+        window.__tavusStageCapture = false;
+        try { daily.stopScreenShare(); } catch { /* already gone */ }
+      });
+      setRecStatus("starting");
+      // Give the track a beat to publish, then record with the screen dominant.
+      setTimeout(() => {
+        try { daily.startRecording({ layout: { preset: "default", max_cam_streams: 9 } }); }
+        catch { setRecStatus("error"); }
+      }, 900);
+    } catch { /* user dismissed the share prompt — no recording, no drama */ }
+  };
+  useEffect(() => () => { window.__tavusStageCapture = false; }, []);
+
   useEffect(() => {
     if (!daily || !controls.recording) return;
     let started = false;
@@ -498,6 +534,7 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
       : { layout: { preset: "default", max_cam_streams: 9 } }; // everyone, side by side
     const kickoff = () => (recOpts ? daily.startRecording(recOpts) : daily.startRecording());
     const startRec = () => {
+      if (stageMode) return; // stage capture starts from the ⏺ button, not on join
       if (started) return;
       if (daily.meetingState() !== "joined-meeting") return;
       started = true;
@@ -602,6 +639,14 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
           failure warrants pixels, and it's click-transparent. */}
       {controls.recording && recStatus === "error" && (
         <span className="rec-live rec-fail" title="daily recording-error — the call continues but may not be recorded">⚠ recording failed</span>
+      )}
+      {/* Full-stage capture can't auto-start (browsers require a click for tab
+          capture) — one button, one click, then it runs for the whole call. */}
+      {stageMode && controls.recording && (!recStatus || recStatus === "error") && (
+        <button className="stage-rec-btn" onClick={startStageRecording}
+          title='Approve the "share this tab" prompt once — the recording then captures the full stage (canvas, avatar, you) with all audio to S3'>
+          ⏺ Record full stage
+        </button>
       )}
       {controls.interruptButton && (
         <button className="interrupt-btn" onClick={interrupt} title="Stop the PAL mid-sentence">
@@ -714,7 +759,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
             <div className={`canvas-panel canvas-panel-${canvasPanel.side}`} aria-hidden="true" />
             {/* Contained inside the stage instead of a full-viewport overlay */}
             <MagicCanvas className="canvas-contained" onError={(e) => console.error("canvas error", e)} onLayoutEffectChange={onCanvasLayout} />
-            <CallExtras controls={controls} conversationId={conversationId} onForceLeave={onExit} />
+            <CallExtras controls={controls} conversationId={conversationId} onForceLeave={onExit} visitor={visitor} />
           </div>
         </CVIProvider>
       );
@@ -1265,6 +1310,12 @@ export default function TavusExperienceBuilder() {
       );
     }
 
+    if (recordingEnabled && recLayout === "stage") {
+      parts.push(
+        "If a screen share from the visitor appears, ignore it completely and never mention it — it is a recording tap of this same call, not content to look at or discuss."
+      );
+    }
+
     if (canvasEnabled) {
       const styleText = {
         eager: "Use Magic Canvas cards frequently and proactively — whenever a card could make information clearer or capture input, show one.",
@@ -1317,7 +1368,7 @@ export default function TavusExperienceBuilder() {
       if (recS3ExternalId.trim()) body.properties.recording_storage.external_id = recS3ExternalId.trim();
     }
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
@@ -3796,9 +3847,9 @@ export default function TavusExperienceBuilder() {
                   <Field label="External ID (optional)" hint="Only if your role's trust policy requires one.">
                     <input className="mono" style={{ maxWidth: 360 }} value={recS3ExternalId} onChange={(e) => setRecS3ExternalId(e.target.value)} placeholder="leave blank unless your security team set one" />
                   </Field>
-                  <Field label="What gets recorded" hint="Everyone = AI human and visitor side by side (best for demo review). Speaker focus = whoever is talking fills the frame. AI human only = the old behavior.">
+                  <Field label="What gets recorded" hint='Everyone = AI human and all humans side by side, constantly (no speaker switching). Full stage = the entire call screen — canvas cards included — via a one-click "share this tab" prompt when you press the ⏺ button on the call (your launches only; visitor calls fall back to Everyone). Speaker focus = talker fills the frame. AI human only = the old behavior.'>
                     <div className="seg">
-                      {[["everyone", "Everyone"], ["speaker", "Speaker focus"], ["pal", "AI human only"]].map(([v, label]) => (
+                      {[["everyone", "Everyone"], ["stage", "Full stage + canvas"], ["speaker", "Speaker focus"], ["pal", "AI human only"]].map(([v, label]) => (
                         <button key={v} className={recLayout === v ? "on" : ""} onClick={() => setRecLayout(v)}>{label}</button>
                       ))}
                     </div>
