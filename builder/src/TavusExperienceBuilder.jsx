@@ -281,6 +281,14 @@ const BUILDER_CSS = `
         .demo-brand { font-weight:700; font-size:18px; letter-spacing:-.3px; }
         .demo-main { flex:1; display:flex; flex-direction:column; align-items:center; padding:24px 24px 48px; }
         .demo-header { text-align:center; margin-bottom:28px; }
+        /* Brand carry-through on themed pages: accent eyebrow + accent CTA +
+           a soft accent wash behind the hero. Alto default stays untouched. */
+        .demo-eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--accent); margin-bottom:14px; }
+        .demo-eyebrow::before, .demo-eyebrow::after { content:""; width:26px; height:1.5px; background:var(--accent); opacity:.5; }
+        .demo-themed .demo-main { background:radial-gradient(60% 340px at 50% 0, color-mix(in srgb, var(--accent) 9%, transparent), transparent 70%); }
+        .demo-themed .demo-cta .pill-btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; box-shadow:0 6px 22px -8px color-mix(in srgb, var(--accent) 65%, transparent); }
+        .demo-themed .demo-cta .pill-btn.primary:hover { opacity:.92; }
+        .demo-themed .demo-stage { border-top:3px solid var(--accent); }
         .demo-header h1 { font-size:clamp(28px,4.5vw,44px); font-weight:700; letter-spacing:-1.2px; margin:0; line-height:1.1; max-width:760px; }
         .demo-header p { color:var(--muted); font-size:16px; line-height:1.6; max-width:600px; margin:14px auto 0; }
         .demo-stage { width:min(1080px,100%); aspect-ratio:16/9; background:var(--surface); border:1px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:0 20px 60px -24px rgba(20,20,20,.18); display:flex; align-items:center; justify-content:center; position:relative; }
@@ -737,8 +745,24 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
     ].filter(([, v]) => v)
   ) : undefined;
 
+  // Brand the browser tab itself: title + favicon from the logo. Small, but
+  // it's half of what makes a page read as "theirs" instead of a tool.
+  useEffect(() => {
+    if (!site.brand) return;
+    const prevTitle = document.title;
+    document.title = `${site.brand} — Live demo`;
+    let link = null;
+    if (site.logoUrl) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      link.href = site.logoUrl;
+      document.head.appendChild(link);
+    }
+    return () => { document.title = prevTitle; if (link) link.remove(); };
+  }, [site.brand, site.logoUrl]);
+
   return (
-    <div className={`demo-root demo-${format}`} style={themeVars}>
+    <div className={`demo-root demo-${format}${t ? " demo-themed" : ""}`} style={themeVars}>
       {format === "kiosk" && (
         <>
           <button className="kiosk-exit" onClick={handleExit} title="Back to builder">×</button>
@@ -773,6 +797,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
       <main className="demo-main">
         {format === "desktop" && (site.headline || !conversationUrl) && (
           <header className="demo-header">
+            {site.brand && <span className="demo-eyebrow">{site.brand} · Live demo</span>}
             <h1>{site.headline || "Talk to our AI expert"}</h1>
             {site.tagline && <p>{site.tagline}</p>}
           </header>
