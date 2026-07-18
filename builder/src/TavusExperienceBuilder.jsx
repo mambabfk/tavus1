@@ -613,6 +613,7 @@ const store = {
 };
 const SCENARIOS_KEY = "tavus_builder_scenarios_v1";
 const REC_KEY = "tavus_builder_recording_v1"; // S3 recording defaults (non-secret identifiers)
+const WEBHOOK_KEY = "tavus_builder_webhook_v1"; // callback URL — account plumbing, survives scenario loads
 const APIKEY_KEY = "tavus_builder_api_key_v1";
 const SHOWAPI_KEY = "tavus_builder_showapi_v1";
 
@@ -858,7 +859,10 @@ export default function TavusExperienceBuilder() {
   const [palId, setPalId] = useState("");
   const [language, setLanguage] = useState("english");
   const [conversationName, setConversationName] = useState("");
-  const [callbackUrl, setCallbackUrl] = useState("");
+  // Webhook is account plumbing, not demo content — remembered per browser
+  // (like the API key and S3 fields) so scenario loads/reloads can't wipe it.
+  const [callbackUrl, setCallbackUrl] = useState(() => store.get(WEBHOOK_KEY, ""));
+  useEffect(() => { store.set(WEBHOOK_KEY, callbackUrl); }, [callbackUrl]);
   const [greeting, setGreeting] = useState("");
 
   // Persona (Claude-drafted system prompt)
@@ -1058,7 +1062,10 @@ export default function TavusExperienceBuilder() {
   const applyConfig = (c) => {
     if (!c || typeof c !== "object") return;
     setFaceId(c.faceId ?? ""); setPalId(c.palId ?? ""); setLanguage(c.language ?? "english");
-    setConversationName(c.conversationName ?? ""); setCallbackUrl(c.callbackUrl ?? ""); setGreeting(c.greeting ?? "");
+    setConversationName(c.conversationName ?? "");
+    // Older scenarios without a webhook must not wipe the remembered one.
+    setCallbackUrl(c.callbackUrl || store.get(WEBHOOK_KEY, ""));
+    setGreeting(c.greeting ?? "");
     setPersonaBrief({ product: "", audience: "", goal: "", tone: "", emotions: "", mustCover: "", avoid: "", ...(c.personaBrief || {}) });
     setPersonaDraft(c.personaDraft ?? "");
     setPersonaAttached(false);
