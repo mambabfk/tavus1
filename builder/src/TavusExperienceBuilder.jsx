@@ -495,7 +495,7 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
     const recOpts =
       controls.recordingLayout === "pal" ? undefined
       : controls.recordingLayout === "speaker" ? { layout: { preset: "active-participant" } }
-      : { layout: { preset: "default" } }; // everyone, side by side
+      : { layout: { preset: "default", max_cam_streams: 9 } }; // everyone, side by side
     const kickoff = () => (recOpts ? daily.startRecording(recOpts) : daily.startRecording());
     const startRec = () => {
       if (started) return;
@@ -504,7 +504,12 @@ function CallExtras({ controls, conversationId, onForceLeave }) {
       setRecStatus("starting");
       try { kickoff(); } catch { setRecStatus("error"); }
     };
-    const onStarted = () => setRecStatus("recording");
+    const onStarted = () => {
+      setRecStatus("recording");
+      // Re-assert the layout once recording is live: if it started before the
+      // local camera published, the composition can miss the visitor.
+      if (recOpts) setTimeout(() => { try { daily.updateRecording(recOpts); } catch { /* best effort */ } }, 2000);
+    };
     const onStopped = () => setRecStatus((s) => (s === "error" ? s : ""));
     const onError = () => {
       // One retry — recording infra can hiccup right at join time.
