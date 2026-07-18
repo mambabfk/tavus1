@@ -672,6 +672,7 @@ const store = {
 const SCENARIOS_KEY = "tavus_builder_scenarios_v1";
 const REC_KEY = "tavus_builder_recording_v1"; // S3 recording defaults (non-secret identifiers)
 const WEBHOOK_KEY = "tavus_builder_webhook_v1"; // callback URL — account plumbing, survives scenario loads
+const PROMPT_HISTORY_KEY = "tavus_builder_prompt_history_v1"; // per-PAL persona versions
 const APIKEY_KEY = "tavus_builder_api_key_v1";
 const SHOWAPI_KEY = "tavus_builder_showapi_v1";
 
@@ -947,6 +948,10 @@ export default function TavusExperienceBuilder() {
   const setBriefField = (k, v) => setPersonaBrief((b) => ({ ...b, [k]: v }));
   const [personaDraft, setPersonaDraft] = useState("");
   const [personaFeedback, setPersonaFeedback] = useState("");
+
+  // Version control for the prompt: every generate / revise / inject / attach
+  // snapshots automatically (per PAL, in this browser), restorable one click.
+  const [promptHistory, setPromptHistory] = useState(() => store.get(PROMPT_HISTORY_KEY, {}));
 
   // Test drive: text-only conversation against the PAL (chat mode — same PAL
   // config, no video pipeline). Validates behavior before booting a real call.
@@ -1521,6 +1526,7 @@ export default function TavusExperienceBuilder() {
 
   const generatePersona = async () => {
     setGenerating(true);
+    snapshotManualEdits(); // don't lose hand-edits to a regenerate
     setPersonaDraft("");
     setPersonaAttached(false);
 
@@ -1575,6 +1581,7 @@ export default function TavusExperienceBuilder() {
         if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
         throw new Error(msg || `${res.status}: generation failed`);
       }
+      pushPromptVersion("Generated from brief", text);
       addLog("ok", "Persona prompt drafted — review it, then attach to the PAL.");
     } catch (e) {
       addLog("err", `Persona generation: ${e.message}`);
@@ -1583,17 +1590,54 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* ── Prompt version control ── */
+
+  const promptHistoryKey = () => palId.trim() || "unassigned";
+  const promptVersions = promptHistory[promptHistoryKey()] || [];
+
+  const pushPromptVersion = (source, text = personaDraft, extra = {}) => {
+    const t = String(text || "").trim();
+    if (!t) return;
+    setPromptHistory((h) => {
+      const key = palId.trim() || "unassigned";
+      const list = h[key] || [];
+      const next = { ...h };
+      if (list[0]?.text === t) {
+        // Same text — merge flags (e.g. mark the current version as attached).
+        next[key] = [{ ...list[0], ...extra }, ...list.slice(1)];
+      } else {
+        next[key] = [{ text: t, at: new Date().toISOString(), source, ...extra }, ...list].slice(0, 25);
+      }
+      store.set(PROMPT_HISTORY_KEY, next);
+      return next;
+    });
+  };
+
+  // Uncommitted hand-edits get their own snapshot before anything overwrites them.
+  const snapshotManualEdits = () => {
+    const cur = personaDraft.trim();
+    if (cur && cur !== (promptVersions[0]?.text || "")) pushPromptVersion("Manual edits");
+  };
+
+  const restorePromptVersion = (v) => {
+    snapshotManualEdits();
+    setPersonaDraft(v.text);
+    setPersonaAttached(false);
+    addLog("ok", `Restored the "${v.source}" version from ${String(v.at).slice(0, 16).replace("T", " ")} — re-attach to make it live.`);
+  };
+
   /* Revise from plain-English feedback ("less salesy", "stop looping on the
      email ask", …) — an edit, not a regenerate. Prompt AND objectives are
      revised together: objectives drive the flow mechanically, so flow feedback
      has to land there, not just in prompt prose. */
-  const revisePersona = async (feedbackOverride) => {
+  const revisePersona = async (feedbackOverride, sourceLabel) => {
     // Callable two ways: from the feedback field (uses personaFeedback state)
-    // or programmatically with an instruction string (canvas inject).
+    // or programmatically with an instruction string (canvas/slides inject).
     const feedback = typeof feedbackOverride === "string" ? feedbackOverride : personaFeedback;
     if (!personaDraft.trim() || !feedback.trim()) return;
     setGenerating(true);
     const previous = personaDraft;
+    snapshotManualEdits(); // hand-edits survive even if the revision lands
     setPersonaAttached(false);
     try {
       const res = await fetch("/api/generate-persona", {
@@ -1631,6 +1675,7 @@ export default function TavusExperienceBuilder() {
       if (!rev.prompt || !String(rev.prompt).trim()) throw new Error("Claude's revision came back empty — try again.");
 
       setPersonaDraft(String(rev.prompt));
+      pushPromptVersion(sourceLabel || `Revised: "${feedback.slice(0, 48)}${feedback.length > 48 ? "…" : ""}"`, String(rev.prompt));
       const changed = ["prompt"];
       if (Array.isArray(rev.objectives)) {
         setObjectivesText(rev.objectives.join("\n"));
@@ -1682,7 +1727,7 @@ export default function TavusExperienceBuilder() {
         track.map(({ n, t }) => `Slide ${n}: ${t}`).join("\n").slice(0, 3000)
       );
     }
-    await revisePersona(parts.join("\n\n"));
+    await revisePersona(parts.join("\n\n"), "Slides woven into prompt");
   };
 
   /* Canvas → prompt: cards only appear when the conversation creates their
@@ -1703,7 +1748,7 @@ export default function TavusExperienceBuilder() {
     ];
     if (canvasPlaybook.trim()) parts.push(`Canvas playbook:\n${canvasPlaybook.trim()}`);
     if (schedulingUrl.trim()) parts.push("A live Calendly booking card is available — treat booking time as a real closing move.");
-    await revisePersona(parts.join("\n\n"));
+    await revisePersona(parts.join("\n\n"), "Canvas woven into prompt");
   };
 
   /* ── Test drive: text-only chat against the PAL (no video, no camera).
@@ -2397,6 +2442,7 @@ export default function TavusExperienceBuilder() {
         { op: "add", path: "/system_prompt", value: personaDraft.trim() },
       ]);
       setPersonaAttached(true);
+      pushPromptVersion("Attached to PAL", personaDraft, { attached: true });
       addLog("ok", "Persona prompt attached (persists on the PAL until you change it).");
     } catch (e) {
       addLog("err", e.message + " — if this is a network/CORS block, copy the curl from the preview panel and run it from a terminal.");
@@ -2918,6 +2964,30 @@ export default function TavusExperienceBuilder() {
                     </button>
                   </div>
                 </Field>
+              )}
+
+              {promptVersions.length > 0 && (
+                <details style={{ marginBottom: 22 }}>
+                  <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>
+                    🕘 Prompt history ({promptVersions.length}) — every generate, revision, and attach is saved
+                  </summary>
+                  <div className="kb-list" style={{ maxWidth: 640, marginTop: 10 }}>
+                    {promptVersions.map((v, i) => (
+                      <div key={`${v.at}-${i}`} className="kb-row" style={{ alignItems: "flex-start" }}>
+                        <span style={{ flex: 1, fontSize: 12.5, minWidth: 0 }}>
+                          <b>{v.source}</b>{v.attached ? <span style={{ color: "var(--ok)" }}> · attached ✓</span> : ""}
+                          <span style={{ color: "var(--muted)" }}> · {String(v.at).slice(5, 16).replace("T", " ")} · {v.text.split(/\s+/).length} words</span>
+                          <div style={{ color: "var(--muted)", fontSize: 11.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.text.slice(0, 120)}</div>
+                        </span>
+                        <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0 }}
+                          disabled={personaDraft.trim() === v.text}
+                          onClick={() => restorePromptVersion(v)}>
+                          {personaDraft.trim() === v.text ? "Current" : "Restore"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </details>
               )}
 
               <div className="subhead">Create the persona</div>
