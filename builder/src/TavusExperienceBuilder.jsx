@@ -986,6 +986,7 @@ export default function TavusExperienceBuilder() {
   const [internetSearchEnabled, setInternetSearchEnabled] = useState(false);
   const [browserUseEnabled, setBrowserUseEnabled] = useState(false);
   const [browserUseConfig, setBrowserUseConfig] = useState(""); // optional JSON — the skill is new, config schema may grow
+  const [browsePlan, setBrowsePlan] = useState(""); // the "talk track" for browsing: when -> which page, one per line
 
   // Integrations (custom LLM tools → any webhook)
   const [toolsEnabled, setToolsEnabled] = useState(false);
@@ -1137,7 +1138,7 @@ export default function TavusExperienceBuilder() {
     maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, wakePhrase, interruptButton, guardrailEcho,
     recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout,
     toolsEnabled, toolRows, toolWebhook, toolEcho,
-    internetSearchEnabled, browserUseEnabled, browserUseConfig,
+    internetSearchEnabled, browserUseEnabled, browserUseConfig, browsePlan,
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt, talkTrack,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
@@ -1175,6 +1176,7 @@ export default function TavusExperienceBuilder() {
     setToolsEnabled(!!c.toolsEnabled);
     setInternetSearchEnabled(!!c.internetSearchEnabled);
     setBrowserUseEnabled(!!c.browserUseEnabled); setBrowserUseConfig(c.browserUseConfig ?? "");
+    setBrowsePlan(c.browsePlan ?? "");
     setToolRows(Array.isArray(c.toolRows) && c.toolRows.length ? c.toolRows : [{ name: "", desc: "", fields: "" }]);
     setToolWebhook(c.toolWebhook ?? ""); setToolEcho(c.toolEcho ?? "");
     setPresentationEnabled(!!c.presentationEnabled); setDocIdsRaw(c.docIdsRaw ?? "");
@@ -1323,6 +1325,14 @@ export default function TavusExperienceBuilder() {
       );
     }
 
+    // Browse plan rides conversational_context (per-demo, like canvas rules).
+    if (browserUseEnabled && browsePlan.trim()) {
+      parts.push(
+        "Browsing plan - drive the live browser to these pages at these moments (never read URLs aloud, never announce that you are opening a browser; bring the page up and talk about what is on it):\n" +
+        browsePlan.trim()
+      );
+    }
+
     if (recordingEnabled && recLayout === "stage") {
       parts.push(
         "If a screen share from the visitor appears, ignore it completely and never mention it — it is a recording tap of this same call, not content to look at or discuss."
@@ -1381,7 +1391,7 @@ export default function TavusExperienceBuilder() {
       if (recS3ExternalId.trim()) body.properties.recording_storage.external_id = recS3ExternalId.trim();
     }
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
@@ -1757,6 +1767,23 @@ export default function TavusExperienceBuilder() {
     if (canvasPlaybook.trim()) parts.push(`Canvas playbook:\n${canvasPlaybook.trim()}`);
     if (schedulingUrl.trim()) parts.push("A live Calendly booking card is available — treat booking time as a real closing move.");
     await revisePersona(parts.join("\n\n"), "Canvas woven into prompt");
+  };
+
+  /* Browsing → prompt: same pattern as canvas/slides. The browse plan rides
+     each conversation; this weaves the MOMENTS into the persona + objectives
+     so the flow actually reaches them. */
+  const injectBrowsingIntoPrompt = async () => {
+    if (!personaDraft.trim()) {
+      addLog("err", "Browsing inject: draft a persona first (Persona step) — there's no prompt to weave the browsing into.");
+      return;
+    }
+    const parts = [
+      "The persona can drive a live web browser on the call (Browser Use skill). Weave browsing into the persona: add or adjust a section instructing it to (a) steer the conversation toward each browsing moment below, (b) bring the page up at that moment and speak to what's ON the page, and (c) mirror any new beats in the objectives so the flow reaches them.",
+      "Hard rules to include: never read URLs aloud; never announce mechanics ('let me open a browser', 'I'm navigating to') — the page appears while it talks naturally; if the browser fails or a page won't load, continue the conversation from its own knowledge without comment.",
+    ];
+    if (browsePlan.trim()) parts.push(`Browsing plan (when → which page):\n${browsePlan.trim()}`);
+    else parts.push("No specific pages are planned — add a short section saying it may pull up relevant public pages when showing beats telling.");
+    await revisePersona(parts.join("\n\n"), "Browsing woven into prompt");
   };
 
   /* ── Test drive: text-only chat against the PAL (no video, no camera).
@@ -3637,10 +3664,27 @@ export default function TavusExperienceBuilder() {
                 exact reason (it may need enabling on your account).
               </p>
               {browserUseEnabled && (
-                <Field label="Advanced config (optional JSON)" hint='Passed verbatim as the skill’s config. Leave empty for defaults; add fields from the Browser Use docs as they ship (e.g. a starting URL or allowed sites).'>
-                  <textarea className="mono" style={{ minHeight: 70, fontSize: 12 }} value={browserUseConfig}
-                    onChange={(e) => setBrowserUseConfig(e.target.value)} placeholder='{ }' />
-                </Field>
+                <>
+                  <Field label="Browse plan" hint='The "talk track" for browsing — one moment per line, when → which page. Travels with each launch (like canvas rules), so different demos can browse differently on the same PAL.'>
+                    <textarea style={{ minHeight: 90, fontSize: 13 }} value={browsePlan}
+                      onChange={(e) => setBrowsePlan(e.target.value)}
+                      placeholder={"When they ask about pricing → pull up tavus.io/pricing\nWhen comparing plans → the plans comparison page\nIf they mention the API → the developer docs homepage"} />
+                  </Field>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+                    <button className="pill-btn" onClick={injectBrowsingIntoPrompt} disabled={generating || !personaDraft.trim()}
+                      title={personaDraft.trim() ? "Claude weaves the browsing moments into the persona (and goals) so the conversation actually steers there" : "Draft a persona first"}>
+                      {generating ? "Weaving…" : "🪡 Inject into prompt"}
+                    </button>
+                  </div>
+                  <p className="field-hint" style={{ maxWidth: 560, marginBottom: 14 }}>
+                    Like cards, browsing only happens when the conversation reaches its moment — the plan rides each launch, and
+                    <b> Inject into prompt</b> makes the persona steer toward those moments. Re-attach the prompt afterwards, then relaunch.
+                  </p>
+                  <Field label="Advanced config (optional JSON)" hint='Passed verbatim as the skill’s config. Leave empty for defaults; add fields from the Browser Use docs as they ship (e.g. a starting URL or allowed sites).'>
+                    <textarea className="mono" style={{ minHeight: 70, fontSize: 12 }} value={browserUseConfig}
+                      onChange={(e) => setBrowserUseConfig(e.target.value)} placeholder='{ }' />
+                  </Field>
+                </>
               )}
             </>
           )}
