@@ -152,6 +152,12 @@ non-technical users; ids unchanged):
    → `case_sensitive`, duplicates dropped. On launch →
    `POST /pronunciation-dictionaries` then `PATCH /pals/{id}`
    `/layers/tts/pronunciation_dictionary_id`. Persists on the PAL.
+4.55. **Tavus skills** (bottom of `tools` step) — `internet_search` (no
+   config) and `browser_use` (optional raw-JSON config textarea; the skill is
+   brand-new and its config schema wasn't in the docs mirror at build time) —
+   on launch `PUT /pals/{id}/skills/{skill_id}` `{config}`; per-skill Detach
+   buttons (`DELETE …/skills/{id}`). Browser view arrives as the replica's
+   screenVideo track — same path as slides, already rendered by the custom UI.
 4.6. **Integrations** (`tools`) — plain-English ability rows
    ({name, desc, fields}) → `toolDefs` (OpenAI function shape, slugged names,
    comma fields → required string params) → on launch

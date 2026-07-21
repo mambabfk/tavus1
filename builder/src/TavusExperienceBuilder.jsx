@@ -982,6 +982,11 @@ export default function TavusExperienceBuilder() {
   const [voiceResults, setVoiceResults] = useState(null);
   const [voiceLoading, setVoiceLoading] = useState(false);
 
+  // Tavus-authored skills (PUT /pals/{id}/skills/{skill_id}; persist on the PAL)
+  const [internetSearchEnabled, setInternetSearchEnabled] = useState(false);
+  const [browserUseEnabled, setBrowserUseEnabled] = useState(false);
+  const [browserUseConfig, setBrowserUseConfig] = useState(""); // optional JSON — the skill is new, config schema may grow
+
   // Integrations (custom LLM tools → any webhook)
   const [toolsEnabled, setToolsEnabled] = useState(false);
   const [toolRows, setToolRows] = useState([{ name: "", desc: "", fields: "" }]);
@@ -1132,6 +1137,7 @@ export default function TavusExperienceBuilder() {
     maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, wakePhrase, interruptButton, guardrailEcho,
     recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout,
     toolsEnabled, toolRows, toolWebhook, toolEcho,
+    internetSearchEnabled, browserUseEnabled, browserUseConfig,
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt, talkTrack,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
@@ -1167,6 +1173,8 @@ export default function TavusExperienceBuilder() {
     setRecS3ExternalId(c.recS3ExternalId ?? savedRec.externalId ?? "");
     setRecLayout(c.recLayout ?? savedRec.layout ?? "everyone");
     setToolsEnabled(!!c.toolsEnabled);
+    setInternetSearchEnabled(!!c.internetSearchEnabled);
+    setBrowserUseEnabled(!!c.browserUseEnabled); setBrowserUseConfig(c.browserUseConfig ?? "");
     setToolRows(Array.isArray(c.toolRows) && c.toolRows.length ? c.toolRows : [{ name: "", desc: "", fields: "" }]);
     setToolWebhook(c.toolWebhook ?? ""); setToolEcho(c.toolEcho ?? "");
     setPresentationEnabled(!!c.presentationEnabled); setDocIdsRaw(c.docIdsRaw ?? "");
@@ -2451,6 +2459,17 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* Skills persist on the PAL — give the toggle an explicit off-ramp. */
+  const detachSkill = async (skillId) => {
+    if (!apiKey.trim() || !palId.trim()) { addLog("err", "API key and PAL ID are required — see Account."); return; }
+    try {
+      await tavusFetch("DELETE", `/pals/${palId.trim()}/skills/${skillId}`);
+      addLog("ok", `${skillId.replace("_", " ")} detached from the PAL.`);
+    } catch (e) {
+      addLog("err", `Detach ${skillId}: ${e.message}`);
+    }
+  };
+
   const canLaunch = apiKey.trim() && faceId.trim() && palId.trim();
 
   const launch = async () => {
@@ -2562,6 +2581,23 @@ export default function TavusExperienceBuilder() {
           { op: "add", path: "/layers/llm/tools", value: toolDefs },
         ]);
         addLog("ok", `Tools attached: ${toolDefs.map((t) => t.function.name).join(", ")}.`);
+      }
+
+      // Tavus-authored skills (internet_search / browser_use) — same PUT
+      // pattern as presentation/canvas; they persist on the PAL.
+      for (const [on, skillId, cfgText] of [
+        [internetSearchEnabled, "internet_search", ""],
+        [browserUseEnabled, "browser_use", browserUseConfig],
+      ]) {
+        if (!on) continue;
+        let cfg = {};
+        if (String(cfgText).trim()) {
+          try { cfg = JSON.parse(cfgText); }
+          catch { throw new Error(`The ${skillId} advanced config isn't valid JSON — fix or clear it on the Integrations step.`); }
+        }
+        addLog("info", `Attaching the ${skillId.replace("_", " ")} skill…`);
+        await tavusFetch("PUT", `/pals/${pal}/skills/${skillId}`, { config: cfg });
+        addLog("ok", `${skillId.replace("_", " ")} attached (persists on the PAL until detached).`);
       }
 
       if (presentationEnabled) {
@@ -3570,6 +3606,42 @@ export default function TavusExperienceBuilder() {
               <p className="field-hint" style={{ maxWidth: 560 }}>
                 On launch the abilities attach to the PAL ({toolDefs.length ? toolDefs.map((t) => t.function.name).join(", ") : "none defined yet"}) and persist on it. The webhook forwarding works on the demo page's custom call UI — including shared /d/ links.
               </p>
+
+              <div className="subhead" style={{ marginTop: 26 }}>Tavus skills</div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 12 }}>
+                Pre-built abilities Tavus maintains — toggle on and they attach to the PAL at launch, then persist until you detach them.
+              </p>
+
+              <div className="skill-head" style={{ maxWidth: 560, marginBottom: 4 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>🔎 Internet Search</span>
+                <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => detachSkill("internet_search")}>Detach</button>
+                  <Toggle on={internetSearchEnabled} onChange={setInternetSearchEnabled} />
+                </span>
+              </div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 16 }}>
+                Live web answers mid-call — no configuration.
+              </p>
+
+              <div className="skill-head" style={{ maxWidth: 560, marginBottom: 4 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>🌐 Browser Use</span>
+                <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => detachSkill("browser_use")}>Detach</button>
+                  <Toggle on={browserUseEnabled} onChange={setBrowserUseEnabled} />
+                </span>
+              </div>
+              <p className="field-hint" style={{ maxWidth: 560 }}>
+                The AI human drives a live web browser on the call — the browser view appears in the stage automatically
+                (same screen track as slides). Steer <i>when</i> it browses through the persona ("when they ask about pricing,
+                pull up the pricing page"). This skill is brand-new: if Tavus rejects the attach at launch, the log shows the
+                exact reason (it may need enabling on your account).
+              </p>
+              {browserUseEnabled && (
+                <Field label="Advanced config (optional JSON)" hint='Passed verbatim as the skill’s config. Leave empty for defaults; add fields from the Browser Use docs as they ship (e.g. a starting URL or allowed sites).'>
+                  <textarea className="mono" style={{ minHeight: 70, fontSize: 12 }} value={browserUseConfig}
+                    onChange={(e) => setBrowserUseConfig(e.target.value)} placeholder='{ }' />
+                </Field>
+              )}
             </>
           )}
 
