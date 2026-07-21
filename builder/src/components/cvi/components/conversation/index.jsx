@@ -20,6 +20,13 @@ import { AudioWave } from '../audio-wave';
 
 import styles from './conversation.module.css';
 
+// A remote screen track counts as presenting from `loading` (switch the
+// instant content starts arriving — docs guidance) and through transient
+// `interrupted` states (keep the layout stable instead of flapping back to
+// the face and re-splitting mid-hiccup). Off/undefined ends it.
+const isPresentingState = (trackState) =>
+	trackState === 'loading' || trackState === 'playable' || trackState === 'interrupted';
+
 const VideoPreview = React.memo(({ id }) => {
 	const videoState = useVideoTrack(id);
 
@@ -54,7 +61,7 @@ const PreviewVideos = React.memo(() => {
 	// When the PAL presents slides (its screenVideo track), keep its face
 	// visible as a small preview beside the local camera.
 	const replicaScreenState = useScreenVideoTrack(replicaId);
-	const isReplicaPresenting = !replicaScreenState.isOff;
+	const isReplicaPresenting = isPresentingState(replicaScreenState.state);
 
 	return (
 		<>
@@ -82,7 +89,7 @@ const MainVideo = React.memo(() => {
 	// Slides from the presentation skill arrive as the REPLICA participant's
 	// screenVideo track (not the local user's) — subscribe or they never show.
 	const replicaScreenState = useScreenVideoTrack(replicaId);
-	const isReplicaPresenting = !replicaScreenState.isOff;
+	const isReplicaPresenting = isPresentingState(replicaScreenState.state);
 	const [hasReplicaConnected, setHasReplicaConnected] = useState(false);
 
 	useEffect(() => {
