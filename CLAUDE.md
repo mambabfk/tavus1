@@ -65,6 +65,14 @@ Anthropic key.
   steps; everything stays hand-editable, persona draft is cleared as stale.
 - `builder/vercel.json` — bumps the function's `maxDuration` to 60s; rewrite
   for `/d/:slug`.
+- `builder/tools/walkthroughs.mjs` — **auto-built video walkthroughs**
+  (`npm run walkthroughs`): drives the built app with Playwright
+  (playwright-core devDep; browser via `$CHROMIUM_PATH` or
+  `/opt/pw-browsers/chromium`), records scripted scenes with a visible
+  cursor + caption overlay, transcodes to MP4 (`$FFMPEG_PATH`, Playwright's
+  bundled ffmpeg is VP8-only). Output `builder/walkthroughs/` is
+  gitignored — regenerate after feature changes; add scenes to the `SCENES`
+  list.
 - Note: the repo **root** `api/`, `vercel.json`, `package.json`, and
   `.vercelignore` mirror `builder/` so the Vercel project can build from the
   repo root with zero config. Keep root `api/` in sync with `builder/api/`.
