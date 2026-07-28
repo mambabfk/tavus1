@@ -58,6 +58,15 @@ const PAL_LLMS = [
 /* Formats the Knowledge Base can turn into presentation slides. */
 const PRESENTABLE = /\.(pdf|png|jpe?g|pptx)(\?|#|$)/i;
 
+/* Face presets — the team's go-to stock faces, one click instead of hunting
+   down the r… ID every time. The free-text field still takes any face ID. */
+const FACE_PRESETS = [
+  { name: "Kelly", vibe: "casual", id: "r862e3a3c5e0" },
+  { name: "Mark", vibe: "casual", id: "rcea962f9f9b" },
+  { name: "Celine", vibe: "casual", id: "r1a0108fbd75" },
+  { name: "Gloria", vibe: "warm", id: "r3f427f43c9d" },
+];
+
 const SITE_FORMATS = [
   { v: "desktop", label: "Desktop", desc: "Full page — headline, tagline, wide 16:9 stage. The default." },
   { v: "phone", label: "Mobile app", desc: "A scrollable in-app screen inside a real phone frame — how it feels living in your app." },
@@ -239,6 +248,12 @@ const BUILDER_CSS = `
         .placement-row { display:flex; gap:10px; max-width:560px; margin-top:8px; }
         .placement-card { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:12px; cursor:pointer; text-align:center; color:var(--muted); font-size:13px; font-weight:500; }
         .placement-card.on { border-color:var(--text); color:var(--text); box-shadow:0 1px 3px rgba(20,20,20,.06); }
+        .face-row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+        .face-chip { display:flex; flex-direction:column; align-items:center; gap:2px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:8px 16px; cursor:pointer; font:inherit; color:var(--muted); }
+        .face-chip:hover { color:var(--text); }
+        .face-chip.on { border-color:var(--text); color:var(--text); box-shadow:0 1px 3px rgba(20,20,20,.06); }
+        .face-chip-name { font-weight:600; font-size:13px; }
+        .face-chip-vibe { font-size:10.5px; font-family:var(--mono); }
         .placement-viz { display:flex; gap:4px; height:42px; margin-bottom:8px; }
         .pv-video { flex:1; background:var(--border); border-radius:6px; }
         .pv-rail { width:15px; background:var(--accent); border-radius:6px; }
@@ -3161,7 +3176,15 @@ export default function TavusExperienceBuilder() {
                   Remember key on this device (never included in scenario exports)
                 </label>
               </Field>
-              <Field label="Face ID" hint="The face that appears on the call, e.g. r79e1c033f.">
+              <Field label="Face" hint="The face that appears on the call — pick a go-to, or paste any r… face ID.">
+                <div className="face-row">
+                  {FACE_PRESETS.map((f) => (
+                    <button key={f.id} type="button" className={"face-chip" + (faceId.trim() === f.id ? " on" : "")} onClick={() => setFaceId(f.id)} title={f.id}>
+                      <span className="face-chip-name">{f.name}</span>
+                      <span className="face-chip-vibe">{f.vibe}</span>
+                    </button>
+                  ))}
+                </div>
                 <input className="mono" value={faceId} onChange={(e) => setFaceId(e.target.value)} placeholder="r…" />
               </Field>
               <Field label="PAL ID" hint="Filled automatically when you create a persona in the Persona step — or paste an existing p… ID here.">
