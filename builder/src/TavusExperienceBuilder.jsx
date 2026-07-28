@@ -39,6 +39,7 @@ const STEPS = [
   { id: "canvas", label: "Magic Canvas", group: "The experience" },
   { id: "speech", label: "Voice", group: "The experience" },
   { id: "site", label: "Page & Brand", group: "The experience" },
+  { id: "experience", label: "Experience", group: "The experience" },
   { id: "tools", label: "Integrations", group: "Run it" },
   { id: "controls", label: "Timing", group: "Run it" },
   { id: "launch", label: "Launch & Share", group: "Run it" },
@@ -352,6 +353,20 @@ const BUILDER_CSS = `
         .stage-rec-btn:hover { background:rgba(214,69,69,1); }
         .interrupt-btn:hover { background:#fff; }
         .demo-cta { display:flex; flex-direction:column; align-items:center; gap:14px; }
+        /* pre-call email gate & post-call feedback screens (inside the stage) */
+        .exp-screen { display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; padding:28px 24px; max-width:460px; width:100%; }
+        .exp-screen h3 { font-size:22px; letter-spacing:-.4px; margin:0; line-height:1.2; }
+        .exp-hint { color:var(--muted); font-size:13.5px; line-height:1.55; margin:0; }
+        .demo-hologram .exp-hint { color:#8f9ab8; }
+        .exp-input { width:100%; max-width:320px; text-align:center; }
+        .exp-comment { width:100%; max-width:360px; min-height:74px; }
+        .exp-err { color:var(--danger); font-size:12.5px; margin:0; }
+        .exp-actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:4px; }
+        .exp-actions a.pill-btn { text-decoration:none; }
+        .star-row { display:flex; gap:6px; }
+        .star { border:none; background:none; font-size:34px; line-height:1; cursor:pointer; color:var(--border); padding:2px; transition:transform .12s ease; }
+        .star.on { color:#F3B93F; }
+        .star:hover { transform:scale(1.12); }
         .demo-cta-hint { color:var(--muted); font-size:13px; }
         .demo-powered { color:var(--muted); font-size:11px; font-family:var(--mono); margin-top:30px; }
         @keyframes recpulse { 0%,100%{opacity:1} 50%{opacity:.35} }
@@ -530,10 +545,13 @@ function VisitorDemo({ slug }) {
       <DemoSite
         site={demo.site || {}}
         controls={demo.controls || {}}
+        experience={demo.experience || {}}
+        slug={slug}
         conversationUrl={conversation?.conversation_url || null}
         conversationId={conversation?.conversation_id || null}
         onStart={start}
         onExit={() => setConversation(null)}
+        onCallEnd={() => setConversation(null)}
         busy={busy}
         visitor
       />
@@ -778,7 +796,56 @@ function Toggle({ on, onChange }) {
 
 /* ── Demo page: minimal Alto shell around the conversation ──── */
 
-function DemoSite({ site, conversationUrl, conversationId, controls, onStart, onExit, busy, visitor = false }) {
+function DemoSite({ site, conversationUrl, conversationId, controls, onStart, onExit, busy, visitor = false, experience = null, slug = null, onCallEnd = null }) {
+  // Experience arc: optional pre-call email gate and post-call feedback
+  // screen around the conversation. All off = the classic landing→call flow.
+  const exp = experience || {};
+  const postEnabled = !!(exp.rating || (exp.booking && exp.schedulingUrl) || exp.talkAgain || exp.thanks);
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateEmail, setGateEmail] = useState("");
+  const [gateErr, setGateErr] = useState("");
+  const [visitorEmail, setVisitorEmail] = useState("");
+  const [postCall, setPostCall] = useState(null); // conversation id of the call that just ended
+  const [fbRating, setFbRating] = useState(0);
+  const [fbComment, setFbComment] = useState("");
+  const [fbSent, setFbSent] = useState(false);
+  const attendSent = useRef(null);
+
+  // Record attendance (and fire the owner's alert webhook, server-side) once
+  // per conversation. Builder previews without a captured email skip it —
+  // there's nothing to record and the team shouldn't get pinged by tests.
+  useEffect(() => {
+    if (!conversationId || attendSent.current === conversationId) return;
+    if (!slug && !visitorEmail) return;
+    attendSent.current = conversationId;
+    fetch("/api/experience", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: "attend",
+        conversation_id: conversationId,
+        ...(slug ? { slug } : {}),
+        ...(visitorEmail ? { email: visitorEmail } : {}),
+      }),
+    }).catch(() => {});
+  }, [conversationId, slug, visitorEmail]);
+
+  const submitFeedback = () => {
+    setFbSent(true); // optimistic — feedback is best-effort decoration
+    fetch("/api/experience", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: "feedback",
+        conversation_id: postCall,
+        ...(slug ? { slug } : {}),
+        ...(fbRating ? { rating: fbRating } : {}),
+        ...(fbComment.trim() ? { comment: fbComment.trim() } : {}),
+        ...(visitorEmail ? { email: visitorEmail } : {}),
+      }),
+    }).catch(() => {});
+  };
+
   // Magic Canvas layout: when a side card is active the stage splits into a
   // video pane + a dedicated canvas panel (the card never overlays the video).
   // The side is kept after deactivation so the exit slide goes back the same way.
@@ -814,6 +881,56 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
 
   const stage = () => {
     if (!conversationUrl) {
+      if (postCall && postEnabled) {
+        return (
+          <div className="exp-screen">
+            <h3>{exp.thanks || "Thanks for the conversation!"}</h3>
+            {exp.rating && !fbSent && (
+              <>
+                <div className="star-row">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button key={n} type="button" className={"star" + (fbRating >= n ? " on" : "")} onClick={() => setFbRating(n)} aria-label={`${n} star${n > 1 ? "s" : ""}`}>★</button>
+                  ))}
+                </div>
+                <textarea className="exp-comment" value={fbComment} onChange={(e) => setFbComment(e.target.value)} placeholder="Anything you'd tell the team? (optional)" />
+                <button className="pill-btn primary" onClick={submitFeedback} disabled={!fbRating && !fbComment.trim()}>Send feedback</button>
+              </>
+            )}
+            {exp.rating && fbSent && <p className="exp-hint">Got it — thank you!</p>}
+            <div className="exp-actions">
+              {exp.booking && exp.schedulingUrl && (
+                <a className={"pill-btn" + (!exp.rating || fbSent ? " primary" : "")} href={exp.schedulingUrl} target="_blank" rel="noreferrer">📅 Book a meeting</a>
+              )}
+              {exp.talkAgain && (
+                <button className="pill-btn" onClick={() => { setPostCall(null); handleStart(); }} disabled={busy}>{busy ? "Connecting…" : "Talk again"}</button>
+              )}
+              <button className="pill-btn ghost" onClick={() => setPostCall(null)}>Done</button>
+            </div>
+          </div>
+        );
+      }
+      if (gateOpen) {
+        return (
+          <div className="exp-screen">
+            <h3>Before we start…</h3>
+            <p className="exp-hint">{exp.emailPrompt || "Where can we reach you? The team likes to know who they're talking to."}</p>
+            <input
+              className="exp-input"
+              type="email"
+              value={gateEmail}
+              onChange={(e) => { setGateEmail(e.target.value); setGateErr(""); }}
+              onKeyDown={(e) => e.key === "Enter" && submitGate()}
+              placeholder="you@company.com"
+              autoFocus
+            />
+            {gateErr && <p className="exp-err">{gateErr}</p>}
+            <div className="exp-actions">
+              <button className="pill-btn primary" onClick={submitGate} disabled={busy}>{busy ? "Connecting…" : "Continue"}</button>
+              {exp.emailRequired === false && <button className="pill-btn ghost" onClick={skipGate} disabled={busy}>Skip</button>}
+            </div>
+          </div>
+        );
+      }
       return (
         <div className="demo-cta">
           <button className="pill-btn primary big" onClick={handleStart} disabled={busy}>
@@ -839,12 +956,12 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
                 claim, so active cards get their own screen region beside the
                 video instead of cutting into it. */}
             <div className="cvi-video-pane">
-              <Conversation conversationUrl={conversationUrl} onLeave={onExit} />
+              <Conversation conversationUrl={conversationUrl} onLeave={handleLeave} />
             </div>
             <div className={`canvas-panel canvas-panel-${canvasPanel.side}`} aria-hidden="true" />
             {/* Contained inside the stage instead of a full-viewport overlay */}
             <MagicCanvas className="canvas-contained" onError={(e) => console.error("canvas error", e)} onLayoutEffectChange={onCanvasLayout} />
-            <CallExtras controls={controls} conversationId={conversationId} onForceLeave={onExit} visitor={visitor} />
+            <CallExtras controls={controls} conversationId={conversationId} onForceLeave={handleLeave} visitor={visitor} />
           </div>
         </CVIProvider>
       );
@@ -873,9 +990,32 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
     document.addEventListener("fullscreenchange", onFs);
     return () => document.removeEventListener("fullscreenchange", onFs);
   }, []);
-  const handleStart = () => {
+  const beginCall = () => {
     if (format === "kiosk" && kioskLive) goFullscreen();
     onStart();
+  };
+  const handleStart = () => {
+    if (exp.emailGate && !visitorEmail) { setGateOpen(true); return; }
+    beginCall();
+  };
+  const submitGate = () => {
+    const e = gateEmail.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setGateErr("That doesn't look like an email address."); return; }
+    setVisitorEmail(e);
+    setGateOpen(false);
+    beginCall();
+  };
+  const skipGate = () => { setGateOpen(false); beginCall(); };
+  // Call over: with any post-call element configured, land on the feedback
+  // screen (clearing just the conversation) instead of leaving the page.
+  const handleLeave = () => {
+    if (postEnabled && conversationId) {
+      setPostCall(conversationId);
+      setFbRating(0); setFbComment(""); setFbSent(false);
+      if (onCallEnd) onCallEnd(); else onExit();
+      return;
+    }
+    onExit();
   };
   const handleExit = () => { exitFullscreen(); onExit(); };
 
@@ -952,7 +1092,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
           <div className="phone-frame">
             <div className="phone-island" />
             <div className="phone-screen">
-              {conversationUrl ? (
+              {conversationUrl || gateOpen || (postEnabled && postCall) ? (
                 <div className="demo-stage">{stage()}</div>
               ) : (
                 <>
@@ -1001,7 +1141,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
           <div className="kiosk-scene">
             <div className="kiosk-totem">
               <div className="kiosk-screen">
-                {conversationUrl ? (
+                {conversationUrl || gateOpen || (postEnabled && postCall) ? (
                   <div className="demo-stage">{stage()}</div>
                 ) : (
                   <div className="kiosk-attract">
@@ -1201,6 +1341,7 @@ export default function TavusExperienceBuilder() {
   const [onlyMyPal, setOnlyMyPal] = useState(false);
   const [callsPage, setCallsPage] = useState(0); // client-side pagination, 25 per page
   const [recMap, setRecMap] = useState({}); // conversation_id → recording location
+  const [expMap, setExpMap] = useState({}); // conversation_id → attendee/feedback record
 
   // Timing & controls
   const [maxMinutes, setMaxMinutes] = useState("");          // blank = Tavus default (60 min)
@@ -1272,6 +1413,16 @@ export default function TavusExperienceBuilder() {
     brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop",
   });
   const setSiteField = (k, v) => setSite((s) => ({ ...s, [k]: v }));
+
+  // Experience arc — pre-call email gate + attendance alert, post-call feedback.
+  const [expEmailGate, setExpEmailGate] = useState(false);
+  const [expEmailRequired, setExpEmailRequired] = useState(true);
+  const [expEmailPrompt, setExpEmailPrompt] = useState("");
+  const [expNotifyWebhook, setExpNotifyWebhook] = useState("");
+  const [expRating, setExpRating] = useState(false);
+  const [expBooking, setExpBooking] = useState(false);
+  const [expTalkAgain, setExpTalkAgain] = useState(false);
+  const [expThanks, setExpThanks] = useState("");
 
   // Launch
   const [busy, setBusy] = useState(false);
@@ -1347,6 +1498,8 @@ export default function TavusExperienceBuilder() {
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
     palLlm, knowledgeIdsRaw,
     site,
+    expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
+    expRating, expBooking, expTalkAgain, expThanks,
   });
 
   const applyConfig = (c) => {
@@ -1397,6 +1550,14 @@ export default function TavusExperienceBuilder() {
     setPalLlm(c.palLlm ?? "tavus-glm-4.7");
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
+    setExpEmailGate(!!c.expEmailGate);
+    setExpEmailRequired(c.expEmailRequired !== false);
+    setExpEmailPrompt(c.expEmailPrompt ?? "");
+    setExpNotifyWebhook(c.expNotifyWebhook ?? "");
+    setExpRating(!!c.expRating);
+    setExpBooking(!!c.expBooking);
+    setExpTalkAgain(!!c.expTalkAgain);
+    setExpThanks(c.expThanks ?? "");
   };
 
   /* Push one scenario to the account's cloud store. Throws on failure so
@@ -1713,6 +1874,21 @@ export default function TavusExperienceBuilder() {
     recordingLayout: recLayout,
   }), [maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout]);
 
+  /* Experience arc config — travels to DemoSite (preview) and into the stored
+     demo snapshot (shared links). notifyWebhook is stripped from the public
+     demo GET server-side; only /api/experience reads it, at alert time. */
+  const experienceConfig = useMemo(() => ({
+    emailGate: expEmailGate,
+    emailRequired: expEmailRequired,
+    emailPrompt: expEmailPrompt.trim(),
+    notifyWebhook: expNotifyWebhook.trim(),
+    rating: expRating,
+    booking: expBooking,
+    schedulingUrl: schedulingUrl.trim(),
+    talkAgain: expTalkAgain,
+    thanks: expThanks.trim(),
+  }), [expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook, expRating, expBooking, schedulingUrl, expTalkAgain, expThanks]);
+
   const pronunciationRules = useMemo(() => parsePronunciation(pronunciationText), [pronunciationText]);
   const pronunciationPayload = useMemo(
     () => ({ name: `${(site.brand || conversationName || "builder").slice(0, 240)} dictionary`, rules: pronunciationRules }),
@@ -1763,6 +1939,16 @@ export default function TavusExperienceBuilder() {
       return { title: "PUT /pals/…/skills/presentation", text: curlFor("PUT", `/pals/${pal}/skills/presentation`, presentationPayload) };
     if (step === "canvas")
       return { title: "PUT /pals/…/skills/magic_canvas", text: curlFor("PUT", `/pals/${pal}/skills/magic_canvas`, canvasPayload) };
+    if (step === "experience")
+      // Not a Tavus API — this one hits the builder's own backend.
+      return {
+        title: "POST /api/experience (builder backend)",
+        text: [
+          `curl -X POST ${window.location.origin}/api/experience \\`,
+          `  -H "Content-Type: application/json" \\`,
+          `  -d '${JSON.stringify({ kind: "attend", slug: "<demo-slug>", conversation_id: "<c…>", email: "visitor@company.com" }, null, 2)}'`,
+        ].join("\n"),
+      };
     return { title: "POST /conversations", text: curlFor("POST", "/conversations", conversationPayload) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, palId, apiKey, personaDraft, visionPayload, pronunciationPayload, presentationPayload, canvasPayload, conversationPayload, objectivesPayload, guardrailsParsed, objectivesEnabled, guardrailsEnabled, kbUrl, kbName, kbCrawl, toolDefs]);
@@ -2470,6 +2656,13 @@ export default function TavusExperienceBuilder() {
       const map = await res.json();
       if (map && typeof map === "object") setRecMap((m) => ({ ...m, ...map }));
     } catch { /* recordings panel is optional decoration */ }
+    // Attendee/feedback records from /api/experience ride the same id batches.
+    try {
+      const res = await fetch(`/api/experience?ids=${ids.slice(0, 100).join(",")}`);
+      if (!res.ok) return;
+      const map = await res.json();
+      if (map && typeof map === "object") setExpMap((m) => ({ ...m, ...map }));
+    } catch { /* optional decoration */ }
   };
 
   const openCall = async (id) => {
@@ -2539,6 +2732,7 @@ export default function TavusExperienceBuilder() {
           site,
           controls: controlsConfig,
           payload: conversationPayload,
+          experience: experienceConfig,
         }),
       });
       const j = await res.json().catch(() => ({}));
@@ -3043,8 +3237,10 @@ export default function TavusExperienceBuilder() {
           conversationUrl={conversation?.conversation_url || null}
           conversationId={conversation?.conversation_id || null}
           controls={controlsConfig}
+          experience={experienceConfig}
           onStart={launch}
           onExit={() => setSiteMode(false)}
+          onCallEnd={() => setConversation(null)}
           busy={busy}
         />
       )}
@@ -4014,6 +4210,8 @@ export default function TavusExperienceBuilder() {
                     {demoDetail.convos.map((c) => (
                       <div key={c.id} className="kb-row">
                         <span className="mono" style={{ flex: 1, fontSize: 12 }}>{c.id}</span>
+                        {expMap[c.id]?.email && <span title={`Visitor: ${expMap[c.id].email}`} style={{ flexShrink: 0 }}>👤</span>}
+                        {expMap[c.id]?.rating > 0 && <span title={`Rated ${expMap[c.id].rating}/5`} style={{ flexShrink: 0, color: "#F3B93F" }}>★{expMap[c.id].rating}</span>}
                         {recMap[c.id]?.uri && <span title={`Recorded: ${recMap[c.id].uri}`} style={{ flexShrink: 0 }}>⏺</span>}
                         <span style={{ color: "var(--muted)", fontSize: 11.5 }}>{(c.at || "").slice(0, 16).replace("T", " ")}</span>
                         <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => openCall(c.id)} disabled={callDetailLoading}>
@@ -4092,6 +4290,43 @@ export default function TavusExperienceBuilder() {
                 );
               })()}
 
+              {!callDetail && !!callsList?.length && (() => {
+                // Attendance + feedback from the Experience arc, as its own
+                // category — who showed up and what they thought, at a glance.
+                const attended = callsList.filter((c) => {
+                  const e = expMap[c.conversation_id];
+                  return e && (e.email || e.rating || e.comment);
+                });
+                if (!attended.length) return null;
+                return (
+                  <>
+                    <div className="subhead">👤 Visitors &amp; feedback ({attended.length})</div>
+                    <div className="kb-list" style={{ marginBottom: 24 }}>
+                      {attended.map((c) => {
+                        const e = expMap[c.conversation_id];
+                        return (
+                          <div key={c.conversation_id} className="kb-row">
+                            <span style={{ flex: 1, fontSize: 13 }}>
+                              {e.email || <span className="mono" style={{ fontSize: 12 }}>{c.conversation_id}</span>}
+                            </span>
+                            {e.rating > 0 && <span style={{ color: "#F3B93F", flexShrink: 0 }} title={`Rated ${e.rating}/5`}>{"★".repeat(e.rating)}</span>}
+                            {e.comment && (
+                              <span style={{ color: "var(--muted)", fontSize: 12, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={e.comment}>
+                                “{e.comment}”
+                              </span>
+                            )}
+                            <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}>{(c.created_at || "").slice(0, 16).replace("T", " ")}</span>
+                            <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => openCall(c.conversation_id)} disabled={callDetailLoading}>
+                              Transcript
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
+
               <div className="subhead">All calls on this account{callsList?.length ? ` (${callsList.length})` : ""}</div>
 
               {callDetail ? (
@@ -4115,8 +4350,20 @@ export default function TavusExperienceBuilder() {
                     const transcript = tEvent?.properties?.transcript;
                     const pEvents = events.filter((e) => /perception/i.test(e.event_type || ""));
                     const rec = recMap[callDetail.conversation_id];
+                    const ex = expMap[callDetail.conversation_id];
                     return (
                       <>
+                        {ex && (ex.email || ex.rating || ex.comment) && (
+                          <>
+                            <div className="subhead">Visitor</div>
+                            <div className="kb-row" style={{ maxWidth: 640, marginBottom: 14, flexWrap: "wrap" }}>
+                              {ex.email && <span className="mono" style={{ fontSize: 12.5 }}>👤 {ex.email}</span>}
+                              {ex.rating > 0 && <span style={{ color: "#F3B93F" }} title={`Rated ${ex.rating}/5`}>{"★".repeat(ex.rating)}{"☆".repeat(5 - ex.rating)}</span>}
+                              {ex.attendAt && <span style={{ color: "var(--muted)", fontSize: 11.5 }}>joined {ex.attendAt.slice(0, 16).replace("T", " ")}</span>}
+                              {ex.comment && <span style={{ flexBasis: "100%", fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>“{ex.comment}”</span>}
+                            </div>
+                          </>
+                        )}
                         <div className="subhead">Recording</div>
                         {rec?.uri && !rec.error ? (
                           <div className="kb-row" style={{ maxWidth: 640, marginBottom: 14 }}>
@@ -4212,6 +4459,8 @@ export default function TavusExperienceBuilder() {
                               <span style={{ flex: 1, fontSize: 13 }}>
                                 {c.conversation_name || <span className="mono" style={{ fontSize: 12 }}>{c.conversation_id}</span>}
                               </span>
+                              {expMap[c.conversation_id]?.email && <span title={`Visitor: ${expMap[c.conversation_id].email}`} style={{ flexShrink: 0 }}>👤</span>}
+                              {expMap[c.conversation_id]?.rating > 0 && <span title={`Rated ${expMap[c.conversation_id].rating}/5`} style={{ flexShrink: 0, color: "#F3B93F" }}>★{expMap[c.conversation_id].rating}</span>}
                               {recMap[c.conversation_id]?.uri && <span title={`Recorded: ${recMap[c.conversation_id].uri}`} style={{ flexShrink: 0 }}>⏺</span>}
                               <span className={`kb-status ${c.status === "ended" ? "" : "kb-ready"}`}>{c.status}</span>
                               <span style={{ color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }}>{(c.created_at || "").slice(0, 16).replace("T", " ")}</span>
@@ -4402,6 +4651,76 @@ export default function TavusExperienceBuilder() {
               <p className="field-hint" style={{ maxWidth: 560, marginBottom: 18 }}>
                 Adds a button to the call that instantly stops the AI mid-sentence — handy when it's mid-monologue and you want the floor.
               </p>
+
+              <button className="pill-btn" onClick={() => setSiteMode(true)}>Preview the page</button>
+            </>
+          )}
+
+          {step === "experience" && (
+            <>
+              <h1>Experience</h1>
+              <p className="lede">
+                Turn the demo page into a full arc — know who's attending before the call, capture feedback and a next step after it.
+                Everything here rides shared links too, and with it all off the page behaves exactly as before.
+              </p>
+
+              <div className="subhead">Before the call</div>
+              <div className="skill-head" style={{ marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>📧 Email gate</span>
+                <Toggle on={expEmailGate} onChange={setExpEmailGate} />
+              </div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 14 }}>
+                Visitors enter their email before the conversation unlocks — so you always know who attended.
+                It's stored with the call (see Results) and rides along on the attendance alert below.
+              </p>
+              {expEmailGate && (
+                <>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer", marginBottom: 14 }}>
+                    <input type="checkbox" style={{ width: "auto" }} checked={expEmailRequired} onChange={(e) => setExpEmailRequired(e.target.checked)} />
+                    Required (unchecked adds a Skip link)
+                  </label>
+                  <Field label="Gate prompt" hint="The line above the email field. Leave blank for the default.">
+                    <input value={expEmailPrompt} onChange={(e) => setExpEmailPrompt(e.target.value)} placeholder="Where can we reach you? The team likes to know who they're talking to." />
+                  </Field>
+                </>
+              )}
+              <Field label="Attendance alert webhook" hint="Optional. The moment a visitor starts a call on a shared link, this URL gets a POST with {type:'demo.attend', email, demo, conversation_id} — point it at a Zapier/Make catch hook for a Slack ping or email. Fires for visitor calls only (never your own previews), with or without the gate.">
+                <input className="mono" value={expNotifyWebhook} onChange={(e) => setExpNotifyWebhook(e.target.value)} placeholder="https://hooks.zapier.com/hooks/catch/…" />
+              </Field>
+
+              <div className="subhead">After the call</div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 14 }}>
+                With any of these on, ending the call lands on a thank-you screen instead of snapping back to the landing page.
+              </p>
+              <div className="skill-head" style={{ marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>⭐ Rating &amp; comment</span>
+                <Toggle on={expRating} onChange={setExpRating} />
+              </div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 14 }}>
+                1–5 stars plus an optional comment — lands next to the call in Results.
+              </p>
+              <div className="skill-head" style={{ marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>📅 Book a meeting</span>
+                <Toggle on={expBooking} onChange={setExpBooking} />
+              </div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: expBooking && !schedulingUrl.trim() ? 8 : 14 }}>
+                The conversion CTA — opens your scheduling link in a new tab.
+              </p>
+              {expBooking && (
+                <Field label="Scheduling link" hint="Shared with the Magic Canvas scheduling card — set once, used by both.">
+                  <input className="mono" value={schedulingUrl} onChange={(e) => setSchedulingUrl(e.target.value)} placeholder="https://calendly.com/you/30min" />
+                </Field>
+              )}
+              <div className="skill-head" style={{ marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>🔁 Talk again</span>
+                <Toggle on={expTalkAgain} onChange={setExpTalkAgain} />
+              </div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 14 }}>
+                One click starts a fresh conversation from the thank-you screen.
+              </p>
+              <Field label="Thank-you message" hint="Headline of the post-call screen.">
+                <input value={expThanks} onChange={(e) => setExpThanks(e.target.value)} placeholder="Thanks for the conversation!" />
+              </Field>
 
               <button className="pill-btn" onClick={() => setSiteMode(true)}>Preview the page</button>
             </>

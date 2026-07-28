@@ -23,6 +23,11 @@ export default async function handler(req, res) {
       const demo = await kvGet(`demo:${slug}`);
       if (!demo) { res.status(404).json({ error: "This demo link doesn't exist (or was created before storage was set up)." }); return; }
       const { payload, ...pub } = demo; // visitors don't need the raw Tavus payload
+      if (pub.experience && typeof pub.experience === "object") {
+        // The attendance-alert webhook stays server-side (used by /api/experience).
+        const { notifyWebhook, ...expPub } = pub.experience;
+        pub.experience = expPub;
+      }
       res.status(200).json(pub);
     } catch (e) {
       res.status(502).json({ error: `Storage: ${e.message}` });
@@ -34,12 +39,13 @@ export default async function handler(req, res) {
   if (!isAuthed(req)) { res.status(401).json({ error: "Not signed in — enter the access code first." }); return; }
   if (!kvAvailable()) { res.status(500).json({ error: NO_KV_MSG }); return; }
 
-  const { name = "", site = {}, controls = {}, payload = null } = req.body ?? {};
+  const { name = "", site = {}, controls = {}, payload = null, experience = null } = req.body ?? {};
   if (!payload?.pal_id || !payload?.face_id) {
     res.status(400).json({ error: "The demo needs a PAL ID and Face ID before it can be shared." });
     return;
   }
-  const size = JSON.stringify({ site, controls, payload }).length;
+  const exp = experience && typeof experience === "object" && !Array.isArray(experience) ? experience : null;
+  const size = JSON.stringify({ site, controls, payload, experience: exp }).length;
   if (size > 400_000) {
     res.status(413).json({ error: "This demo config is too large to share — try a smaller logo image." });
     return;
@@ -57,6 +63,7 @@ export default async function handler(req, res) {
       site,
       controls,
       payload,
+      ...(exp ? { experience: exp } : {}),
     });
     // Index for the stats dashboard (newest first, capped).
     await kvLpush("demos:index", { slug, name: String(name).slice(0, 120), createdAt, createdBy });

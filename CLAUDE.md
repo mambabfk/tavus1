@@ -44,6 +44,15 @@ Anthropic key.
   with the `TAVUS_API_KEY` env var (rate-limited per slug/hour). The frontend
   `VisitorDemo` component (`?demo=` or `/d/` detection, before the auth gate)
   renders `DemoSite` standalone.
+- `builder/api/experience.js` — **experience arc data** (attendance +
+  feedback). POST is public-with-credential: a real demo slug (visitor) or a
+  builder session (preview); records merge under `exp:{conversation_id}`
+  (90-day TTL, hourly rate caps). `kind: "attend"` on a slug call forwards an
+  alert to the demo's stored `experience.notifyWebhook` (SSRF-guarded,
+  text/plain — Zapier/Make-friendly; fires once per conversation, never for
+  builder previews). GET `?ids=` (builder session) returns the per-call map —
+  same shape as `/api/recordings`. The demo snapshot stores the full
+  `experience` object; the public demo GET strips `notifyWebhook`.
 - `builder/api/scenarios.js` — **cloud-synced scenarios**. One Redis hash per
   account (`scenarios:{email}`, field per scenario name; `"team"` for legacy
   shared-code sessions), holding `{name, config, updatedAt, savedBy}` —
@@ -221,6 +230,21 @@ non-technical users; ids unchanged):
    `DemoSite` switches on `site.format` via `demo-{format}` CSS classes.
    Canvas split-layout only engages on `desktop` and live kiosk — phone,
    framed kiosk, and hologram keep the card overlay behavior.
+5.5. **Experience** (`experience`) — the arc around the call, all riding
+   shared links (config travels in the demo snapshot). **Pre-call**: email
+   gate (`expEmailGate`/`expEmailRequired`/`expEmailPrompt`) — visitors
+   enter an email before the CTA fires; `expNotifyWebhook` gets a
+   `demo.attend` POST the moment a visitor starts (works gate-on or -off).
+   **Post-call** (any toggle on → ending the call lands on a thank-you
+   screen instead of leaving): `expRating` (1–5 stars + comment),
+   `expBooking` (opens `schedulingUrl` — shared with the Canvas scheduling
+   card), `expTalkAgain`, `expThanks` (headline). All off = classic
+   landing→call flow. In `DemoSite`: gate/post screens render inside the
+   stage for every format (`exp-screen`); `handleLeave` routes to the post
+   screen via `onCallEnd` (clears the conversation without closing the
+   page). Attend/feedback POST to `/api/experience`; the Results step shows
+   a "Visitors & feedback" list, 👤/★ row badges, and a Visitor panel on
+   call detail (`expMap`, fetched alongside recordings).
 6. **Launch** — runs the whole attach-then-create sequence, logs each step.
    Also **Preflight check** (`preflight()`): `POST /objectives/validate`
    (shape/chain check, nothing saved) + `POST /conversations` with
