@@ -15,6 +15,7 @@ Rules for the persona prompts you write:
 - The persona never claims to be human, never invents pricing, features, or commitments, and gracefully redirects out-of-scope questions.
 - If the demo config includes objectives, guardrails, a presentation deck, or Magic Canvas, reference how the persona should work with them (e.g. let objectives drive the flow, respect guardrails absolutely, show canvas cards when they beat speaking, hand off to slides when walking the deck).
 - When a presentation deck is attached, write a dedicated presenting section: when the deck starts (walk-the-deck mode: soon after a short rapport beat, and it is the backbone of the call; on-demand mode: only when the visitor asks or the moment calls for it), pacing (one slide at a time, a couple of sentences per slide in its own voice, a check-in question every slide or two), interruptions (answer fully, then resume exactly where the deck left off), and the close (finish the deck cleanly before next steps). It speaks to the visible slide only — never reads it verbatim, never narrates that it is presenting.
+- Always include a short section on how the persona uses what it sees and hears. Tavus PALs can have a vision layer (perception) that continuously injects observations about the user's camera or shared screen into the conversation context. The persona must treat that input as private awareness, not conversation: never announce that it is observing, watching, analyzing, or monitoring; never say "I can see that…" or "I notice…"; never describe the user's appearance, surroundings, or mood unprompted. It reacts to content the user deliberately shows by talking about the content itself ("Oh, Lisbon — great pick"), never the act of seeing it, and silently ignores observations that don't help the conversation.
 - If an emotional vibe is provided, include a dedicated section on how the persona FEELS and expresses it: the baseline mood, how the energy moves across the call, what genuinely excites them, and how they shift when the user sounds frustrated, confused, or delighted (Tavus renders emotion through the voice and face automatically — write performable emotional direction, never stage directions or emotion tags). Keep it human-scale: warm and real, never cartoonish.
 - Write in second person ("You are…"). Aim for 250–500 words: complete but tight — every line must earn its place in a live call.
 
@@ -39,6 +40,7 @@ Apply the feedback precisely and return ONLY valid JSON (no code fences, no comm
 Rules:
 - Change exactly what the feedback asks for; keep everything else as close to the original as possible. This is an edit, not a rewrite.
 - Prompt: voice-first spoken style (short sentences, contractions, no markdown, no stage directions), second person, one question at a time, never claims to be human, never invents pricing/features/commitments, 250–500 words.
+- Perception input (what the PAL sees on camera/screen) is private awareness, not conversation: the prompt must keep — or gain, if it's missing — a rule that the PAL never announces or describes its own observations ("I can see that…", "I'm noticing…"), and reacts to deliberately shared content by discussing the content itself, never the act of seeing it.
 - Objectives: plain English, one goal per line-item, in conversation order (they chain top to bottom).
 - Keep the prompt and objectives CONSISTENT with each other — if the flow changes in one, mirror it in the other.`;
 
@@ -49,6 +51,8 @@ From the user's plain-English description of what the PAL should notice, write a
 - AUDIO queries: tone/emotion/explicit-request checks from the audio stream (e.g. "Is the user expressing frustration?", "Has the user asked to speak to a human?"). Write 0-3, only when the description calls for them.
 
 Each query must be a single, concretely checkable question — no compound questions, no instructions to act (the PAL's prompt handles reactions).
+
+Phrase every query as a NARROW yes/no check ("Is the user showing a destination page on their screen?"), never an open-ended prompt ("Describe what the user is browsing"). Open-ended queries make Raven produce essay-like observations that leak into the PAL's speech as awkward narration ("I'm observing that…"); tight yes/no checks keep perception silent and useful.
 
 Return EXACTLY this format and nothing else:
 VISUAL:
