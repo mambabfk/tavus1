@@ -44,6 +44,12 @@ Anthropic key.
   with the `TAVUS_API_KEY` env var (rate-limited per slug/hour). The frontend
   `VisitorDemo` component (`?demo=` or `/d/` detection, before the auth gate)
   renders `DemoSite` standalone.
+- `builder/api/scenarios.js` — **cloud-synced scenarios**. One Redis hash per
+  account (`scenarios:{email}`, field per scenario name; `"team"` for legacy
+  shared-code sessions), holding `{name, config, updatedAt, savedBy}` —
+  configs never include the Tavus API key. GET → names, GET `?name=` → one,
+  POST upsert, DELETE `?name=`. Builder session required; 501 without Redis
+  (frontend falls back to localStorage-only silently).
 - `kind: "demo"` on `generate-persona` — "Start from an idea" (Setup step):
   Claude returns a full template JSON (site copy, greeting, personaBrief,
   objectives, guardrails, visionVibe, canvasPlaybook) applied across all
@@ -203,10 +209,18 @@ non-technical users; ids unchanged):
    console link) above the transcript.
 5. **Demo Page** (`site`) — `brand`, `logoUrl` (set via **file upload** →
    canvas-downscaled ≤512px data URL, stored in config, no hosting),
-   `headline`, `tagline`, `cta`, and `format`: `desktop` | `phone` (portrait
-   stage in a device bezel) | `kiosk` (chrome-less full-viewport stage with a
-   floating exit button). `DemoSite` switches on `site.format` via
-   `demo-{format}` CSS classes.
+   `headline`, `tagline`, `cta`, and `format`: `desktop` | `phone` (a
+   scrollable in-app screen — status bar, app header, hero + CTA, skeleton
+   cards standing in for the host app — inside a phone frame; in-call the
+   conversation takes the screen over full-bleed) | `kiosk` (framed
+   freestanding totem preview with a touch-to-start attract screen; the
+   **Go live** button flips to `demo-kiosk-live` — chrome-less full-viewport
+   + fullscreen for real kiosk/tablet hardware, Esc drops back to the framed
+   preview) | `hologram` (dark set, glowing projection panel — tint/scanline
+   overlays, light cone, floor emitter — over the same custom CVI stage).
+   `DemoSite` switches on `site.format` via `demo-{format}` CSS classes.
+   Canvas split-layout only engages on `desktop` and live kiosk — phone,
+   framed kiosk, and hologram keep the card overlay behavior.
 6. **Launch** — runs the whole attach-then-create sequence, logs each step.
    Also **Preflight check** (`preflight()`): `POST /objectives/validate`
    (shape/chain check, nothing saved) + `POST /conversations` with
@@ -307,6 +321,13 @@ real local Vite app.
   `collectConfig()` / `applyConfig()` are the serialize/restore pair; keep them
   in sync when adding a new field. Save/Load/Delete plus **Export/Import** to a
   JSON file (the file path works even when localStorage is blocked).
+  **Cloud sync** (`/api/scenarios`): localStorage is only the instant/offline
+  cache — every save/import also POSTs to the account's Redis hash, the
+  dropdown shows the union of local + cloud names (☁ = synced), and load
+  prefers the cloud copy when the two differ (it's the one that survives
+  cleared browser storage and follows the account across devices).
+  `cloudSync` state: `"unknown" → "on"/"off"`; `"off"` (no Redis, bare vite)
+  degrades to the old localStorage-only behavior with honest log lines.
 - **API key** (`APIKEY_KEY = "tavus_builder_api_key_v1"`) — remembered only when
   the "Remember key" box is checked; **never included in scenario exports**.
 

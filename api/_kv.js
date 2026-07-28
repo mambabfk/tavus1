@@ -56,3 +56,13 @@ export async function kvMget(keys) {
 
 export const kvSetRaw = (key, value) => redis(["SET", key, String(value)]);
 export const kvGetRaw = (key) => redis(["GET", key]);
+
+/* Hash helpers — one hash per user, one field per item. Each request only
+   carries a single item, so a big collection never hits request-size caps. */
+export const kvHset = (key, field, value) => redis(["HSET", key, field, JSON.stringify(value)]);
+export async function kvHget(key, field) {
+  const v = await redis(["HGET", key, field]);
+  return v == null ? null : JSON.parse(v);
+}
+export const kvHdel = (key, field) => redis(["HDEL", key, field]);
+export const kvHkeys = (key) => redis(["HKEYS", key]);

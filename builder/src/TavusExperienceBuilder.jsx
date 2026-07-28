@@ -60,8 +60,9 @@ const PRESENTABLE = /\.(pdf|png|jpe?g|pptx)(\?|#|$)/i;
 
 const SITE_FORMATS = [
   { v: "desktop", label: "Desktop", desc: "Full page — headline, tagline, wide 16:9 stage. The default." },
-  { v: "phone", label: "Phone", desc: "Portrait stage in a phone frame — preview the mobile-app experience." },
-  { v: "kiosk", label: "Kiosk", desc: "Nothing but the conversation, full screen — for tablets, lobbies, trade-show booths." },
+  { v: "phone", label: "Mobile app", desc: "A scrollable in-app screen inside a real phone frame — how it feels living in your app." },
+  { v: "kiosk", label: "Kiosk", desc: "A freestanding kiosk totem with a touch-to-start attract screen. Go live for real kiosk hardware." },
+  { v: "hologram", label: "Hologram", desc: "A glowing projection on a dark set — wow-factor for booths, lobbies, and stages." },
 ];
 
 /* Turn a plain-English line into an API-safe objective/guardrail name */
@@ -374,22 +375,88 @@ const BUILDER_CSS = `
         .format-viz { display:flex; align-items:center; justify-content:center; height:42px; margin-bottom:8px; }
         .fv-desktop { width:56px; height:34px; border:2px solid currentColor; border-radius:5px; opacity:.65; }
         .fv-phone { width:20px; height:38px; border:2px solid currentColor; border-radius:6px; opacity:.65; }
-        .fv-kiosk { width:56px; height:38px; background:currentColor; border-radius:5px; opacity:.35; }
+        .fv-kiosk { width:22px; height:30px; border:2px solid currentColor; border-radius:3px; opacity:.55; position:relative; }
+        .fv-kiosk::after { content:""; position:absolute; left:50%; top:100%; transform:translateX(-50%); width:8px; height:8px; border-left:2px solid currentColor; border-right:2px solid currentColor; }
+        .fv-holo { width:34px; height:24px; border:2px solid currentColor; border-radius:4px; opacity:.65; position:relative; }
+        .fv-holo::after { content:""; position:absolute; left:50%; top:calc(100% + 2px); transform:translateX(-50%); border-left:11px solid transparent; border-right:11px solid transparent; border-top:11px solid currentColor; opacity:.3; }
 
-        /* phone format: portrait stage in a device frame */
+        /* phone format: a scrollable in-app screen inside a device frame —
+           the demo reads as a screen of the prospect's own mobile app, with
+           skeleton content standing in for the app around the conversation. */
         .demo-phone .demo-main { justify-content:center; }
-        .phone-frame { position:relative; width:min(390px, 92vw); aspect-ratio:9/19; background:#0e0f12; border-radius:44px; padding:12px; box-shadow:0 30px 80px -30px rgba(20,20,20,.45), 0 0 0 2px rgba(20,20,20,.9); display:flex; }
-        .phone-notch { position:absolute; top:12px; left:50%; transform:translateX(-50%); width:110px; height:22px; background:#0e0f12; border-radius:0 0 14px 14px; z-index:2; }
-        .demo-phone .demo-stage { width:100%; aspect-ratio:auto; flex:1; border-radius:32px; border:none; }
+        .phone-frame { position:relative; width:min(390px, 92vw); aspect-ratio:9/19; background:#0e0f12; border-radius:44px; padding:10px; box-shadow:0 30px 80px -30px rgba(20,20,20,.45), 0 0 0 2px rgba(20,20,20,.9); display:flex; }
+        .phone-frame::before { content:""; position:absolute; right:-4px; top:118px; width:3px; height:62px; background:#26272b; border-radius:2px; }
+        .phone-frame::after { content:""; position:absolute; left:-4px; top:98px; width:3px; height:88px; background:#26272b; border-radius:2px; }
+        .phone-island { position:absolute; top:20px; left:50%; transform:translateX(-50%); width:96px; height:25px; background:#0e0f12; border-radius:14px; z-index:3; }
+        .phone-screen { position:relative; flex:1; border-radius:34px; overflow:hidden; background:var(--canvas); display:flex; flex-direction:column; min-height:0; }
+        .demo-phone .demo-stage { width:100%; height:100%; aspect-ratio:auto; flex:1; border-radius:0; border:none; box-shadow:none; }
+        .app-status { display:flex; justify-content:space-between; align-items:center; padding:15px 24px 4px; font-size:12px; font-weight:600; flex-shrink:0; }
+        .app-status-icons { letter-spacing:2px; font-size:10px; opacity:.75; }
+        .app-scroll { flex:1; min-height:0; overflow-y:auto; padding:4px 14px 14px; }
+        .app-header { display:flex; align-items:center; gap:8px; font-weight:700; font-size:15px; letter-spacing:-.2px; padding:8px 6px 4px; }
+        .app-logo { height:22px; border-radius:5px; object-fit:contain; }
+        .app-monogram { width:24px; height:24px; border-radius:7px; background:var(--text); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; }
+        .app-hero { background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:20px 16px; margin:10px 0 12px; text-align:center; display:flex; flex-direction:column; gap:10px; align-items:center; }
+        .demo-themed .app-hero { border-top:3px solid var(--accent); }
+        .app-hero h2 { font-size:19px; margin:0; letter-spacing:-.4px; line-height:1.2; }
+        .app-hero p { color:var(--muted); font-size:13px; margin:0; line-height:1.5; }
+        .app-skeleton { display:flex; flex-direction:column; gap:10px; }
+        .app-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
+        .app-line { height:9px; border-radius:5px; background:var(--border); }
+        .app-line.dim { opacity:.55; }
+        .app-tabbar { display:flex; justify-content:space-around; align-items:center; padding:11px 0 17px; border-top:1px solid var(--border); background:var(--surface); color:var(--border); font-size:9px; flex-shrink:0; }
+        .app-tabbar .on { color:var(--accent); }
 
-        /* kiosk format: conversation only, full screen */
-        .demo-kiosk .demo-nav, .demo-kiosk .demo-header, .demo-kiosk .demo-powered { display:none; }
-        .demo-kiosk .demo-main { padding:0; }
-        .demo-kiosk .demo-stage { width:100vw; height:100vh; max-width:none; aspect-ratio:auto; border-radius:0; border:none; }
-        .demo-kiosk .demo-cta { transform:scale(1.25); }
+        /* kiosk format: a framed freestanding totem with an attract screen —
+           the in-context preview. "Go live" (demo-kiosk-live) strips the frame
+           to chrome-less full-viewport for real kiosk/tablet hardware. */
+        .demo-kiosk .demo-main { justify-content:center; }
+        .kiosk-scene { display:flex; flex-direction:column; align-items:center; gap:24px; width:100%; }
+        .kiosk-totem { display:flex; flex-direction:column; align-items:center; filter:drop-shadow(0 36px 40px rgba(20,20,20,.30)); }
+        /* Width also bounded by the height budget (via the aspect ratio) so the
+           whole totem + Go-live button fit the viewport without scrolling. */
+        .kiosk-screen { width:min(420px, 90vw, calc(56vh * 9 / 14)); aspect-ratio:9/14; background:var(--canvas); border-radius:18px; border:13px solid #1b1c1f; box-shadow:inset 0 0 0 2px #000; overflow:hidden; display:flex; }
+        .kiosk-neck { width:82px; height:min(96px, 9vh); background:linear-gradient(90deg, #232427, #3a3b3f 50%, #232427); }
+        .kiosk-base { width:230px; height:16px; background:#1b1c1f; border-radius:8px 8px 3px 3px; }
+        .demo-kiosk:not(.demo-kiosk-live) .demo-stage { width:100%; height:100%; max-width:none; aspect-ratio:auto; border-radius:0; border:none; box-shadow:none; }
+        .kiosk-attract { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:13px; text-align:center; padding:26px 22px; }
+        .kiosk-logo { height:42px; object-fit:contain; border-radius:9px; margin-bottom:4px; }
+        .kiosk-attract h2 { font-size:23px; letter-spacing:-.5px; margin:0; line-height:1.15; }
+        .kiosk-attract p { color:var(--muted); font-size:14px; margin:0; line-height:1.5; }
+        .kiosk-cta { position:relative; margin-top:12px; border:none; border-radius:999px; background:var(--text); color:#fff; font:inherit; font-weight:600; font-size:16px; padding:16px 30px; cursor:pointer; }
+        .kiosk-cta:disabled { opacity:.6; cursor:default; }
+        .kiosk-cta::after { content:""; position:absolute; inset:-9px; border-radius:999px; border:2px solid var(--accent); animation:kioskpulse 2.2s ease-out infinite; }
+        @keyframes kioskpulse { 0% { transform:scale(.9); opacity:.9; } 70% { transform:scale(1.12); opacity:0; } 100% { opacity:0; } }
+        .demo-kiosk-live .demo-nav, .demo-kiosk-live .demo-header, .demo-kiosk-live .demo-powered { display:none; }
+        .demo-kiosk-live .demo-main { padding:0; }
+        .demo-kiosk-live .demo-stage { width:100vw; height:100vh; max-width:none; aspect-ratio:auto; border-radius:0; border:none; }
+        .demo-kiosk-live .demo-cta { transform:scale(1.25); }
         .kiosk-exit { position:fixed; top:14px; right:14px; z-index:60; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:rgba(255,255,255,.85); color:var(--muted); font-size:20px; line-height:1; cursor:pointer; opacity:.35; }
         .kiosk-exit:hover { opacity:1; }
-        .kiosk-fs { top:60px; font-size:15px; }
+
+        /* hologram format: the AI human as a glowing projection on a dark set —
+           tinted panel, scanlines, flicker, and a light cone from a floor emitter. */
+        .demo-root.demo-hologram { background:radial-gradient(120% 90% at 50% 8%, #0d1120, #07080d 62%); color:#dfe7ff; }
+        .demo-hologram .demo-nav { background:transparent; }
+        .demo-hologram .demo-brand { color:#dfe7ff; }
+        .demo-hologram .demo-powered { color:#5a6480; }
+        .demo-hologram .demo-main { justify-content:center; background:none; }
+        .holo-scene { display:flex; flex-direction:column; align-items:center; width:100%; }
+        .holo-head { text-align:center; margin-bottom:20px; }
+        .holo-head h2 { color:#eaf2ff; text-shadow:0 0 26px rgba(96,168,255,.5); font-size:clamp(22px, 3.4vw, 34px); letter-spacing:-.6px; margin:0; line-height:1.15; }
+        .holo-head p { color:#8f9ab8; font-size:15px; line-height:1.6; max-width:520px; margin:10px auto 0; }
+        .holo-rig { display:flex; flex-direction:column; align-items:center; width:min(760px, 94vw); }
+        .holo-panel { position:relative; width:100%; border-radius:18px; padding:2px; background:linear-gradient(180deg, rgba(120,190,255,.55), rgba(120,190,255,.10)); box-shadow:0 0 44px rgba(90,170,255,.35), 0 0 130px rgba(60,120,255,.16); animation:holofloat 5.5s ease-in-out infinite, holoflicker 7s steps(1) infinite; z-index:1; }
+        .demo-hologram .demo-stage.holo-stage { width:100%; aspect-ratio:16/9; background:#0a0f1c; border:1px solid rgba(140,200,255,.35); border-radius:16px; box-shadow:none; }
+        .holo-tint { position:absolute; inset:2px; border-radius:16px; pointer-events:none; z-index:5; background:linear-gradient(180deg, rgba(90,170,255,.10), rgba(90,170,255,.18)); mix-blend-mode:screen; }
+        .holo-scanlines { position:absolute; inset:2px; border-radius:16px; pointer-events:none; z-index:6; background:repeating-linear-gradient(0deg, rgba(150,210,255,.08) 0 1px, transparent 1px 4px); mix-blend-mode:screen; animation:holoscan 8s linear infinite; }
+        .holo-cone { width:64%; height:130px; margin-top:-6px; background:linear-gradient(180deg, rgba(110,180,255,.30), rgba(110,180,255,.04) 80%, transparent); clip-path:polygon(0 0, 100% 0, 56% 100%, 44% 100%); }
+        .holo-emitter { width:190px; height:22px; margin-top:-10px; border-radius:50%; background:radial-gradient(closest-side, rgba(140,200,255,.9), rgba(90,150,255,.35) 55%, transparent); box-shadow:0 0 34px rgba(96,168,255,.55); }
+        .demo-hologram .holo-stage .pill-btn.primary { background:#66b3ff; color:#04121f; border:none; box-shadow:0 0 30px rgba(102,179,255,.55); }
+        .demo-hologram .holo-stage .demo-cta-hint { color:#8f9ab8; }
+        @keyframes holofloat { 0%, 100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
+        @keyframes holoflicker { 0%, 91%, 94%, 98%, 100% { opacity:1; } 92% { opacity:.78; } 96% { opacity:.88; } }
+        @keyframes holoscan { 0% { background-position:0 0; } 100% { background-position:0 120px; } }
 
         @media (max-width:1100px){ .preview { display:none; } }
         @media (max-width:760px){
@@ -746,8 +813,10 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
     }
     if (cvi) {
       const { CVIProvider, Conversation, MagicCanvas } = cvi;
-      // Phone format is too narrow to split — cards keep the overlay behavior there.
-      const split = canvasPanel.active && format !== "phone";
+      // Only wide stages split for canvas cards — the phone screen, the framed
+      // kiosk, and the hologram panel are too narrow (or too stylized), so
+      // cards keep the overlay behavior there.
+      const split = canvasPanel.active && (format === "desktop" || (format === "kiosk" && kioskLive));
       return (
         <CVIProvider>
           <div className={"cvi-wrap" + (split ? ` canvas-split canvas-split-${canvasPanel.side}` : "")}>
@@ -776,12 +845,21 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
 
   const format = site.format || "desktop";
 
-  // Kiosk = take over the physical screen. Fullscreen needs a user gesture,
-  // so it rides on the start-conversation click (and a manual ⛶ button).
+  // Kiosk has two faces: the framed totem preview (default — visualize the
+  // experience on the hardware) and "live" (chrome-less full-viewport for an
+  // actual kiosk/tablet). Fullscreen needs a user gesture, so it rides on the
+  // Go-live click; leaving fullscreen (Escape) drops back to the framed view.
+  const [kioskLive, setKioskLive] = useState(false);
   const goFullscreen = () => document.documentElement.requestFullscreen?.().catch(() => {});
   const exitFullscreen = () => { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); };
+  const goLive = () => { setKioskLive(true); goFullscreen(); };
+  useEffect(() => {
+    const onFs = () => { if (!document.fullscreenElement) setKioskLive(false); };
+    document.addEventListener("fullscreenchange", onFs);
+    return () => document.removeEventListener("fullscreenchange", onFs);
+  }, []);
   const handleStart = () => {
-    if (format === "kiosk") goFullscreen();
+    if (format === "kiosk" && kioskLive) goFullscreen();
     onStart();
   };
   const handleExit = () => { exitFullscreen(); onExit(); };
@@ -813,12 +891,9 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
   }, [site.brand, site.logoUrl]);
 
   return (
-    <div className={`demo-root demo-${format}${t ? " demo-themed" : ""}`} style={themeVars}>
-      {format === "kiosk" && (
-        <>
-          <button className="kiosk-exit" onClick={handleExit} title="Back to builder">×</button>
-          <button className="kiosk-exit kiosk-fs" onClick={goFullscreen} title="Fullscreen (kiosk)">⛶</button>
-        </>
+    <div className={`demo-root demo-${format}${format === "kiosk" && kioskLive ? " demo-kiosk-live" : ""}${t ? " demo-themed" : ""}`} style={themeVars}>
+      {format === "kiosk" && kioskLive && (
+        <button className="kiosk-exit" onClick={handleExit} title="Back to builder">×</button>
       )}
       <nav className="demo-nav">
         <div className="demo-brandwrap">
@@ -855,9 +930,105 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
         )}
 
         {format === "phone" ? (
+          /* A screen of "their app": status bar, app header, hero with the CTA,
+             and skeleton cards standing in for the host app's own content so
+             the screen scrolls like a real app. In-call, the conversation
+             takes the phone over full-bleed, FaceTime-style. */
           <div className="phone-frame">
-            <div className="phone-notch" />
-            <div className="demo-stage">{stage()}</div>
+            <div className="phone-island" />
+            <div className="phone-screen">
+              {conversationUrl ? (
+                <div className="demo-stage">{stage()}</div>
+              ) : (
+                <>
+                  <div className="app-status">
+                    <span>9:41</span>
+                    <span className="app-status-icons">▂▄▆█ ⏻</span>
+                  </div>
+                  <div className="app-scroll">
+                    <div className="app-header">
+                      {site.logoUrl
+                        ? <img src={site.logoUrl} alt="" className="app-logo" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                        : <span className="app-monogram">{(site.brand || "T")[0].toUpperCase()}</span>}
+                      <span>{site.brand || "Your Brand"}</span>
+                    </div>
+                    <div className="app-hero">
+                      <h2>{site.headline || "Talk to our AI expert"}</h2>
+                      {site.tagline && <p>{site.tagline}</p>}
+                      <button className="pill-btn primary" onClick={handleStart} disabled={busy}>
+                        {busy ? "Connecting…" : site.cta || "Start the conversation"}
+                      </button>
+                      <span className="demo-cta-hint">Camera and microphone required</span>
+                    </div>
+                    <div className="app-skeleton" aria-hidden="true">
+                      {[
+                        ["42%", "78%"], ["58%", "86%"], ["36%", "70%"],
+                        ["50%", "82%"], ["44%", "74%"], ["60%", "80%"],
+                      ].map(([w1, w2], i) => (
+                        <div key={i} className="app-card">
+                          <div className="app-line" style={{ width: w1 }} />
+                          <div className="app-line dim" style={{ width: w2 }} />
+                          {i % 2 === 0 && <div className="app-line dim" style={{ width: "64%" }} />}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="app-tabbar" aria-hidden="true">
+                    <span className="on">⬤</span><span>⬤</span><span>⬤</span><span>⬤</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        ) : format === "kiosk" && !kioskLive ? (
+          /* Framed totem preview — visualize the demo on the hardware it'll
+             run on. "Go live" strips the frame for the real thing. */
+          <div className="kiosk-scene">
+            <div className="kiosk-totem">
+              <div className="kiosk-screen">
+                {conversationUrl ? (
+                  <div className="demo-stage">{stage()}</div>
+                ) : (
+                  <div className="kiosk-attract">
+                    {site.logoUrl
+                      ? <img src={site.logoUrl} alt="" className="kiosk-logo" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                      : <span className="demo-monogram">{(site.brand || "T")[0].toUpperCase()}</span>}
+                    <h2>{site.headline || "Talk to our AI expert"}</h2>
+                    {site.tagline && <p>{site.tagline}</p>}
+                    <button className="kiosk-cta" onClick={handleStart} disabled={busy}>
+                      {busy ? "Connecting…" : site.cta || "Touch to start"}
+                    </button>
+                    <span className="demo-cta-hint">Camera and microphone required</span>
+                  </div>
+                )}
+              </div>
+              <div className="kiosk-neck" />
+              <div className="kiosk-base" />
+            </div>
+            <button className="pill-btn" onClick={goLive} title="Chrome-less fullscreen for real kiosk or tablet hardware — Esc comes back to this preview">
+              ⛶ Go live — fullscreen kiosk
+            </button>
+          </div>
+        ) : format === "hologram" ? (
+          /* Dark set, glowing projection panel, light cone down to a floor
+             emitter. The effects are overlays — the call underneath is the
+             same custom CVI stage as every other format. */
+          <div className="holo-scene">
+            {(site.headline || site.tagline) && (
+              <div className="holo-head">
+                <h2>{site.headline || "Talk to our AI expert"}</h2>
+                {site.tagline && <p>{site.tagline}</p>}
+              </div>
+            )}
+            <div className="holo-rig">
+              <div className="holo-panel">
+                <div className="demo-stage holo-stage">{stage()}</div>
+                <div className="holo-tint" aria-hidden="true" />
+                <div className="holo-scanlines" aria-hidden="true" />
+              </div>
+              <div className="holo-cone" aria-hidden="true" />
+              <div className="holo-emitter" aria-hidden="true" />
+            </div>
           </div>
         ) : (
           <div className="demo-stage">{stage()}</div>
@@ -1102,8 +1273,13 @@ export default function TavusExperienceBuilder() {
   const [ideaText, setIdeaText] = useState("");
   const [ideating, setIdeating] = useState(false);
 
-  // Scenarios (named snapshots of the full builder config)
+  // Scenarios (named snapshots of the full builder config).
+  // localStorage is the instant/offline cache; the durable copy lives
+  // server-side per account (/api/scenarios) so scenarios survive cleared
+  // browser storage and follow the user across devices.
   const [scenarios, setScenarios] = useState(() => store.get(SCENARIOS_KEY, {}));
+  const [cloudNames, setCloudNames] = useState([]); // scenario names synced to the account
+  const [cloudSync, setCloudSync] = useState("unknown"); // "unknown" | "on" | "off"
   const [scenarioName, setScenarioName] = useState("");
   const [savedFlash, setSavedFlash] = useState(false); // "Saved ✓" blink on the footer Save
   const [activeScenario, setActiveScenario] = useState("");
@@ -1122,6 +1298,18 @@ export default function TavusExperienceBuilder() {
     if (saved) setApiKey(saved);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Pull the account's cloud-saved scenario names once signed in. A failure
+  // (no Redis attached, bare vite dev) just means localStorage-only mode.
+  useEffect(() => {
+    if (demoSlug || !auth.checked || (auth.required && !auth.authed)) return;
+    let alive = true;
+    fetch("/api/scenarios")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d) => { if (alive) { setCloudNames(Array.isArray(d.names) ? d.names : []); setCloudSync("on"); } })
+      .catch(() => { if (alive) setCloudSync("off"); });
+    return () => { alive = false; };
+  }, [demoSlug, auth.checked, auth.required, auth.authed]);
 
   const toggleRememberKey = (on) => {
     setRememberKey(on);
@@ -1196,35 +1384,94 @@ export default function TavusExperienceBuilder() {
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
   };
 
-  const saveScenario = () => {
+  /* Push one scenario to the account's cloud store. Throws on failure so
+     callers can report "saved locally only" instead of pretending. */
+  const syncScenarioToCloud = async (name, config) => {
+    const r = await fetch("/api/scenarios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, config }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || `sync failed (${r.status})`);
+    setCloudSync("on");
+    setCloudNames((ns) => (ns.includes(name) ? ns : [...ns, name].sort()));
+  };
+
+  const saveScenario = async () => {
     // Falls back to a sensible name so the footer Save works on any step
     // without first typing a name in the top bar.
     const name = (scenarioName || activeScenario || site.brand || conversationName || "My demo").trim();
     if (!name) return;
-    const next = { ...scenarios, [name]: collectConfig() };
+    const config = collectConfig();
+    const next = { ...scenarios, [name]: config };
     setScenarios(next);
-    const ok = store.set(SCENARIOS_KEY, next);
+    const localOk = store.set(SCENARIOS_KEY, next);
     setActiveScenario(name);
     setScenarioName("");
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 1600);
-    addLog(ok ? "ok" : "info", ok ? `Scenario "${name}" saved.` : `Scenario "${name}" saved for this session only — storage is blocked in this environment. Use Export for a file.`);
+    if (cloudSync !== "off") {
+      try {
+        await syncScenarioToCloud(name, config);
+        addLog("ok", `Scenario "${name}" saved & synced to your account ☁.`);
+        return;
+      } catch (e) {
+        if (cloudSync === "unknown") setCloudSync("off");
+        addLog(localOk ? "info" : "err", `Scenario "${name}" saved in this browser only — cloud sync unavailable (${e.message}).`);
+        return;
+      }
+    }
+    addLog(localOk ? "ok" : "info", localOk ? `Scenario "${name}" saved in this browser.` : `Scenario "${name}" saved for this session only — storage is blocked in this environment. Use Export for a file.`);
   };
 
-  const loadScenario = (name) => {
-    if (!name || !scenarios[name]) { setActiveScenario(""); return; }
-    applyConfig(scenarios[name]);
-    setActiveScenario(name);
-    addLog("info", `Scenario "${name}" loaded.`);
+  const loadScenario = async (name) => {
+    if (!name) { setActiveScenario(""); return; }
+    const local = scenarios[name] || null;
+    // Local copy applies instantly (and covers offline); the cloud copy is
+    // the durable source of truth, so it wins when the two differ.
+    if (local) {
+      applyConfig(local);
+      setActiveScenario(name);
+    }
+    if (cloudSync === "on" && cloudNames.includes(name)) {
+      try {
+        const r = await fetch(`/api/scenarios?name=${encodeURIComponent(name)}`);
+        if (!r.ok) throw new Error(String(r.status));
+        const d = await r.json();
+        if (d?.config) {
+          if (JSON.stringify(d.config) !== JSON.stringify(local)) applyConfig(d.config);
+          setActiveScenario(name);
+          const next = { ...scenarios, [name]: d.config };
+          setScenarios(next);
+          store.set(SCENARIOS_KEY, next);
+          addLog("info", `Scenario "${name}" loaded from your account ☁.`);
+          return;
+        }
+      } catch {
+        if (local) { addLog("info", `Scenario "${name}" loaded from this browser (cloud copy unreachable).`); return; }
+        addLog("err", `Couldn't load "${name}" — the cloud copy is unreachable and there's no local copy in this browser.`);
+        setActiveScenario("");
+        return;
+      }
+    }
+    if (local) { addLog("info", `Scenario "${name}" loaded.`); return; }
+    setActiveScenario("");
   };
 
   const deleteScenario = () => {
     if (!activeScenario) return;
+    const name = activeScenario;
     const next = { ...scenarios };
-    delete next[activeScenario];
+    delete next[name];
     setScenarios(next);
     store.set(SCENARIOS_KEY, next);
-    addLog("info", `Scenario "${activeScenario}" deleted.`);
+    if (cloudSync === "on" && cloudNames.includes(name)) {
+      fetch(`/api/scenarios?name=${encodeURIComponent(name)}`, { method: "DELETE" })
+        .then((r) => { if (!r.ok) throw new Error(); setCloudNames((ns) => ns.filter((n) => n !== name)); })
+        .catch(() => addLog("err", `"${name}" was removed from this browser but its cloud copy may remain — load it and delete again to retry.`));
+    }
+    addLog("info", `Scenario "${name}" deleted.`);
     setActiveScenario("");
   };
 
@@ -1252,6 +1499,12 @@ export default function TavusExperienceBuilder() {
         store.set(SCENARIOS_KEY, next);
         setActiveScenario(name);
         addLog("ok", `Scenario "${name}" imported and loaded.`);
+        // Imported files should become durable too, not stay browser-local.
+        if (cloudSync !== "off") {
+          syncScenarioToCloud(name, config)
+            .then(() => addLog("ok", `Scenario "${name}" synced to your account ☁.`))
+            .catch(() => {});
+        }
       } catch {
         addLog("err", "Import failed — that file isn't a valid scenario JSON.");
       }
@@ -2795,10 +3048,12 @@ export default function TavusExperienceBuilder() {
             value={activeScenario}
             onChange={(e) => loadScenario(e.target.value)}
             style={{ width: 180 }}
-            title="Load a saved scenario"
+            title={cloudSync === "on" ? "Load a saved scenario — ☁ means it's synced to your account and safe from cleared browser storage" : "Load a saved scenario (saved in this browser; cloud sync unavailable)"}
           >
             <option value="">— scenarios —</option>
-            {Object.keys(scenarios).sort().map((n) => <option key={n} value={n}>{n}</option>)}
+            {Array.from(new Set([...Object.keys(scenarios), ...cloudNames])).sort().map((n) => (
+              <option key={n} value={n}>{n}{cloudNames.includes(n) ? " ☁" : ""}</option>
+            ))}
           </select>
           <input
             style={{ width: 170 }}
@@ -4108,6 +4363,7 @@ export default function TavusExperienceBuilder() {
                       {f.v === "desktop" && <div className="fv-desktop" />}
                       {f.v === "phone" && <div className="fv-phone" />}
                       {f.v === "kiosk" && <div className="fv-kiosk" />}
+                      {f.v === "hologram" && <div className="fv-holo" />}
                     </div>
                     <div style={{ fontWeight: 600 }}>{f.label}</div>
                     <div style={{ fontSize: 11.5, marginTop: 4, lineHeight: 1.4 }}>{f.desc}</div>
