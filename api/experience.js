@@ -58,7 +58,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") { res.status(405).json({ error: "GET or POST only" }); return; }
   if (!kvAvailable()) { res.status(501).json({ error: "Storage isn't set up — attendance/feedback can't be recorded." }); return; }
 
-  const { kind, conversation_id, slug = "", email = "", rating = 0, comment = "" } = req.body ?? {};
+  const { kind, conversation_id, slug = "", email = "", rating = 0, comment = "", answers = null } = req.body ?? {};
   const convId = String(conversation_id ?? "");
   if (!/^[a-z0-9]{6,64}$/i.test(convId)) { res.status(400).json({ error: "Bad conversation id." }); return; }
   if (kind !== "attend" && kind !== "feedback") { res.status(400).json({ error: "kind must be attend or feedback." }); return; }
@@ -85,6 +85,13 @@ export default async function handler(req, res) {
     if (slugStr) rec.slug = slugStr;
     const cleanEmail = String(email ?? "").trim().slice(0, 200);
     if (cleanEmail && (kind === "attend" || !rec.email)) rec.email = cleanEmail;
+    // Guided-journey answers ({q, a} pairs) — shown on the Results step.
+    if (Array.isArray(answers)) {
+      const clean = answers.slice(0, 12)
+        .map((x) => ({ q: String(x?.q ?? "").trim().slice(0, 300), a: String(x?.a ?? "").trim().slice(0, 300) }))
+        .filter((x) => x.q && x.a);
+      if (clean.length) rec.answers = clean;
+    }
     if (kind === "attend") {
       rec.attendAt = prev.attendAt || new Date().toISOString();
     } else {
@@ -113,6 +120,7 @@ export default async function handler(req, res) {
             slug: slugStr,
             conversation_id: convId,
             email: cleanEmail,
+            ...(rec.answers ? { answers: rec.answers } : {}),
             at: new Date().toISOString(),
           }),
           signal: ctrl.signal,

@@ -72,8 +72,57 @@ const SITE_FORMATS = [
   { v: "desktop", label: "Desktop", desc: "Full page — headline, tagline, wide 16:9 stage. The default." },
   { v: "phone", label: "Mobile app", desc: "A scrollable in-app screen inside a real phone frame — how it feels living in your app." },
   { v: "kiosk", label: "Kiosk", desc: "A freestanding kiosk totem with a touch-to-start attract screen. Go live for real kiosk hardware." },
-  { v: "hologram", label: "Hologram", desc: "A glowing projection on a dark set — wow-factor for booths, lobbies, and stages." },
+  { v: "hologram", label: "Hologram", desc: "A Proto-style holobox — white enclosure, glowing life-size screen the AI beams into." },
 ];
+
+/* Video URL → embeddable source for journey video steps. YouTube/Loom/Vimeo
+   share links become embeds; direct media files play in a <video> tag;
+   anything else iframes as-is. */
+function videoEmbed(url) {
+  const u = String(url || "").trim();
+  if (/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(u)) return { kind: "file", src: u };
+  let m = u.match(/youtube\.com\/watch\?.*v=([\w-]{6,20})/) || u.match(/youtu\.be\/([\w-]{6,20})/) || u.match(/youtube\.com\/shorts\/([\w-]{6,20})/);
+  if (m) return { kind: "iframe", src: `https://www.youtube.com/embed/${m[1]}` };
+  m = u.match(/loom\.com\/(?:share|embed)\/([a-f0-9]{16,40})/i);
+  if (m) return { kind: "iframe", src: `https://www.loom.com/embed/${m[1]}` };
+  m = u.match(/vimeo\.com\/(\d{6,12})/);
+  if (m) return { kind: "iframe", src: `https://player.vimeo.com/video/${m[1]}` };
+  return { kind: "iframe", src: u };
+}
+
+/* Weave a completed pre-call journey into a conversation payload: context
+   lines from the visitor's answers, plus greeting/PAL overrides when they
+   picked a persona. Mirrored server-side in api/demo-launch.js for shared
+   links — keep the two in sync. */
+function applyJourneyPrefs(payload, journeyArr, prefs) {
+  if (!prefs || !Array.isArray(prefs.answers) || !Array.isArray(journeyArr)) return payload;
+  const out = { ...payload };
+  const lines = [];
+  prefs.answers.slice(0, 12).forEach((ans) => {
+    const s = journeyArr[ans.step];
+    if (!s) return;
+    if (s.type === "question") {
+      const opt = s.options?.[ans.option];
+      if (typeof opt === "string") lines.push(`- ${s.prompt} → ${opt}`);
+    } else if (s.type === "input") {
+      const text = String(ans.text ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+      if (text) lines.push(`- ${s.prompt} → "${text}"`);
+    } else if (s.type === "personas") {
+      const o = s.options?.[ans.option];
+      if (!o) return;
+      lines.push(`- Chosen experience: ${o.label}`);
+      if (o.context) lines.push(String(o.context));
+      if (o.greeting) out.custom_greeting = String(o.greeting);
+      if (o.palId && /^p[a-z0-9_-]{3,60}$/i.test(String(o.palId))) out.pal_id = String(o.palId);
+    }
+  });
+  if (prefs.email) lines.push(`- Email they provided: ${String(prefs.email).trim().slice(0, 200)}`);
+  if (lines.length) {
+    const intro = "Pre-call setup from this visitor (personalize with it naturally — never recite it back as a list):";
+    out.conversational_context = [out.conversational_context, `${intro}\n${lines.join("\n")}`].filter(Boolean).join("\n\n");
+  }
+  return out;
+}
 
 /* Turn a plain-English line into an API-safe objective/guardrail name */
 const slugName = (text, prefix, i) => {
@@ -255,6 +304,15 @@ const BUILDER_CSS = `
         .face-chip.on { border-color:var(--text); color:var(--text); box-shadow:0 1px 3px rgba(20,20,20,.06); }
         .face-chip-name { font-weight:600; font-size:13px; }
         .face-chip-vibe { font-size:10.5px; font-family:var(--mono); }
+        /* journey composer (Experience step) */
+        .jr-list { display:flex; flex-direction:column; gap:10px; max-width:640px; margin-bottom:12px; }
+        .jr-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:12px 14px; }
+        .jr-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+        .jr-num { font-weight:700; font-size:12px; color:var(--muted); }
+        .jr-type { font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); background:var(--surface-2); border-radius:999px; padding:3px 10px; }
+        .jr-btns { margin-left:auto; display:flex; gap:2px; }
+        .jr-card input, .jr-card textarea { margin-bottom:6px; }
+        .jr-opt { border:1px dashed var(--border); border-radius:var(--r-sm); padding:9px 9px 3px; margin-bottom:8px; }
         .placement-viz { display:flex; gap:4px; height:42px; margin-bottom:8px; }
         .pv-video { flex:1; background:var(--border); border-radius:6px; }
         .pv-rail { width:15px; background:var(--accent); border-radius:6px; }
@@ -363,6 +421,15 @@ const BUILDER_CSS = `
         .exp-err { color:var(--danger); font-size:12.5px; margin:0; }
         .exp-actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:4px; }
         .exp-actions a.pill-btn { text-decoration:none; }
+        .exp-screen { max-height:100%; overflow-y:auto; }
+        .flow-dots { display:flex; gap:6px; justify-content:center; }
+        .flow-dots span { width:7px; height:7px; border-radius:50%; background:var(--border); }
+        .flow-dots span.on { background:var(--accent); }
+        .exp-video { width:100%; max-width:420px; aspect-ratio:16/9; border:none; border-radius:12px; background:#000; }
+        .exp-options { display:flex; flex-direction:column; gap:8px; width:100%; max-width:340px; }
+        .exp-opt { border:1px solid var(--border); background:var(--surface); border-radius:12px; padding:11px 14px; cursor:pointer; font:inherit; font-size:14px; font-weight:600; text-align:left; color:var(--text); }
+        .exp-opt:hover, .exp-opt.on { border-color:var(--text); box-shadow:0 1px 3px rgba(20,20,20,.08); }
+        .exp-opt-desc { display:block; color:var(--muted); font-size:12px; font-weight:400; margin-top:2px; }
         .star-row { display:flex; gap:6px; }
         .star { border:none; background:none; font-size:34px; line-height:1; cursor:pointer; color:var(--border); padding:2px; transition:transform .12s ease; }
         .star.on { color:#F3B93F; }
@@ -407,8 +474,8 @@ const BUILDER_CSS = `
         .fv-phone { width:20px; height:38px; border:2px solid currentColor; border-radius:6px; opacity:.65; }
         .fv-kiosk { width:22px; height:30px; border:2px solid currentColor; border-radius:3px; opacity:.55; position:relative; }
         .fv-kiosk::after { content:""; position:absolute; left:50%; top:100%; transform:translateX(-50%); width:8px; height:8px; border-left:2px solid currentColor; border-right:2px solid currentColor; }
-        .fv-holo { width:34px; height:24px; border:2px solid currentColor; border-radius:4px; opacity:.65; position:relative; }
-        .fv-holo::after { content:""; position:absolute; left:50%; top:calc(100% + 2px); transform:translateX(-50%); border-left:11px solid transparent; border-right:11px solid transparent; border-top:11px solid currentColor; opacity:.3; }
+        .fv-holo { width:24px; height:38px; border:2px solid currentColor; border-radius:6px; opacity:.65; padding:3px; }
+        .fv-holo::before { content:""; display:block; width:100%; height:100%; background:currentColor; opacity:.35; border-radius:2px; }
 
         /* phone format: a scrollable in-app screen inside a device frame —
            the demo reads as a screen of the prospect's own mobile app, with
@@ -464,29 +531,30 @@ const BUILDER_CSS = `
         .kiosk-exit { position:fixed; top:14px; right:14px; z-index:60; width:38px; height:38px; border-radius:50%; border:1px solid var(--border); background:rgba(255,255,255,.85); color:var(--muted); font-size:20px; line-height:1; cursor:pointer; opacity:.35; }
         .kiosk-exit:hover { opacity:1; }
 
-        /* hologram format: the AI human as a glowing projection on a dark set —
-           tinted panel, scanlines, flicker, and a light cone from a floor emitter. */
-        .demo-root.demo-hologram { background:radial-gradient(120% 90% at 50% 8%, #0d1120, #07080d 62%); color:#dfe7ff; }
-        .demo-hologram .demo-nav { background:transparent; }
-        .demo-hologram .demo-brand { color:#dfe7ff; }
-        .demo-hologram .demo-powered { color:#5a6480; }
-        .demo-hologram .demo-main { justify-content:center; background:none; }
+        /* hologram format: a Proto-style holobox — a life-size white
+           enclosure with speaker grilles and a glowing portrait screen the
+           AI human "beams into". Bright and physical, not dark sci-fi. */
+        .demo-hologram .demo-main { justify-content:center; }
         .holo-scene { display:flex; flex-direction:column; align-items:center; width:100%; }
         .holo-head { text-align:center; margin-bottom:20px; }
-        .holo-head h2 { color:#eaf2ff; text-shadow:0 0 26px rgba(96,168,255,.5); font-size:clamp(22px, 3.4vw, 34px); letter-spacing:-.6px; margin:0; line-height:1.15; }
-        .holo-head p { color:#8f9ab8; font-size:15px; line-height:1.6; max-width:520px; margin:10px auto 0; }
-        .holo-rig { display:flex; flex-direction:column; align-items:center; width:min(760px, 94vw); }
-        .holo-panel { position:relative; width:100%; border-radius:18px; padding:2px; background:linear-gradient(180deg, rgba(120,190,255,.55), rgba(120,190,255,.10)); box-shadow:0 0 44px rgba(90,170,255,.35), 0 0 130px rgba(60,120,255,.16); animation:holofloat 5.5s ease-in-out infinite, holoflicker 7s steps(1) infinite; z-index:1; }
-        .demo-hologram .demo-stage.holo-stage { width:100%; aspect-ratio:16/9; background:#0a0f1c; border:1px solid rgba(140,200,255,.35); border-radius:16px; box-shadow:none; }
-        .holo-tint { position:absolute; inset:2px; border-radius:16px; pointer-events:none; z-index:5; background:linear-gradient(180deg, rgba(90,170,255,.10), rgba(90,170,255,.18)); mix-blend-mode:screen; }
-        .holo-scanlines { position:absolute; inset:2px; border-radius:16px; pointer-events:none; z-index:6; background:repeating-linear-gradient(0deg, rgba(150,210,255,.08) 0 1px, transparent 1px 4px); mix-blend-mode:screen; animation:holoscan 8s linear infinite; }
-        .holo-cone { width:64%; height:130px; margin-top:-6px; background:linear-gradient(180deg, rgba(110,180,255,.30), rgba(110,180,255,.04) 80%, transparent); clip-path:polygon(0 0, 100% 0, 56% 100%, 44% 100%); }
-        .holo-emitter { width:190px; height:22px; margin-top:-10px; border-radius:50%; background:radial-gradient(closest-side, rgba(140,200,255,.9), rgba(90,150,255,.35) 55%, transparent); box-shadow:0 0 34px rgba(96,168,255,.55); }
-        .demo-hologram .holo-stage .pill-btn.primary { background:#66b3ff; color:#04121f; border:none; box-shadow:0 0 30px rgba(102,179,255,.55); }
-        .demo-hologram .holo-stage .demo-cta-hint { color:#8f9ab8; }
-        @keyframes holofloat { 0%, 100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
-        @keyframes holoflicker { 0%, 91%, 94%, 98%, 100% { opacity:1; } 92% { opacity:.78; } 96% { opacity:.88; } }
-        @keyframes holoscan { 0% { background-position:0 0; } 100% { background-position:0 120px; } }
+        .holo-head h2 { font-size:clamp(22px, 3.4vw, 34px); letter-spacing:-.6px; margin:0; line-height:1.15; }
+        .holo-head p { color:var(--muted); font-size:15px; line-height:1.6; max-width:520px; margin:10px auto 0; }
+        .holo-box { position:relative; display:flex; flex-direction:column; align-items:center; background:linear-gradient(180deg, #fbfbfc, #ececef); border-radius:24px; padding:16px 34px 20px; box-shadow:0 44px 90px -38px rgba(20,20,20,.5), inset 0 1px 0 #fff, 0 0 0 1px #d9d9de; }
+        .holo-topbar { display:flex; align-items:center; justify-content:space-between; gap:18px; width:100%; padding:4px 2px 12px; }
+        .holo-topbar .holo-brand { font-weight:800; letter-spacing:.22em; text-transform:uppercase; font-size:13px; color:#3c3c40; }
+        .holo-topbar .holo-tag { font-size:12px; color:#77777d; }
+        /* speaker grilles on the enclosure's inner walls */
+        .holo-box::before, .holo-box::after { content:""; position:absolute; top:120px; bottom:120px; width:8px; background-image:radial-gradient(circle, #c9c9cf 1.2px, transparent 1.4px); background-size:8px 8px; }
+        .holo-box::before { left:12px; }
+        .holo-box::after { right:12px; }
+        /* portrait glowing screen, width bounded by the height budget */
+        .holo-screen { position:relative; width:min(400px, 84vw, calc(58vh * 9 / 16)); aspect-ratio:9/16; border-radius:12px; overflow:hidden; background:radial-gradient(120% 90% at 50% 26%, #a6d4fb, #4f9be4 62%, #2f6fb6); box-shadow:inset 0 0 60px rgba(255,255,255,.4), inset 0 0 0 2px rgba(20,40,70,.35), 0 0 54px rgba(96,168,255,.4); animation:hologlow 5s ease-in-out infinite; }
+        .demo-hologram .demo-stage.holo-stage { position:absolute; inset:0; width:100%; height:100%; max-width:none; aspect-ratio:auto; background:transparent; border:none; border-radius:0; box-shadow:none; }
+        /* the video beams in over the glow: crop to fill the portrait panel */
+        .holo-stage .cvi-wrap, .holo-stage .cvi-video-pane > * > * { background:transparent; }
+        .holo-foot { padding-top:12px; font-size:12px; color:#77777d; }
+        .demo-hologram .holo-stage .demo-cta-hint { color:#eaf4ff; text-shadow:0 1px 8px rgba(30,80,140,.6); }
+        @keyframes hologlow { 0%, 100% { box-shadow:inset 0 0 60px rgba(255,255,255,.4), inset 0 0 0 2px rgba(20,40,70,.35), 0 0 54px rgba(96,168,255,.4); } 50% { box-shadow:inset 0 0 74px rgba(255,255,255,.5), inset 0 0 0 2px rgba(20,40,70,.35), 0 0 70px rgba(96,168,255,.55); } }
 
         @media (max-width:1100px){ .preview { display:none; } }
         @media (max-width:760px){
@@ -514,14 +582,21 @@ function VisitorDemo({ slug }) {
       .catch((e) => setError(e.message));
   }, [slug]);
 
-  const start = async () => {
+  const start = async (prefs) => {
     setBusy(true);
     setError("");
     try {
       const r = await fetch("/api/demo-launch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug }),
+        body: JSON.stringify({
+          slug,
+          // Guided-journey answers (option/step indexes + short free text) —
+          // the server resolves them against the STORED journey config.
+          ...(prefs && Array.isArray(prefs.answers)
+            ? { prefs: { email: String(prefs.email || "").slice(0, 200), answers: prefs.answers.slice(0, 12) } }
+            : {}),
+        }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || "Couldn't start the conversation — try again.");
@@ -797,26 +872,52 @@ function Toggle({ on, onChange }) {
 /* ── Demo page: minimal Alto shell around the conversation ──── */
 
 function DemoSite({ site, conversationUrl, conversationId, controls, onStart, onExit, busy, visitor = false, experience = null, slug = null, onCallEnd = null }) {
-  // Experience arc: optional pre-call email gate and post-call feedback
-  // screen around the conversation. All off = the classic landing→call flow.
+  // Experience arc: a guided pre-call journey (builder-composed steps +
+  // email gate) and a post-call feedback screen around the conversation.
+  // All off = the classic landing→call flow.
   const exp = experience || {};
+  const journey = Array.isArray(exp.journey) ? exp.journey : [];
+  const flowLen = journey.length + (exp.emailGate ? 1 : 0); // email gate is the final flow screen
   const postEnabled = !!(exp.rating || (exp.booking && exp.schedulingUrl) || exp.talkAgain || exp.thanks);
-  const [gateOpen, setGateOpen] = useState(false);
+  const [flowIdx, setFlowIdx] = useState(-1); // -1 = not in the pre-call flow
+  const [flowAnswers, setFlowAnswers] = useState([]); // [{step, option?, text?}]
   const [gateEmail, setGateEmail] = useState("");
   const [gateErr, setGateErr] = useState("");
   const [visitorEmail, setVisitorEmail] = useState("");
+  const prefsRef = useRef(null); // completed journey prefs — reused by "talk again"
   const [postCall, setPostCall] = useState(null); // conversation id of the call that just ended
   const [fbRating, setFbRating] = useState(0);
   const [fbComment, setFbComment] = useState("");
   const [fbSent, setFbSent] = useState(false);
   const attendSent = useRef(null);
 
+  /* Resolve raw answers ({step, option, text}) into readable {q, a} pairs —
+     what gets stored with the call and shown in Results. */
+  const answersRecord = (answers) => (answers || []).map((ans) => {
+    const s = journey[ans.step];
+    if (!s) return null;
+    if (s.type === "question") {
+      const a = s.options?.[ans.option];
+      return typeof a === "string" ? { q: s.prompt, a } : null;
+    }
+    if (s.type === "input") {
+      const a = String(ans.text ?? "").trim().slice(0, 200);
+      return a ? { q: s.prompt, a } : null;
+    }
+    if (s.type === "personas") {
+      const o = s.options?.[ans.option];
+      return o ? { q: s.prompt || "Experience", a: o.label } : null;
+    }
+    return null;
+  }).filter(Boolean);
+
   // Record attendance (and fire the owner's alert webhook, server-side) once
   // per conversation. Builder previews without a captured email skip it —
   // there's nothing to record and the team shouldn't get pinged by tests.
   useEffect(() => {
     if (!conversationId || attendSent.current === conversationId) return;
-    if (!slug && !visitorEmail) return;
+    const record = answersRecord(prefsRef.current?.answers);
+    if (!slug && !visitorEmail && !record.length) return;
     attendSent.current = conversationId;
     fetch("/api/experience", {
       method: "POST",
@@ -826,8 +927,10 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
         conversation_id: conversationId,
         ...(slug ? { slug } : {}),
         ...(visitorEmail ? { email: visitorEmail } : {}),
+        ...(record.length ? { answers: record } : {}),
       }),
     }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId, slug, visitorEmail]);
 
   const submitFeedback = () => {
@@ -909,25 +1012,98 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
           </div>
         );
       }
-      if (gateOpen) {
+      if (flowIdx >= 0) {
+        const dots = (
+          <div className="flow-dots" aria-hidden="true">
+            {Array.from({ length: flowLen }, (_, d) => <span key={d} className={d <= flowIdx ? "on" : ""} />)}
+          </div>
+        );
+        const back = flowIdx > 0 && (
+          <button className="pill-btn ghost" onClick={() => setFlowIdx(flowIdx - 1)}>← Back</button>
+        );
+        // Final screen: the email gate (when enabled).
+        if (flowIdx >= journey.length) {
+          return (
+            <div className="exp-screen">
+              {dots}
+              <h3>{journey.length ? "One last thing…" : "Before we start…"}</h3>
+              <p className="exp-hint">{exp.emailPrompt || "Where can we reach you? The team likes to know who they're talking to."}</p>
+              <input
+                className="exp-input"
+                type="email"
+                value={gateEmail}
+                onChange={(e) => { setGateEmail(e.target.value); setGateErr(""); }}
+                onKeyDown={(e) => e.key === "Enter" && submitGate()}
+                placeholder="you@company.com"
+                autoFocus
+              />
+              {gateErr && <p className="exp-err">{gateErr}</p>}
+              <div className="exp-actions">
+                {back}
+                <button className="pill-btn primary" onClick={submitGate} disabled={busy}>{busy ? "Connecting…" : "Start the conversation"}</button>
+                {exp.emailRequired === false && <button className="pill-btn ghost" onClick={() => finishFlow("")} disabled={busy}>Skip</button>}
+              </div>
+            </div>
+          );
+        }
+        const s = journey[flowIdx];
+        const current = flowAnswers.find((a) => a.step === flowIdx);
+        if (s.type === "info") {
+          return (
+            <div className="exp-screen">
+              {dots}
+              {s.title && <h3>{s.title}</h3>}
+              {s.body && <p className="exp-hint" style={{ whiteSpace: "pre-wrap" }}>{s.body}</p>}
+              <div className="exp-actions">{back}<button className="pill-btn primary" onClick={advanceFlow}>Continue</button></div>
+            </div>
+          );
+        }
+        if (s.type === "video") {
+          const embed = videoEmbed(s.url);
+          return (
+            <div className="exp-screen">
+              {dots}
+              {s.title && <h3>{s.title}</h3>}
+              {embed.kind === "file"
+                ? <video className="exp-video" src={embed.src} controls playsInline />
+                : <iframe className="exp-video" src={embed.src} title={s.title || "Video"} allow="autoplay; fullscreen; picture-in-picture" allowFullScreen />}
+              <div className="exp-actions">{back}<button className="pill-btn primary" onClick={advanceFlow}>Continue</button></div>
+            </div>
+          );
+        }
+        if (s.type === "question" || s.type === "personas") {
+          const opts = s.type === "question" ? (s.options || []).map((o) => ({ label: o })) : (s.options || []);
+          return (
+            <div className="exp-screen">
+              {dots}
+              <h3>{s.prompt}</h3>
+              <div className="exp-options">
+                {opts.map((o, oi) => (
+                  <button key={oi} type="button" className={"exp-opt" + (current?.option === oi ? " on" : "")}
+                    onClick={() => { setAnswer(flowIdx, { option: oi }); advanceFlow(); }}>
+                    {o.label}
+                    {o.desc && <span className="exp-opt-desc">{o.desc}</span>}
+                  </button>
+                ))}
+              </div>
+              {back && <div className="exp-actions">{back}</div>}
+            </div>
+          );
+        }
+        // free-text input step
         return (
           <div className="exp-screen">
-            <h3>Before we start…</h3>
-            <p className="exp-hint">{exp.emailPrompt || "Where can we reach you? The team likes to know who they're talking to."}</p>
+            {dots}
+            <h3>{s.prompt}</h3>
             <input
               className="exp-input"
-              type="email"
-              value={gateEmail}
-              onChange={(e) => { setGateEmail(e.target.value); setGateErr(""); }}
-              onKeyDown={(e) => e.key === "Enter" && submitGate()}
-              placeholder="you@company.com"
+              value={current?.text || ""}
+              onChange={(e) => setAnswer(flowIdx, { text: e.target.value })}
+              onKeyDown={(e) => e.key === "Enter" && advanceFlow()}
+              placeholder={s.placeholder || "Type your answer…"}
               autoFocus
             />
-            {gateErr && <p className="exp-err">{gateErr}</p>}
-            <div className="exp-actions">
-              <button className="pill-btn primary" onClick={submitGate} disabled={busy}>{busy ? "Connecting…" : "Continue"}</button>
-              {exp.emailRequired === false && <button className="pill-btn ghost" onClick={skipGate} disabled={busy}>Skip</button>}
-            </div>
+            <div className="exp-actions">{back}<button className="pill-btn primary" onClick={advanceFlow}>Continue</button></div>
           </div>
         );
       }
@@ -992,20 +1168,35 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
   }, []);
   const beginCall = () => {
     if (format === "kiosk" && kioskLive) goFullscreen();
-    onStart();
+    onStart(prefsRef.current || undefined);
   };
   const handleStart = () => {
-    if (exp.emailGate && !visitorEmail) { setGateOpen(true); return; }
+    // First start walks the guided flow; "talk again" reuses the answers.
+    if (flowLen > 0 && !prefsRef.current) { setFlowIdx(0); return; }
     beginCall();
+  };
+  // Ref mirrors the answers state — an option click can advance and finish
+  // the flow in the same tick, before React commits the state update.
+  const flowAnswersRef = useRef([]);
+  const setAnswer = (stepIdx, ans) => {
+    flowAnswersRef.current = [...flowAnswersRef.current.filter((a) => a.step !== stepIdx), { step: stepIdx, ...ans }];
+    setFlowAnswers(flowAnswersRef.current);
+  };
+  const finishFlow = (email) => {
+    prefsRef.current = { email: email || "", answers: flowAnswersRef.current };
+    if (email) setVisitorEmail(email);
+    setFlowIdx(-1);
+    beginCall();
+  };
+  const advanceFlow = () => {
+    if (flowIdx + 1 < flowLen) setFlowIdx(flowIdx + 1);
+    else finishFlow(""); // no email gate configured — journey ends straight into the call
   };
   const submitGate = () => {
     const e = gateEmail.trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) { setGateErr("That doesn't look like an email address."); return; }
-    setVisitorEmail(e);
-    setGateOpen(false);
-    beginCall();
+    finishFlow(e);
   };
-  const skipGate = () => { setGateOpen(false); beginCall(); };
   // Call over: with any post-call element configured, land on the feedback
   // screen (clearing just the conversation) instead of leaving the page.
   const handleLeave = () => {
@@ -1092,7 +1283,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
           <div className="phone-frame">
             <div className="phone-island" />
             <div className="phone-screen">
-              {conversationUrl || gateOpen || (postEnabled && postCall) ? (
+              {conversationUrl || flowIdx >= 0 || (postEnabled && postCall) ? (
                 <div className="demo-stage">{stage()}</div>
               ) : (
                 <>
@@ -1141,7 +1332,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
           <div className="kiosk-scene">
             <div className="kiosk-totem">
               <div className="kiosk-screen">
-                {conversationUrl || gateOpen || (postEnabled && postCall) ? (
+                {conversationUrl || flowIdx >= 0 || (postEnabled && postCall) ? (
                   <div className="demo-stage">{stage()}</div>
                 ) : (
                   <div className="kiosk-attract">
@@ -1165,9 +1356,9 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
             </button>
           </div>
         ) : format === "hologram" ? (
-          /* Dark set, glowing projection panel, light cone down to a floor
-             emitter. The effects are overlays — the call underneath is the
-             same custom CVI stage as every other format. */
+          /* Proto-style holobox: white enclosure, speaker grilles, glowing
+             portrait screen. The call underneath is the same custom CVI
+             stage as every other format — the box is pure chrome. */
           <div className="holo-scene">
             {(site.headline || site.tagline) && (
               <div className="holo-head">
@@ -1175,14 +1366,15 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
                 {site.tagline && <p>{site.tagline}</p>}
               </div>
             )}
-            <div className="holo-rig">
-              <div className="holo-panel">
-                <div className="demo-stage holo-stage">{stage()}</div>
-                <div className="holo-tint" aria-hidden="true" />
-                <div className="holo-scanlines" aria-hidden="true" />
+            <div className="holo-box">
+              <div className="holo-topbar">
+                <span className="holo-brand">{site.brand || "Holobox"}</span>
+                <span className="holo-tag">Beam in — live</span>
               </div>
-              <div className="holo-cone" aria-hidden="true" />
-              <div className="holo-emitter" aria-hidden="true" />
+              <div className="holo-screen">
+                <div className="demo-stage holo-stage">{stage()}</div>
+              </div>
+              <div className="holo-foot">powered by tavus</div>
             </div>
           </div>
         ) : (
@@ -1414,8 +1606,12 @@ export default function TavusExperienceBuilder() {
   });
   const setSiteField = (k, v) => setSite((s) => ({ ...s, [k]: v }));
 
-  // Experience arc — pre-call email gate + attendance alert, post-call feedback.
-  const [expEmailGate, setExpEmailGate] = useState(false);
+  // Experience arc — guided pre-call journey + email gate (table stakes:
+  // default ON) + attendance alert + post-call feedback.
+  // Journey steps the builder composes per demo — the editor shape (question
+  // options as one-per-line text) lives here; experienceConfig compiles it.
+  const [expJourney, setExpJourney] = useState([]);
+  const [expEmailGate, setExpEmailGate] = useState(true);
   const [expEmailRequired, setExpEmailRequired] = useState(true);
   const [expEmailPrompt, setExpEmailPrompt] = useState("");
   const [expNotifyWebhook, setExpNotifyWebhook] = useState("");
@@ -1498,6 +1694,7 @@ export default function TavusExperienceBuilder() {
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
     palLlm, knowledgeIdsRaw,
     site,
+    expJourney,
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
     expRating, expBooking, expTalkAgain, expThanks,
   });
@@ -1550,7 +1747,10 @@ export default function TavusExperienceBuilder() {
     setPalLlm(c.palLlm ?? "tavus-glm-4.7");
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
-    setExpEmailGate(!!c.expEmailGate);
+    setExpJourney(Array.isArray(c.expJourney) ? c.expJourney : []);
+    // Email capture is table stakes — scenarios saved before the field
+    // existed default ON; only an explicit false keeps it off.
+    setExpEmailGate(c.expEmailGate === undefined ? true : !!c.expEmailGate);
     setExpEmailRequired(c.expEmailRequired !== false);
     setExpEmailPrompt(c.expEmailPrompt ?? "");
     setExpNotifyWebhook(c.expNotifyWebhook ?? "");
@@ -1874,10 +2074,52 @@ export default function TavusExperienceBuilder() {
     recordingLayout: recLayout,
   }), [maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout]);
 
+  /* Journey editor helpers — steps the builder composes for the guided
+     pre-call flow (waiver questions, persona pickers, videos, …). */
+  const addJourneyStep = (type) => setExpJourney((j) => (j.length >= 8 ? j : [
+    ...j,
+    type === "personas"
+      ? { type, prompt: "", options: [{ label: "", desc: "", context: "" }, { label: "", desc: "", context: "" }] }
+      : { type },
+  ]));
+  const patchJourneyStep = (i, patch) => setExpJourney((j) => j.map((s, x) => (x === i ? { ...s, ...patch } : s)));
+  const moveJourneyStep = (i, d) => setExpJourney((j) => {
+    if (!j[i + d]) return j;
+    const n = [...j];
+    [n[i], n[i + d]] = [n[i + d], n[i]];
+    return n;
+  });
+  const removeJourneyStep = (i) => setExpJourney((j) => j.filter((_, x) => x !== i));
+  const patchPersonaOption = (i, oi, patch) => setExpJourney((j) => j.map((s, x) =>
+    (x === i ? { ...s, options: (s.options || []).map((o, y) => (y === oi ? { ...o, ...patch } : o)) } : s)
+  ));
+
+  /* Editor shape → the compiled journey that ships (incomplete steps drop out
+     silently so a half-edited step never breaks a live link). */
+  const compiledJourney = useMemo(() => expJourney.map((s) => {
+    const t = (v) => String(v ?? "").trim();
+    if (s.type === "info") return (t(s.title) || t(s.body)) ? { type: "info", title: t(s.title), body: t(s.body) } : null;
+    if (s.type === "video") return t(s.url) ? { type: "video", title: t(s.title), url: t(s.url) } : null;
+    if (s.type === "question") {
+      const options = String(s.optionsText ?? "").split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 6);
+      return t(s.prompt) && options.length >= 2 ? { type: "question", prompt: t(s.prompt), options } : null;
+    }
+    if (s.type === "input") return t(s.prompt) ? { type: "input", prompt: t(s.prompt), placeholder: t(s.placeholder) } : null;
+    if (s.type === "personas") {
+      const options = (s.options || [])
+        .map((o) => ({ label: t(o.label), desc: t(o.desc), context: t(o.context), greeting: t(o.greeting), palId: t(o.palId) }))
+        .filter((o) => o.label)
+        .slice(0, 4);
+      return options.length >= 2 ? { type: "personas", prompt: t(s.prompt) || "Choose your experience", options } : null;
+    }
+    return null;
+  }).filter(Boolean), [expJourney]);
+
   /* Experience arc config — travels to DemoSite (preview) and into the stored
      demo snapshot (shared links). notifyWebhook is stripped from the public
      demo GET server-side; only /api/experience reads it, at alert time. */
   const experienceConfig = useMemo(() => ({
+    journey: compiledJourney,
     emailGate: expEmailGate,
     emailRequired: expEmailRequired,
     emailPrompt: expEmailPrompt.trim(),
@@ -1887,7 +2129,7 @@ export default function TavusExperienceBuilder() {
     schedulingUrl: schedulingUrl.trim(),
     talkAgain: expTalkAgain,
     thanks: expThanks.trim(),
-  }), [expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook, expRating, expBooking, schedulingUrl, expTalkAgain, expThanks]);
+  }), [compiledJourney, expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook, expRating, expBooking, schedulingUrl, expTalkAgain, expThanks]);
 
   const pronunciationRules = useMemo(() => parsePronunciation(pronunciationText), [pronunciationText]);
   const pronunciationPayload = useMemo(
@@ -2962,7 +3204,10 @@ export default function TavusExperienceBuilder() {
 
   const canLaunch = apiKey.trim() && faceId.trim() && palId.trim();
 
-  const launch = async () => {
+  const launch = async (maybePrefs) => {
+    // Guided-journey answers from DemoSite — the Launch button passes a click
+    // event here instead, which this filters out.
+    const journeyPrefs = maybePrefs && Array.isArray(maybePrefs.answers) ? maybePrefs : null;
     if (!canLaunch) { addLog("err", "API key, Face ID, and PAL ID are required — see Setup."); return; }
     setBusy(true);
     try {
@@ -3110,7 +3355,11 @@ export default function TavusExperienceBuilder() {
         }
       }
       addLog("info", "Creating conversation…");
-      const data = await tavusFetch("POST", "/conversations", conversationPayload);
+      const payload = journeyPrefs
+        ? applyJourneyPrefs(conversationPayload, experienceConfig.journey, journeyPrefs)
+        : conversationPayload;
+      if (journeyPrefs?.answers?.length) addLog("info", `Weaving in the visitor's ${journeyPrefs.answers.length} pre-call answer${journeyPrefs.answers.length > 1 ? "s" : ""}…`);
+      const data = await tavusFetch("POST", "/conversations", payload);
       setConversation(data);
       addLog("ok", `Live: ${data.conversation_id || ""}`);
       setSiteMode(true);
@@ -4360,6 +4609,11 @@ export default function TavusExperienceBuilder() {
                               {ex.email && <span className="mono" style={{ fontSize: 12.5 }}>👤 {ex.email}</span>}
                               {ex.rating > 0 && <span style={{ color: "#F3B93F" }} title={`Rated ${ex.rating}/5`}>{"★".repeat(ex.rating)}{"☆".repeat(5 - ex.rating)}</span>}
                               {ex.attendAt && <span style={{ color: "var(--muted)", fontSize: 11.5 }}>joined {ex.attendAt.slice(0, 16).replace("T", " ")}</span>}
+                              {Array.isArray(ex.answers) && ex.answers.length > 0 && (
+                                <span style={{ flexBasis: "100%", fontSize: 12.5, color: "var(--muted)", lineHeight: 1.6 }}>
+                                  {ex.answers.map((qa, qi) => <span key={qi} style={{ display: "block" }}>{qa.q} → <b style={{ color: "var(--text)", fontWeight: 600 }}>{qa.a}</b></span>)}
+                                </span>
+                              )}
                               {ex.comment && <span style={{ flexBasis: "100%", fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>“{ex.comment}”</span>}
                             </div>
                           </>
@@ -4660,9 +4914,92 @@ export default function TavusExperienceBuilder() {
             <>
               <h1>Experience</h1>
               <p className="lede">
-                Turn the demo page into a full arc — know who's attending before the call, capture feedback and a next step after it.
-                Everything here rides shared links too, and with it all off the page behaves exactly as before.
+                Turn the demo page into a full product journey — guided steps you compose before the call
+                (a waiver question, a persona picker, a video…), an email gate, and a feedback screen after.
+                Everything rides shared links, and the visitor's answers shape the conversation and land in Results.
               </p>
+
+              <div className="subhead">Guided journey (before the call)</div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 12 }}>
+                Compose the steps a visitor walks through before the conversation starts. Their choices and answers
+                are woven into the call — the AI knows them from its first words — and stored with the call in Results.
+              </p>
+              {expJourney.length > 0 && (
+                <div className="jr-list">
+                  {expJourney.map((s, i) => (
+                    <div key={i} className="jr-card">
+                      <div className="jr-head">
+                        <span className="jr-num">{i + 1}</span>
+                        <span className="jr-type">
+                          {s.type === "info" ? "📄 info screen" : s.type === "video" ? "🎬 video" : s.type === "question" ? "☑️ question" : s.type === "input" ? "✏️ free text" : "🎭 persona picker"}
+                        </span>
+                        <span className="jr-btns">
+                          <button className="kb-move" onClick={() => moveJourneyStep(i, -1)} disabled={i === 0} title="Move up">↑</button>
+                          <button className="kb-move" onClick={() => moveJourneyStep(i, 1)} disabled={i === expJourney.length - 1} title="Move down">↓</button>
+                          <button className="kb-del" onClick={() => removeJourneyStep(i)} title="Remove step">✕</button>
+                        </span>
+                      </div>
+                      {s.type === "info" && (
+                        <>
+                          <input value={s.title || ""} onChange={(e) => patchJourneyStep(i, { title: e.target.value })} placeholder="Title — e.g. Welcome to your assessment" />
+                          <textarea value={s.body || ""} onChange={(e) => patchJourneyStep(i, { body: e.target.value })} placeholder="A short paragraph the visitor reads before continuing." />
+                        </>
+                      )}
+                      {s.type === "video" && (
+                        <>
+                          <input value={s.title || ""} onChange={(e) => patchJourneyStep(i, { title: e.target.value })} placeholder="Title — e.g. Watch this 60-second intro" />
+                          <input className="mono" value={s.url || ""} onChange={(e) => patchJourneyStep(i, { url: e.target.value })} placeholder="Video URL — YouTube, Loom, or a direct .mp4 link" />
+                        </>
+                      )}
+                      {s.type === "question" && (
+                        <>
+                          <input value={s.prompt || ""} onChange={(e) => patchJourneyStep(i, { prompt: e.target.value })} placeholder="Question — e.g. Have you filled out the waiver form?" />
+                          <textarea value={s.optionsText || ""} onChange={(e) => patchJourneyStep(i, { optionsText: e.target.value })} placeholder={"One answer per line (2–6):\nYes, it's done\nNot yet"} />
+                          <p className="field-hint" style={{ margin: 0 }}>The visitor's pick is fed to the AI as context and stored with the call.</p>
+                        </>
+                      )}
+                      {s.type === "input" && (
+                        <>
+                          <input value={s.prompt || ""} onChange={(e) => patchJourneyStep(i, { prompt: e.target.value })} placeholder="Prompt — e.g. What's your first name?" />
+                          <input value={s.placeholder || ""} onChange={(e) => patchJourneyStep(i, { placeholder: e.target.value })} placeholder="Placeholder text (optional)" />
+                          <p className="field-hint" style={{ margin: 0 }}>Free text — great for names or specifics the AI should personalize around.</p>
+                        </>
+                      )}
+                      {s.type === "personas" && (
+                        <>
+                          <input value={s.prompt || ""} onChange={(e) => patchJourneyStep(i, { prompt: e.target.value })} placeholder="Prompt — e.g. Who would you like to talk to?" />
+                          {(s.options || []).map((o, oi) => (
+                            <div key={oi} className="jr-opt">
+                              <div style={{ display: "flex", gap: 6 }}>
+                                <input value={o.label || ""} onChange={(e) => patchPersonaOption(i, oi, { label: e.target.value })} placeholder={`Option ${oi + 1} — e.g. Better Santa`} />
+                                <button className="kb-del" onClick={() => patchJourneyStep(i, { options: s.options.filter((_, y) => y !== oi) })} disabled={(s.options || []).length <= 2} title="Remove option">✕</button>
+                              </div>
+                              <input value={o.desc || ""} onChange={(e) => patchPersonaOption(i, oi, { desc: e.target.value })} placeholder="One-line description the visitor sees" />
+                              <textarea value={o.context || ""} onChange={(e) => patchPersonaOption(i, oi, { context: e.target.value })} placeholder="What changes when they pick this — instructions woven into the conversation." style={{ minHeight: 54 }} />
+                              <div style={{ display: "flex", gap: 6 }}>
+                                <input value={o.greeting || ""} onChange={(e) => patchPersonaOption(i, oi, { greeting: e.target.value })} placeholder="Custom opening line (optional)" />
+                                <input className="mono" style={{ maxWidth: 170 }} value={o.palId || ""} onChange={(e) => patchPersonaOption(i, oi, { palId: e.target.value })} placeholder="PAL ID override (opt.)" title="Advanced: this option talks to a different PAL entirely" />
+                              </div>
+                            </div>
+                          ))}
+                          {(s.options || []).length < 4 && (
+                            <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12 }} onClick={() => patchJourneyStep(i, { options: [...(s.options || []), { label: "", desc: "", context: "" }] })}>
+                              + Option
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+                <button className="pill-btn" onClick={() => addJourneyStep("info")}>+ Info screen</button>
+                <button className="pill-btn" onClick={() => addJourneyStep("video")}>+ Video</button>
+                <button className="pill-btn" onClick={() => addJourneyStep("question")}>+ Question</button>
+                <button className="pill-btn" onClick={() => addJourneyStep("input")}>+ Free text</button>
+                <button className="pill-btn" onClick={() => addJourneyStep("personas")}>+ Persona picker</button>
+              </div>
 
               <div className="subhead">Before the call</div>
               <div className="skill-head" style={{ marginBottom: 6 }}>

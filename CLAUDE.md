@@ -225,16 +225,30 @@ non-technical users; ids unchanged):
    freestanding totem preview with a touch-to-start attract screen; the
    **Go live** button flips to `demo-kiosk-live` — chrome-less full-viewport
    + fullscreen for real kiosk/tablet hardware, Esc drops back to the framed
-   preview) | `hologram` (dark set, glowing projection panel — tint/scanline
-   overlays, light cone, floor emitter — over the same custom CVI stage).
+   preview) | `hologram` (a Proto-style holobox: white enclosure with brand
+   top bar + speaker grilles, glowing blue 9:16 screen the call renders
+   into — bright and physical, per explicit user direction; NOT dark
+   sci-fi).
    `DemoSite` switches on `site.format` via `demo-{format}` CSS classes.
    Canvas split-layout only engages on `desktop` and live kiosk — phone,
    framed kiosk, and hologram keep the card overlay behavior.
 5.5. **Experience** (`experience`) — the arc around the call, all riding
-   shared links (config travels in the demo snapshot). **Pre-call**: email
-   gate (`expEmailGate`/`expEmailRequired`/`expEmailPrompt`) — visitors
+   shared links (config travels in the demo snapshot). **Guided journey**
+   (`expJourney`, editor shape → `compiledJourney` ships): up to 8
+   builder-composed pre-call steps — `info`, `video` (YouTube/Loom/Vimeo/mp4
+   via `videoEmbed()`), `question` (choice), `input` (free text), `personas`
+   (cards with per-option context/greeting/PAL-ID override). The visitor
+   walks them as guided screens (progress dots) ending in the email gate;
+   answers are woven into the conversation via `applyJourneyPrefs()` —
+   duplicated in `api/demo-launch.js` (server resolves INDEXES against the
+   stored journey; keep both copies in sync) — and stored as `{q,a}` pairs
+   on the exp record (Results shows them). **Pre-call**: email
+   gate (`expEmailGate`/`expEmailRequired`/`expEmailPrompt`) — **default ON**
+   (email is table stakes; only explicit false turns it off, and old
+   scenarios inherit ON); visitors
    enter an email before the CTA fires; `expNotifyWebhook` gets a
-   `demo.attend` POST the moment a visitor starts (works gate-on or -off).
+   `demo.attend` POST (incl. answers) the moment a visitor starts (works
+   gate-on or -off).
    **Post-call** (any toggle on → ending the call lands on a thank-you
    screen instead of leaving): `expRating` (1–5 stars + comment),
    `expBooking` (opens `schedulingUrl` — shared with the Canvas scheduling

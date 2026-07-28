@@ -6,6 +6,42 @@ import { kvAvailable, kvGet, kvIncr, kvLpush, kvLtrim, kvSetRaw } from "./_kv.js
 
 const LAUNCHES_PER_HOUR = 60;
 
+/* Weave the visitor's guided-journey answers into the conversation payload.
+   Answers arrive as step/option INDEXES resolved against the demo's STORED
+   journey config — visitors can only select from what the builder composed
+   (free text is capped and quoted). Mirrors applyJourneyPrefs in the
+   frontend (builder previews) — keep the two in sync. */
+function applyJourneyPrefs(payload, journeyArr, prefs) {
+  if (!prefs || !Array.isArray(prefs.answers) || !Array.isArray(journeyArr)) return payload;
+  const out = { ...payload };
+  const lines = [];
+  prefs.answers.slice(0, 12).forEach((ans) => {
+    const s = journeyArr[Number(ans?.step)];
+    if (!s) return;
+    if (s.type === "question") {
+      const opt = s.options?.[Number(ans.option)];
+      if (typeof opt === "string") lines.push(`- ${s.prompt} → ${opt}`);
+    } else if (s.type === "input") {
+      const text = String(ans.text ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+      if (text) lines.push(`- ${s.prompt} → "${text}"`);
+    } else if (s.type === "personas") {
+      const o = s.options?.[Number(ans.option)];
+      if (!o) return;
+      lines.push(`- Chosen experience: ${o.label}`);
+      if (o.context) lines.push(String(o.context));
+      if (o.greeting) out.custom_greeting = String(o.greeting);
+      if (o.palId && /^p[a-z0-9_-]{3,60}$/i.test(String(o.palId))) out.pal_id = String(o.palId);
+    }
+  });
+  const email = String(prefs.email ?? "").trim().slice(0, 200);
+  if (email) lines.push(`- Email they provided: ${email}`);
+  if (lines.length) {
+    const intro = "Pre-call setup from this visitor (personalize with it naturally — never recite it back as a list):";
+    out.conversational_context = [out.conversational_context, `${intro}\n${lines.join("\n")}`].filter(Boolean).join("\n\n");
+  }
+  return out;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") { res.status(405).json({ error: "POST only" }); return; }
 
@@ -28,10 +64,12 @@ export default async function handler(req, res) {
       return;
     }
 
+    const payload = applyJourneyPrefs(demo.payload, demo.experience?.journey, req.body?.prefs);
+
     const r = await fetch("https://tavusapi.com/v2/conversations", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": process.env.TAVUS_API_KEY },
-      body: JSON.stringify(demo.payload),
+      body: JSON.stringify(payload),
     });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
