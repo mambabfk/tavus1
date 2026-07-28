@@ -1354,6 +1354,7 @@ export default function TavusExperienceBuilder() {
       parts.push(
         "Magic Canvas card formatting (every card, no exceptions):\n" +
         "- Cards render markdown. Any list goes one item per line as real markdown bullets (\"- item\") — never chained into a single paragraph with dashes, commas, or semicolons.\n" +
+        "- Status checklists are bullets too — one bullet per row, like \"- First name — CONFIRMED\" then \"- Date of birth — IN PROCESS\"; never several statuses on one line.\n" +
         "- Keep cards scannable: title of 2-5 words, at most 6 bullets, each bullet under 8 words. Say the detail out loud instead of cramming it onto the card.\n" +
         "- One idea per card; show a new card for a new topic instead of appending to an old one.\n" +
         "- Prefer the structured card for the job — Question for choices, Input for capturing details, Calendar for dates — over a Text card describing the same thing."

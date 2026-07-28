@@ -474,6 +474,38 @@ export function resolveCanvasLayoutSlot(preferredSlot, viewport) {
 	return preferredSlot;
 }
 
+/* Markdown collapses consecutive plain-text lines into ONE paragraph — a
+   model that writes a checklist as
+     first name surname CONFIRMED
+     dob IN PROCESS
+   renders as a run-on line. Prompt rules reduce this; this normalizer
+   guarantees it: any adjacent plain lines (not already bullets, numbered
+   items, headings, quotes, tables, or blank) get a blank line between them,
+   so every line renders as its own row. Already-valid markdown is untouched. */
+function hardenMarkdownLineBreaks(text) {
+	if (typeof text !== 'string' || !text.includes('\n') || text.includes('```')) return text;
+	const isBlock = (l) => /^\s*([-*+]\s|\d+[.)]\s|#{1,6}\s|>|\|)/.test(l) || l.trim() === '';
+	const lines = text.split('\n');
+	const out = [];
+	for (let i = 0; i < lines.length; i++) {
+		out.push(lines[i]);
+		const next = lines[i + 1];
+		if (next !== undefined && !isBlock(lines[i]) && !isBlock(next)) out.push('');
+	}
+	return out.join('\n');
+}
+
+function hardenMarkdownDeep(value) {
+	if (typeof value === 'string') return hardenMarkdownLineBreaks(value);
+	if (Array.isArray(value)) return value.map(hardenMarkdownDeep);
+	if (isRecord(value)) {
+		const out = {};
+		for (const [k, v] of Object.entries(value)) out[k] = hardenMarkdownDeep(v);
+		return out;
+	}
+	return value;
+}
+
 export function splitCanvasRuntimeArguments(args) {
 	const componentArguments = {};
 
@@ -495,7 +527,7 @@ export function splitCanvasRuntimeArguments(args) {
 			continue;
 		}
 
-		componentArguments[key] = value;
+		componentArguments[key] = hardenMarkdownDeep(value);
 	}
 
 	return {
