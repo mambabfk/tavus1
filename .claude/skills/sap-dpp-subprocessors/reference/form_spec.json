@@ -1,0 +1,557 @@
+{
+ "sheet": "Sub-processor Info",
+ "vendor_columns": {
+  "subprocessor_1": "C",
+  "subprocessor_2": "D",
+  "subprocessor_3": "E",
+  "subprocessor_4": "F",
+  "subprocessor_5": "G",
+  "subprocessor_6": "H",
+  "subprocessor_7": "I",
+  "subprocessor_8": "J",
+  "subprocessor_9": "K",
+  "subprocessor_10": "L"
+ },
+ "rows": [
+  {
+   "row": 1,
+   "id": "#",
+   "label": "Subprocessor or affiliate information",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 2,
+   "id": "1",
+   "label": "Fill in for each subprocessor / affiliate",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 3,
+   "id": "1.1",
+   "label": "Subprocessor or affiliate name as provided in the TOM questionnaire #8.3.\n(Please add the full name and legal form of the sub-processor)",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 4,
+   "id": "1.1.1",
+   "label": "\"Contact details of sub-processor”: please add the full address of the sub-processor and, if the sub-processor has a representative (Article 27 GDPR), please add the name and the full address of the representative.",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 5,
+   "id": "1.1.2",
+   "label": "“Contact details of the sub-processor’s data protection officer”: if the sub-processor has a data protection officer, please add the data protection officer’s name, telephone number and/or email address. If the sub-processor has no data protection officer, please insert N/A and add instead a telephone number and/or email address where the sub-processor (i.e. of a contact of the sub-processor who is entitled to respond to data protection-related requests of SAP) can be reached into the contact details of sub-processor column.",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 6,
+   "id": "1.1.3",
+   "label": "“Processing operations of sub-processor”: please describe the concrete data processing services each sub-processor is performing (i.e. which categories of personal data of SAP and its customers are processed to which extent. Processing of personal data means any operation or set of operations which is performed on personal data or on sets of personal data, whether or not by automated means, such as collection, recording, organization, structuring, storage, adaptation or alteration, retrieval, consultation, use, disclosure by transmission, dissemination or otherwise making available (which includes the mere access to systems containing personal data while providing support), alignment or combination, restriction, erasure or destruction).",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 7,
+   "id": "1.1.4",
+   "label": "“Level”: please add the level on which the relevant sub-processor processes SAP and its customers’ personal data. Level 1 would mean a direct sub-processor of your entity, Level 2 a sub-processor of your direct sub-processor, etc. Please provide this information throughout the whole data processing chain.",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 8,
+   "id": "1.2",
+   "label": "Please provide the following additional information regarding your sub-processors. - Do you enter into \"sub-processing data protection agreements\" with your sub-processors which content-wise mirror the terms of the SAP Master Data Processing Agreement (MDPA) / SAP Contractor Agreement on the Commissioned Processing of Personal Data (CDPA) between SAP and your company?",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 9,
+   "id": "1.3",
+   "label": "Did your sub-processors actually implement the technical and organizational measures (TOM) set out on these sub-processing data protection agreements?",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 10,
+   "id": "1.3.1",
+   "label": "Please describe any deficiencies (“Gaps”)",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 11,
+   "id": "1.3.2",
+   "label": "Please let us know the “Remediation plan” until when your company will have closed each gap.",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 12,
+   "id": "1.4",
+   "label": "Do you \"audit\" your sub-processors’ compliance with the terms of these sub-processing data protection agreements including the agreed technical and organizational measures (TOM)?",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 13,
+   "id": "1.4.1",
+   "label": "If Yes, i.e., audits are conducted - “By way of which means?” how these audits are conducted by selecting the accurate response per sub-processor.",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Data protection officer/organization",
+    "Third Party auditor",
+    "Others"
+   ]
+  },
+  {
+   "row": 14,
+   "id": "1.4.2",
+   "label": "If Yes, i.e., audits are conducted - which “evidence” is your company creating regarding audits per sub-processor? Please attach the respective evidence.",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Self-created audit report(s)",
+    "ISO 9001",
+    "ISO 27001",
+    "BS 25999/ISO 22301",
+    "ISO 27701",
+    "ISO 27018",
+    "SOC 1",
+    "SOC 2",
+    "SOC 3"
+   ]
+  },
+  {
+   "row": 15,
+   "id": "1.5",
+   "label": "If Yes, i.e., audits are conducted - Did any of these audits reveal findings?",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 16,
+   "id": "1.5.1",
+   "label": "If Yes, i.e., audit findings were revealed - Describe each \"audit finding\" relating to each sub-processor",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 17,
+   "id": "1.5.2",
+   "label": "If Yes, i.e., audit findings were revealed - Please describe “Actions taken” (what did each sub-processor do in order to remedy each of the findings).",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 18,
+   "id": "1.5.3",
+   "label": "If Yes, i.e., audit findings were revealed - Please let us know for each finding whether it has been \"remedied\"",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 19,
+   "id": "1.5.4",
+   "label": "If Yes, i.e., audit findings were revealed but not remediated - please let us know until when each your sub-processors will have remedied the respective finding.",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 20,
+   "id": "1.6",
+   "label": "Have there been any \"incidents\" caused by or in connection with the usage of sub-processors within the last year?",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 21,
+   "id": "1.6.1",
+   "label": "If Yes, i.e., incidents were caused - Describe each incident (including the affected personal data categories of SAP and/or its customers)",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 22,
+   "id": "1.6.2",
+   "label": "If Yes, i.e., incidents were caused - Please describe “Actions taken” (what did each sub-processor do in order to remedy each of the incidents)",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 23,
+   "id": "1.6.3",
+   "label": "If Yes, i.e., incident were caused - Please let us know for each incident whether it has been \"remedied\"",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 24,
+   "id": "1.6.4",
+   "label": "If Yes, i.e., incident were caused but not remediated - please let us know until when each of your sub-processor will have remedied the respective incident.",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 25,
+   "id": "1.7",
+   "label": "TIA (Tranfer & Impact Analysis) - In case of personal data transfers to subprocessors in the countries listed below: \nAre alternative subprocessors available\n- that can be used for the services, and\n- offer a similar quality, and \n- data transfer to the countries listed below is excluded?\nCountries: USA, China, India, Russia, Saudi Arabia, UAE, Philippines, UK, Belarus",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 26,
+   "id": "2",
+   "label": "Which special categories of personal data are processed by the subprocessor (including access)",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 27,
+   "id": "2.1",
+   "label": "Categories of personal data",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 28,
+   "id": null,
+   "label": "• Biometric data for the purpose of uniquely identifying a natural person",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 29,
+   "id": null,
+   "label": "• Browsing history",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 30,
+   "id": null,
+   "label": "• CVs",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 31,
+   "id": null,
+   "label": "• Driving behavior",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 32,
+   "id": null,
+   "label": "• Data concerning health",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 33,
+   "id": null,
+   "label": "• Genetic data",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 34,
+   "id": null,
+   "label": "• HR data",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 35,
+   "id": null,
+   "label": "• Natural person's sex life or sexual orientation",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 36,
+   "id": null,
+   "label": "• Photo",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 37,
+   "id": null,
+   "label": "• Political opinions",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 38,
+   "id": null,
+   "label": "• Racial or ethnic origin",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 39,
+   "id": null,
+   "label": "• Recorded voice session",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 40,
+   "id": null,
+   "label": "• Religious or philosophical beliefs",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 41,
+   "id": null,
+   "label": "• Trade union membership",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 42,
+   "id": null,
+   "label": "• Other types of special categories of personal data  - if any",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 48,
+   "id": "2.2",
+   "label": "Which categories of (regular) personal data are processed by the subprocessor (including access)?",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 54,
+   "id": "2.3",
+   "label": "Does the subprocessor need access to personal data in clear-text in order to carry out the processing services?",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "row": 55,
+   "id": "3",
+   "label": "Safeguards for the data transfers to/from the subprocessor",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 56,
+   "id": "3.1",
+   "label": "Encryption & Technical Safeguards",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 57,
+   "id": "3.1.1",
+   "label": "Please indicate which standard is used for data transfers with the subprocessor (encryption-in-transit)",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "TLS 1.3",
+    "TLS 1.2",
+    "TLS 1.1",
+    "TLS 1.0",
+    "SAP Network",
+    "Others - pls indicate below",
+    "None"
+   ]
+  },
+  {
+   "row": 58,
+   "id": "3.1.2",
+   "label": "Please indicate which standard is used by the subprocessor for encryption-at-rest",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "AES-128",
+    "AES-192",
+    "AES-256",
+    "3DES",
+    "Others - pls indicate below",
+    "Not known",
+    "Not applicable",
+    "None"
+   ]
+  },
+  {
+   "row": 59,
+   "id": "3.1.3",
+   "label": "Please indicate which standard is used by the subprocessor for encryption of backups",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "AES-128",
+    "AES-192",
+    "AES-256",
+    "3DES",
+    "Others - pls indicate below",
+    "Not known",
+    "Not applicable",
+    "None"
+   ]
+  },
+  {
+   "row": 60,
+   "id": "3.1.4",
+   "label": "Who provides the encryption key?",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Key generated by Subprocessor (customer-specific)",
+    "Key generated by Subprocessor (not customer-specific)",
+    "Key generated by your company",
+    "Key generated by SAP",
+    "Not known",
+    "Not applicable",
+    "None"
+   ]
+  },
+  {
+   "row": 61,
+   "id": "3.1.5",
+   "label": "Is data encryption ensured end to end through the whole processing cycle with this subprocessor ?",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "Partly",
+    "No",
+    "Not known",
+    "Not applicable"
+   ]
+  },
+  {
+   "row": 62,
+   "id": "3.1.6",
+   "label": "Can personal data be anonymized by the subprocessor?",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No",
+    "Not known",
+    "Not applicable"
+   ]
+  },
+  {
+   "row": 63,
+   "id": "3.1.7",
+   "label": "Can personal data be pseudonymized by the subprocessor?",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No",
+    "Not known",
+    "Not applicable"
+   ]
+  },
+  {
+   "row": 64,
+   "id": "3.1.8",
+   "label": "Other measures; please specify (please use a new line per technical safeguard)",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 69,
+   "id": "3.2",
+   "label": "EU Access",
+   "input_type": "free_text",
+   "allowed_values": null
+  },
+  {
+   "row": 70,
+   "id": "3.2.1",
+   "label": "Does the subprocessor offer EU Access?",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No",
+    "Not known",
+    "Not applicable"
+   ]
+  },
+  {
+   "row": 71,
+   "id": "3.2.2",
+   "label": "If yes, is this EU Access used in your service",
+   "input_type": "dropdown",
+   "allowed_values": [
+    "Yes",
+    "No"
+   ]
+  }
+ ]
+}

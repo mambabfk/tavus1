@@ -1,0 +1,33 @@
+# DECISION ZERO. The form has 10 vendor columns. Tavus lists 20 authorized
+# sub-processors. You must either cut to 10 or ask SAP how they want overflow handled
+# (usually: a second copy of the sheet, or an appended tab).
+#
+# Tavus's own subprocessor page says "depending on the Tavus product your organization
+# utilizes... certain sub-processors may not be applicable." That sentence is your
+# scoping authority. Scope to what SAP's actual deployment touches.
+#
+# confirmed: set to true only after a human has signed off on this list.
+confirmed: false
+overflow_handling: null   # "second_sheet" | "appended_tab" | "sap_confirmed_subset"
+
+subprocessors: []
+  # - name: "Amazon Web Services"
+  #   slug: aws
+  #   role: "Cloud infrastructure, data hosting"
+  #   level: 1
+  #   in_data_path: true          # does it touch end-user video/audio?
+  #   data_touched: "raw video and audio, account metadata"
+  #   soc2_on_file_in_vanta: true
+
+# Full list from https://www.tavus.io/authorized-subprocessors (eff. 2026-04-27),
+# grouped by likely scoping decision. Levels are unverified guesses — confirm each.
+#
+# In the media data path (almost certainly in scope):
+#   Google Cloud Platform, Amazon Web Services, Cerebrium, Replicate, Fal,
+#   ElevenLabs, Cartesia, InWorld, Deepgram, Daily, Mux
+# LLM hosting (in scope if conversation content is sent):
+#   Cerebras, Meta, OpenAI, Groq
+# Corporate / business systems (SAP contact data, not end-user media):
+#   Slack, Pylon, Salesforce, Stripe, Orb
+#
+# That is 11 + 4 + 5. The media path alone already exceeds 10 columns.

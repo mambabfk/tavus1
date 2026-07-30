@@ -1,0 +1,7 @@
+{"vendor_name":"Example Corp","slug":"example_broken","level":1,
+ "fields":{
+   "3.1.2":{"value":"AES-256","source_url":null,"confidence":"high","notes":"assumed industry standard"},
+   "3.1.1":{"value":"TLS 1.2+","source_url":"https://example.com/security","confidence":"high"},
+   "1.6":{"value":"No","source_url":null},
+   "2.3":{"value":"Yes","notes":"sees raw media"}
+ }}

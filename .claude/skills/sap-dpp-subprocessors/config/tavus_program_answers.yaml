@@ -1,0 +1,25 @@
+# Bucket B — describes Tavus, not the vendors. Same value repeats across all columns.
+# The agent reads these verbatim and will NOT invent them. Blank means the run stops.
+#
+# Rows 1.6.x are the highest-liability cells on the form. A "No" here that turns out to
+# be wrong is a misrepresentation in a signed data processing package. Check with
+# security/counsel before answering, not after.
+
+"1.1.4_level_default": null            # 1 for direct vendors
+"1.2_mirror_dpa_in_place": null        # Yes | No
+"1.3_tom_implemented": null            # Yes | No
+"1.3.1_gaps": null                     # free text, or "None identified"
+"1.3.2_remediation_plan": null
+"1.4_do_you_audit": null               # Yes | No
+"1.4.1_audit_means": null              # Data protection officer/organization | Third Party auditor | Others
+"1.5_findings_revealed": null          # Yes | No
+"1.5.1_findings": null
+"1.5.2_actions_taken": null
+"1.5.3_remedied": null                 # Yes | No
+"1.5.4_remediation_date": null
+"1.6_incidents_last_year": null        # Yes | No  <-- verify with security before answering
+"1.6.1_incident_description": null
+"1.6.2_actions_taken": null
+"1.6.3_remedied": null                 # Yes | No
+"1.6.4_remediation_date": null
+"3.2.2_eu_access_used": null           # Yes | No — deployment fact
