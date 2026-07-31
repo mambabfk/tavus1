@@ -1,0 +1,106 @@
+{
+  "vendor_name": "Cerebrium Inc.",
+  "slug": "cerebrium",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: the sandbox network gateway (agent proxy) returned 403 CONNECT denials for all Cerebrium domains (cerebrium.ai, docs.cerebrium.ai) for both WebFetch and curl in this session — same environment condition documented in aws.json. No page could be fetched directly. Every value below is sourced from Cerebrium's own pages as returned verbatim in domain-restricted web-search snippets (allowed_domains limited to cerebrium.ai / www.cerebrium.ai / docs.cerebrium.ai / trust.cerebrium.ai). Per researcher hard rules, confidence is therefore capped at 'low' even where the underlying Cerebrium documentation is unambiguous. The verifier pass should re-fetch each source_url from an unrestricted network before values are promoted.",
+  "fields": {
+    "1.1": {
+      "value": "Cerebrium Inc. (US corporation, 'Inc.'; registered address in Wilmington, Delaware)",
+      "source_url": "https://cerebrium.ai/privacy",
+      "locator": "Privacy Policy: 'Cerebrium Inc. is the Data Controller and responsible for your Personal Data'; Terms of Service footer: content 'is the property of Cerebrium Inc.'; data-inquiry address '251 Little Falls Drive, Wilmington, 19808, Delaware, USA'",
+      "confidence": "low",
+      "notes": "Entity name 'Cerebrium Inc.' appears in both the privacy policy and terms of service. The Wilmington DE address (251 Little Falls Drive) is the Corporation Service Company registered-agent address, consistent with a Delaware-registered corporation, but the state of incorporation is not explicitly stated on a fetched page — confirm with vendor. Oddity worth flagging: the Terms of Service state they are governed by the laws of the United Kingdom. Field playbook says 1.1 must match the entity named in TOM questionnaire #8.3 that Tavus already submitted; NO TOM questionnaire file exists in this repo, so the filler/human must reconcile against that submission before writing the cell. Pages not fetchable this session (gateway 403); text from cerebrium.ai-restricted search snippets."
+    },
+    "1.1.1": {
+      "value": "Cerebrium Inc., 251 Little Falls Drive, Wilmington, DE 19808, USA. Data protection inquiries: support@cerebrium.ai. No Article 27 GDPR representative identified in the privacy policy or security documentation retrieved this session.",
+      "source_url": "https://cerebrium.ai/privacy",
+      "locator": "Privacy Policy: 'Inquiries about data should be sent to support@cerebrium.ai or to 251 Little Falls Drive, Wilmington, 19808, Delaware, USA'",
+      "confidence": "low",
+      "notes": "251 Little Falls Drive is a registered-agent (CSC) address, not necessarily Cerebrium's operating office — ask the vendor for their principal place of business. Cerebrium is a US (non-EU) vendor that markets EU data residency (Stockholm region) and claims GDPR compliance, so an Art. 27 EU representative is a live question; none was found on any Cerebrium page surfaced this session. Absence recorded as a finding, not asserted as fact — the pages could not be fetched in full (gateway 403), so the representative question goes to the vendor in writing."
+    },
+    "1.1.2": {
+      "value": "N/A — no data protection officer appointed. Data protection contact: support@cerebrium.ai (also compliance@cerebrium.ai for compliance matters, security@cerebrium.ai for security matters).",
+      "source_url": "https://cerebrium.ai/privacy",
+      "locator": "Privacy Policy: 'Cerebrium is not obliged by US privacy laws to appoint a data protection officer and has not voluntarily appointed one at this time. Inquiries about data should be sent to support@cerebrium.ai or to 251 Little Falls Drive, Wilmington, 19808, Delaware, USA.'",
+      "confidence": "low",
+      "notes": "Vendor explicitly states no DPO has been appointed, so the form requires 'N/A' here plus a working privacy contact in the 1.1.1 column (support@cerebrium.ai, included above). No name invented. Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "1.4.2": {
+      "value": "SOC 2",
+      "source_url": "https://docs.cerebrium.ai/security",
+      "locator": "Security & Data Privacy page: 'Cerebrium is SOC 2 Type I, HIPAA-compliant, GDPR and ISO compliant... Compliance is continually monitored through Vanta and a dedicated team. Visit the trust center for compliance reports, or contact security@cerebrium.ai'; blog 'Cerebrium is now ISO 27001 Compliant' (https://www.cerebrium.ai/blog/cerebrium-is-now-iso-27001-compliant): 'Cerebrium now supports SOC 2, GDPR, HIPAA, and ISO 27001'",
+      "confidence": "low",
+      "notes": "Certifications evidenced on Cerebrium's own pages this session: SOC 2 (security page says Type I; a cerebrium.ai search snippet dated 2026-07-15 says SOC 2 Type II has since been achieved — Type I vs Type II must be confirmed and the current report obtained) and ISO 27001 (announced as 'compliant' in a vendor blog — 'compliant' is not the same as 'certified'; ask for the certificate and scope statement). HIPAA (BAA available) and GDPR are claimed but are not options in this dropdown. Dropdown takes one value; 'SOC 2' chosen as the audit evidence Tavus most likely relies on, 'ISO 27001' is the alternative. GATE: scope.yaml has soc2_on_file_in_vanta: null for Cerebrium — per the playbook, do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta. All snippet-sourced; direct fetches blocked (gateway 403)."
+    },
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "source_url": "https://docs.cerebrium.ai/security",
+      "locator": "Security & Data Privacy page: 'Cerebrium enforces HTTPS for all services using TLS (SSL), covering both the Cerebrium Dashboard and Python package'; also 'Systems are only accessible via a Virtual Private Network where all communication is done via SSL encryption'",
+      "confidence": "low",
+      "notes": "TLS/HTTPS is enforced for all services, but NO TLS version is published anywhere retrieved this session, so none of the versioned dropdown options can be selected honestly. Real standard to indicate below: 'TLS (version not published by vendor — confirmation requested)'. Ask the vendor for the minimum negotiated TLS version on inference endpoints (1.2 floor? 1.3 supported?). Snippet-sourced; direct fetch blocked."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "source_url": "https://docs.cerebrium.ai/security",
+      "locator": "Security & Data Privacy page: 'All user data is encrypted at rest'",
+      "confidence": "low",
+      "notes": "Encryption at rest IS documented ('All user data is encrypted at rest') but the algorithm/standard (AES-128/192/256 etc.) is NOT published on any Cerebrium page surfaced this session, so no specific dropdown value can be asserted. 'Not known' refers to the standard, not to whether encryption exists — the notes column should carry the vendor's statement. Confirm algorithm with vendor in writing. Searched cerebrium.ai/docs/security, docs.cerebrium.ai/security, cerebrium.ai/privacy via domain-restricted search; direct fetches blocked (gateway 403)."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Cerebrium documents that 'daily database backups' are enabled (security page snippet), but no statement about encryption OF backups was found on any primary source this session. Per the field playbook, 'Not known' is the common and correct answer here. Searched docs.cerebrium.ai/security, cerebrium.ai/docs/security, cerebrium.ai/privacy (domain-restricted search; direct fetches blocked by gateway 403)."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No public documentation of key management (who generates/holds encryption keys, KMS provider, CMEK/BYOK options) was found on any Cerebrium primary source this session. The playbook default for managed cloud ('Key generated by Subprocessor (not customer-specific)') is an industry-norm inference and is deliberately NOT asserted — hard rule against inferring from norms. Ask vendor. Searched docs.cerebrium.ai/security, cerebrium.ai/docs/security, trust.cerebrium.ai via domain-restricted search; direct fetches blocked (gateway 403)."
+    },
+    "3.1.6": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary-source statement found that Cerebrium can anonymize personal data as a processor. The closest retrieved statement points the other way for PHI: 'customers are responsible for de-identifying PHI before transmission to Cerebrium's systems, if de-identification is required for their use case' (HIPAA blog/security page snippet) — i.e. de-identification rests with the customer — but that is PHI-specific and not a general anonymization answer. Ask vendor. Searched cerebrium.ai/privacy, docs.cerebrium.ai/security, cerebrium.ai/blog/cerebrium-supports-hipaa-compliance (domain-restricted search; direct fetches blocked, gateway 403)."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Same reasoning as 3.1.6: no primary-source statement found that Cerebrium pseudonymizes customer personal data as a processor; PHI de-identification is documented as a customer responsibility. Ask vendor. Same pages searched as 3.1.6."
+    },
+    "3.1.8": {
+      "value": "Multi-Factor Authentication (MFA) enforced across all platforms relating to Cerebrium\nRegular/frequent vulnerability scans, with remediation following incident response plan timelines\nSystems accessible only via a Virtual Private Network, with all communication over SSL encryption\nSoftware dependencies audited by GitHub's Dependabot\nDaily database backups enabled\nContinuous compliance monitoring through Vanta and a dedicated team\nAnnual business continuity and security incident exercises (SOC 2 compliance requirement)\nSubcontractors with potential access to PHI are vetted and sign Business Associate Agreements",
+      "source_url": "https://docs.cerebrium.ai/security",
+      "locator": "Assembled one-per-line from the Security & Data Privacy page (MFA, vulnerability scans, VPN/SSL access, Dependabot, daily backups, Vanta monitoring, annual BC/incident exercises) and the HIPAA compliance blog (https://cerebrium.ai/blog/cerebrium-supports-hipaa-compliance: subcontractor vetting/BAAs)",
+      "confidence": "low",
+      "notes": "Every line traces to a Cerebrium-domain statement retrieved this session via domain-restricted search; none of the pages could be fetched directly (gateway 403). Deliberately excludes safeguards commonly attributed to GPU clouds but not evidenced this session (e.g. workload isolation, penetration testing — no pen-test statement was found)."
+    },
+    "3.2.1": {
+      "value": "Yes",
+      "source_url": "https://docs.cerebrium.ai/cerebrium/deployments/multi-region-deployment",
+      "locator": "Multi-Region Deployment docs (region parameter in [cerebrium.hardware] of cerebrium.toml; 'cerebrium ls --region eu-west-2') and blog 'Introduction New Regions: India & Stockholm' (https://cerebrium.ai/blog/introduction-new-regions-india-stockholm, 2026-03-25): 'The Stockholm region enables customers to meet European data residency requirements... supports both CPU and GPU workloads and is GDPR compliant'",
+      "confidence": "low",
+      "notes": "The test is 'offers an EU region', which Cerebrium does: an eu-west-2 region is referenced in the multi-region docs and a Stockholm (Sweden) region was announced 2026-03-25 explicitly for European data residency. Docs note each region requires a separate deployment and per-region isolated persistent storage. Whether Tavus USES an EU region is 3.2.2 (Bucket B, human answer). Snippet-sourced; direct fetch blocked (gateway 403)."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm the exact legal entity (full name, legal form, and state/country of incorporation) that contracts with Tavus, Inc. — is it Cerebrium Inc. (Delaware)? Please also provide your principal place of business (251 Little Falls Drive, Wilmington DE appears to be a registered-agent address), and clarify why your Terms of Service designate United Kingdom governing law.",
+    "As a US company offering services to EU data subjects (Stockholm region, GDPR claims): have you designated an EU representative under Article 27 GDPR? If yes, please provide the representative's name and full address; if no, please state the basis on which Article 27 does not apply to you.",
+    "Please confirm that no data protection officer has been appointed and that support@cerebrium.ai is the authoritative contact entitled to respond to data-protection-related requests (SAP requires a named channel).",
+    "Is your current SOC 2 attestation Type I or Type II, what is the report period, and can you provide the report under NDA (your security page says Type I; other pages indicate Type II as of July 2026)? Please also provide your ISO 27001 certificate and scope statement — your blog says 'ISO 27001 compliant'; is this a certification by an accredited body or a self-assessment?",
+    "What minimum TLS version is enforced for data in transit to your API and inference endpoints (TLS 1.2, TLS 1.3)?",
+    "Your security page states all user data is encrypted at rest — with which algorithm and key length (e.g. AES-256)?",
+    "Are backups (including the daily database backups referenced on your security page) encrypted, and with which algorithm?",
+    "Who generates and manages the encryption keys for data at rest (platform-managed KMS, customer-specific keys, CMEK/BYOK options)?",
+    "Can Cerebrium, acting as a processor, anonymize or pseudonymize personal data (including video/audio frames processed during inference) on the customer's instruction, or does this rest entirely with the customer?",
+    "Do you have a signed DPA with Tavus that flows down GDPR Art. 28 obligations, and can you provide your current sub-processor list (your HIPAA materials reference vetted subcontractors under BAAs — SAP will ask for the processing chain to Level 2, e.g. the underlying cloud provider(s) hosting your GPU regions)?",
+    "For inference workloads: is customer media (video/audio frames) persisted at any point (queuing, caching, logging, persistent storage), and if so where and for how long — or is it processed in memory only?"
+  ]
+}
