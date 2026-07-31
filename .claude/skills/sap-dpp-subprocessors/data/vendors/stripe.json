@@ -1,0 +1,107 @@
+{
+  "vendor_name": "Stripe",
+  "slug": "stripe",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: no Stripe primary source could be consulted in this session AT ALL. (1) The sandbox network gateway (agent proxy) returned 403 CONNECT denials — egress-policy denials, which the proxy README instructs must not be retried or routed around — for every Stripe host attempted: stripe.com (privacy policy at /privacy), docs.stripe.com (/security), and support.stripe.com. WebFetch got HTTP 403 on https://stripe.com/privacy and https://docs.stripe.com/security, and direct curl through the proxy confirmed 'CONNECT tunnel failed, response 403' for stripe.com:443, docs.stripe.com:443, and support.stripe.com:443 — the same policy denial recorded for slack.com, salesforce.com, usepylon.com etc. in the proxy status log. (2) The session's WebSearch budget was already exhausted (200/200, consumed by sibling vendor researchers) before any Stripe search could run, so the domain-restricted-search-snippet fallback used by earlier vendor files was unavailable. Per the researcher hard rules ('if you did not fetch a URL stating the fact for THIS vendor in THIS session, the value is Not known'), every Bucket A field below is 'Not known' with confidence 'none'. This is a statement about this session's network access, not about Stripe's documentation, which is extensive (privacy policy at stripe.com/privacy, security docs at docs.stripe.com/security, DPA at stripe.com/legal/dpa, Privacy Center at stripe.com/legal/privacy-center). A re-run from an unrestricted network (or with search budget) should be able to fill most of these fields from Stripe's own pages before falling back to the written vendor questionnaire.",
+  "fields": {
+    "1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No public documentation could be fetched this session; attempted https://stripe.com/privacy and https://docs.stripe.com/security (WebFetch HTTP 403) and stripe.com/docs.stripe.com/support.stripe.com via curl (gateway 403 CONNECT denial, session egress policy); WebSearch budget exhausted before this vendor. Unverified lead from the skill's prior outreach file (data/vendor_contacts.md, snippet-sourced from https://stripe.com/privacy, NOT fetched this session): the US contracting entity appears to be 'Stripe, Inc.' Treat as a lead only. Stripe operates through regional contracting entities (which Stripe entity contracts with Tavus depends on the account's country — must be taken from the Tavus-Stripe agreement). Field playbook: 1.1 must match the entity named in the TOM questionnaire #8.3 Tavus already submitted — no TOM questionnaire file exists in this repo, so the filler/human must take the entity name and legal form from that submission and from the signed Tavus-Stripe agreement/DPA signature block, which are authoritative."
+    },
+    "1.1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Registered/full address and any Article 27 GDPR EU representative could not be sourced: stripe.com privacy policy blocked by session egress policy (gateway 403); no search budget remained. Unverified lead from the skill's prior outreach file (data/vendor_contacts.md, snippet-sourced): 'Stripe, Inc., 354 Oyster Point Boulevard, South San Francisco, CA 94080, Attn: Stripe Legal' — must be re-verified against the current privacy policy or the signed DPA before use. Whether Stripe, Inc. names an Art. 27 EU representative or instead relies on an EU establishment (Stripe has well-known EU operations headquartered in Ireland, which would likely make Art. 27 inapplicable — but that is training-data knowledge, not a fetched source, so it is deliberately not asserted) is unknown and must be asked in writing. Absence of a rep can be a legitimate finding but was not established this session."
+    },
+    "1.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Could not fetch any Stripe privacy page this session (egress policy 403 on all stripe.com hosts; no search budget). Unverified lead from the skill's prior outreach file (data/vendor_contacts.md, snippet-sourced from https://stripe.com/privacy and the support article 'Contact Stripe's Data Protection Officer (DPO)' at https://support.stripe.com/questions/contact-stripes-data-protection-officer-(dpo)): Stripe publishes a DPO contact route at dpo@stripe.com, with general privacy inquiries at privacy@stripe.com. This suggests Stripe DOES have a formally appointed DPO (email route only; no individual name or phone in the recorded snippets), so do NOT write 'N/A' here without confirmation — but per hard rules the value stays 'Not known' until the page is fetched or the vendor confirms in writing. If confirmed, the cell likely takes 'DPO (name not published): dpo@stripe.com' and privacy@stripe.com goes with the 1.1.1 contact details. No name invented."
+    },
+    "1.4.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Certifications actually held could not be verified this session: https://docs.stripe.com/security (where Stripe documents its compliance posture) was blocked by the session egress policy (gateway 403 CONNECT denial), as was stripe.com; WebSearch budget exhausted. No certification is asserted from memory or industry norms per hard rules — notably, PCI DSS (which a payment processor would be expected to hold) is NOT on the form's dropdown list anyway; if Stripe's written answer names only PCI DSS, the human should discuss with SAP how to represent it (the dropdown covers self-created audit reports, ISO 9001/27001/22301/27701/27018, SOC 1/2/3). GATE from field playbook: even once certifications are confirmed, do not assert SOC 2 in the form until Stripe's report is confirmed on file in Vanta — config/scope.yaml has soc2_on_file_in_vanta: null for Stripe. Request current SOC reports, ISO certificates + scope statements, and the PCI DSS Attestation of Compliance in writing."
+    },
+    "3.1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Encryption-in-transit standard (TLS version floor) not verifiable this session: https://docs.stripe.com/security and all other stripe.com hosts blocked by session egress policy (gateway 403); no search budget. Deliberately not asserting a TLS version from memory per hard rules. Note validate.py accepts 'Not known' for this dropdown even though the form's own list has no such option — before workbook fill, this must be resolved by re-research or the vendor's written answer (ask for the minimum TLS version enforced on stripe.com, api.stripe.com, and Dashboard endpoints)."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Encryption-at-rest algorithm not verifiable this session — same blocked sources as 3.1.1 (docs.stripe.com/security, stripe.com). Deliberately NOT asserting AES-256 from industry norm, PCI DSS expectations, or memory per hard rules. Ask vendor to state the algorithm and key length for personal data at rest (cardholder data, billing contact records, logs)."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Backup encryption is rarely documented separately even on reachable trust pages (per field playbook, 'Not known' is common and correct here); this session no Stripe page could be fetched at all (egress policy 403 on all stripe.com hosts; no search budget). Ask vendor: are backups encrypted, with which algorithm, and are backup keys managed the same way as production keys?"
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Key provider not verifiable this session (same blocked sources). For a managed payment platform the playbook default would be 'Key generated by Subprocessor (not customer-specific)' — but that default is only to be applied after checking with the human and, per hard rules, no value is asserted without a fetched source. Ask vendor who generates and manages the encryption keys for data at rest (Stripe-managed platform keys? HSM-backed? any customer-specific key options?)."
+    },
+    "3.1.6": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary-source statement about an anonymization capability could be obtained this session (all stripe.com hosts blocked by egress policy; no search budget). Ask vendor whether Stripe, acting as processor/service provider for merchant billing data, can anonymize personal data on the customer's instruction (e.g. on account closure or erasure requests), noting that payment/transaction records are typically subject to statutory retention that limits erasure."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary-source statement about a pseudonymization capability could be obtained this session (same access failure as 3.1.6). Stripe's use of card tokenization is widely known but that is training-data knowledge, not a fetched source, so it is deliberately not asserted. Ask vendor whether personal data can be pseudonymized (e.g. tokenization of card numbers, hashed identifiers)."
+    },
+    "3.1.8": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Other technical safeguards (PCI-scoped network segregation, access controls, MFA, audit logging, penetration testing, bug bounty, HSM-based key management) are the sort of thing docs.stripe.com/security documents, but none of it could be fetched this session (egress policy 403); nothing is asserted from memory per hard rules. Re-run research or take the answer from Stripe's SOC/PCI reports and security documentation once obtained."
+    },
+    "3.2.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "The test is 'does the vendor OFFER an EU region', not 'does Tavus use it'. Stripe has EU operations (Irish entity) and processes European payments, but whether it offers EU data residency / EU-only hosting for customer personal data (as opposed to global processing on US infrastructure) could not be established from any fetched source this session (stripe.com blocked by egress policy; no search budget), so per hard rules the value stays 'Not known'. Ask vendor: do you offer an EU data-hosting/EU Access option, which data categories does it cover, and is it available for a US-contracted merchant account?"
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm the exact legal entity that contracts with Tavus (a US-based company) for payment processing services — full legal name, legal form, and state/country of incorporation (we believe 'Stripe, Inc.') — and provide that entity's registered office / principal place of business address.",
+    "Has Stripe, Inc. designated a representative in the EU under Article 27 GDPR (and in the UK under UK GDPR)? If yes, please provide the representative's name and full address; if Stripe instead relies on an EU establishment (e.g. an Irish Stripe entity) for EU processing, please identify that entity and its address and its role in the processing chain for Tavus data.",
+    "Have you formally appointed a Data Protection Officer? Public references point to dpo@stripe.com — please confirm this is the authoritative DPO contact entitled to respond to data-protection-related requests from customers (SAP requires a named channel), and provide the DPO's name and telephone number and/or email address.",
+    "Which certifications and audit reports does Stripe currently hold for the payment processing service (PCI DSS Level 1 — current Attestation of Compliance; SOC 1 / SOC 2 Type II — period covered and Trust Service Criteria in scope; SOC 3; ISO 27001 or other ISO certifications with scope statements)? Please provide the current reports/certificates (under NDA if required) so Tavus can place them on file.",
+    "What minimum TLS version (e.g. TLS 1.2, TLS 1.3) is enforced for data in transit to stripe.com, api.stripe.com, and Stripe Dashboard endpoints?",
+    "Which encryption algorithm and key length are used for personal data at rest (cardholder data, billing contact records, transaction records, logs)?",
+    "Are backups encrypted, and with which algorithm? Are backup encryption keys managed the same way as production keys?",
+    "Who generates and manages the encryption keys for data at rest (Stripe-managed platform keys vs. customer-specific keys)? Are keys HSM-backed, and is any customer-managed-key option offered?",
+    "Can Stripe, acting as a processor/service provider for our billing data, anonymize and/or pseudonymize personal data (e.g. card tokenization, hashed identifiers, anonymization on account closure or erasure request)? Please describe the capability and any statutory-retention limits on erasure of payment records.",
+    "Beyond encryption, which other technical safeguards protect personal data (network segmentation of the cardholder data environment, access controls and least-privilege for Stripe personnel, MFA, audit logging, penetration testing cadence, bug bounty program)?",
+    "Does Stripe offer EU data hosting / an EU Access option for customer personal data? If yes: which data categories does it cover, and is it available to a US-contracted merchant such as Tavus?",
+    "Please provide your current sub-processor list for the payment processing service (SAP requires the processing chain to Level 2, e.g. the underlying cloud infrastructure provider(s))."
+  ]
+}

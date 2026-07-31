@@ -1,0 +1,105 @@
+{
+  "vendor_name": "OpenAI OpCo, LLC",
+  "slug": "openai",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: every OpenAI host (openai.com, cdn.openai.com, trust.openai.com, help.openai.com, platform.openai.com) was unreachable this session — WebFetch returned HTTP 403 on all of them and the sandbox egress proxy denied direct curl CONNECTs (same policy denial recorded for other vendors in this project). No OpenAI page or PDF could be fetched directly. Every value below is sourced from OpenAI's OWN pages (openai.com / cdn.openai.com) as quoted in web-search result excerpts restricted to the openai.com domain. Per researcher hard rules ('confidence: high requires a URL you actually fetched'), confidence is capped at 'low' everywhere, even where multiple OpenAI pages agree. The verifier should re-fetch each source_url from an unrestricted network before any value is promoted. OpenAI's documentation is unusually rich (DPA, security-and-privacy page, enterprise-privacy page, trust.openai.com SafeBase portal, business-data page) — most 'Not known' cells below are very likely answered in the DPA's security-measures exhibit and the trust portal, which could not be read this session.",
+  "fields": {
+    "1.1": {
+      "value": "OpenAI OpCo, LLC (US limited liability company; the OpenAI DPA contracting entity for customers based outside the EEA/Switzerland). For customers based in the EEA or Switzerland the DPA counterparty is OpenAI Ireland Ltd instead.",
+      "source_url": "https://openai.com/policies/data-processing-addendum/",
+      "locator": "DPA, parties/definitions: the DPA is entered into with 'OpenAI OpCo, LLC' for customers outside the EEA/Switzerland, or with 'OpenAI Ireland Ltd' for customers based in an EEA country or Switzerland; the DPA also has customers instruct 'OpenAI OpCo, LLC' to process UK Data under the SCCs as amended by the UK Addendum",
+      "confidence": "low",
+      "notes": "Entity names appeared verbatim in search excerpts of OpenAI's own DPA page (also published as PDF at https://cdn.openai.com/pdf/openai-data-processing-addendum.pdf, v.010126); the pages themselves could not be fetched this session (egress blocked). Tavus is a US customer, so OpenAI OpCo, LLC is presumably Tavus's counterparty — confirm against the signed Tavus–OpenAI DPA. State of formation (commonly Delaware for OpenAI entities) was NOT found on a vendor source and is not asserted. Field playbook: this cell must match the entity Tavus named in TOM questionnaire #8.3 already submitted to SAP — no TOM questionnaire file exists in this repo, so the human must reconcile before the cell is written."
+    },
+    "1.1.1": {
+      "value": "OpenAI OpCo, LLC, 1455 3rd Street, San Francisco, CA 94158, USA. EU establishment: OpenAI Ireland Limited, 1st Floor, The Liffey Trust Centre, 117-126 Sheriff Street Upper, Dublin 1, D01 YC43, Ireland (named in OpenAI's Europe privacy policy as the controller for EEA/Swiss residents and as the EEA/Swiss DPA contracting entity). No Article 27 GDPR representative identified — OpenAI is established in the EU through OpenAI Ireland Limited, so a separate Art. 27 representative is not expected. Data-protection contact: privacy@openai.com (privacy portal: privacy.openai.com).",
+      "source_url": "https://openai.com/policies/row-terms-of-use/",
+      "locator": "Terms of Use, Notices section: notices to 'OpenAI OpCo, LLC, 1455 3rd Street, San Francisco, California 94158'; Europe privacy policy (https://openai.com/policies/eu-privacy-policy/): 'OpenAI Ireland Limited, with its registered office at 1st Floor, The Liffey Trust Centre, 117-126 Sheriff Street Upper, Dublin 1, D01 YC43, Ireland' is the controller for EEA residents",
+      "confidence": "low",
+      "notes": "Both addresses appeared verbatim in search excerpts of OpenAI's own terms-of-use and EU privacy policy pages; direct fetch blocked this session. Some older OpenAI documents use 3180 18th Street, San Francisco, CA 94110 — the 1455 3rd Street address appears in the current terms. Absence of an Art. 27 representative is a legitimate finding here (Art. 27 applies to controllers/processors NOT established in the Union; OpenAI Ireland Limited is an EU establishment), but confirm in writing with the vendor."
+    },
+    "1.1.2": {
+      "value": "OpenAI has a designated Data Protection Officer, reachable at privacy@openai.com. No DPO name or telephone number is published.",
+      "source_url": "https://openai.com/policies/eu-privacy-policy/",
+      "locator": "Europe privacy policy, contact section: OpenAI's Data Protection Officer 'can be contacted at privacy@openai.com in matters related to Personal Information processing'",
+      "confidence": "low",
+      "notes": "Unlike most US vendors in this scope, OpenAI DOES formally reference a Data Protection Officer in its own privacy policy (surfaced in search excerpts of openai.com/policies/eu-privacy-policy/ and related policy pages), so 'N/A' would be wrong here. The form asks for the DPO's name and telephone number and/or email — only the email is published. Do not invent a name; ask the vendor for the DPO's name (email alone satisfies the form's 'and/or' but SAP reviewers may want the name)."
+    },
+    "1.4.2": {
+      "value": "SOC 2",
+      "source_url": "https://openai.com/security-and-privacy/",
+      "locator": "Security and privacy at OpenAI page + trust portal (trust.openai.com): independent SOC 2 Type 2 examination covering Security, Availability, Confidentiality and Privacy for the API Platform, ChatGPT Enterprise, ChatGPT Edu and ChatGPT Team (most recent report period stated as 2025-01-01 to 2025-06-30); ISO/IEC 27001:2022 and ISO/IEC 27701:2019 certifications for the ISMS/PIMS supporting the OpenAI API, ChatGPT Enterprise and ChatGPT Edu; ISO/IEC 42001:2023 AI management system; CSA STAR registry evaluation",
+      "confidence": "low",
+      "notes": "OpenAI's own pages (per search excerpts) claim SOC 2 Type 2, ISO/IEC 27001:2022, ISO/IEC 27701:2019, ISO/IEC 42001:2023 and CSA STAR for the API platform Tavus uses. Of the form's dropdown options, 'SOC 2' is selected as primary; 'ISO 27001' and 'ISO 27701' are also valid dropdown options and are equally claimed — the filler/human may prefer to note all three. GATE: scope.yaml has soc2_on_file_in_vanta: null for OpenAI — per the playbook, do not assert SOC 2 in the form until OpenAI's SOC 2 Type 2 report is actually on file in Vanta; request it via trust.openai.com (SafeBase portal, NDA-gated). Direct fetch of the security page and trust portal was blocked this session."
+    },
+    "3.1.1": {
+      "value": "TLS 1.2",
+      "source_url": "https://openai.com/enterprise-privacy/",
+      "locator": "Enterprise privacy at OpenAI, security/encryption section: OpenAI encrypts all data 'in transit between customers and OpenAI, and between OpenAI and its service providers (TLS 1.2+)'; same claim on the business-data page (openai.com/business-data/) and security-and-privacy page",
+      "confidence": "low",
+      "notes": "OpenAI documents 'TLS 1.2+' as its in-transit standard, i.e. TLS 1.2 minimum with higher versions negotiated. The dropdown has no 'TLS 1.2+' option, so 'TLS 1.2' (the documented minimum) is selected; connections may actually use TLS 1.3. Snippet-sourced from OpenAI's own pages; direct fetch blocked this session. Ask the vendor whether TLS 1.3 is preferred/enforced if the stronger claim is wanted."
+    },
+    "3.1.2": {
+      "value": "AES-256",
+      "source_url": "https://openai.com/enterprise-privacy/",
+      "locator": "Enterprise privacy at OpenAI, security/encryption section: 'OpenAI encrypts all data at rest (AES-256)'; repeated on the business-data page (openai.com/business-data/), security-and-privacy page, and data-residency announcements ('OpenAI uses AES-256 for data at rest and TLS 1.2+ for data in transit')",
+      "confidence": "low",
+      "notes": "Consistently documented across multiple OpenAI-domain pages surfaced in search excerpts. Direct fetch blocked this session — verifier should confirm on the live page."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No OpenAI primary source retrieved this session documents backup encryption separately from the blanket 'all data at rest (AES-256)' claim. 'All data at rest' plausibly includes backups, but asserting that would be inference. Searched (via openai.com-restricted web search; direct fetch blocked): openai.com/enterprise-privacy/, openai.com/security-and-privacy/, openai.com/business-data/, openai.com/policies/data-processing-addendum/ (security-measures exhibit not readable), trust.openai.com (unfetchable). 'Not known' is a valid dropdown option; ask the vendor whether backups are encrypted and with which algorithm."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No OpenAI primary source retrieved this session states who generates/manages the encryption keys for API customer data by default. OpenAI does document an Enterprise Key Management (EKM) option ('customers can control their own encryption keys' / 'retain and manage their own master keys in their Key Vaults') for ChatGPT Enterprise/business products — which implies default keys are OpenAI-managed — but the default arrangement for the API platform was not explicitly stated in any retrieved excerpt, and the playbook default ('Key generated by Subprocessor (not customer-specific)') would be an inference. Ask the vendor; also confirm with the human whether Tavus has any EKM/customer-managed-key arrangement with OpenAI (unlikely for plain API usage, in which case the answer is probably 'Key generated by Subprocessor (not customer-specific)')."
+    },
+    "3.1.6": {
+      "value": "Yes",
+      "source_url": "https://openai.com/policies/row-privacy-policy/",
+      "locator": "Privacy policy, de-identified information section: 'We aggregate or de-identify Personal Data so that it no longer identifies you' and OpenAI commits to 'maintain and use de-identified information in de-identified form and not attempt to reidentify the information, unless required by law'; the DPA (openai.com/policies/data-processing-addendum/) likewise provides that OpenAI may process Customer Data 'that has been deidentified, anonymized, and/or aggregated such that the data is no longer considered Personal Data' and, where the customer instructs processing in de-identified form, OpenAI 'shall adopt reasonable measures to prevent such de-identified data from being used to infer information about... a particular natural person'",
+      "confidence": "low",
+      "notes": "OpenAI's own privacy policy and DPA (per search excerpts) document an aggregation/de-identification/anonymization practice with a non-reidentification commitment, which supports 'Yes' for capability to anonymize. Caveat: these describe OpenAI's own practice, not necessarily an anonymization service performed on customer instruction — ask the vendor to confirm anonymization can be performed on Tavus's instruction. Snippet-sourced; direct fetch blocked."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No OpenAI primary source retrieved this session explicitly asserts a pseudonymization capability (as distinct from de-identification/anonymization, which is documented — see 3.1.6). The DPA's detailed security measures live in an exhibit ('Exhibit B' per excerpts, covering access controls, monitoring and logging, vulnerability and breach detection, incident response, and encryption) that was not readable this session and may address pseudonymization. Searched: openai.com/policies/data-processing-addendum/, cdn.openai.com/pdf/openai-data-processing-addendum.pdf (unfetchable), privacy policies, enterprise-privacy page. Ask the vendor."
+    },
+    "3.1.8": {
+      "value": "Encryption of all data at rest (AES-256) and in transit (TLS 1.2+), including between OpenAI and its service providers (enterprise-privacy / business-data pages)\nStrict access controls limiting who can access customer data (enterprise-privacy / security-and-privacy pages)\nDPA security measures covering personnel, facilities, hardware and software, storage and networks, access controls, monitoring and logging, vulnerability and breach detection, incident response, and encryption (DPA, security-measures exhibit)\nSOC 2 Type 2 examination (Security, Availability, Confidentiality, Privacy) covering the API Platform, ChatGPT Enterprise/Edu/Team (security-and-privacy page / trust portal)\nISO/IEC 27001:2022 and ISO/IEC 27701:2019 certified ISMS/PIMS supporting the OpenAI API, ChatGPT Enterprise and ChatGPT Edu; ISO/IEC 42001:2023 AI management system (security-and-privacy page)\nCSA STAR registry evaluation for the API Platform and ChatGPT business products (security-and-privacy page)\nAPI business data is not used to train OpenAI models by default (enterprise-privacy page)\nZero Data Retention option for eligible API endpoints (model requests and responses not stored at rest) (enterprise-privacy page / data-residency announcement)\nRegional data residency options for the API and ChatGPT Enterprise/Edu — Europe, UK, US, Canada, Japan, South Korea, Singapore, India, Australia, UAE (data-residency announcements)\nEnterprise Key Management (EKM) option letting business customers control their own encryption keys (business/apps security materials)\nPublic bug bounty program with rewards up to $100,000 for exceptional critical findings (bug-bounty program page)\nInfrastructure runs on trusted cloud providers with change management and industry best practices (security-and-privacy page)",
+      "source_url": "https://openai.com/security-and-privacy/",
+      "locator": "Assembled one-per-line from: openai.com/security-and-privacy/, openai.com/enterprise-privacy/, openai.com/business-data/, openai.com/policies/data-processing-addendum/ (security-measures excerpt), openai.com/index/introducing-data-residency-in-europe/, openai.com/index/expanding-data-residency-access-to-business-customers-worldwide/, openai.com/index/bug-bounty-program/",
+      "confidence": "low",
+      "notes": "Every line traces to an openai.com-domain statement quoted in search excerpts this session; no page could be fetched directly (egress policy denial on all OpenAI hosts). The DPA security-measures exhibit is only partially represented — the verifier should read the full exhibit and the trust portal from an unrestricted network."
+    },
+    "3.2.1": {
+      "value": "Yes",
+      "source_url": "https://openai.com/index/introducing-data-residency-in-europe/",
+      "locator": "'Introducing data residency in Europe' announcement: API customers can choose to process data in Europe for eligible endpoints — 'API requests initiated through Projects set to Europe as the region will be handled in-region by OpenAI with zero data retention'; new ChatGPT Enterprise/Edu workspaces 'can choose to have customer content stored at rest in Europe'. Follow-up announcement (openai.com/index/expanding-data-residency-access-to-business-customers-worldwide/) lists Europe among available residency regions",
+      "confidence": "low",
+      "notes": "The test is 'does the vendor OFFER an EU region', and OpenAI's own announcements state EU data residency for both the API (in-region processing with zero data retention) and ChatGPT Enterprise (EU storage at rest) — so Yes. Caveats from the vendor's own material: European residency applies only to eligible endpoints/models, must be configured on NEW API Projects at creation, and for the API it is in-region processing with ZDR rather than EU storage. Whether Tavus USES it is row 3.2.2 (Bucket B, human answers). Snippet-sourced; direct fetch blocked."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm the exact OpenAI legal entity contracting with Tavus, Inc. under our DPA (we understand OpenAI OpCo, LLC for non-EEA customers), including its legal form and state of formation, and the registered address to be used for GDPR purposes (we have 1455 3rd Street, San Francisco, CA 94158 from your Terms of Use).",
+    "Please confirm that OpenAI relies on its EU establishment (OpenAI Ireland Limited, 1st Floor, The Liffey Trust Centre, 117-126 Sheriff Street Upper, Dublin 1, D01 YC43, Ireland) rather than an Article 27 GDPR representative, and confirm in writing that no separate Art. 27 representative is designated.",
+    "Your Europe privacy policy references a Data Protection Officer reachable at privacy@openai.com — please provide the DPO's name (and telephone number if available) for the SAP questionnaire.",
+    "Are backups of API customer data encrypted, and with which algorithm (your public pages state AES-256 for data at rest generally but do not address backups separately)?",
+    "For API customer data at rest, who generates and manages the encryption keys by default — OpenAI-managed keys (customer-specific or shared)? Is Enterprise Key Management (EKM) or any customer-managed-key option available for API platform customers?",
+    "Can OpenAI pseudonymize customer personal data, and can anonymization/de-identification be performed on the customer's instruction (beyond OpenAI's own aggregation/de-identification practice described in your privacy policy)? Please share the DPA security-measures exhibit ('Exhibit B') if it addresses pseudonymization.",
+    "Please confirm the minimum and preferred TLS versions enforced on api.openai.com (your pages state 'TLS 1.2+' — is TLS 1.3 preferred/enforced?).",
+    "For the European data residency option on the API: please confirm which endpoints/models are eligible, that requests are processed in-region with zero data retention, and whether any customer content is stored at rest outside the EU when an EU-region Project is used.",
+    "Please grant Tavus access to your current SOC 2 Type 2 report, ISO/IEC 27001:2022, ISO/IEC 27701:2019 and ISO/IEC 42001:2023 certificates, and CSA STAR entry via trust.openai.com so the evidence can be placed on file (Vanta) for row 1.4.2.",
+    "Please provide your current sub-processor list for the API platform (openai.com/policies/sub-processor-list/ was not machine-readable to us this session)."
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "vendor_name": "Deepgram, Inc.",
+  "slug": "deepgram",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: the sandbox network gateway (agent proxy) returned 403 CONNECT denials for all Deepgram domains (deepgram.com, developers.deepgram.com, static.deepgram.com) for both WebFetch and curl in this session — the same environment condition documented in aws.json, cerebrium.json, fal.json, and elevenlabs.json. No Deepgram page could be fetched directly. Every value below is sourced from Deepgram's own pages (privacy policy, trust-security docs at developers.deepgram.com/trust-security/*, official product docs) as surfaced verbatim in domain-restricted web-search results. Per researcher hard rules, confidence is therefore capped at 'low' even where the underlying Deepgram documentation is unambiguous. deepgram.com/learn/* blog posts were treated as NON-sources per skill rules and were deliberately not relied on for any value. The verifier pass should re-fetch each source_url from an unrestricted network before values are promoted.",
+  "fields": {
+    "1.1": {
+      "value": "Deepgram, Inc. (US corporation, 'Inc.'; Delaware incorporation per state corporate-registry record)",
+      "source_url": "https://deepgram.com/privacy",
+      "locator": "Privacy policy contact block: 'Deepgram, Inc. 548 Market St Suite 25104 San Francisco, CA 94104-5401'; Terms of Service (deepgram.com/terms, static.deepgram.com/business/Business_TOS.pdf): binding contract 'between you and Deepgram, Inc.'; Delaware incorporation (2019-08-20 filing date) from Washington State foreign-corporation registry record surfaced at https://opengovwa.com/corporation/604501728",
+      "confidence": "low",
+      "notes": "Entity name 'Deepgram, Inc.' is consistent across the privacy policy, Terms of Service, and MSA documents on Deepgram's own domains. The Delaware legal-form detail comes from a corporate-registry aggregator (opengovwa.com, mirroring a WA Secretary of State foreign-corporation filing) — the field playbook allows corporate registries for 1.1, but this specific record could not be fetched this session (search-surfaced only), so confirm from the signed Tavus-Deepgram DPA signature block. Field playbook says 1.1 must match the entity named in TOM questionnaire #8.3 that Tavus already submitted; NO TOM questionnaire file exists in this repo, so the filler/human must reconcile against that submission before writing the cell. Pages not fetchable this session (gateway 403); text from deepgram.com-restricted search snippets."
+    },
+    "1.1.1": {
+      "value": "Deepgram, Inc., 548 Market St Suite 25104, San Francisco, CA 94104-5401, USA. Privacy/data-protection contact: security@deepgram.com. No Article 27 GDPR representative identified on any Deepgram page surfaced this session.",
+      "source_url": "https://deepgram.com/privacy",
+      "locator": "Privacy policy: 'For additional inquiries about Deepgram's Privacy Notice, you can send an email to security@deepgram.com, or contact them at: Deepgram, Inc. 548 Market St Suite 25104 San Francisco, CA 94104-5401'",
+      "confidence": "low",
+      "notes": "548 Market St 'Suite 25104' has the pattern of a mail-handling address rather than an operating office — ask for the principal place of business. No Article 27 GDPR representative was named on the privacy policy, the Data Privacy Compliance trust page, or any other Deepgram page surfaced this session. Deepgram is a US processor serving EU subjects (it operates an EU endpoint, api.eu.deepgram.com, and 'frequently enters into the EU Commission's Standard Contractual Clauses with its customers' per developers.deepgram.com/trust-security/data-privacy-compliance), so Art. 27 is plausibly applicable — absence of a named rep is recorded as a finding and a written question, not filled by inference. Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "1.1.2": {
+      "value": "Deepgram documents that it 'retains an independent Data Protection Officer, who is responsible for all data privacy matters, oversight, and governance' and that the DPO can be reached via email — but no DPO name, telephone number, or email address is published on any page surfaced this session. Obtain the DPO's contact details from the vendor in writing. General privacy contact: security@deepgram.com (privacy policy).",
+      "source_url": "https://developers.deepgram.com/trust-security/data-privacy-compliance",
+      "locator": "Data Privacy Compliance page (trust-security section): 'Deepgram retains an independent Data Protection Officer, who is responsible for all data privacy matters, oversight, and governance. You can reach our DPO via email' (the email address itself did not surface in search snippets)",
+      "confidence": "low",
+      "notes": "Do NOT write 'N/A' — Deepgram's own trust documentation states a DPO is formally retained, so the form needs the DPO's name and email/phone, which must come from the vendor. The DPO email address exists on the Data Privacy Compliance page but was cut off in every search snippet this session and the page itself was not fetchable (gateway 403). No name invented. Fallback working privacy contact (security@deepgram.com) is already recorded in the 1.1.1 column per form-spec instructions."
+    },
+    "1.4.2": {
+      "value": "SOC 2",
+      "source_url": "https://developers.deepgram.com/trust-security/data-privacy-compliance",
+      "locator": "Data Privacy Compliance page: Deepgram has achieved 'SOC 2 Type 1 and Type 2 certification' as defined by the AICPA; SOC 2 Type II report from auditor Cyberguard Compliance, copy available via security@deepgram.com or Account Executive. Same page: PCI compliant with 'a yearly review of its standing within the framework'; HIPAA Business Associate Agreement available on request; GDPR-ready (SCCs offered); CCPA-compliant",
+      "confidence": "low",
+      "notes": "Certifications evidenced on Deepgram's own trust-security pages this session: SOC 2 Type I and Type II (auditor: Cyberguard Compliance), PCI DSS compliance (yearly review), HIPAA BAA availability, GDPR readiness, CCPA compliance. ISO 27001 is NOT asserted — it appeared only in deepgram.com/learn/* marketing blog phrasing ('operates in SOC 2, ISO 27001, HIPAA, and GDPR-compliant environments'), which is not a source under skill rules, and no ISO certificate or scope statement surfaced from a primary page. Dropdown takes one value; 'SOC 2' chosen as the audit evidence Tavus most likely relies on. GATE: scope.yaml has soc2_on_file_in_vanta: null for Deepgram — per the playbook, do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta; request the current SOC 2 Type II report (period covered) from security@deepgram.com. Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "3.1.1": {
+      "value": "TLS 1.3",
+      "source_url": "https://developers.deepgram.com/docs/the-deepgram-model-improvement-partnership-program",
+      "locator": "Model Improvement Partnership Program official docs page: 'All data is encrypted in-flight and at-rest with industry-standard encryption, including TLS 1.3 and AES-256'; WebSocket docs confirm wss:// connections run 'over an encrypted TLS connection'",
+      "confidence": "low",
+      "notes": "Deepgram's own official docs name TLS 1.3, but the phrasing is 'including TLS 1.3' — it names the standard without stating it as the enforced minimum across all API endpoints, and the statement sits on the Model Improvement Program page rather than a dedicated encryption spec. The trust-security Security Policy page surfaced this session documents passwords 'encrypted in transit' but does not enumerate TLS versions ('specific encryption cipher suites and TLS versions aren't enumerated in Deepgram's public documentation' per search-surfaced text). Verifier should confirm; ask the vendor for the enforced TLS floor on api.deepgram.com / api.eu.deepgram.com (REST + WebSocket). If the vendor confirms only a 1.2 floor, switch to 'TLS 1.2'. Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "3.1.2": {
+      "value": "AES-256",
+      "source_url": "https://developers.deepgram.com/docs/the-deepgram-model-improvement-partnership-program",
+      "locator": "Model Improvement Partnership Program official docs page: 'All data is encrypted in-flight and at-rest with industry-standard encryption, including TLS 1.3 and AES-256'",
+      "confidence": "low",
+      "notes": "AES-256 at rest is stated in Deepgram's own official docs, but on the Model Improvement Program page — nominally scoped to data handled under that program, though the sentence says 'all data'. Confirm with the vendor that AES-256 at rest applies to all customer audio and transcripts in the hosted API service (both US and EU endpoints), not only MIP-retained data. Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Deepgram's Security Policy page (developers.deepgram.com/trust-security/security-policy) documents that 'Deepgram performs daily backups', but no statement about the encryption standard applied to backups surfaced on any primary page this session. Per the field playbook, 'Not known' is the common and correct answer here. Searched deepgram.com/privacy, deepgram.com/data-security, developers.deepgram.com/trust-security/* (security-policy, information-security-privacy, data-privacy-compliance) via domain-restricted search; direct fetches blocked (gateway 403)."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No public documentation of key management (who generates/holds encryption keys, KMS provider, CMEK/BYOK options) was found on any Deepgram primary source surfaced this session. A deepgram.com/learn blog post mentioned 'AES-256 with customer-managed keys' for certain audio-retention scenarios, but learn/* blog posts are not sources under skill rules and the claim was not corroborated by any docs/trust page. The playbook default for managed cloud ('Key generated by Subprocessor (not customer-specific)') is an industry-norm inference and is deliberately NOT asserted — hard rule against inferring from norms. Ask vendor. Searched developers.deepgram.com trust-security and docs pages via domain-restricted search; direct fetches blocked (gateway 403)."
+    },
+    "3.1.6": {
+      "value": "Yes",
+      "source_url": "https://developers.deepgram.com/docs/redaction",
+      "locator": "Redaction official docs: 'Redaction removes sensitive information from your transcripts' — redacts PII (names, locations, identifying numbers), PHI (medical conditions, drugs, blood types), and numbers (dates, account numbers, credit cards, SSNs); 50+ supported entity types (developers.deepgram.com/docs/supported-entity-types) for both pre-recorded and streaming requests; enabled via redact= query parameter",
+      "confidence": "low",
+      "notes": "'Yes' rests on Deepgram's documented redaction capability, which strips personal data out of transcript output at the customer's instruction — a built-in de-identification control in the exact data flow Tavus uses (STT transcripts). Caveats for the verifier: (1) redaction operates on transcript content, and redacted entities are replaced with entity tags; the original audio sent to Deepgram is not itself anonymized by this feature; (2) whether Deepgram can anonymize personal data already stored on its systems (e.g. under the Model Improvement Program) on customer instruction is not documented. If those caveats are considered disqualifying, downgrade to 'Not known' and rely on the written vendor question. Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Deepgram primary source surfaced this session uses or documents 'pseudonymization' as a capability. The redaction feature replaces detected entities with indexed placeholder tags (e.g. [CREDIT_CARD_1], [SSN_1] — developers.deepgram.com/docs/redaction), which resembles pseudonymization in form, but Deepgram does not document retaining a re-identification key or offering reversible pseudonymization, so asserting 'Yes' would be an inference. Ask vendor. Searched developers.deepgram.com docs and trust-security pages via domain-restricted search; direct fetches blocked (gateway 403)."
+    },
+    "3.1.8": {
+      "value": "PII/PHI/number redaction in transcripts: 50+ entity types, available for both pre-recorded and live-streaming requests (redact= parameter)\nModel Improvement Program opt-out (mip_opt_out=true query parameter): opted-out request data 'retained only for the duration necessary to process the request'; opt-out status auditable per-request in Console usage logs\nEU regional endpoint (api.eu.deepgram.com, GA) keeping processing within EU infrastructure — REST and WebSocket (listen/speak/agent) endpoints\nSelf-hosted / VPC / on-premises and fully managed single-tenant (Dedicated) deployment options, so audio need not transit Deepgram's multi-tenant cloud at all\nmTLS securing the connection between self-hosted deployments and Deepgram's license server\nApplication servers behind industry-standard firewalls with restricted ports; vulnerability and patch management on the internal network\nCode scanned for vulnerabilities before each release deployment into production\nDaily backups; documented incident response and disaster recovery policies\nPasswords encrypted in transit and stored hashed\nEU Standard Contractual Clauses executed with customers for EEA/UK/Swiss-to-US transfers; DPA available; HIPAA BAA available on request; PCI DSS standing reviewed yearly",
+      "source_url": "https://developers.deepgram.com/trust-security/security-policy",
+      "locator": "Assembled one-per-line from: Security Policy (trust-security/security-policy: firewalls/restricted ports, vulnerability & patch management, pre-release code scanning, daily backups, incident response & DR policies, password handling); Redaction docs (docs/redaction, docs/supported-entity-types); Model Improvement Partnership Program docs (docs/the-deepgram-model-improvement-partnership-program: mip_opt_out=true, retention statement, Console log verification); EU endpoint docs (reference/custom-endpoints, changelog/2025/12/3: api.eu.deepgram.com GA incl. wss endpoints); deployment docs (docs/deployment-options, docs/self-hosted-deployment-environments, deepgram.com/dedicated); License Proxy docs (docs/license-proxy: mTLS to license.deepgram.com); Data Privacy Compliance (trust-security/data-privacy-compliance: SCCs, DPA, HIPAA BAA, PCI yearly review)",
+      "confidence": "low",
+      "notes": "Every line traces to a Deepgram-domain official docs or trust-security page surfaced this session; deepgram.com/learn/* blog claims were excluded. None of the pages could be fetched directly (gateway 403). Whether Tavus's account opts out of the Model Improvement Program, and which deployment mode (multi-tenant US, EU endpoint, dedicated, self-hosted) Tavus uses, are deployment facts for the human — not asserted here."
+    },
+    "3.2.1": {
+      "value": "Yes",
+      "source_url": "https://developers.deepgram.com/reference/custom-endpoints",
+      "locator": "Official docs (Configuring Custom Endpoints; also changelog 2025-12-03): 'For customers requiring data processing within the European Union, Deepgram provides an EU-specific endpoint at api.eu.deepgram.com' — generally available; supports Speech-to-Text, Text-to-Speech, Voice Agent, and Text Intelligence (Whisper models excluded); WebSocket variants wss://api.eu.deepgram.com/v1/listen /speak /agent/converse; existing API keys work against the EU endpoint",
+      "confidence": "low",
+      "notes": "The test is 'offers an EU region', which Deepgram does: a generally-available EU endpoint documented in the official API docs and changelog, described as keeping processing within EU infrastructure. Self-hosted deployment in EU regions is additionally documented (docs/self-hosted-deployment-environments). Which cloud provider/EU region hosts api.eu.deepgram.com, and whether logging/storage stays in-region, is not documented — ask vendor. Whether Tavus USES the EU endpoint is 3.2.2 (Bucket B, human answer). Snippet-sourced; direct fetch blocked (gateway 403)."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm the exact legal entity (full name, legal form, and state/country of incorporation) that contracts with Tavus for speech-to-text services — Deepgram, Inc., 548 Market St Suite 25104, San Francisco, CA 94104-5401? Public registry records suggest a Delaware corporation (incorporated 2019-08-20); please confirm, and provide your principal place of business if different from the Market St suite address.",
+    "Have you designated a representative in the EU under Article 27 GDPR? If yes, please provide the representative's name and full address; if no, please state your position on why Art. 27 does not apply to your processing of EU data subjects' voice data.",
+    "Your Data Privacy Compliance page states Deepgram 'retains an independent Data Protection Officer' reachable via email. Please provide the DPO's name and telephone number and/or email address for SAP's records.",
+    "Please provide your current SOC 2 Type II report (auditor, period covered) under NDA so Tavus can place it on file (our records show no report on file in Vanta yet), plus your PCI DSS attestation. Do you hold ISO 27001, ISO 27018, or ISO 27701 certification? If yes, please provide certificate numbers and scope statements — your marketing materials reference ISO 27001-compliant environments but we found no certificate on your primary documentation.",
+    "What minimum TLS version is enforced for data in transit to api.deepgram.com and api.eu.deepgram.com (REST and WebSocket)? Your Model Improvement Program documentation states 'including TLS 1.3' — is TLS 1.3 the enforced floor, or is TLS 1.2 accepted?",
+    "Please confirm that AES-256 encryption at rest applies to ALL customer audio and transcripts stored on your systems (hosted API, both US and EU endpoints), not only to data retained under the Model Improvement Partnership Program.",
+    "Are backups encrypted, and with which algorithm? Your Security Policy documents daily backups but does not state the backup encryption standard.",
+    "Who generates and manages the encryption keys for data at rest (platform-managed KMS, customer-specific keys, CMEK/BYOK options)? Which KMS/cloud provider holds them? One of your articles references 'customer-managed keys' for audio-retention scenarios — is that option available, and is it enabled for the Tavus account?",
+    "Can Deepgram, acting as a processor, anonymize and/or pseudonymize customer-submitted personal data (end-user speech audio and transcripts) already on your systems, on the customer's instruction — beyond the in-line transcript redaction feature?",
+    "For the Tavus account: is the Model Improvement Program opt-out (mip_opt_out) applied, and precisely what data (audio, transcripts, metadata) is retained after a request completes, for how long, when opted out vs. opted in?",
+    "For the EU endpoint (api.eu.deepgram.com): which cloud provider and EU region(s) host it, and do processing, logging, and any retention stay entirely within the EU?",
+    "Please provide your current sub-processor list for the hosted API service (we located deepgram.com/privacy/subprocessors but could not retrieve its contents) — SAP requires the processing chain to Level 2, e.g. the underlying cloud provider(s) hosting inference and storage."
+  ]
+}

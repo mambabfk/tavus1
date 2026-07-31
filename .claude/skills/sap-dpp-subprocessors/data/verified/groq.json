@@ -1,0 +1,136 @@
+{
+ "vendor_name": "Groq LLC (formerly Groq, Inc.)",
+ "slug": "groq",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to ALL Groq hosts cited by the researcher (groq.com, trust.groq.com, console.groq.com) for WebFetch and curl alike \u2014 independently reproduced this session, not taken from the researcher's caveat: WebFetch HTTP 403 on all four source URLs, curl 'CONNECT tunnel failed, response 403' on every host, agent-proxy status confirms 'gateway answered 403 to CONNECT (policy denial or upstream failure)'. Fallbacks web.archive.org and r.jina.ai are also CONNECT-denied. Not one researcher source_url could be fetched. Per the verifier resolution rules ('unsupported or unverifiable -> downgrade the value to Not known; do not keep a value you could not confirm'), every sourced value has been downgraded. The researcher's claims, URLs and locators are preserved in each field's notes so a re-verification pass from an unrestricted network (these pages load fine in a normal browser per the researcher) can restore them quickly. The session web-search budget was exhausted (200/200) before the mandatory independent searches for the five 'Not known' fields (3.1.2, 3.1.3, 3.1.4, 3.1.6, 3.1.7) could run, so no upgrades were possible either. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Groq domains. Two flags survive the network issue and need a human regardless of re-fetch: 1.4.2 (value 'SOC 2' populated despite the unmet Vanta gate \u2014 scope.yaml soc2_on_file_in_vanta: null) and 3.2.1 (researcher 'Yes' rests on a newsroom capacity announcement, not a documented customer-selectable EU region). Key primary sources for the re-run: https://groq.com/privacy-policy, https://console.groq.com/docs/legal/customer-data-processing-addendum (DPA + TOM annex), https://console.groq.com/docs/production-readiness/security-onboarding, https://trust.groq.com/faq, https://groq.com/security.",
+ "fields": {
+  "1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Groq LLC (per current privacy policy; earlier vendor documents name 'Groq, Inc.' \u2014 apparent entity conversion, legal form/jurisdiction of the current entity not confirmed from a vendor source)\" citing https://groq.com/privacy-policy (locator: contact section 'Groq LLC ... P.O. Box 1778, Mountain View, CA 94042, USA'; EU/UK representative listings read 'Attn: Groq LLC'; the archived policy at groq.com/privacy-policy-oct-15-2025 and the May 2024 policy named 'Groq, Inc.', 400 Castro Street, Suite 600, Mountain View, CA 94041; the Terms of Use DMCA block names 'Groq, Inc., 2700 Zanker Road, Suite 150, San Jose, CA 95134'). Page unreachable (gateway 403 CONNECT denial; web.archive.org and r.jina.ai also blocked). The entity name is snippet-sourced only, and Groq's OWN documents disagree (LLC in the current privacy policy vs Inc. in the Terms of Use) \u2014 the Inc.-to-LLC conversion is unconfirmed, jurisdiction unstated on any vendor source (the 2016 SEC Form D naming a Delaware 'Groq, Inc.' came via a third-party mirror and is a decade old \u2014 correctly not asserted; sec.gov is also gateway-denied so no EDGAR check was possible). The DPA defines a 'Groq Contracting Party' that may vary by customer \u2014 the entity on Tavus's signed Groq agreement is authoritative. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check (verifier.md) could not be performed \u2014 a mismatch here gets the whole package returned by SAP. Reconcile the signed agreement, the live privacy policy, and the #8.3 submission before this cell is written."
+  },
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Groq LLC, P.O. Box 1778, Mountain View, CA 94042, USA (mailing address per current privacy policy); physical street address per Terms of Use: 2700 Zanker Road, Suite 150, San Jose, CA 95134, USA. Article 27 GDPR representative: DP-Dock GmbH, Attn: Groq LLC, Ballindamm 39, 20095 Hamburg, Germany. UK representative: DP Data Protection Services UK Ltd., Attn: Groq LLC, 16 Great Queen Street, Covent Garden, London, WC2B 5AH, United Kingdom. EU/UK representative contact: groq@gdpr-rep.com\" citing https://groq.com/privacy-policy (locator: contact / EU-UK representatives section, quoted verbatim in search excerpts). Page unreachable (gateway 403 CONNECT denial). Re-run flags: (a) if confirmed, the DP-Dock GmbH Art. 27 designation is a STRONG finding \u2014 unlike most US vendors in this batch Groq appears to have formally designated EU and UK representatives \u2014 and DP-Dock is a real professional EU-rep service, which lends plausibility; still snippet-sourced, so confirm on the live page; (b) the address is stitched from two documents that name DIFFERENT entities \u2014 the P.O. Box comes from the privacy policy ('Groq LLC') while the street address comes from the Terms of Use DMCA block ('Groq, Inc.') \u2014 and a P.O. Box alone may not satisfy the form's 'full address' requirement; ask the vendor for the registered/principal place of business; (c) confirm the representative designations remain current."
+  },
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"N/A \u2014 no formally named DPO; data-protection contact groq@gdpr-rep.com (EU/UK representative channel); legal@groq.com per the May 2024 policy version\" citing https://groq.com/privacy-policy (locator: contact section; no DPO name, phone, or dpo@ address surfaced in any Groq-domain excerpt). Page unreachable (gateway 403 CONNECT denial). Same weakness as the fal/cartesia/cerebras passes: the vendor never affirmatively states that no DPO exists \u2014 the N/A rests on absence from search snippets of a page never fetched in full (evidence of absence from the INDEX, not from the vendor). No name was invented \u2014 good. Also note groq@gdpr-rep.com is the EU/UK REPRESENTATIVE contact channel, not necessarily Groq's own data-protection contact, and legal@groq.com comes from a superseded 2024 policy version \u2014 confirm the current authoritative contact on the live page or in writing. If 'N/A' is written here, a working privacy contact must appear in the 1.1.1 column per the form instructions."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"SOC 2\" (dropdown pick) citing https://trust.groq.com/ (locator: trust center + trust.groq.com/resources + trust.groq.com/faq stating SOC 2 Type II compliance maintained since mid-2024 with current report available, annual engagements of qualified independent external auditors; GroqCloud page groq.com/groqcloud additionally states 'SOC 2, GDPR, and HIPAA compliant'). Trust center unreachable (gateway 403 CONNECT denial; researcher also reports it is gated/JS-rendered even on open networks). INDEPENDENT BLOCKER even if re-verified: scope.yaml has soc2_on_file_in_vanta: null for Groq \u2014 per the field playbook (row 14), do NOT assert SOC 2 in the form until Groq's SOC 2 Type II report is actually on file in Vanta; request it via trust.groq.com. The researcher flagged this gate in their own notes ('GATE: ... do not assert SOC 2 in the form until...') but populated the value anyway \u2014 the gate is a blocker, not a footnote (same pattern as the inworld/cerebras passes). Researcher correctly excluded HIPAA (not an allowed dropdown value) and found no ISO 27001/27701/27018/9001/22301, SOC 1 or SOC 3 claim on any Groq source \u2014 do not add one. FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option (allowed: Self-created audit report(s) / ISO 9001 / ISO 27001 / BS 25999-ISO 22301 / ISO 27701 / ISO 27018 / SOC 1 / SOC 2 / SOC 3) \u2014 this cell stays EMPTY until both gates clear: (1) page re-fetch confirming the claim, (2) report on file in Vanta."
+  },
+  "3.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"TLS 1.2\" (dropdown pick) citing https://console.groq.com/docs/production-readiness/security-onboarding (locator: all Groq API traffic encrypted in transit using TLS 1.2+; APIs enforce HTTPS, TLS 1.2 or higher). Page unreachable (gateway 403 CONNECT denial). The researcher's reasoning was sound IF the page says what the snippets say \u2014 'TLS 1.2' as the honest dropdown floor for a 'TLS 1.2 or higher' statement, with an explicit refusal to claim TLS 1.3 without written confirmation \u2014 but the statement itself is snippet-sourced and must be re-confirmed on the fetched page before the cell is written. FORM-SPEC WARNING: the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others - pls indicate below/None) \u2014 this cell cannot be filled from this file; re-fetch the security-onboarding page or get the vendor's written TLS floor for api.groq.com (REST + streaming). Do not guess a version."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT (correct: Groq's security-onboarding page reportedly says data at rest in production datastores is encrypted 'using strong encryption algorithms' without naming a standard; researcher's targeted 'Groq AES-256 at rest backups key management' queries returned nothing vendor-specific; the DPA TOM annex and gated trust center are the likely places the algorithm is named \u2014 both unreachable). Verifier's mandatory independent search could NOT run: session web-search budget exhausted (200/200) and all Groq hosts plus web.archive.org/r.jina.ai are CONNECT-denied. No upgrade. 'Not known' is a valid dropdown option for this row. Do not let the vague 'strong encryption algorithms' phrase be laundered into an AES pick on the re-run \u2014 the algorithm must be named by a fetched Groq source or the vendor in writing."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT (correct: backup encryption not documented in any Groq-domain material surfaced; per the field playbook this is rarely documented separately and 'Not known' is common and correct for row 59). Mandatory independent search blocked (web-search budget exhausted 200/200; Groq hosts CONNECT-denied). No upgrade. Ask the vendor which algorithm covers backups of systems holding customer prompt/transcript content and whether such backups exist at all \u2014 Groq's API data-retention posture should be confirmed in the same question (already in open_questions_for_vendor)."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 and the discipline is endorsed: the researcher explicitly refused the playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') as an industry-norm inference with no primary source, and found no key-management or CMEK/BYOK documentation. Mandatory independent search blocked (web-search budget exhausted 200/200; Groq hosts CONNECT-denied). No upgrade. SECOND GATE regardless of re-verification: if Groq offers and Tavus uses any customer-managed key option, the answer flips to 'Key generated by your company' \u2014 human must confirm Tavus's actual key configuration with Groq before this cell is written (none expected for a plain inference API, per the researcher, but confirm)."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT (correct \u2014 and notable: the researcher did NOT fall into the own-purpose de-identification conflation trap that produced disputes on the replicate/elevenlabs/fal/cerebras/deepgram/meta passes; no anonymization capability was asserted from privacy-policy analytics language). Mandatory independent search blocked (web-search budget exhausted 200/200; Groq hosts CONNECT-denied). No upgrade. The unread DPA/TOM annex (console.groq.com/docs/legal/customer-data-processing-addendum) is the likely place this is answered \u2014 read it on the re-run or ask the vendor whether personal data in API inputs/outputs can be anonymized on the customer's instruction. Re-run trap: do not upgrade to Yes from any own-purpose de-identification/aggregation language in Groq's privacy policy or ToS \u2014 row 62 asks about an anonymize-on-customer-instruction processor capability."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT (correct: no Groq primary source surfaced states a pseudonymization capability over customer personal data; same situation as 3.1.6 \u2014 the unread DPA/TOM annex is the likely answer location). Mandatory independent search blocked (web-search budget exhausted 200/200; Groq hosts CONNECT-denied). No upgrade. Ask the vendor."
+  },
+  "3.1.8": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher assembled six free-text safeguard lines from six Groq sources \u2014 (1) HTTPS enforced on all API traffic with TLS 1.2+ in transit (console.groq.com/docs/production-readiness/security-onboarding); (2) encryption of data at rest in production datastores 'using strong encryption algorithms', algorithm unnamed (same page); (3) annual engagements of qualified independent external auditors incl. SOC 2 Type II audits (trust.groq.com); (4) published DPA for GroqCloud Services covering GDPR, CCPA and PDPL with technical/organizational/physical measures (console.groq.com/docs/legal/customer-data-processing-addendum); (5) HIPAA BAA available (console.groq.com/docs/legal/customer-business-associate-addendum) and GroqCloud stated 'SOC 2, GDPR and HIPAA compliant' (groq.com/groqcloud); (6) designated Article 27 EU representative (DP-Dock GmbH) and UK representative (groq.com/privacy-policy). NONE of the pages was reachable (gateway 403 CONNECT denial on every host). Every line is snippet-sourced; none can go to SAP unconfirmed. Re-run flags: (a) the composite locator spans six URLs \u2014 re-verify each line against its own page; (b) line 3 duplicates the 1.4.2 SOC 2 claim and inherits its Vanta gate; (c) line 5's 'compliant' phrasing is compliance marketing, not audit evidence (the researcher flagged this correctly) \u2014 quote the SOC 2 report once on file instead; (d) line 6 duplicates 1.1.1 \u2014 keep consistent; (e) the trust-center FAQ and DPA TOM annex almost certainly document more safeguards (access controls, MFA, pen testing, logging) \u2014 extend the list from the fetched pages; (f) do not let line 2's 'strong encryption algorithms' leak into row 3.1.2 as a named standard."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable) + SUBSTANTIVE CAVEAT independent of the network block: researcher answered \"Yes\" citing https://groq.com/newsroom/groq-launches-european-data-center-footprint-in-helsinki-finland (locator: Groq's first data center on the European continent, in collaboration with Equinix, bringing GroqCloud inference capacity to users across Europe with 'strong data governance'; 13 data centers across North America, Europe, Middle East, APAC). Page unreachable (gateway 403 CONNECT denial). Beyond unverifiability, the verifier flags the inference itself: a newsroom announcement of EU data-center CAPACITY in a global inference pool is weaker than an offered, customer-selectable EU region \u2014 the researcher's own note concedes that region pinning and EU data-at-rest are unconfirmed, and cites a Groq community thread ('European Api Endpoints') suggesting EU routing was an open customer question. Same capacity-vs-offered-region gap disputed on the cartesia pass. The playbook test is 'does the vendor OFFER an EU region' \u2014 plausibly met if the Helsinki claims verify, so the researcher's pick may well be right, but do not restore 'Yes' from the newsroom page alone: confirm on the fetched page AND get the vendor's answer on whether GroqCloud workloads can be pinned/routed to the EU region with in-region processing/storage. Dropdown disagreement (Yes vs Not known) routed to review_queue.md per verifier.md. Whether Tavus USES it is 3.2.2 (Bucket B, human answers). 'Not known' is an allowed dropdown value for 3.2.1."
+  }
+ },
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "downgraded_to_not_known",
+   "1.1.1": "downgraded_to_not_known",
+   "1.1.2": "downgraded_to_not_known",
+   "1.4.2": "downgraded_to_not_known",
+   "3.1.1": "downgraded_to_not_known",
+   "3.1.2": "not_upgraded_search_unavailable",
+   "3.1.3": "not_upgraded_search_unavailable",
+   "3.1.4": "not_upgraded_search_unavailable",
+   "3.1.6": "not_upgraded_search_unavailable",
+   "3.1.7": "not_upgraded_search_unavailable",
+   "3.1.8": "downgraded_to_not_known",
+   "3.2.1": "downgraded_to_not_known"
+  },
+  "disputes": [
+   "groq/ALL sourced fields: network gateway policy-denies CONNECT to groq.com, trust.groq.com, console.groq.com AND web.archive.org/r.jina.ai \u2014 zero source URLs fetchable (independently reproduced this session via WebFetch 403 on all four source URLs + curl CONNECT-403 per host + agent-proxy status log, not taken from the researcher's caveat); all 7 sourced fields verdict unverifiable, values downgraded to Not known per resolution rules",
+   "groq/1.1: TOM questionnaire #8.3 not found in repo \u2014 mandatory legal-entity cross-check (verifier.md) could not be performed; compounding: Groq's own documents disagree on the entity (current privacy policy 'Groq LLC' vs Terms of Use 'Groq, Inc.'), the Inc.-to-LLC conversion and jurisdiction are unconfirmed, and the DPA's 'Groq Contracting Party' may vary by customer \u2014 reconcile the signed Tavus-Groq agreement, the live privacy policy, and the #8.3 submission before this cell is written",
+   "groq/1.1.1: address is stitched from two documents naming DIFFERENT entities (P.O. Box 1778 Mountain View from the privacy policy 'Groq LLC'; 2700 Zanker Road San Jose from the ToS 'Groq, Inc.'), and a P.O. Box may not satisfy the form's full-address requirement \u2014 ask the vendor for the registered/principal place of business; the DP-Dock GmbH Art. 27 EU rep + UK rep designations are a strong finding if confirmed but are snippet-sourced \u2014 confirm on the live page",
+   "groq/1.1.2: 'N/A \u2014 no DPO' rests on absence from search snippets of a page never fetched in full (same weakness as the fal/cartesia/cerebras passes); also groq@gdpr-rep.com is the EU/UK representative channel, not necessarily Groq's own data-protection contact, and legal@groq.com comes from a superseded 2024 policy \u2014 vendor written confirmation required before N/A is written",
+   "groq/1.4.2: PROCESS FLAG \u2014 researcher populated 'SOC 2' despite scope.yaml soc2_on_file_in_vanta: null for Groq; the playbook forbids asserting SOC 2 until the report is on file in Vanta (gate acknowledged in the researcher's own notes but the value was written anyway, same pattern as the inworld/cerebras passes); dropdown has no 'Not known' option \u2014 cell stays empty until page re-fetch AND Vanta both clear",
+   "groq/3.1.1: form dropdown has no 'Not known' option \u2014 downgraded value cannot be written to the workbook cell; researcher's 'TLS 1.2' floor reading of the snippet-sourced 'TLS 1.2 or higher' statement is sound but must be re-confirmed against the fetched security-onboarding page or the vendor's written TLS floor for api.groq.com; never guess a version",
+   "groq/3.1.2+3.1.3+3.1.4+3.1.6+3.1.7: mandatory independent searches skipped \u2014 session web-search budget exhausted (200/200) and all fetch fallbacks gateway-denied; values stay Not known, zero upgrades",
+   "groq/3.1.4: even if re-verified, dropdown choice depends on whether Tavus uses any customer-managed key option with Groq \u2014 human must confirm before the cell is written",
+   "groq/3.1.8: all six safeguard lines snippet-sourced and unverifiable; composite locator spans six URLs \u2014 re-verify each line against its own page; SOC 2 line inherits the 1.4.2 Vanta gate; 'SOC 2, GDPR and HIPAA compliant' is compliance marketing, not audit evidence; do not let 'strong encryption algorithms' leak into row 3.1.2 as a named standard",
+   "groq/3.2.1: DROPDOWN DISAGREEMENT (researcher Yes vs verifier Not known) \u2014 routed to review_queue.md per verifier.md; beyond the network block, the 'Yes' rests on a newsroom announcement of Helsinki data-center CAPACITY in a global pool, not a documented customer-selectable EU region (researcher's own note concedes region pinning and EU data-at-rest are unconfirmed; a Groq community thread suggests EU endpoints were an open customer question \u2014 same capacity-vs-offered-region gap as the cartesia pass); do not restore Yes from the newsroom page alone \u2014 confirm the offered/selectable EU region on fetched pages or in writing",
+   "groq/bucket-check: PASS \u2014 no Bucket B or Bucket C field was populated by the researcher (1.4.2 is A+B per the playbook; only its researched A-part was present); level 1 matches scope.yaml"
+  ],
+  "network_note": "Re-run this verification from an environment that can reach Groq domains (groq.com, console.groq.com, trust.groq.com) before any value from data/vendors/groq.json is promoted. The researcher's work is largely disciplined \u2014 the network block was disclosed up front, confidence capped at 'low' everywhere, Delaware refused from a stale third-party SEC mirror, no DPO name invented, the playbook's key-provider default refused, HIPAA correctly excluded from the 1.4.2 dropdown, and the 3.1.6/3.1.7 anonymization conflation trap avoided. Values are downgraded because they could not be independently confirmed, not because contrary evidence was found \u2014 with two exceptions: 1.4.2, where the unmet Vanta gate blocks the value regardless of re-fetch, and 3.2.1, where the newsroom citation would not alone support 'Yes' even if fetched."
+ },
+ "open_questions_for_vendor": [
+  "Please confirm Groq's current full legal entity name and legal form (your current privacy policy says 'Groq LLC'; earlier versions and your Terms of Use say 'Groq, Inc.') including jurisdiction of organization, and the registered address to be used for GDPR purposes (we have P.O. Box 1778, Mountain View, CA 94042 as mailing address and 2700 Zanker Road, Suite 150, San Jose, CA 95134 as street address). Also confirm which 'Groq Contracting Party' entity applies to Tavus's agreement.",
+  "Please confirm that DP-Dock GmbH (Ballindamm 39, 20095 Hamburg, Germany) remains Groq's designated Article 27 GDPR representative and groq@gdpr-rep.com the correct contact channel.",
+  "Has Groq formally designated a Data Protection Officer? If yes, please provide the DPO's name and telephone number and/or email; if no, please confirm in writing the authoritative email address for data-protection-related requests (groq@gdpr-rep.com and/or legal@groq.com).",
+  "Which TLS version is enforced and preferred on api.groq.com and other GroqCloud endpoints carrying prompt content and model output (your security-onboarding documentation says 'TLS 1.2 or higher' \u2014 is TLS 1.3 supported/preferred)?",
+  "Which encryption standard (e.g. AES-256) is used for customer data at rest in your production datastores (your documentation says 'strong encryption algorithms' without naming one), and does the same standard cover backups? Please also state your retention period for API request/response content and service logs for Tavus's traffic.",
+  "Who generates and manages the encryption keys protecting customer data at rest \u2014 Groq-managed keys (customer-specific or shared), or is a customer-managed key (CMEK/BYOK) option available?",
+  "Can personal data contained in API inputs/outputs be anonymized and/or pseudonymized by Groq on the customer's instruction?",
+  "Please provide your current SOC 2 Type II report (via trust.groq.com or directly) so it can be placed on file in Vanta as audit evidence for row 1.4.2, and confirm whether Groq holds any ISO certifications (27001/27701/27018) \u2014 we could not confirm any from public sources.",
+  "Does GroqCloud allow customers to pin or route inference workloads to your EU region (Helsinki, Finland) only, and if so, does all processing and any data at rest for those workloads remain within the EU? What is the mechanism (EU endpoint, org-level region setting, contractual commitment)?",
+  "Please provide your current sub-processor list for GroqCloud Services (including Equinix's role for the Helsinki data center) and confirm the TOM annex of your Data Processing Addendum in machine-readable form (your trust center and DPA pages were not reachable to our automated tooling)."
+ ]
+}

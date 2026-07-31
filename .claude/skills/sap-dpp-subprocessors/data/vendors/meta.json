@@ -1,0 +1,103 @@
+{
+  "vendor_name": "Meta Platforms, Inc.",
+  "slug": "meta",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "TWO MAJOR CAVEATS. (1) NETWORK: the sandbox gateway (agent proxy) returned 403 CONNECT denials for Meta-owned domains (llama.developer.meta.com; curl and WebFetch both blocked) in this session, so no page could be fetched directly. Every value below is sourced from Meta's own pages as returned verbatim in domain-restricted web-search snippets (allowed_domains limited to llama.developer.meta.com / ai.meta.com / llama.com / developer.meta.com / facebook.com / meta.com / about.fb.com). Per researcher hard rules, confidence is capped at 'low' even where the underlying Meta documentation is unambiguous; the verifier should re-fetch each source_url from an unrestricted network. (2) SERVICE SHUT DOWN: Meta's own deprecation notice (https://llama.developer.meta.com/docs/llama-api-deprecation/, 'Upcoming changes to Llama API') states the Llama API public preview WOUND DOWN ON JULY 6, 2026 — i.e. BEFORE today (2026-07-31); on that date the service shuts down and API requests return a sunset response. If Tavus's use of Meta was via the Llama API, Meta may no longer be an active sub-processor at all, and this column may belong OFF the form (or annotated as terminated) rather than filled in. A human must confirm whether Tavus still sends any data to Meta before this vendor is written into the workbook.",
+  "fields": {
+    "1.1": {
+      "value": "Meta Platforms, Inc. (US corporation, 'Inc.'; Delaware per SEC filings). Per the Llama API Terms of Service, the agreement is with Meta Platforms, Inc. for customers located in the United States or Canada, and with Meta Platforms Ireland Limited for customers located elsewhere — Tavus (US) would contract with Meta Platforms, Inc.",
+      "source_url": "https://llama.developer.meta.com/legal/terms-of-service",
+      "locator": "Llama API Terms of Service, opening/parties clause: agreement between you and Meta Platforms, Inc. (if located in the United States or Canada) or Meta Platforms Ireland Limited (if located outside the United States or Canada)",
+      "confidence": "low",
+      "notes": "The field playbook says this must match the entity named in TOM questionnaire #8.3 that Tavus already submitted; NO TOM questionnaire file exists in this repo, so the filler/human must reconcile against that submission before writing the cell. Entity names come from Meta-domain search snippets; direct fetch of the ToS page was blocked by the network gateway (403). NOTE: the Llama API service itself was wound down 2026-07-06 (see research_caveat)."
+    },
+    "1.1.1": {
+      "value": "Meta Platforms, Inc., 1 Meta Way, Menlo Park, CA 94025, USA (ATTN: Privacy Operations). EU establishment: Meta Platforms Ireland Limited, Merrion Road, Dublin 4, D04 X2K5, Ireland. No separate Article 27 GDPR representative found — Meta operates through its own EU establishment (Meta Platforms Ireland Limited), so an Art. 27 representative is not expected; none is named in the material retrieved.",
+      "source_url": "https://www.facebook.com/privacy/policy/",
+      "locator": "Meta Privacy Policy 'How to contact Meta' / contact sections: Meta Platforms, Inc., 1 Meta Way, Menlo Park, CA 94025 (current; older policy versions used 1601 Willow Road, Menlo Park, CA 94025); Meta Platforms Ireland Ltd, FAO: Privacy Operations, Merrion Road, Dublin 4, Ireland, D04 X2K5. 1 Meta Way also appears as principal executive office in Meta Platforms, Inc. SEC Form S-8 POS FY2025 (sec.gov/Archives/edgar/data/1326801/000132680125000091/a2025forms-8pos.htm)",
+      "confidence": "low",
+      "notes": "Addresses quoted from Meta's own privacy-policy and legal pages surfaced in domain-restricted search snippets; pages could not be fetched directly (gateway 403). Absence of an Art. 27 representative is a legitimate finding for a vendor group with an EU establishment, but was not positively confirmed on a fetched page — included in open questions."
+    },
+    "1.1.2": {
+      "value": "Meta has a formally appointed Data Protection Officer: Susan Cooper, Global Data Protection Officer (named in Meta's own newsroom). DPO contact: web form https://www.facebook.com/help/contact/540977946302970 ('Contact the data protection officer (DPO)'); postal: Data Protection Officer, Meta Platforms Ireland Limited, Merrion Road, Dublin 4, D04 X2K5, Ireland. No direct telephone number or direct email address is published.",
+      "source_url": "https://about.fb.com/news/2025/08/privacy-conversations-risk-management-ai-susan-cooper-bojana-belamy/",
+      "locator": "Meta Newsroom (about.fb.com), 'Privacy Conversations: Risk Management and AI With Susan Cooper and Bojana Belamy' — Susan Cooper identified as Meta's Global Data Protection Officer; DPO contact form at facebook.com/help/contact/540977946302970; Meta Platforms Ireland Ltd postal address from Meta privacy policy contact section",
+      "confidence": "low",
+      "notes": "Unlike most US vendors, Meta DOES have a formal DPO, so 'N/A' is NOT correct here. The published DPO is formally attached to Meta Platforms Ireland Limited (GDPR establishment); whether the same DPO formally covers Meta Platforms, Inc. as the US contracting entity was not confirmed on a fetched page. Form asks for name, phone and/or email — only a name plus web form/postal address are published; no phone/email. Snippet-sourced; direct fetches blocked (gateway 403)."
+    },
+    "1.4.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No SOC 1/2/3 or ISO certification covering the Llama API (or Meta Platforms, Inc. as a processor generally) was found on any Meta primary source this session. Meta publishes an ISO 27001 page for the WhatsApp Business Platform Cloud API (facebook.com/business/business-messaging/compliance/whatsapp-iso-27001) and trust/security material for Meta Horizon Managed Solutions (work.meta.com/help/1345104970777577), but those are DIFFERENT products — asserting them for the Llama API would violate the no-inference rule. Also gated by scope.yaml soc2_on_file_in_vanta: null — nothing is on file in Vanta. Searched (domain-restricted to Meta domains): llama.developer.meta.com terms-of-service and site, ai.meta.com, llama.com/llama-protections/, llama.com/faq/, facebook.com legal/compliance pages. Ask the vendor for any audit report covering the Llama API service period."
+    },
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "source_url": "https://llama.developer.meta.com/legal/terms-of-service",
+      "locator": "Llama API Terms of Service / Llama API product page (developer.meta.com/ai/products/llama-api/): 'your data is encrypted in transit and at rest using industry-standard security'",
+      "confidence": "low",
+      "notes": "Real standard for 'indicate below': Meta documents only that Llama API data is 'encrypted in transit ... using industry-standard security' — no TLS version is published for the Llama API service, and the dropdown has no 'Not known' option for this row, so 'Others' with this note is the honest choice. Do NOT use: (a) the TLS 1.3/mTLS material at llama.com/docs/deployment/security-in-production/ — that is a deployment guide for customer SELF-HOSTED/private-cloud Llama, not the Meta-operated API; (b) the 'TLS 1.2 or equivalent' language in Meta's developer Data Security Requirements (developers.facebook.com) — those are requirements Meta imposes on THIRD-PARTY app developers, not statements about Meta's own service. Meta's own Data Security Terms (facebook.com/legal/terms/data_security_terms) say Meta enforces 'appropriate protocols designed to protect the confidentiality of data in transit over public networks' — again no version. Snippet-sourced; direct fetches blocked."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "source_url": "https://llama.developer.meta.com/legal/terms-of-service",
+      "locator": "Llama API Terms of Service / Llama API product page: 'your data is encrypted in transit and at rest using industry-standard security'; ToS Data Security statements: 'Data processed by the Llama API is stored separately from other Meta product data'",
+      "confidence": "low",
+      "notes": "Encryption at rest IS affirmed by Meta for the Llama API, but the algorithm/standard (AES-128/192/256 etc.) is not published anywhere retrieved this session, so the standard itself is 'Not known'. Do not upgrade to AES-256 from industry norms. The CMK/envelope-encryption content on llama.com/docs/deployment/ pages describes customer self-hosted deployments, not the Meta-operated API. Ask vendor for the algorithm."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Backup encryption is not documented separately for the Llama API on any Meta primary source found this session. Searched: llama.developer.meta.com terms-of-service, developer.meta.com/ai/products/llama-api/, facebook.com/legal/terms/data_security_terms, facebook.com/legal/terms/Privacy/TOMs (all via domain-restricted search snippets; direct fetches blocked by gateway 403). Per the field playbook, 'Not known' is common and correct here."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Meta primary source retrieved this session states who generates/holds the encryption keys for Llama API data at rest, and no CMEK/BYOK offering is documented for the Llama API. The playbook's default for managed cloud ('Key generated by Subprocessor (not customer-specific)') is an inference from industry norms, which the hard rules forbid — leaving 'Not known' and asking the vendor. Searched the same Llama API ToS / product / Data Security Terms pages as 3.1.1-3.1.3."
+    },
+    "3.1.6": {
+      "value": "Yes",
+      "source_url": "https://www.facebook.com/legal/terms/Meta-Global-Processor-Terms/",
+      "locator": "Meta Global Processor Terms (MGPT), General Terms: 'Meta may de-identify and anonymize Applicable Personal Data received from Company under the Applicable Terms and Process such data as permitted by Applicable Law'. The Llama API ToS separately states Meta 'may aggregate and anonymize data relating to how developers interact with the Services' and use it for business purposes",
+      "confidence": "low",
+      "notes": "The MGPT is incorporated by reference into the Llama API Terms of Service, so this is the applicable processor contract. It documents an anonymization capability/right on Applicable Personal Data. Note the nuance: this is Meta's right to anonymize for its own permitted purposes, not necessarily an on-request anonymization service for the customer — flagged in open questions. Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Meta primary source retrieved this session states a pseudonymization capability for Llama API / processor data. The MGPT language found says 'de-identify and anonymize' — de-identification is not the same as GDPR pseudonymization and equating them would be inference. Meta's TOMs page (facebook.com/legal/terms/Privacy/TOMs) surfaced access-control, physical-security and transit-encryption measures in snippets but no pseudonymization statement. Searched: facebook.com/legal/terms/Meta-Global-Processor-Terms/, facebook.com/legal/terms/Privacy/TOMs, facebook.com/legal/terms/data_security_terms, llama.developer.meta.com/legal/terms-of-service."
+    },
+    "3.1.8": {
+      "value": "API inputs and outputs (Content) are not used to train Meta's AI models\nStrict role-based access controls limit access to customer data\nLlama API data is stored separately from other Meta product data\nCustomer data is not used for advertising or ad targeting\nPersonnel processing personal data are bound by contractual or statutory confidentiality obligations (MGPT)\nAccess management on least-privilege and separation-of-duties principles, with regular access reviews (Meta TOMs)\nRemote network access to Meta systems requires encrypted communication over secured protocols plus multi-factor authentication (Meta TOMs)\nPhysical access to Meta data centers restricted to authorized persons; environmental controls to detect, prevent and control destruction due to environmental hazards (Meta TOMs)\nReturn or deletion of Applicable Personal Data on termination: returned on written request within 30 days, otherwise deleted per retention policies (MGPT)",
+      "source_url": "https://llama.developer.meta.com/legal/terms-of-service",
+      "locator": "Assembled one-per-line from: Llama API Terms of Service / product page developer.meta.com/ai/products/llama-api/ (no-training commitment, role-based access controls, separate storage, no ads); facebook.com/legal/terms/Meta-Global-Processor-Terms/ (personnel confidentiality; 30-day return-or-delete on termination); facebook.com/legal/terms/Privacy/TOMs (least privilege, separation of duties, access reviews, MFA + encrypted remote access, data center physical and environmental controls)",
+      "confidence": "low",
+      "notes": "Every line traces to a Meta-domain statement retrieved this session via domain-restricted search snippets; none of the pages could be fetched directly (gateway 403). Deliberately excludes safeguards from llama.com self-hosted deployment guides (mTLS, certificate pinning, CMK envelope encryption) — those describe customer-operated deployments, not the Meta-operated Llama API."
+    },
+    "3.2.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Meta primary source retrieved this session states that the Llama API offers an EU region / EU data residency option. The MGPT has 'European Region Terms' (facebook.com/legal/terms/Meta-Global-Processor-Terms/Europe) governing international transfers of European personal data — that is a TRANSFER MECHANISM (SCC-equivalent), not an EU processing-region offering, and citing it as 'EU Access' would misstate the test ('offers an EU region'). Searched: llama.developer.meta.com/legal/terms-of-service, developer.meta.com/ai/products/llama-api/, llama.com/faq/, llama.com/products/llama-api/, MGPT pages. Largely moot given the service wound down 2026-07-06, but ask the vendor if any Meta-hosted successor is used."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Meta's deprecation notice states the Llama API public preview wound down on July 6, 2026. Please confirm in writing: (a) whether any Tavus data is still processed by Meta after that date, (b) when all Tavus Content (API inputs/outputs, logs) was or will be deleted per the MGPT return-or-delete obligations, and (c) whether Meta remains a Tavus sub-processor for any successor service.",
+    "Please confirm the exact Meta legal entity (name and legal form) that contracted with Tavus, Inc. for the Llama API (we understand Meta Platforms, Inc. for US customers) and its registered address, so it can be reconciled with the entity named in TOM questionnaire #8.3.",
+    "Does Meta Platforms, Inc. (as distinct from Meta Platforms Ireland Limited) designate a representative under Article 27 GDPR, or does the Meta group rely on its EU establishment (Meta Platforms Ireland Limited, Merrion Road, Dublin 4, D04 X2K5)? If a representative is designated, please provide name and full address.",
+    "Please confirm the authoritative Data Protection Officer contact for data-protection requests concerning Llama API customer data (name, telephone number and/or email address) — is the DPO of Meta Platforms Ireland Limited (Susan Cooper, contact form facebook.com/help/contact/540977946302970) also competent for Meta Platforms, Inc.?",
+    "Which third-party audit certifications (SOC 1 / SOC 2 / SOC 3, ISO 27001, ISO 27018, ISO 27701, ISO 22301, ISO 9001) covered the Llama API service and its infrastructure during the period Tavus used it, and can you provide the reports/certificates as audit evidence for row 1.4.2?",
+    "Your terms state Llama API data is 'encrypted in transit and at rest using industry-standard security'. Please specify: (a) the minimum TLS version enforced on the API endpoints, (b) the at-rest encryption algorithm (e.g. AES-256), (c) whether backups of Llama API data are encrypted and with which algorithm, and (d) who generates and manages the encryption keys (Meta-managed, customer-specific or not; any CMEK/BYOK option).",
+    "Beyond the MGPT right to de-identify and anonymize Applicable Personal Data, can Meta anonymize and/or pseudonymize customer personal data on the customer's instruction as a processor service?",
+    "Did the Llama API offer an EU processing region / EU data residency option ('EU Access'), and where (which country/region) was Tavus's Llama API data processed and stored?"
+  ]
+}

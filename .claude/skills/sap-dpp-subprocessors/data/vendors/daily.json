@@ -1,0 +1,107 @@
+{
+  "vendor_name": "Daily, Inc.",
+  "slug": "daily",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: the sandbox network gateway (agent proxy) returned 403 CONNECT denials for all Daily domains (www.daily.co, daily.co, trust.daily.co, docs.daily.co) for both WebFetch and curl in this session, and the DPF registry (dataprivacyframework.gov) and web.archive.org were also unreachable — the same environment condition documented in aws.json, elevenlabs.json, and the other vendor files from this series. No Daily page could be fetched directly. Every value below is sourced from Daily's own pages as surfaced verbatim in domain-restricted web-search results (allowed_domains limited to daily.co / www.daily.co / trust.daily.co / docs.daily.co / help.daily.co). Per researcher hard rules, confidence is therefore capped at 'low' even where the underlying Daily documentation is unambiguous. The verifier pass should re-fetch each source_url from an unrestricted network before values are promoted.",
+  "fields": {
+    "1.1": {
+      "value": "Daily, Inc.",
+      "source_url": "https://www.daily.co/legal/privacy/",
+      "locator": "Legal-docs section of daily.co (Privacy Policy, Terms of Service, DPA, Sub-Processors pages); company page https://www.daily.co/company/. Domain-restricted search for the exact string \"Daily, Inc.\" against daily.co surfaced the company under that name, but no fetched page confirms the legal form or state of incorporation.",
+      "confidence": "low",
+      "notes": "The vendor operates as 'Daily' at daily.co ('Realtime voice, video, and AI for developers'). 'Daily, Inc.' is how the company is referenced in daily.co-restricted search results, but the state of incorporation and exact legal form were NOT confirmed from a fetched primary source this session — do not write a state without confirmation. Field playbook says 1.1 must match the entity named in TOM questionnaire #8.3 that Tavus already submitted; NO TOM questionnaire file exists in this repo, so the filler/human must reconcile against that submission (and against the signed Tavus-Daily DPA signature block, which is authoritative) before writing the cell. Pages not fetchable this session (gateway 403); text from daily.co-restricted search snippets."
+    },
+    "1.1.1": {
+      "value": "Full registered postal address not published on any Daily page surfaced this session (company page states only that the founding team is based in San Francisco, USA). Data-protection / privacy contact: help@daily.co. No Article 27 GDPR representative identified on any Daily page surfaced this session.",
+      "source_url": "https://www.daily.co/company/contact/",
+      "locator": "Contact page and GDPR pages (https://www.daily.co/security/gdpr-compliance/): 'For information about data privacy matters, you can contact help@daily.co'; company page (https://www.daily.co/company/): founding team based in San Francisco",
+      "confidence": "low",
+      "notes": "Daily is a US company certified under the EU-US and Swiss-US Data Privacy Framework Program (per its own GDPR/security pages), so as a non-EU vendor targeting EU subjects an Art. 27 representative would be expected — none was named anywhere surfaced this session. Absence of a published rep is a finding to confirm with the vendor, not a value to invent. The registered address must be requested in writing (or taken from the signed Tavus-Daily DPA). Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "1.1.2": {
+      "value": "N/A — no formally named Data Protection Officer found on Daily primary sources this session. Daily's GDPR page references a 'Data Privacy Manager' role ('Daily has a Data Privacy Manager that closely monitors changes in the privacy landscape and ensures compliance with data protection law in the markets we operate in') without publishing a name or phone number. Data-protection contact: help@daily.co.",
+      "source_url": "https://www.daily.co/security/gdpr-compliance/",
+      "locator": "GDPR Compliance page: 'Data Privacy Manager' paragraph; contact pages: 'For information about data privacy matters, you can contact help@daily.co'",
+      "confidence": "low",
+      "notes": "Per the form spec: if no formal DPO exists, this cell takes 'N/A' and a working privacy contact goes in the 1.1.1 column — help@daily.co is included there. One search summary attributed the Data Privacy Manager role to 'Mark Backman', but a follow-up domain-restricted search contradicted this (Daily's own blog author page describes Mark Backman as leading Product) — the name is NOT asserted. Whether Daily has formally appointed a GDPR DPO (vs. the 'Data Privacy Manager' role) must be confirmed with the vendor in writing before finalizing between 'N/A' and a named entry. No name invented. Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "1.4.2": {
+      "value": "SOC 2",
+      "source_url": "https://www.daily.co/products/security-at-daily/",
+      "locator": "Security and Compliance page: 'Daily is SOC 2 Type 2 certified, covering the Security and Confidentiality Trust Service Criteria'; same page / trust center (trust.daily.co): 'Daily's system for information security management is ISO27001 certified. Dansa D'Arata Soucia LLP has audited and verified the robustness of our information security management. Through periodic reviews, they check that all of Daily's data centers have active ISO27001 certifications.'",
+      "confidence": "low",
+      "notes": "Certifications evidenced on Daily's own pages this session: SOC 2 Type II (Security + Confidentiality TSC); an ISO 27001 claim for Daily's ISMS (audited by Dansa D'Arata Soucia LLP) — though the surrounding sentence pivots to verifying that Daily's DATA CENTERS (AWS) hold ISO 27001, so whether Daily itself holds an ISO 27001 certificate vs. relying on AWS's must be confirmed; HIPAA support via BAA (Healthcare Add-on); EU-US and Swiss-US Data Privacy Framework certification. Statements like 'data centers are SOC 1, SOC 2, and ISO 27001 certified' refer to AWS's data centers, NOT Daily's own audits — do not conflate. Dropdown takes one value; 'SOC 2' chosen as the audit evidence Tavus most likely relies on ('ISO 27001' is also an allowed option if Daily's own certificate is confirmed). GATE: scope.yaml has soc2_on_file_in_vanta: null for Daily — per the playbook, do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta. Request the current SOC 2 Type II report and any ISO 27001 certificate + scope statement. Snippet-sourced; trust.daily.co itself could not be fetched (gateway 403)."
+    },
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "source_url": "https://www.daily.co/security/secure-calls/",
+      "locator": "Secure Calls page: 'Daily establishes calls using 256-bit TLS encryption, and AES-256 encryption protects video and audio'; 'All audio, video, and screen sharing media are transmitted encrypted using the Secure Real-time Transport Protocol (SRTP)'; 'Data channels are encrypted using Datagram Transport Layer Security (DTLS)'; Security Controls page (https://www.daily.co/security/security-controls/): 'encrypted transfer of all data (TLS, SSH, DTLS, SRTP, SCTP)' and 'encryption of in-call data and media streams using DTLS-SRTP and AES-256'; web servers HTTPS-only",
+      "confidence": "low",
+      "notes": "The Tavus data flow is WebRTC media, which does not travel over plain TLS: media is encrypted with SRTP (keyed via DTLS, i.e. DTLS-SRTP) using AES-256 in SFU mode (AES-128 minimum in P2P mode per Daily's pages); data channels use DTLS; call setup/signaling and REST API use '256-bit TLS' / HTTPS-only. No Daily page surfaced this session publishes a minimum TLS VERSION (1.2 vs 1.3) for its web/API endpoints, so none of the versioned dropdown options can be asserted honestly. Real standard to indicate below: 'WebRTC media: DTLS-SRTP with AES-256 (SFU mode); data channels: DTLS; signaling/API: TLS (HTTPS enforced, 256-bit; minimum TLS version not published — confirmation requested)'. If Daily confirms a TLS 1.2 floor for signaling/API, the cell could switch to 'TLS 1.2' with the media-plane detail kept in notes. Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "3.1.2": {
+      "value": "AES-256",
+      "source_url": "https://www.daily.co/blog/hipaa-compliance-details-for-the-daily-co-video-call-api/",
+      "locator": "HIPAA compliance details page: 'AES-256 encryption protects stored chat data' and 'Daily stores data encrypted both in flight and at rest'; recordings docs/blog (https://docs.daily.co/guides/products/live-streaming-recording/recording-calls-with-the-daily-api): recordings are stored in Amazon S3 'encrypted at rest'",
+      "confidence": "low",
+      "notes": "AES-256 is explicitly documented for stored chat data, and Daily states data is 'encrypted both in flight and at rest' generally; recordings are stored in AWS S3 encrypted at rest, but the algorithm for RECORDING storage specifically is not explicitly named on pages surfaced this session (S3 default server-side encryption is AES-256, but that is an AWS fact, not a Daily statement — deliberately not used as evidence). In the Tavus deployment, recordings can be written directly to a customer-managed S3 bucket ('Daily does not store the recording on its own servers at any point' in that configuration), in which case at-rest encryption of recordings is governed by Tavus's bucket settings, not Daily's. Verifier may prefer to downgrade to 'Others - pls indicate below' or 'Not known' if the chat-data statement is considered too narrow; confirm algorithm and scope with the vendor. Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No statement about backup encryption (or backup practices at all) was found on any Daily primary source surfaced this session. Per the field playbook, 'Not known' is the common and correct answer here. Searched www.daily.co security pages (secure-calls, security-controls, secure-infrastructure, data-protection, products/security-at-daily), docs.daily.co, and trust.daily.co via domain-restricted search; direct fetches blocked (gateway 403)."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No public documentation of key management (who generates/holds encryption keys for stored data, KMS provider, CMEK/BYOK options) was found on any Daily primary source surfaced this session. Daily's pages describe AWS-hosted web servers with 'Amazon or letsencrypt.org tooling to generate TLS certificates that rotate every 90 days' (transport certificates, not data-at-rest keys) and WebRTC media keys are negotiated per-session via DTLS-SRTP — but who provides the at-rest encryption key is not stated. The playbook default for managed cloud ('Key generated by Subprocessor (not customer-specific)') is an industry-norm inference and is deliberately NOT asserted — hard rule against inferring from norms. Note: when recordings go to a Tavus-managed S3 bucket, at-rest keys for recordings are on the Tavus/AWS side, not Daily's. Ask vendor. Searched daily.co security pages and docs.daily.co via domain-restricted search; direct fetches blocked (gateway 403)."
+    },
+    "3.1.6": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary-source statement found that Daily can anonymize personal data — a domain-restricted search for anonymization/pseudonymization on daily.co surfaced only Daily's Security Controls page (no anonymization claim in surfaced text) and unrelated third-party documents. Daily's data-minimization statements ('Daily never stores any audio, video, or screen sharing data other than through documented recording APIs'; 'doesn't collect or store data other than what's necessary') describe minimization, not an anonymization capability. Ask vendor. Searched daily.co privacy/GDPR/security pages via domain-restricted search; direct fetches blocked (gateway 403)."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary-source statement found that Daily can pseudonymize personal data. Same searches as 3.1.6; nothing surfaced. Ask vendor. Direct fetches blocked (gateway 403)."
+    },
+    "3.1.8": {
+      "value": "WebRTC media encrypted with DTLS-SRTP using AES-256 in SFU mode (AES-128 minimum in P2P mode); data channels encrypted with DTLS; SCTP/SSH/TLS for all other data transfer\nTrue end-to-end encryption available as an option\nHTTPS-only web servers (no plain HTTP); TLS certificates via Amazon/letsencrypt.org tooling, rotated every 90 days\nEmployee access on least-privilege / need-to-know basis; all access requires 2FA and is logged using AWS IAM; Daily employees cannot see customer video calls\nAnnual penetration tests; HackerOne partnership with 100+ security researchers plus a published Responsible Disclosure Policy\nData minimization: no audio/video/screen-share media stored except through documented recording APIs; only data necessary to deliver calls is collected\nRecordings can be written directly to a customer-managed S3 bucket, in which case Daily does not store the recording on its own servers at any point\nGeofencing available to restrict media traffic to specific geographic server regions (Europe, US, Asia)\nSOC 2 Type 2 (Security and Confidentiality TSC); ISMS ISO 27001 claim (auditor: Dansa D'Arata Soucia LLP); EU-US and Swiss-US Data Privacy Framework certification\nHIPAA-capable configuration with BAA: Daily cloud storage disabled, recordings restricted to local or customer S3, recording access limited to a subset of engineers, audited, 2FA-protected\nHosted on AWS infrastructure (data centers SOC 1 / SOC 2 / ISO 27001 certified)",
+      "source_url": "https://www.daily.co/security/security-controls/",
+      "locator": "Assembled one-per-line from: Security Controls page ('encrypted transfer of all data (TLS, SSH, DTLS, SRTP, SCTP)', 'encryption of in-call data and media streams using DTLS-SRTP and AES-256', least-privilege + 2FA + AWS IAM logging, annual penetration tests, HackerOne 100+ researchers); Secure Calls page (SRTP/DTLS, E2EE available, AES-128 P2P / AES-256 SFU, employees can never see calls); Secure Infrastructure page (HTTPS-only, cert rotation every 90 days, AWS hosting, data-center certifications); Data Protection page (data minimization statements); recordings docs (customer S3 bucket, 'Daily does not store the recording on its own servers at any point'); EU-region blog + docs (geofencing, region selection); products/security-at-daily (SOC 2 Type 2, ISO 27001/Dansa D'Arata Soucia, DPF); HIPAA blog/docs (BAA, restricted audited recording access); Responsible Disclosure Policy (https://www.daily.co/legal/disclosure/)",
+      "confidence": "low",
+      "notes": "Every line traces to a Daily-domain statement surfaced this session via domain-restricted search; none of the pages could be fetched directly (gateway 403). The 'data centers SOC 1/SOC 2/ISO 27001' line is about AWS's facilities, not Daily's own audits — kept separate from Daily's own SOC 2 Type 2 line. E2EE is an available option, not the default in SFU mode (see 3.1.5, Bucket C, human answer). Whether geofencing/E2EE/HIPAA options are enabled on the Tavus account is a deployment fact for the human, not asserted here."
+    },
+    "3.2.1": {
+      "value": "Yes",
+      "source_url": "https://www.daily.co/blog/how-our-new-european-call-server-region-can-benefit-call-performance/",
+      "locator": "Blog 'How our new European call server region can benefit call performance': Daily added the 'eu-central-1' region (Frankfurt, Germany) to its server locations, alongside the earlier 'eu-west-2' (London) region; security/product pages: 'Daily offers geofencing to restrict data traffic to particular geographic server regions... For example, developers in Germany can confine media streams so no data leaves Germany's borders. Daily offers audio and video geofencing to customers in Europe, the United States, and Asia'; transcription docs (https://docs.daily.co/reference/daily-js/instance-methods/start-transcription): region can be set to 'eu' so transcription data stays within the EU",
+      "confidence": "low",
+      "notes": "The test is 'offers an EU region', which Daily does: an EU call-server region (eu-central-1, Frankfurt) is documented on Daily's own blog and region/geofencing features appear in its docs and security pages, including an 'eu' region option for transcription. Open point for the vendor: whether geofencing covers ALL processing (signaling, API metadata, logs, dashboard data) or only the media plane — Daily's pages surfaced this session describe geofencing for media streams/data traffic. Whether Tavus USES the EU region is 3.2.2 (Bucket B, human answer). Snippet-sourced; direct fetch blocked (gateway 403)."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm the exact legal entity that contracts with Tavus for WebRTC infrastructure services — full legal name, legal form, and state/country of incorporation (we believe 'Daily, Inc.') — and provide your registered office / principal place of business address (your public pages state only that the founding team is based in San Francisco).",
+    "Have you designated a representative in the EU under Article 27 GDPR (and in the UK under UK GDPR)? If yes, please provide the representative's name and full address; if no, please state the basis on which Art. 27 is considered inapplicable.",
+    "Have you formally appointed a Data Protection Officer? Your GDPR page references a 'Data Privacy Manager' — if that person (or a DPO) is formally designated, please provide their name and telephone number and/or email; if not, please confirm that help@daily.co is the authoritative contact entitled to respond to data-protection-related requests from customers and their customers (SAP requires a named channel).",
+    "Please provide your current SOC 2 Type II report (period covered, Trust Service Criteria in scope) under NDA so Tavus can place it on file (our records show no report on file in Vanta yet). Please also clarify whether Daily itself holds an ISO 27001 certificate for its ISMS (your pages cite an audit by Dansa D'Arata Soucia LLP) or whether the ISO 27001 reference applies only to the AWS data centers hosting your service — if Daily holds a certificate, please provide it with the scope statement.",
+    "What minimum TLS version (e.g. TLS 1.2, TLS 1.3) is enforced for signaling, REST API, and dashboard endpoints? Your pages state '256-bit TLS' and HTTPS-only but do not publish a protocol-version floor.",
+    "Please confirm the encryption-at-rest algorithm and key length for each category of stored data in your service: call recordings stored on Daily-managed storage, stored chat data (your pages state AES-256), transcripts, and logs/metadata.",
+    "Are backups encrypted, and with which algorithm?",
+    "Who generates and manages the encryption keys for data at rest (platform-managed AWS KMS, customer-specific keys, CMEK/BYOK options)? Are keys customer-specific or shared?",
+    "Can Daily, acting as a processor, anonymize and/or pseudonymize personal data (call metadata, transcripts, recordings, logs) on the customer's instruction?",
+    "For the EU region / geofencing capability: does confining a call to the EU region (e.g. eu-central-1 Frankfurt) keep ALL processing in-region — signaling, TURN/SFU media relay, recording processing, transcription, logs, and API metadata — or only the media plane? Where are dashboard/account data and logs stored?",
+    "Please provide your current sub-processor list for the video/WebRTC service (https://www.daily.co/legal/sub-processors/ could not be retrieved) — SAP requires the processing chain to Level 2, e.g. the underlying cloud provider(s) and any transcription/recording vendors.",
+    "Please confirm your EU-US Data Privacy Framework and Swiss-US DPF certification status (registry entry name) so it can be cited as a transfer mechanism alongside SCCs in the DPA."
+  ]
+}

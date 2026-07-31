@@ -1,0 +1,137 @@
+{
+ "vendor_name": "Deepgram, Inc.",
+ "slug": "deepgram",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to ALL Deepgram-related hosts (deepgram.com, developers.deepgram.com, static.deepgram.com) AND the registry aggregator cited inside field 1.1 (opengovwa.com) AND archive fallbacks (web.archive.org) \u2014 for WebFetch (HTTP 403) and curl ('CONNECT tunnel failed, response 403') alike, each source URL probed individually this session (the gcp pass proved some domains DO pass the gateway, so per-host probing was done rather than assuming). This independently reproduces the exact condition the researcher disclosed \u2014 it was not taken from their caveat. Not one researcher source_url could be fetched. Per the verifier resolution rules ('unverifiable -> downgrade to Not known; never keep a value you could not confirm'), every sourced value has been downgraded. The researcher's claims, URLs and locators are preserved in each field's notes so a re-verification pass from an unrestricted network can restore them quickly. Additionally, the session web-search budget was exhausted (200/200) before the mandatory independent searches for the 'Not known' fields (3.1.3, 3.1.4, 3.1.7) could run, so no upgrades were possible either. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Deepgram domains.",
+ "fields": {
+  "1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Deepgram, Inc. (US corporation, 'Inc.'; Delaware incorporation per state corporate-registry record)\" citing https://deepgram.com/privacy (locator: privacy policy contact block 'Deepgram, Inc. 548 Market St Suite 25104 San Francisco, CA 94104-5401'; ToS at deepgram.com/terms and static.deepgram.com/business/Business_TOS.pdf naming 'Deepgram, Inc.'; Delaware incorporation 2019-08-20 from a WA foreign-corporation registry record at https://opengovwa.com/corporation/604501728). ALL of these hosts are gateway-blocked (403 CONNECT), including opengovwa.com \u2014 the Delaware detail was search-surfaced-only even for the researcher, so it is double-hearsay: an unfetched aggregator mirroring an unfetched registry. Do not write a state of incorporation until a registry record or the signed DPA is actually read. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check (verifier.md \u2014 a mismatch gets the whole package returned by SAP) could not be performed. Re-fetch the privacy policy and ToS, check the signed Tavus-Deepgram DPA signature block, and reconcile against the #8.3 submission before writing this cell."
+  },
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Deepgram, Inc., 548 Market St Suite 25104, San Francisco, CA 94104-5401, USA; privacy contact security@deepgram.com; no Article 27 GDPR representative identified\" citing https://deepgram.com/privacy (locator: 'For additional inquiries about Deepgram's Privacy Notice, you can send an email to security@deepgram.com, or contact them at: Deepgram, Inc. 548 Market St Suite 25104 San Francisco, CA 94104-5401'). Page unreachable (gateway 403 CONNECT denial; archives also blocked). Two claims need a fetched page, not a snippet: (a) the Art.-27-absence claim is an absence-of-evidence claim that MUST be confirmed on the live privacy policy and trust pages \u2014 and is a live question, since Deepgram is a US processor operating an EU endpoint (api.eu.deepgram.com) and offering SCCs, so Art. 27 plausibly applies; (b) '548 Market St Suite 25104' has the pattern of a mail-handling suite, not a principal place of business \u2014 researcher already flagged this; ask the vendor. Researcher's discipline (recording the absence as a finding plus a written question, not filling by inference) was correct and is preserved for the re-run."
+  },
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed Deepgram \"retains an independent Data Protection Officer, who is responsible for all data privacy matters, oversight, and governance\" reachable via email (address cut off in every snippet), general privacy contact security@deepgram.com \u2014 citing https://developers.deepgram.com/trust-security/data-privacy-compliance. Page unreachable (gateway 403 CONNECT denial). IMPORTANT FOR THE RE-RUN: the researcher's core judgment stands \u2014 do NOT write 'N/A' here, because Deepgram's own trust documentation (per snippets) states a DPO is formally retained; the form then requires the DPO's name and email/phone, which must come from a fetched page or the vendor in writing. The DPO email reportedly exists on the Data Privacy Compliance page itself \u2014 re-fetching that one page may complete this field. No name was invented \u2014 good \u2014 but nothing here is confirmed either. If (contrary to the snippet) no DPO exists, 'N/A' goes here and the working privacy contact must appear in the 1.1.1 column."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"SOC 2\" (dropdown pick) citing https://developers.deepgram.com/trust-security/data-privacy-compliance (locator: SOC 2 Type 1 and Type 2 per AICPA; Type II auditor Cyberguard Compliance, report via security@deepgram.com; also PCI yearly review, HIPAA BAA on request, GDPR SCCs, CCPA). Page unreachable (gateway 403 CONNECT denial). INDEPENDENT BLOCKER even if re-verified: scope.yaml has soc2_on_file_in_vanta: null for Deepgram \u2014 per the field playbook (row 14), do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta. The researcher self-applied this gate in their notes \u2014 correct. Also correct: ISO 27001 was NOT asserted because it appeared only in deepgram.com/learn/* marketing blog phrasing (non-source under skill rules). FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option (allowed: Self-created audit report(s)/ISO 9001/ISO 27001/BS 25999-ISO 22301/ISO 27701/ISO 27018/SOC 1/SOC 2/SOC 3) \u2014 this cell stays EMPTY until (1) trust-page re-fetch and (2) Vanta check both clear."
+  },
+  "3.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable) + DROPDOWN DISAGREEMENT: researcher picked \"TLS 1.3\" citing https://developers.deepgram.com/docs/the-deepgram-model-improvement-partnership-program (locator: 'All data is encrypted in-flight and at-rest with industry-standard encryption, including TLS 1.3 and AES-256'). Page unreachable (gateway 403 CONNECT denial). SUBSTANTIVE DISPUTE independent of the network block: 'including TLS 1.3' names a supported standard, not an enforced minimum \u2014 it is compatible with a TLS 1.2 floor \u2014 and the sentence sits on the Model Improvement Program page, not an encryption spec for the API endpoints; the researcher's own notes concede the Security Policy page does not enumerate TLS versions. Even after a clean re-fetch, the defensible pick from that sentence alone is 'Others - pls indicate below' (TLS enforced; floor unpublished) \u2014 do not restore 'TLS 1.3' without the vendor's written confirmation of the enforced floor on api.deepgram.com / api.eu.deepgram.com (REST + WebSocket). FORM-SPEC WARNING: the 3.1.1 dropdown has NO 'Not known' option \u2014 this cell cannot be filled from this file; it stays empty pending re-verification. Dropdown disagreement logged to review_queue.md per verifier rules."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"AES-256\" citing https://developers.deepgram.com/docs/the-deepgram-model-improvement-partnership-program ('All data is encrypted in-flight and at-rest with industry-standard encryption, including TLS 1.3 and AES-256'). Page unreachable (gateway 403 CONNECT denial). Scope caveat (researcher's own, preserved): the sentence lives on the Model Improvement Program page and is nominally scoped to data handled under that program, though it says 'all data' \u2014 before restoring AES-256, confirm with the vendor that it covers ALL customer audio and transcripts in the hosted API service (US and EU endpoints), not only MIP-retained data. 'Not known' is an allowed dropdown value for 3.1.2, so the downgrade is writable."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed: session web-search budget exhausted (200/200) and all Deepgram hosts plus archive mirrors are CONNECT-denied from this sandbox. Researcher's finding (Security Policy documents 'daily backups' but no backup-encryption standard on any primary page) is plausible but itself snippet-sourced. Per the field playbook, 'Not known' is common and correct for row 59. No upgrade. Ask vendor for the backup-encryption algorithm in writing."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Deepgram domains CONNECT-denied). The researcher correctly refused the playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') absent a primary source, and correctly excluded a deepgram.com/learn blog mention of 'customer-managed keys' as a non-source \u2014 that discipline stands. SECOND GATE regardless of re-verification: if Deepgram offers and Tavus uses any customer-managed key option, the answer flips to 'Key generated by your company' \u2014 human must confirm Tavus's actual configuration. No upgrade."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable) + DROPDOWN DISAGREEMENT, human decision required: researcher answered \"Yes\" citing https://developers.deepgram.com/docs/redaction (transcript redaction: PII/PHI/numbers, 50+ entity types, redact= parameter, pre-recorded and streaming). Page unreachable (gateway 403 CONNECT denial). SUBSTANTIVE DISPUTE independent of the network block: row 62 asks whether the subprocessor can anonymize personal data \u2014 redaction is a customer-invoked, in-line de-identification of TRANSCRIPT OUTPUT at request time. Per the researcher's own caveats: (a) the audio sent to Deepgram is not anonymized by this feature, and (b) whether Deepgram can anonymize data already stored on its systems (e.g. MIP-retained audio/transcripts) on customer instruction is undocumented. That is a materially narrower capability than the row asks about \u2014 cousin of the controller/processor conflation disputed on the replicate/elevenlabs/fal passes (here the conflation is output-redaction vs. data-anonymization rather than controller vs. processor). Do not restore 'Yes' from the redaction docs alone even after a clean re-fetch; the defensible value is 'Not known' pending the vendor's written answer to the anonymize-on-instruction question (already in open_questions_for_vendor). Logged to review_queue.md."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Deepgram domains CONNECT-denied). Researcher's reasoning preserved and endorsed: redaction's indexed placeholder tags (e.g. [CREDIT_CARD_1]) resemble pseudonymization in form, but Deepgram does not document a re-identification key or reversible pseudonymization, so 'Yes' would be an inference \u2014 notably, the researcher applied the strict reading HERE that they did not apply on 3.1.6, which is inconsistent in 3.1.6's disfavor. Ask vendor. No upgrade."
+  },
+  "3.1.8": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher assembled ten free-text safeguard lines (transcript redaction 50+ entity types; MIP opt-out mip_opt_out=true with retention statement and Console audit; EU endpoint api.eu.deepgram.com GA incl. wss listen/speak/agent; self-hosted/VPC/on-prem and single-tenant Dedicated deployments; mTLS to the license server; firewalls/restricted ports + vulnerability and patch management; pre-release code scanning; daily backups + IR/DR policies; password encryption in transit + hashed storage; SCCs/DPA/HIPAA BAA/PCI yearly review) from ~10 Deepgram docs and trust-security pages, primary citation https://developers.deepgram.com/trust-security/security-policy. NONE of the pages was reachable (gateway 403 CONNECT denial). Every line is snippet-sourced only; none can go to SAP unconfirmed. Re-run flags: (a) whether Tavus's account opts out of MIP, and which deployment mode (multi-tenant US, EU endpoint, Dedicated, self-hosted) Tavus uses, are deployment facts for the human \u2014 the researcher correctly did not assert them; (b) the mTLS line covers only the self-hosted-to-license-server link \u2014 do not let it imply mTLS on the hosted API path; (c) re-verify each line against its own page before restoring, the composite locator spans many URLs."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Yes\" citing https://developers.deepgram.com/reference/custom-endpoints (locator: 'For customers requiring data processing within the European Union, Deepgram provides an EU-specific endpoint at api.eu.deepgram.com' \u2014 GA; STT/TTS/Voice Agent/Text Intelligence, Whisper excluded; wss variants; existing keys work). Page unreachable (gateway 403 CONNECT denial). The playbook test ('offers an EU region', not 'we use it') was correctly applied, and the claim is very likely true and trivially re-confirmable from an unrestricted network \u2014 but the rule is the rule: unverifiable values do not survive the pass. Re-run notes: which cloud provider/EU region hosts api.eu.deepgram.com and whether logging/retention stays in-region is undocumented (already in vendor questions); whether Tavus USES the EU endpoint is 3.2.2 (Bucket B, human answers). 'Not known' is an allowed dropdown value for 3.2.1."
+  }
+ },
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "downgraded_to_not_known",
+   "1.1.1": "downgraded_to_not_known",
+   "1.1.2": "downgraded_to_not_known",
+   "1.4.2": "downgraded_to_not_known",
+   "3.1.1": "downgraded_to_not_known",
+   "3.1.2": "downgraded_to_not_known",
+   "3.1.3": "not_upgraded_search_unavailable",
+   "3.1.4": "not_upgraded_search_unavailable",
+   "3.1.6": "downgraded_to_not_known",
+   "3.1.7": "not_upgraded_search_unavailable",
+   "3.1.8": "downgraded_to_not_known",
+   "3.2.1": "downgraded_to_not_known"
+  },
+  "disputes": [
+   "deepgram/ALL sourced fields: network gateway policy-denies CONNECT to deepgram.com, developers.deepgram.com, static.deepgram.com, opengovwa.com AND web.archive.org \u2014 zero source URLs fetchable via WebFetch (403) or curl (CONNECT 403), each host probed individually this session (independently reproduced, not taken from the researcher's caveat); all 9 sourced fields verdict unverifiable, values downgraded to Not known per resolution rules",
+   "deepgram/1.1: TOM questionnaire #8.3 not found in repo \u2014 mandatory legal-entity cross-check (verifier.md) could not be performed; Delaware-incorporation detail is double-hearsay (search snippet of an unfetched registry aggregator, opengovwa.com, itself gateway-blocked) \u2014 do not write a state of incorporation until a registry record or the signed Tavus-Deepgram DPA is actually read",
+   "deepgram/1.4.2: independent blocker \u2014 scope.yaml soc2_on_file_in_vanta is null for Deepgram; playbook forbids asserting SOC 2 until the report is on file in Vanta, regardless of page re-verification; dropdown has no 'Not known' option so the cell stays empty until both gates clear",
+   "deepgram/3.1.1: DROPDOWN DISAGREEMENT independent of the network block \u2014 researcher picked 'TLS 1.3' from the MIP-page phrase 'including TLS 1.3', which names a supported standard, not an enforced minimum (compatible with a TLS 1.2 floor), on a page scoped to the Model Improvement Program; defensible pick from that evidence is 'Others - pls indicate below' pending the vendor's written TLS floor for api.deepgram.com/api.eu.deepgram.com. Form dropdown also has no 'Not known' option \u2014 cell cannot be written from this file. Human decision required",
+   "deepgram/3.1.2: scope caveat for the re-run \u2014 the AES-256 sentence lives on the Model Improvement Program page; confirm it covers ALL customer audio/transcripts in the hosted API (US and EU), not only MIP-retained data, before restoring",
+   "deepgram/3.1.6: DROPDOWN DISAGREEMENT independent of the network block \u2014 researcher answered 'Yes' from the transcript-redaction feature, which de-identifies TRANSCRIPT OUTPUT at request time; it does not anonymize the audio Deepgram receives nor data already stored on its systems (researcher's own caveats concede both). Output-redaction is not the anonymize-personal-data capability row 62 asks about \u2014 do not restore 'Yes' from the redaction docs even after re-fetch; keep 'Not known' pending vendor's written answer. Inconsistency noted: the researcher applied the strict no-inference reading on 3.1.7 but not on 3.1.6. Human decision required",
+   "deepgram/3.1.3+3.1.4+3.1.7: mandatory independent searches skipped \u2014 session web-search budget exhausted (200/200) and all fetch fallbacks gateway-denied; values stay Not known, zero upgrades",
+   "deepgram/3.1.8: all ten safeguard lines snippet-sourced and unverifiable; MIP opt-out status and deployment mode are deployment facts for the human; the mTLS line is scoped to the self-hosted license-server link only \u2014 do not generalize it to the hosted API path",
+   "deepgram/1.1.2: researcher's judgment to REFUSE 'N/A' (Deepgram's trust page reportedly states a retained DPO) is endorsed \u2014 but the DPO's name/email/phone must come from a fetched page or the vendor in writing; the snippet's cut-off email address is not usable",
+   "deepgram/bucket-check: PASS \u2014 no Bucket B or Bucket C field was populated by the researcher (1.4.2 is A+B per the playbook; only its researched A-part is present)"
+  ],
+  "network_note": "Re-run this verification from an environment that can reach Deepgram domains before any value from data/vendors/deepgram.json is promoted. The researcher's claims are internally consistent, carefully caveated (confidence capped at 'low', snippet-sourcing disclosed, learn/* blog posts excluded as non-sources) and plausibly correct; they are downgraded because they could not be independently confirmed, not because contrary evidence was found \u2014 with two exceptions: 3.1.1, where 'including TLS 1.3' would not support the 'TLS 1.3' dropdown pick even if the page were fetched, and 3.1.6, where the redaction citation would not support 'Yes' even if the page were fetched."
+ },
+ "open_questions_for_vendor": [
+  "Please confirm the exact legal entity (full name, legal form, and state/country of incorporation) that contracts with Tavus for speech-to-text services \u2014 Deepgram, Inc., 548 Market St Suite 25104, San Francisco, CA 94104-5401? Public registry records suggest a Delaware corporation (incorporated 2019-08-20); please confirm, and provide your principal place of business if different from the Market St suite address.",
+  "Have you designated a representative in the EU under Article 27 GDPR? If yes, please provide the representative's name and full address; if no, please state your position on why Art. 27 does not apply to your processing of EU data subjects' voice data.",
+  "Your Data Privacy Compliance page states Deepgram 'retains an independent Data Protection Officer' reachable via email. Please provide the DPO's name and telephone number and/or email address for SAP's records.",
+  "Please provide your current SOC 2 Type II report (auditor, period covered) under NDA so Tavus can place it on file (our records show no report on file in Vanta yet), plus your PCI DSS attestation. Do you hold ISO 27001, ISO 27018, or ISO 27701 certification? If yes, please provide certificate numbers and scope statements \u2014 your marketing materials reference ISO 27001-compliant environments but we found no certificate on your primary documentation.",
+  "What minimum TLS version is enforced for data in transit to api.deepgram.com and api.eu.deepgram.com (REST and WebSocket)? Your Model Improvement Program documentation states 'including TLS 1.3' \u2014 is TLS 1.3 the enforced floor, or is TLS 1.2 accepted?",
+  "Please confirm that AES-256 encryption at rest applies to ALL customer audio and transcripts stored on your systems (hosted API, both US and EU endpoints), not only to data retained under the Model Improvement Partnership Program.",
+  "Are backups encrypted, and with which algorithm? Your Security Policy documents daily backups but does not state the backup encryption standard.",
+  "Who generates and manages the encryption keys for data at rest (platform-managed KMS, customer-specific keys, CMEK/BYOK options)? Which KMS/cloud provider holds them? One of your articles references 'customer-managed keys' for audio-retention scenarios \u2014 is that option available, and is it enabled for the Tavus account?",
+  "Can Deepgram, acting as a processor, anonymize and/or pseudonymize customer-submitted personal data (end-user speech audio and transcripts) already on your systems, on the customer's instruction \u2014 beyond the in-line transcript redaction feature?",
+  "For the Tavus account: is the Model Improvement Program opt-out (mip_opt_out) applied, and precisely what data (audio, transcripts, metadata) is retained after a request completes, for how long, when opted out vs. opted in?",
+  "For the EU endpoint (api.eu.deepgram.com): which cloud provider and EU region(s) host it, and do processing, logging, and any retention stay entirely within the EU?",
+  "Please provide your current sub-processor list for the hosted API service (we located deepgram.com/privacy/subprocessors but could not retrieve its contents) \u2014 SAP requires the processing chain to Level 2, e.g. the underlying cloud provider(s) hosting inference and storage."
+ ]
+}

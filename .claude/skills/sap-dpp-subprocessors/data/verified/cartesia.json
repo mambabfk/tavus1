@@ -1,0 +1,135 @@
+{
+ "vendor_name": "Cartesia AI, Inc.",
+ "slug": "cartesia",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to ALL Cartesia hosts (www.cartesia.ai, cartesia.ai, docs.cartesia.ai, trust.cartesia.ai) for WebFetch and curl alike (independently reproduced this session: WebFetch HTTP 403 on all five source URLs, curl 'CONNECT tunnel failed, response 403' on every host; agent-proxy status confirms 'gateway answered 403 to CONNECT (policy denial)'). web.archive.org is also CONNECT-denied, so archive fallbacks are unavailable. Not one researcher source_url could be fetched \u2014 this independently reproduces the exact condition the researcher disclosed in their own caveat. Per the verifier resolution rules ('unsupported or unverifiable -> downgrade the value to Not known; do not keep a value you could not confirm'), every sourced value has been downgraded. The researcher's claims, URLs and locators are preserved in each field's notes so a re-verification pass from an unrestricted network (a normal browser loads these pages fine per the researcher) can restore them quickly. Additionally, the session web-search budget was exhausted (200/200) before the mandatory independent searches for the six 'Not known' fields (3.1.1, 3.1.2, 3.1.3, 3.1.4, 3.1.6, 3.1.7) could run, so no upgrades were possible either. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Cartesia domains.",
+ "fields": {
+  "1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Cartesia AI, Inc. (US corporation, 'Inc.'; state of incorporation not confirmed)\" citing https://www.cartesia.ai/legal/dpa (locator: DPA opening paragraph, 'Cartesia AI, Inc. (\"Service Provider\")'; also the Terms of Service notice block at https://cartesia.ai/legal/terms.html). Both pages unreachable (gateway 403 CONNECT denial; web.archive.org also blocked). The entity name is snippet-sourced only. State of incorporation was never found on a vendor source \u2014 researcher correctly refused to infer Delaware; do not write one. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check (verifier.md) could not be performed \u2014 a mismatch here gets the whole package returned by SAP. Re-fetch the DPA, check the signed Tavus-Cartesia DPA signature block, and reconcile against the #8.3 submission before writing this cell."
+  },
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Cartesia AI, Inc., 1766 18th Street, San Francisco, CA, USA (suite/ZIP not vendor-confirmed); no Article 27 GDPR representative identified; privacy contact security@cartesia.ai\" citing https://cartesia.ai/legal/terms.html (locator: DMCA/notice section, 'Cartesia AI, Inc., Attn: DMCA Compliance Officer, 1766 18th [Street...]' \u2014 the search excerpt was TRUNCATED after the street number, so even the street name is partially reconstructed). Page unreachable (gateway 403 CONNECT denial). Three claims need a fetched page or written vendor confirmation, not snippets: (a) the full registered address \u2014 the suite/ZIP completion ('94107, Suite 1200') appeared only on third-party company-profile sites, which the researcher correctly refused to use; (b) the Art.-27-absence claim is an absence-of-evidence claim from excerpts of pages never fetched in full \u2014 Cartesia announced GDPR compliance (blog 2025-09-24) and incorporates the EU SCCs in its DPA, and as a US company serving EU subjects it would normally need an Art. 27 rep, so absence must be confirmed in writing; (c) a DMCA-notice address is not necessarily the registered/principal-place-of-business address SAP wants. Ask the vendor."
+  },
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"N/A \u2014 no DPO identified; data-protection contact security@cartesia.ai\" citing https://www.cartesia.ai/legal/privacy (locator: privacy-policy contact section directing privacy questions to security@cartesia.ai). Page unreachable (gateway 403 CONNECT denial). The N/A rests on absence from search excerpts of pages never fetched in full (the researcher flagged this themselves) \u2014 same weakness as the fal pass: the vendor never affirmatively states no DPO exists. The researcher's own note adds a live risk: Cartesia's September 2025 GDPR-compliance push may have designated a DPO after these pages were indexed. No name was invented \u2014 good \u2014 but nothing here is confirmed. Two paths to restore: re-fetch the live privacy policy and DPA, or get written vendor confirmation that security@cartesia.ai is the authoritative data-protection contact. If 'N/A' is written here, the working privacy contact must appear in the 1.1.1 column per the form instructions."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"SOC 2\" (dropdown pick) citing https://www.cartesia.ai/blog/gdpr-compliance plus agents/healthcare pages (locator: 'strong security foundation includes SOC 2 Type II, PCI-DSS (service level provider), HIPAA, and optional Zero Data Retention'; 'globally available with GDPR, SOC 2 Type II, PCI Level 1, and HIPAA compliance'). All pages unreachable (gateway 403 CONNECT denial); trust.cartesia.ai also blocked. INDEPENDENT BLOCKER even if re-verified: scope.yaml has soc2_on_file_in_vanta: null for Cartesia \u2014 per the field playbook (row 14), do NOT assert SOC 2 in the form until Cartesia's SOC 2 Type II report is actually on file in Vanta; request it via trust.cartesia.ai. The researcher applied this gate correctly in their own notes. Researcher correctly rejected a third-party ISO 27001 claim. FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option (allowed: Self-created audit report(s) / ISO 9001 / ISO 27001 / BS 25999-ISO 22301 / ISO 27701 / ISO 27018 / SOC 1 / SOC 2 / SOC 3) \u2014 this cell stays EMPTY until both gates clear: (1) page re-fetch confirming the claim, (2) report on file in Vanta."
+  },
+  "3.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT (correct: no Cartesia primary source names a TLS version; the DPA Annex II transmission-control language names no standard; researcher correctly rejected a third-party 'TLS 1.3' claim). Verifier's mandatory independent search could NOT run: session web-search budget exhausted (200/200) and all Cartesia hosts plus web.archive.org are CONNECT-denied from this sandbox. No upgrade. FORM-SPEC WARNING (researcher also flagged this): the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others - pls indicate below/None) \u2014 this cell cannot be filled from this file; either get the vendor's written TLS floor for the API/WebSocket endpoints or, once a fetched page confirms TLS-without-version, use 'Others - pls indicate below'. Do not guess a version."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT (correct: no vendor source names an at-rest standard; researcher correctly rejected a third-party 'AES-256' claim; DPA Annex II excerpts mention encryption only for 'archived data media' with no algorithm). Mandatory independent search blocked (web-search budget exhausted 200/200; Cartesia hosts and archive mirrors CONNECT-denied). No upgrade. trust.cartesia.ai very likely documents this \u2014 unreadable this session and last; ask the vendor for algorithm and key length in writing. 'Not known' is a valid dropdown option for this row."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Cartesia hosts CONNECT-denied). Per the field playbook, 'Not known' is common and correct for row 59. Useful detail preserved from the researcher (itself unverified \u2014 snippet of www.cartesia.ai/legal/dpa): DPA Annex II reportedly lists 'encryption of archived data media' among its TOMs \u2014 so archived/backup media are claimed encrypted, but with no named algorithm. Re-verify that Annex II line on the live page before it accompanies the cell; ask the vendor which algorithm covers backups. No upgrade."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Cartesia hosts CONNECT-denied). The researcher correctly refused the playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') absent a primary source \u2014 that discipline stands. SECOND GATE regardless of re-verification: if Cartesia offers and Tavus uses any customer-managed key option, the answer flips to 'Key generated by your company' \u2014 human must confirm Tavus's actual configuration with Cartesia. No upgrade."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 and the researcher's reasoning is endorsed: Cartesia's 'optional Zero Data Retention' is deletion/non-retention, NOT anonymization, and must not be conflated into a Yes here (the same controller/processor and deletion-vs-anonymization traps that produced disputes on the replicate, elevenlabs and fal passes were correctly avoided by this researcher). Mandatory independent search blocked (web-search budget exhausted 200/200; Cartesia hosts CONNECT-denied). Ask the vendor whether an anonymize-on-customer-instruction capability exists. No upgrade."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT (correct: SCC Annex II boilerplate 'pseudonymization... as appropriate' is not a vendor assertion of capability \u2014 researcher applied this correctly). Mandatory independent search blocked (web-search budget exhausted 200/200; Cartesia hosts CONNECT-denied). Ask the vendor. No upgrade."
+  },
+  "3.1.8": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher assembled eleven free-text safeguard lines from four Cartesia pages \u2014 DPA Annex II items (user identification/authentication; ID/password rules; automatic blocking of break-in attempts; one master record per user; encryption of archived data media; access-rights restriction; transmission/transport/storage control), plus SOC 2 Type II / PCI-DSS L1 / HIPAA-with-BAA, optional Zero Data Retention, SCCs (EU 2021/914) in the DPA, and regional API endpoints with in-region inference (US/EU/APAC) \u2014 primary citation https://www.cartesia.ai/legal/dpa, also www.cartesia.ai/blog/gdpr-compliance, www.cartesia.ai/deployments, docs.cartesia.ai/changelog/2026. None of the pages was reachable (gateway 403 CONNECT denial). Every line is snippet-sourced; none can go to SAP unconfirmed. Extra flags for the re-run: (a) the researcher disclosed the Annex II list is PARTIAL \u2014 only excerpt-surfaced portions were included; the full Annex II must be read from the live DPA; (b) the certification line duplicates the 1.4.2 claim and inherits its Vanta gate; (c) whether Zero Data Retention is enabled on the Tavus account is a deployment fact for the human, not a vendor-page fact; (d) do not let 'in-region inference' language leak into row 3.1.5 (Bucket C \u2014 almost certainly 'Partly', TTS inference requires plaintext in memory). Re-verify each line against its page before restoring."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Yes\" citing https://docs.cartesia.ai/changelog/2026 (locator: regionalization 'with calls routed to US, EU, and APAC by origin') plus www.cartesia.ai/deployments ('inference runs in-region, keeping customers within their... data residency obligations' via 'regional API endpoints') and self-hosted docs. Pages unreachable (gateway 403 CONNECT denial). The playbook test ('offers an EU region', not 'we use it') was correctly applied and the claim is plausibly true, but two things block restoring 'Yes' from this citation alone even after a clean re-fetch: (a) 'calls routed... by origin' describes automatic latency/origin routing of INFERENCE, which is weaker than an offered, selectable EU region with EU data-at-rest \u2014 the researcher's own note concedes whether data at rest stays in the EU is not established; (b) 'Not known' vs 'Yes' is a dropdown disagreement, so per verifier.md this goes to review_queue.md for a human even though the disagreement is driven by unverifiability. Re-fetch the deployments page and ask the vendor whether an EU region with in-EU processing AND storage is offered. Whether Tavus USES it is 3.2.2 (Bucket B, human answers). 'Not known' is an allowed dropdown value for 3.2.1."
+  }
+ },
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "downgraded_to_not_known",
+   "1.1.1": "downgraded_to_not_known",
+   "1.1.2": "downgraded_to_not_known",
+   "1.4.2": "downgraded_to_not_known",
+   "3.1.1": "not_upgraded_search_unavailable",
+   "3.1.2": "not_upgraded_search_unavailable",
+   "3.1.3": "not_upgraded_search_unavailable",
+   "3.1.4": "not_upgraded_search_unavailable",
+   "3.1.6": "not_upgraded_search_unavailable",
+   "3.1.7": "not_upgraded_search_unavailable",
+   "3.1.8": "downgraded_to_not_known",
+   "3.2.1": "downgraded_to_not_known"
+  },
+  "disputes": [
+   "cartesia/ALL sourced fields: network gateway policy-denies CONNECT to www.cartesia.ai, cartesia.ai, docs.cartesia.ai, trust.cartesia.ai AND web.archive.org \u2014 zero source URLs fetchable (independently reproduced this session via WebFetch 403 + curl CONNECT-403 + proxy status log, not taken from the researcher's caveat); all 6 sourced fields verdict unverifiable, values downgraded to Not known per resolution rules",
+   "cartesia/1.1: TOM questionnaire #8.3 not found in repo \u2014 mandatory legal-entity cross-check (verifier.md) could not be performed; state of incorporation never stated on any surfaced vendor page \u2014 do not write one; reconcile the signed Tavus-Cartesia DPA against the #8.3 submission before this cell is written",
+   "cartesia/1.1.1: address is a TRUNCATED snippet ('1766 18th [Street...]') from a DMCA notice block \u2014 not necessarily the registered address; suite/ZIP known only from disallowed third-party sources; Art.-27-absence is an absence-of-evidence claim from pages never fetched \u2014 vendor written confirmation required",
+   "cartesia/1.1.2: 'N/A \u2014 no DPO' rests on absence from snippets of pages never fetched in full; Cartesia's Sep-2025 GDPR push may have designated a DPO after indexing \u2014 vendor written confirmation required before N/A is written",
+   "cartesia/1.4.2: independent blocker \u2014 scope.yaml soc2_on_file_in_vanta is null for Cartesia; playbook forbids asserting SOC 2 until the report is on file in Vanta, regardless of page re-verification; dropdown has no 'Not known' option \u2014 cell stays empty",
+   "cartesia/3.1.1: form dropdown has no 'Not known' option \u2014 downgraded value cannot be written to the workbook cell; get the vendor's written TLS floor or re-confirm 'Others - pls indicate below' against a fetched page; never guess a TLS version",
+   "cartesia/3.1.1+3.1.2+3.1.3+3.1.4+3.1.6+3.1.7: mandatory independent searches skipped \u2014 session web-search budget exhausted (200/200) and all fetch fallbacks gateway-denied; values stay Not known, zero upgrades",
+   "cartesia/3.1.4: even if re-verified, dropdown choice depends on whether Tavus uses any customer-managed key option \u2014 human must confirm before the cell is written",
+   "cartesia/3.2.1: dropdown disagreement (researcher Yes vs verifier Not known) \u2014 routed to review_queue.md per verifier.md; beyond the network block, 'calls routed to US, EU, APAC by origin' is origin-based inference routing, weaker than an offered selectable EU region with EU data-at-rest (researcher's own note concedes the at-rest question is open) \u2014 do not restore Yes from the changelog citation alone; confirm on the deployments page and with the vendor",
+   "cartesia/bucket-check: PASS \u2014 no Bucket B or Bucket C field was populated by the researcher (1.4.2 is A+B per the playbook; only its researched A-part is present)"
+  ],
+  "network_note": "Re-run this verification from an environment that can reach Cartesia domains before any value from data/vendors/cartesia.json is promoted. The researcher's work is disciplined \u2014 confidence capped at 'low' everywhere, snippet-sourcing disclosed up front, third-party claims (TLS 1.3, AES-256, ISO 27001, full street address) explicitly rejected, the ZDR-is-not-anonymization trap avoided, and the Vanta gate on 1.4.2 self-applied. Values are downgraded because they could not be independently confirmed, not because contrary evidence was found \u2014 with the single exception of 3.2.1, where the changelog citation would not fully support 'Yes' even if fetched (see dispute)."
+ },
+ "open_questions_for_vendor": [
+  "Please confirm Cartesia's full legal entity name, legal form and state of incorporation (we have 'Cartesia AI, Inc.' from your DPA), and the registered address to be used for GDPR purposes (we have '1766 18th Street, San Francisco, CA' from your Terms of Service \u2014 please confirm suite and ZIP, and whether this is your principal place of business).",
+  "Has Cartesia AI, Inc. designated a representative in the Union under Article 27 GDPR? If yes, please provide the representative's name and full address; if no, please confirm in writing.",
+  "Has Cartesia formally designated a Data Protection Officer? If yes, please provide the DPO's name and telephone number and/or email; if no, please confirm that security@cartesia.ai is the authoritative contact for data-protection requests.",
+  "Which TLS version is enforced (minimum and preferred) for the Cartesia API and WebSocket endpoints that carry customer text and generated speech audio in transit?",
+  "Which encryption standard (e.g. AES-256) is used for customer data at rest, and does the same standard cover backups and archived media (your DPA Annex II lists 'encryption of archived data media' without naming an algorithm)?",
+  "Who generates and manages the encryption keys for customer data at rest \u2014 Cartesia-managed keys (customer-specific or shared), or is a customer-managed key option available?",
+  "Can Cartesia anonymize and/or pseudonymize customer personal data on the customer's instruction (beyond the optional Zero Data Retention mode)?",
+  "For the EU region routing described in your docs: is an EU region offered as a selectable option (not just origin-based routing), and is customer data processed AND stored at rest within the EU when EU endpoints are used, or is routing in-region for inference only?",
+  "Please provide your current SOC 2 Type II report and confirm your PCI-DSS and HIPAA attestations (and whether you hold ISO 27001 \u2014 we could not confirm it from public sources) via trust.cartesia.ai or directly, so the report can be placed on file as audit evidence for row 1.4.2.",
+  "Please provide your current sub-processor list (your trust center was not machine-readable to us)."
+ ]
+}

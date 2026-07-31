@@ -1,0 +1,107 @@
+{
+  "vendor_name": "Slack",
+  "slug": "slack",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: no Slack primary source could be consulted in this session AT ALL. (1) The sandbox network gateway (agent proxy) returned 403 CONNECT denials — organization egress-policy denials, which the proxy README instructs must not be retried or routed around — for every host attempted: slack.com (trust/security, trust/compliance, trust/privacy/privacy-policy), api.slack.com (/security), a.slack-edge.com (security whitepaper PDF), and compliance.salesforce.com (/en/services/slack, the Salesforce trust portal that covers Slack). The proxy status endpoint confirms 'connect_rejected slack.com:443' entries. (2) The session's WebSearch budget was already exhausted (200/200, consumed by sibling vendor researchers) before any Slack search could run, so the domain-restricted-search-snippet fallback used by earlier vendor files (aws.json, daily.json, etc.) was unavailable. Per the researcher hard rules ('if you did not fetch a URL stating the fact for THIS vendor in THIS session, the value is Not known'), every Bucket A field below is 'Not known' with confidence 'none'. This is a statement about this session's network access, not about Slack's documentation, which is extensive (trust center at slack.com/trust). A re-run from an unrestricted network (or with search budget) should be able to fill most of these fields from Slack's own trust/security/compliance pages before falling back to the written vendor questionnaire.",
+  "fields": {
+    "1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No public documentation could be fetched this session; attempted https://slack.com/trust/privacy/privacy-policy, https://slack.com/trust/security, https://slack.com/trust/compliance, https://api.slack.com/security, https://compliance.salesforce.com/en/services/slack — all blocked by the session egress policy (gateway 403 CONNECT denial); WebSearch budget exhausted before this vendor. Vendor operates as 'Slack' at slack.com and is a Salesforce subsidiary (per config/scope.yaml and the skill's outreach file data/vendor_contacts.md). That outreach file — prior-session, snippet-sourced, NOT a primary source fetched this session — records the entity as 'Slack Technologies, LLC' (privacy-policy snippet); treat as an unverified lead only. Field playbook: 1.1 must match the entity named in the TOM questionnaire #8.3 Tavus already submitted — no TOM questionnaire file exists in this repo, so the filler/human must take the entity name and legal form from that submission and from the signed Tavus-Slack agreement/DPA signature block, which are authoritative."
+    },
+    "1.1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Registered/full address and any Article 27 GDPR EU representative could not be sourced: slack.com privacy policy and trust pages blocked by session egress policy (gateway 403); no search budget remained. Unverified lead from the skill's prior outreach file (data/vendor_contacts.md, snippet-sourced): mailing address for US/Canada customers 'Slack Technologies, LLC, 50 Fremont Street, San Francisco, CA 94105' — must be re-verified against the current privacy policy or the signed DPA before use (may be outdated). Whether Slack (US entity) names an Art. 27 EU representative or instead relies on an EU establishment (e.g. a Salesforce/Slack EU affiliate acting as contracting entity, which would make Art. 27 inapplicable) is unknown and must be asked in writing; absence of a rep can be a legitimate finding but was not established this session."
+    },
+    "1.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Could not fetch any Slack privacy/GDPR page this session (egress policy 403 on slack.com; no search budget). Unverified lead from the skill's prior outreach file (data/vendor_contacts.md, snippet-sourced from https://slack.com/trust/privacy/privacy-policy and https://slack.com/trust/compliance/gdpr): 'To communicate with Slack's Data Protection Officer, please email dpo@slack.com', general privacy contact privacy@slack.com. This suggests Slack DOES publish a formal DPO contact route (email only, no individual name or phone published in the recorded snippets), so do NOT write 'N/A' here without confirmation — but per hard rules the value stays 'Not known' until the page is fetched or the vendor confirms in writing. If confirmed, the cell likely takes 'DPO (name not published): dpo@slack.com' and privacy@slack.com goes with the 1.1.1 contact details. No name invented."
+    },
+    "1.4.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Certifications actually held could not be verified this session: https://slack.com/trust/compliance and https://compliance.salesforce.com/en/services/slack (the Salesforce trust portal service page for Slack, where audit reports and certificates are published) were both blocked by the session egress policy (gateway 403); WebSearch budget exhausted. No certification is asserted from memory or industry norms per hard rules. GATE from field playbook: even once certifications are confirmed, do not assert SOC 2 in the form until Slack's report is confirmed on file in Vanta — config/scope.yaml has soc2_on_file_in_vanta: null for Slack. Request current SOC 2 Type II report and any ISO certificates + scope statements in writing (compliance.salesforce.com is the self-serve download route once reachable)."
+    },
+    "3.1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Encryption-in-transit standard (TLS version floor) not verifiable this session: https://slack.com/trust/security, https://api.slack.com/security, and Slack's security whitepaper (a.slack-edge.com PDF) all blocked by session egress policy (gateway 403); no search budget. Note validate.py accepts 'Not known' for this dropdown even though the form's own list has no such option — before workbook fill, this must be resolved by re-research or the vendor's written answer (ask for the minimum TLS version enforced for slack.com and api.slack.com endpoints)."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Encryption-at-rest algorithm not verifiable this session — same blocked sources as 3.1.1 (slack.com/trust/security, security whitepaper, compliance.salesforce.com). Deliberately NOT asserting AES-256 from industry norm or memory per hard rules. Ask vendor to state the algorithm and key length for data at rest (messages, files, search indices, logs)."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Backup encryption is rarely documented separately even on reachable trust pages (per field playbook, 'Not known' is common and correct here); this session no Slack page could be fetched at all (egress policy 403 on all Slack/Salesforce hosts; no search budget). Ask vendor: are backups encrypted, with which algorithm, and are backup keys managed the same way as production keys?"
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Key provider not verifiable this session (same blocked sources). Slack is known in the market to sell an 'Enterprise Key Management' (EKM) add-on where the customer holds keys in their own AWS KMS — but that is training-data knowledge, NOT a fetched source, so it is deliberately not asserted; it is listed as a question instead. If confirmed: default (no EKM) would map to 'Key generated by Subprocessor (not customer-specific)' and an EKM deployment to 'Key generated by your company' — the human must also confirm whether Tavus's Slack plan includes EKM (almost certainly not for internal comms, but do not guess)."
+    },
+    "3.1.6": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary-source statement about an anonymization capability could be obtained this session (all Slack hosts blocked by egress policy; no search budget). Ask vendor whether Slack, acting as processor, can anonymize personal data (e.g. profile deletion / message-author anonymization on offboarding) on the customer's instruction."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary-source statement about a pseudonymization capability could be obtained this session (same access failure as 3.1.6). Ask vendor."
+    },
+    "3.1.8": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Other technical safeguards (access controls, SSO/2FA, audit logs, DLP hooks, network security, pen testing, bug bounty, data residency controls) are extensively documented on slack.com/trust/security and in Slack's security whitepaper, but none of it could be fetched this session (egress policy 403); nothing is asserted from memory per hard rules. Re-run research or take the answer from Slack's SOC 2 report / security whitepaper once obtained."
+    },
+    "3.2.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "The test is 'does the vendor OFFER an EU region', not 'does Tavus use it'. Slack markets a data-residency program, but no Slack page stating this could be fetched this session (slack.com blocked by egress policy; no search budget), so per hard rules the value stays 'Not known'. Ask vendor: do you offer EU data residency for customer data, which data categories does it cover (messages/files vs. metadata, logs, search, profile data), and on which plans is it available?"
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm the exact legal entity that contracts with Tavus for the Slack service — full legal name, legal form, and state/country of incorporation (we believe 'Slack Technologies, LLC', a Salesforce, Inc. subsidiary) — and provide the entity's registered office / principal place of business address.",
+    "Have you designated a representative in the EU under Article 27 GDPR (and in the UK under UK GDPR)? If yes, please provide the representative's name and full address; if the contracting structure instead runs through an EU-established Salesforce/Slack affiliate, please identify that entity and its address.",
+    "Have you formally appointed a Data Protection Officer? Your privacy policy references dpo@slack.com — please confirm this is the authoritative DPO contact entitled to respond to data-protection-related requests from customers (SAP requires a named channel), and provide the DPO's name and telephone number and/or email address.",
+    "Which certifications and audit reports does Slack currently hold for the service (SOC 2 Type II — period covered and Trust Service Criteria in scope; SOC 3; ISO 27001; ISO 27017; ISO 27018; ISO 27701; other)? Please provide the current SOC 2 Type II report and ISO certificates with scope statements (under NDA if required) so Tavus can place them on file.",
+    "What minimum TLS version (e.g. TLS 1.2, TLS 1.3) is enforced for data in transit to slack.com and api.slack.com endpoints?",
+    "Which encryption algorithm and key length are used for customer data at rest (messages, files, search indices, logs)?",
+    "Are backups encrypted, and with which algorithm? Are backup encryption keys managed the same way as production keys?",
+    "Who generates and manages the encryption keys for customer data at rest (Slack-managed platform keys vs. customer-held keys)? Please describe the Enterprise Key Management (EKM) offering, which plans it applies to, and confirm key handling for a workspace WITHOUT EKM (keys generated by Slack, not customer-specific?).",
+    "Can Slack, acting as a processor, anonymize and/or pseudonymize personal data in customer workspaces (e.g. on deactivation/offboarding or on customer instruction)? Please describe the capability.",
+    "Beyond encryption, which other technical safeguards protect customer data (access controls and least-privilege for Slack personnel, SSO/MFA, audit logging, network segmentation, penetration testing cadence, bug bounty program, DLP/eDiscovery interfaces)?",
+    "Does Slack offer EU data residency? If yes: which data categories does it cover (message/file content vs. profile data, metadata, logs, search indices), which plan tiers include it, and can it be enabled for an existing workspace?",
+    "Please provide your current sub-processor list for the Slack service (SAP requires the processing chain to Level 2, e.g. the underlying cloud provider(s))."
+  ]
+}

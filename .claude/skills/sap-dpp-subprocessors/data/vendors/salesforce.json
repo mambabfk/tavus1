@@ -1,0 +1,107 @@
+{
+  "vendor_name": "Salesforce",
+  "slug": "salesforce",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: no Salesforce primary source could be consulted in this session AT ALL. (1) The sandbox network gateway (agent proxy) answers 403 to CONNECT for external vendor hosts — an organization egress-policy denial the proxy README says must not be retried or routed around. Verified this session: WebFetch returned HTTP 403 for https://www.salesforce.com/company/legal/agreements/ and https://compliance.salesforce.com/en, and direct curl through the proxy failed with 'CONNECT tunnel failed, response 403' for both www.salesforce.com:443 and compliance.salesforce.com:443; the proxy status log shows the same connect_rejected policy denials for every other vendor host attempted by sibling researchers (slack.com, openai.com, www.mux.com, etc.), and a sibling session recorded 'connect_rejected slack.com:443' plus a block on compliance.salesforce.com/en/services/slack. (2) The session's WebSearch budget was already exhausted (200/200, consumed by sibling vendor researchers) before any Salesforce search could run, so the search-snippet fallback was unavailable too. Per the researcher hard rules ('if you did not fetch a URL stating the fact for THIS vendor in THIS session, the value is Not known'), every Bucket A field below is 'Not known' with confidence 'none'. This is a statement about this session's network access, not about Salesforce's documentation, which is extensive (legal agreements incl. the DPA at salesforce.com/company/legal/agreements/, the Trust and Compliance Documentation portal at compliance.salesforce.com with per-service Security, Privacy & Architecture docs, Infrastructure & Sub-processors docs, and certification listings, and the privacy statement at salesforce.com/company/privacy/). A re-run from an unrestricted network (or with search budget) should be able to fill most of these fields from those pages before falling back to the written vendor questionnaire.",
+  "fields": {
+    "1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No public documentation could be fetched this session; attempted https://www.salesforce.com/company/legal/agreements/ (WebFetch HTTP 403) and https://compliance.salesforce.com/en (WebFetch HTTP 403), both confirmed as gateway egress-policy CONNECT denials via direct curl; WebSearch budget exhausted before this vendor. The contracting Salesforce legal entity depends on the customer's region (Salesforce contracts through regional entities), so the correct value is the entity named on the signed Tavus-Salesforce order form / MSA / DPA — for a US customer that is commonly the US parent 'Salesforce, Inc.' (a Delaware corporation), but that is training-data knowledge, NOT a fetched source, and is deliberately not asserted. Field playbook: 1.1 must match the entity named in the TOM questionnaire #8.3 Tavus already submitted — no TOM questionnaire file exists in this repo, so the filler/human must take the entity name and legal form from that submission and from the signed agreement's signature block, which are authoritative."
+    },
+    "1.1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Registered/full address and any Article 27 GDPR EU representative could not be sourced: salesforce.com and compliance.salesforce.com blocked by the session egress policy (gateway 403 CONNECT denial); no WebSearch budget remained. Headquarters is widely reported as Salesforce Tower, 415 Mission Street, San Francisco, CA 94105 — training-data knowledge, NOT asserted as a value. Whether the US entity names an Art. 27 EU representative or instead relies on EU establishments (Salesforce has EU affiliates, e.g. in Ireland, which would make Art. 27 inapplicable to the group's EU-established entities) is unknown and must be confirmed in writing; absence of a rep can be a legitimate finding but was not established this session. Unverified lead from the skill's prior-session outreach file (data/vendor_contacts.md, snippet-sourced): privacy contact privacy@salesforce.com, phone +1-855-938-3410 — the form requires a working privacy contact in this column when 1.1.2 is N/A; re-verify against the current privacy statement before use."
+    },
+    "1.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Could not fetch the Salesforce privacy statement or any GDPR page this session (egress policy 403 on all salesforce.com hosts; no search budget). Unverified leads from the skill's prior-session outreach file (data/vendor_contacts.md, snippet-sourced, NOT primary sources fetched this session): the Salesforce Privacy Statement reportedly directs data-protection contacts to 'Salesforce Data Protection Officer (Salesforce Privacy Team)' via privacy@salesforce.com or datasubjectrequest@salesforce.com, phone +1-855-938-3410; a Salesforce news Q&A identifies Lindsey Finch (EVP Global Privacy) as Salesforce's Data Protection Officer (title/currency uncertain, snippet truncated). This suggests Salesforce DOES have a formally designated DPO function, so do NOT write 'N/A' here without confirmation — but per hard rules the value stays 'Not known' until a primary page is fetched or the vendor confirms in writing. No name is asserted."
+    },
+    "1.4.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Certifications actually held could not be verified this session: https://compliance.salesforce.com/en (the Salesforce Trust and Compliance portal where audit reports, certificates, and scope statements are published per service) was blocked by the session egress policy (gateway 403 CONNECT denial), as was www.salesforce.com; WebSearch budget exhausted. No certification is asserted from memory or industry norms per hard rules — Salesforce is widely understood to hold SOC 1/2/3, ISO 27001/27017/27018/27701 etc. for core services, but that is training-data knowledge and cert scope varies by Salesforce service/cloud, so nothing is written. GATE from field playbook: even once certifications are confirmed, do not assert SOC 2 in the form until Salesforce's report is confirmed on file in Vanta — config/scope.yaml has soc2_on_file_in_vanta: null for Salesforce. Request the current SOC 2 Type II report and ISO certificates with scope statements covering the specific Salesforce services Tavus uses (Sales Cloud CRM), via compliance.salesforce.com self-serve download once reachable or in writing."
+    },
+    "3.1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Encryption-in-transit standard (TLS version floor) not verifiable this session: the per-service 'Security, Privacy and Architecture' documentation on compliance.salesforce.com, which states transport encryption for each Salesforce service, was blocked by the session egress policy (gateway 403); salesforce.com help/trust pages equally unreachable; no search budget. Deliberately NOT asserting a TLS version from memory per hard rules. Note validate.py accepts 'Not known' for this dropdown even though the form's own list has no such option — before workbook fill this must be resolved by re-research or the vendor's written answer (ask for the minimum TLS version enforced for the Salesforce services Tavus uses, e.g. *.my.salesforce.com endpoints)."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Encryption-at-rest algorithm not verifiable this session — same blocked sources as 3.1.1 (compliance.salesforce.com Security, Privacy and Architecture docs; salesforce.com help). Deliberately NOT asserting AES-256 from industry norm or memory per hard rules. Note that baseline at-rest encryption coverage on the core Salesforce Platform historically differs from the paid 'Shield Platform Encryption' add-on — which tier applies to Tavus's org matters; ask the vendor to state algorithm, key length, and which data (database, file storage, backups) is covered on Tavus's edition without Shield."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Backup encryption is rarely documented separately even on reachable trust pages (per field playbook, 'Not known' is common and correct here); this session no Salesforce page could be fetched at all (egress policy 403 on all salesforce.com hosts; no search budget). Ask vendor: are backups of customer data encrypted, with which algorithm, and are backup keys managed the same way as production keys?"
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Key provider not verifiable this session (same blocked sources). Salesforce is known in the market to offer 'Shield Platform Encryption' with Bring Your Own Key / customer-held key material via Cache-Only Keys — but that is training-data knowledge, NOT a fetched source, so it is deliberately not asserted; it is listed as a question instead. If confirmed: a default org without Shield/BYOK would map to 'Key generated by Subprocessor (not customer-specific)' and a BYOK deployment to 'Key generated by your company' — the human must also confirm whether Tavus's Salesforce org uses Shield Platform Encryption or BYOK (unlikely for a standard CRM deployment, but do not guess)."
+    },
+    "3.1.6": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary-source statement about an anonymization capability could be obtained this session (all salesforce.com hosts blocked by egress policy; no search budget). Salesforce markets 'Data Mask' (anonymize/pseudonymize/delete sandbox data) — training-data knowledge, not asserted. Ask vendor whether Salesforce, acting as processor, can anonymize personal data in the customer's org (e.g. Data Mask, record deletion/obfuscation on instruction) and whether that capability is included in Tavus's edition."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary-source statement about a pseudonymization capability could be obtained this session (same access failure as 3.1.6). Ask vendor (same Data Mask / platform-capability question, pseudonymization variant)."
+    },
+    "3.1.8": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Other technical safeguards (access controls and least-privilege for Salesforce personnel, MFA enforcement, event monitoring/audit trail, network security, penetration testing, vulnerability management, Hyperforce architecture controls) are extensively documented in the per-service Security, Privacy and Architecture documentation on compliance.salesforce.com, but none of it could be fetched this session (egress policy 403); nothing is asserted from memory per hard rules. Re-run research or take the answer from Salesforce's SOC 2 report / Security, Privacy and Architecture doc once obtained."
+    },
+    "3.2.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "The test is 'does the vendor OFFER an EU region', not 'does Tavus use it'. Salesforce markets EU data residency (EU instances/Hyperforce EU regions and an 'EU Operating Zone' offering), but no Salesforce page stating this could be fetched this session (salesforce.com and compliance.salesforce.com blocked by egress policy; no search budget), so per hard rules the value stays 'Not known'. Ask vendor: do you offer EU data residency for the services Tavus uses (Sales Cloud CRM), which data categories does it cover (customer data vs. metadata, logs, support access), and is it available on Tavus's edition/contract?"
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm the exact legal entity that contracts with Tavus for the Salesforce CRM service — full legal name, legal form, and state/country of incorporation (e.g. 'Salesforce, Inc.', a Delaware corporation, or a regional Salesforce affiliate) — and provide that entity's registered office / principal place of business address.",
+    "Has the contracting Salesforce entity designated a representative in the EU under Article 27 GDPR (and in the UK under UK GDPR)? If Art. 27 does not apply because processing runs through EU-established Salesforce affiliates, please identify the relevant EU entity and its address.",
+    "Have you formally appointed a Data Protection Officer? Public materials reference a 'Salesforce Data Protection Officer (Salesforce Privacy Team)' reachable via privacy@salesforce.com — please confirm the authoritative DPO contact (name if publishable, telephone number and/or email address) entitled to respond to data-protection-related requests from customers, as SAP requires a named channel.",
+    "Which certifications and audit reports does Salesforce currently hold that cover the specific services Tavus uses (Sales Cloud CRM): SOC 1, SOC 2 Type II (period covered and Trust Service Criteria in scope), SOC 3, ISO 27001, ISO 27017, ISO 27018, ISO 27701, BS 25999/ISO 22301, other? Please provide the current SOC 2 Type II report and ISO certificates with scope statements (under NDA if required) so Tavus can place them on file.",
+    "What minimum TLS version (e.g. TLS 1.2, TLS 1.3) is enforced for data in transit to the Salesforce services Tavus uses (e.g. *.my.salesforce.com and API endpoints)?",
+    "Which encryption algorithm and key length are used for customer data at rest in Tavus's Salesforce org (database, file storage) on the standard platform WITHOUT the Shield Platform Encryption add-on, and what changes with Shield?",
+    "Are backups of customer data encrypted, and with which algorithm? Are backup encryption keys managed the same way as production keys?",
+    "Who generates and manages the encryption keys for customer data at rest (Salesforce-managed platform keys vs. tenant-specific keys vs. customer-held keys via Shield BYOK / Cache-Only Keys)? Please confirm key handling for an org WITHOUT Shield (keys generated by Salesforce, not customer-specific?).",
+    "Can Salesforce, acting as a processor, anonymize and/or pseudonymize personal data in the customer's org (e.g. via Salesforce Data Mask or on documented customer instruction)? Which editions include this capability?",
+    "Beyond encryption, which other technical safeguards protect customer data (access controls and least-privilege for Salesforce personnel, MFA, event monitoring/audit trail, network segmentation, penetration testing cadence, vulnerability management, Hyperforce isolation controls)?",
+    "Does Salesforce offer EU data residency / an EU Operating Zone for the services Tavus uses? If yes: which data categories does it cover (customer data vs. metadata, logs, support access), on which infrastructure (Hyperforce EU regions), and is it available for Tavus's edition/contract?",
+    "Please provide your current sub-processor list for the Salesforce services Tavus uses (SAP requires the processing chain to Level 2, e.g. the underlying infrastructure providers such as Hyperforce hyperscalers)."
+  ]
+}

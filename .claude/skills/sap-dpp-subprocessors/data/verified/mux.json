@@ -1,0 +1,135 @@
+{
+ "vendor_name": "Mux, Inc.",
+ "slug": "mux",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to ALL Mux hosts (www.mux.com \u2014 carrying every one of the researcher's five source URLs: /files/mux-dpa.pdf, /privacy, /files/mux_iso_27001_Oct_2024_2027.pdf, /security, /docs/guides/ensure-data-privacy-compliance \u2014 plus mux.com and trust.mux.com) AND every fallback (web.archive.org, r.jina.ai, dataprivacyframework.gov). WebFetch returned HTTP 403 on all five source URLs and curl returned 'CONNECT tunnel failed, response 403' on every host, each probed individually this session (the gcp pass proved some domains DO pass the gateway, so per-host probing was done rather than assuming). This independently reproduces the exact condition the researcher disclosed \u2014 it was not taken from their caveat. Not one researcher source_url could be fetched. Per the verifier resolution rules ('unverifiable -> downgrade to Not known; never keep a value you could not confirm'), every sourced value has been downgraded. The researcher's claims, URLs and locators are preserved in each field's notes so a re-verification pass from an unrestricted network can restore them quickly. Additionally, the session web-search budget was exhausted (200/200) before the mandatory independent searches for the 'Not known' fields (3.1.2, 3.1.3, 3.1.4, 3.1.6, 3.2.1) could run, so no upgrades were possible either. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Mux domains.",
+ "fields": {
+  "1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Mux, Inc.\" citing https://www.mux.com/files/mux-dpa.pdf (locator: DPA title block 'Mux, Inc. Data Processing Addendum, Updated April 1, 2025'; also named in ToS and Privacy Policy). PDF unreachable (gateway 403 CONNECT denial; archives also blocked). The claim itself is low-risk \u2014 'Mux, Inc.' is the name Mux uses everywhere \u2014 but per the rules an unfetched PDF confirms nothing. State of incorporation was correctly NOT asserted by the researcher (ToS California governing law is not an incorporation statement) \u2014 do not add one until a registry record or the signed Tavus\u2013Mux DPA is actually read. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check (verifier.md \u2014 a mismatch gets the whole package returned by SAP) could not be performed. Re-fetch the DPA and reconcile against the #8.3 submission before writing this cell."
+  },
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Mux, Inc., 50 Beale St., 9th Floor, San Francisco, CA 94105, USA; Privacy Policy correspondence address: Attn: Privacy Team, 88 Stevenson Street, San Francisco, CA 94105; no Article 27 GDPR EU representative identified\" citing https://www.mux.com/privacy (locator: Privacy Policy contact section for 88 Stevenson St + privacy@mux.com; 50 Beale St per ToS/company pages). Page unreachable (gateway 403 CONNECT denial). Three re-run items: (a) TWO different San Francisco addresses appear in Mux's own documents and the researcher could not determine which is current \u2014 ask the vendor for the registered address, do not pick one; (b) the Art.-27-absence claim is an absence-of-evidence claim from snippets of pages never fetched \u2014 Mux is a US processor relying on DPF self-certification for EU transfers, so Art. 27 plausibly applies; confirm on the live privacy page or in writing; (c) working privacy contacts per snippets (privacy@mux.com; gdpr@mux.com per the privacy-compliance docs guide) are needed in this column if 1.1.2 ends up 'N/A' \u2014 re-confirm both addresses from fetched pages."
+  },
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable) + DO-NOT-RESTORE-WITHOUT-CONFIRMATION FLAG: researcher claimed \"Cyril Duprat, dpo@mux.com (telephone not published)\" citing https://www.mux.com/files/mux-dpa.pdf, with the locator being an EXACT-PHRASE SEARCH MATCH against the PDF \u2014 the naming clause was never read. PDF unreachable (gateway 403 CONNECT denial). SUBSTANTIVE CONCERN beyond the network block, flagged by the researcher themselves: third-party directories place Cyril Duprat in a sales/UK-site-lead role at Mux, which is highly unusual for a formally designated Art. 37 DPO \u2014 a snippet-level phrase match on a PDF cannot distinguish 'is designated DPO' from an incidental mention (e.g. a notices/signature block). Writing a wrong person's name as DPO on an SAP submission is exactly the invented-name failure the playbook forbids. Do NOT restore this name even after a clean re-fetch unless the DPA clause explicitly designates them DPO; get Mux's written confirmation of (a) whether a DPO is formally designated under Art. 37 GDPR and (b) the DPO's current name, email and phone. If no DPO is designated, this cell becomes 'N/A' and the working privacy contact (privacy@mux.com / gdpr@mux.com \u2014 themselves unverified) moves to the 1.1.1 column per the form instructions. Logged to review_queue.md."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"ISO 27001\" (dropdown pick) citing https://www.mux.com/files/mux_iso_27001_Oct_2024_2027.pdf (locator: ISO 27001 Certificate of Registration hosted on mux.com, Oct 2024\u20132027 cycle; earlier Feb 2022\u20132025 certificate at /files/mux_iso_27001_Feb_2022_2025.pdf; mux.com/security states the certificate covers digital and physical security for Mux Data and Mux Video). Certificate PDF unreachable (gateway 403 CONNECT denial). The pick is plausibly the strongest ISO 27001 claim in this vendor set \u2014 a certificate PDF self-hosted by the vendor is directly attachable evidence once fetched \u2014 so re-verification is likely to restore it quickly; verify the certified entity name, validity dates and scope on the certificate itself. Researcher correctly did NOT assert SOC 2: no public source confirms one, trust.mux.com is Conveyor-gated, and scope.yaml has soc2_on_file_in_vanta: null for Mux \u2014 per the field playbook (row 14) SOC 2 stays out until a report is on file in Vanta. DPF self-certification is not a dropdown option (correctly noted, not selected). FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option (allowed: Self-created audit report(s)/ISO 9001/ISO 27001/BS 25999-ISO 22301/ISO 27701/ISO 27018/SOC 1/SOC 2/SOC 3) \u2014 this cell stays EMPTY until the certificate is fetched and attached."
+  },
+  "3.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher picked \"Others - pls indicate below\" citing https://www.mux.com/security (locator: data encrypted in transit \u2014 HTTPS/TLS for API, ingest and delivery; RTMPS wraps RTMP in TLS per ingest-protocol docs). Page unreachable (gateway 403 CONNECT denial). The researcher's reasoning was sound and honest: TLS is used but no minimum version is published, so they correctly refused to pick 'TLS 1.2'/'TLS 1.3' without a source \u2014 the same discipline endorsed on the cerebrium/replicate/fal/inworld/cartesia passes. FORM-SPEC WARNING: the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others - pls indicate below/None) \u2014 this cell cannot be written from this file; re-confirm 'Others - pls indicate below' against a fetched security page, or better, get the vendor's written minimum TLS version for API, RTMP(S)/SRT ingest, and HLS delivery endpoints, then use the exact dropdown string. Logged to review_queue.md (downgrade target not writable in this dropdown)."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed: session web-search budget exhausted (200/200) and all Mux hosts plus archive mirrors are CONNECT-denied from this sandbox. Researcher's finding (Mux states encryption at rest exists \u2014 security page 'data encryption in transit and at rest', encrypted stored video segments per secure-playback docs, MPEG Common Encryption CBCS for DRM delivery \u2014 but NO source states the at-rest algorithm) is plausible but itself snippet-sourced. 'Not known' is an allowed dropdown value for 3.1.2, so the value is writable. Ask vendor for the at-rest algorithm (e.g. AES-256) covering stored video content and metadata. No upgrade."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Mux domains CONNECT-denied). Researcher's finding (backup encryption not documented separately anywhere accessible; DPA Exhibit 2 TOMs reportedly cover protection against accidental destruction/loss but name no backup-encryption standard) matches the field playbook's expectation for row 59 \u2014 'Not known' is common and correct. Ask vendor whether backups of customer content are encrypted and with which algorithm. No upgrade."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Mux domains CONNECT-denied). The researcher correctly refused the playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') absent a primary source, and correctly distinguished DRM/signed-URL playback key handling (content-protection features) from at-rest key management \u2014 that discipline stands. SECOND GATE regardless of re-verification: if Mux offers and Tavus uses any customer-managed key option, the answer flips to 'Key generated by your company' \u2014 human must confirm Tavus's actual configuration. No upgrade."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Mux domains CONNECT-denied). Researcher's reasoning preserved and endorsed: Mux itself labels its Mux Data IP-truncation as PSEUDONYMIZATION, not anonymization, and no anonymization capability is documented for video content (the data Tavus actually sends) \u2014 the researcher avoided the anonymization-conflation trap that produced disputes on the replicate/elevenlabs/fal/deepgram passes. Ask vendor whether personal data (including uploaded video) can be anonymized on customer instruction. No upgrade."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable) + DROPDOWN DISAGREEMENT, human decision required: researcher answered \"Yes\" citing https://www.mux.com/docs/guides/ensure-data-privacy-compliance (locator: Mux Data pseudonymizes viewer IPs by truncation to /24 for IPv4, stores only the pseudonymized value; EU-processed personal data pseudonymized before transfer to the US). Page unreachable (gateway 403 CONNECT denial). SUBSTANTIVE DISPUTE independent of the network block: the documented pseudonymization is scoped to MUX DATA (playback-analytics telemetry: viewer IPs, viewer IDs) \u2014 but per scope.yaml Tavus uses Mux for 'video streaming and encoding' with data_touched 'video content'. Row 63 asks whether the subprocessor can pseudonymize the personal data it processes; no pseudonymization is documented for video assets or their metadata, and the researcher's own note concedes the scope question. Answering 'Yes' on the strength of an analytics-product feature that may not even be in Tavus's processing scope is the same product-scoping trap disputed on prior passes (deepgram 3.1.6 output-redaction, elevenlabs/fal own-purpose de-identification). Do not restore 'Yes' from this citation alone even after a clean re-fetch \u2014 either (a) confirm Mux Data telemetry is part of what Mux processes for Tavus AND cite the fetched page, or (b) get the vendor's written answer on pseudonymizing video content, else keep 'Not known' ('Not known' is an allowed dropdown value for 3.1.7). Logged to review_queue.md."
+  },
+  "3.1.8": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher assembled seven free-text safeguard lines (ISO 27001 ISMS covering Mux Video + Mux Data; signed playback URLs \u2014 RSA/SHA-256 JWTs; DRM via MPEG Common Encryption CBCS with license-based key delivery; webhook HMAC-SHA-256 signatures; DPA Exhibit 2 TOMs \u2014 physical/IT access control, disclosure/transport controls, documented-instructions processing with segregation of responsibilities, protection against accidental destruction or loss; TOM effectiveness audited regularly by an independent third party engaged by Mux; EU-U.S./Swiss-U.S./UK-U.S. Data Privacy Framework self-certification) with primary citation https://www.mux.com/files/mux-dpa.pdf and a composite locator spanning five URLs (mux-dpa.pdf, docs/guides/secure-video-playback, docs/guides/protect-videos-with-drm, docs/core/verify-webhook-signatures, files/mux_iso_27001_Oct_2024_2027.pdf). NONE of the pages was reachable (gateway 403 CONNECT denial); the researcher themselves instructed the verifier to fetch each URL before these lines go into the form \u2014 that could not be done. Every line is snippet-sourced only; none can go to SAP unconfirmed. Re-run flags: (a) re-verify EACH line against its OWN page \u2014 the composite locator spans five URLs; (b) the signed-URL and DRM lines are optional content-protection features for published playback, not necessarily safeguards on the Tavus data flow \u2014 confirm relevance before listing; (c) the DPF self-certification line has a second, independent primary source at dataprivacyframework.gov (gateway-blocked this session) \u2014 check the active listing there; (d) the ISO 27001 line duplicates field 1.4.2 \u2014 keep them consistent."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Mux domains CONNECT-denied). Researcher's reasoning preserved and endorsed: no source states Mux offers an EU region / EU data residency for Mux Video, and the indicative evidence points the other way (Mux's own privacy-compliance guide reportedly says EU-processed analytics data is pseudonymized then 'sent to the United States for customer reporting and archival storage'; DPF reliance for EU-US transfers) \u2014 but the researcher correctly held that absence of evidence is not a 'No' and kept 'Not known'. The playbook test is 'offers an EU region', not 'we use it'. Ask vendor directly whether customer video content can be kept within the EU. No upgrade."
+  }
+ },
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "downgraded_to_not_known",
+   "1.1.1": "downgraded_to_not_known",
+   "1.1.2": "downgraded_to_not_known",
+   "1.4.2": "downgraded_to_not_known",
+   "3.1.1": "downgraded_to_not_known",
+   "3.1.2": "not_upgraded_search_unavailable",
+   "3.1.3": "not_upgraded_search_unavailable",
+   "3.1.4": "not_upgraded_search_unavailable",
+   "3.1.6": "not_upgraded_search_unavailable",
+   "3.1.7": "downgraded_to_not_known",
+   "3.1.8": "downgraded_to_not_known",
+   "3.2.1": "not_upgraded_search_unavailable"
+  },
+  "disputes": [
+   "mux/ALL sourced fields: network gateway policy-denies CONNECT to www.mux.com (host of all five source URLs), mux.com, trust.mux.com AND web.archive.org/r.jina.ai/dataprivacyframework.gov \u2014 zero source URLs fetchable via WebFetch (403) or curl (CONNECT 403), each host probed individually this session (independently reproduced, not taken from the researcher's caveat); all 7 sourced fields verdict unverifiable, values downgraded to Not known per resolution rules",
+   "mux/1.1: TOM questionnaire #8.3 not found in repo \u2014 mandatory legal-entity cross-check (verifier.md) could not be performed; state of incorporation correctly not asserted by researcher (California governing law is not an incorporation statement) \u2014 do not add one until a registry record or the signed Tavus\u2013Mux DPA is read",
+   "mux/1.1.1: two different San Francisco addresses in Mux's own documents (50 Beale St 9th Floor vs 88 Stevenson St) \u2014 unresolved; ask vendor which is the registered address; Art.-27-absence is an absence-of-evidence claim from snippets of unfetched pages \u2014 confirm in writing",
+   "mux/1.1.2: DO-NOT-RESTORE FLAG independent of the network block \u2014 'Cyril Duprat, dpo@mux.com' rests on an exact-phrase search match against an unfetched PDF, while third-party directories place the same person in a sales/UK-site-lead role; a phrase match cannot distinguish a formal Art. 37 DPO designation from an incidental mention, and a wrong DPO name on an SAP submission is the invented-name failure the playbook forbids. Vendor written confirmation required before any name is written; if no DPO, 'N/A' here + privacy contact in 1.1.1. Human decision required",
+   "mux/1.4.2: dropdown has no 'Not known' option \u2014 cell stays empty; ISO 27001 pick is likely restorable on re-fetch (vendor-hosted certificate PDF = attachable evidence); researcher correctly withheld SOC 2 (scope.yaml soc2_on_file_in_vanta null, trust.mux.com Conveyor-gated) \u2014 Vanta gate stands regardless of re-verification",
+   "mux/3.1.1: dropdown has no 'Not known' option \u2014 cell cannot be written from this file; researcher's honest pick was 'Others - pls indicate below' (TLS, minimum version unpublished) \u2014 re-confirm against a fetched page or get the vendor's written TLS floor for API/ingest/delivery; never a specific TLS version without a source",
+   "mux/3.1.7: DROPDOWN DISAGREEMENT independent of the network block \u2014 researcher answered 'Yes' from Mux DATA's viewer-IP truncation (playback-analytics product), but scope.yaml has Tavus using Mux for video streaming/encoding with 'video content' as the data touched; no pseudonymization is documented for video assets, so the cited capability may not cover the personal data Mux processes for Tavus (same product-scoping trap as deepgram 3.1.6 / elevenlabs 3.1.6). Do not restore 'Yes' from this citation alone after re-fetch; keep 'Not known' pending scope confirmation or the vendor's written answer. Human decision required",
+   "mux/3.1.8: all seven safeguard lines snippet-sourced and unverifiable; composite locator spans five URLs \u2014 re-verify each line against its own page; signed-URL/DRM lines are optional playback content-protection features, confirm relevance to the Tavus data flow before listing; DPF line double-checkable at dataprivacyframework.gov (blocked this session)",
+   "mux/3.1.2+3.1.3+3.1.4+3.1.6+3.2.1: mandatory independent searches skipped \u2014 session web-search budget exhausted (200/200) and all fetch fallbacks gateway-denied; values stay Not known, zero upgrades",
+   "mux/bucket-check: PASS \u2014 no Bucket B or Bucket C field was populated by the researcher (1.4.2 is A+B per the playbook; only its researched A-part is present); level 1 matches scope.yaml"
+  ],
+  "network_note": "Re-run this verification from an environment that can reach www.mux.com before any value from data/vendors/mux.json is promoted. The researcher's claims are internally consistent and carefully caveated (confidence capped at 'low', snippet-sourcing disclosed, SOC 2 correctly withheld, industry-norm inferences refused on 3.1.4/3.1.6/3.2.1); most values are downgraded because they could not be independently confirmed, not because contrary evidence was found \u2014 with two exceptions: 1.1.2, where a phrase-matched name on an unfetched PDF conflicts with third-party role information and must not be restored without the vendor's written confirmation, and 3.1.7, where the cited Mux Data pseudonymization would not clearly support 'Yes' for the video-content processing Tavus actually uses Mux for, even if the page were fetched."
+ },
+ "open_questions_for_vendor": [
+  "Please confirm the full legal name, legal form, and state/country of incorporation of the Mux contracting entity (Mux, Inc.), and its current registered address (50 Beale St 9th Floor vs 88 Stevenson Street, San Francisco).",
+  "Have you appointed a representative in the EU under Article 27 GDPR? If yes, please provide the representative's name and full address (and the UK equivalent, if any).",
+  "Is a Data Protection Officer formally designated under Article 37 GDPR? Please confirm the DPO's name, telephone number, and email address (your DPA names Cyril Duprat / dpo@mux.com \u2014 please confirm this is current and that this is a formal DPO designation).",
+  "What minimum TLS version do you enforce for data in transit (API, video ingest, and delivery endpoints)?",
+  "What encryption standard/algorithm is used for encryption at rest of stored customer video content and associated metadata (e.g. AES-256)?",
+  "Are backups of customer content encrypted, and with which algorithm?",
+  "Who generates and manages the encryption keys for data at rest \u2014 Mux (customer-specific or shared keys?) or can customers supply/manage their own keys (BYOK/CMEK)?",
+  "Can personal data (including uploaded video content) be anonymized and/or pseudonymized by Mux on customer request, beyond the documented Mux Data IP-address truncation? In particular, does any pseudonymization capability apply to video assets and their metadata (the data Tavus sends), as opposed to Mux Data viewer telemetry?",
+  "Do you hold a current SOC 2 Type II report in addition to your ISO 27001 certification? Please share the report (e.g. via trust.mux.com) so it can be placed on file.",
+  "Do you offer an EU region or EU data residency option for Mux Video storage/processing, i.e. can customer video content be kept within the EU?"
+ ]
+}

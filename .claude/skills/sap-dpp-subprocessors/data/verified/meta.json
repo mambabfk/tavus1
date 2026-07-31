@@ -1,0 +1,135 @@
+{
+ "vendor_name": "Meta Platforms, Inc.",
+ "slug": "meta",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to ALL Meta hosts carrying the researcher's source URLs (llama.developer.meta.com \u2014 the Llama API ToS cited on 1.1/3.1.1/3.1.2/3.1.8; www.facebook.com \u2014 privacy policy and Meta Global Processor Terms cited on 1.1.1/3.1.6; about.fb.com \u2014 newsroom page cited on 1.1.2) AND the fallback primary sources (www.sec.gov / efts.sec.gov for the entity check, ai.meta.com, www.llama.com). WebFetch returned HTTP 403 on every source URL and curl returned 'CONNECT tunnel failed, response 403' per host, each probed individually this session (the gcp pass proved some domains DO pass the gateway, so per-host probing was done rather than assuming) \u2014 this independently reproduces the exact condition the researcher disclosed; it was not taken from their caveat. Not one source URL could be fetched. Per the verifier resolution rules ('unverifiable -> downgrade to Not known; never keep a value you could not confirm'), every sourced value has been downgraded. The session web-search budget was also exhausted (200/200) before the mandatory independent searches for the 'Not known' fields (1.4.2, 3.1.3, 3.1.4, 3.1.7, 3.2.1) could run, so no upgrades were possible either. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Meta domains. CARRIED-FORWARD RESEARCHER CAVEAT (ITSELF UNVERIFIED, HIGHEST PRIORITY): the researcher reports Meta's own deprecation notice (https://llama.developer.meta.com/docs/llama-api-deprecation/) states the Llama API public preview WOUND DOWN ON JULY 6, 2026 \u2014 before today. If true, Meta may no longer be an active Tavus sub-processor and this column may belong OFF the form (or annotated as terminated). That page is also gateway-blocked and could not be confirmed. A human must decide whether Meta is still on the sub-processor list BEFORE anyone spends time restoring the values below.",
+ "fields": {
+  "1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Meta Platforms, Inc. (US corporation, 'Inc.'; Delaware per SEC filings). Per the Llama API Terms of Service, the agreement is with Meta Platforms, Inc. for customers located in the United States or Canada, and with Meta Platforms Ireland Limited for customers located elsewhere \u2014 Tavus (US) would contract with Meta Platforms, Inc.\" citing https://llama.developer.meta.com/legal/terms-of-service (locator: ToS opening/parties clause). Page unreachable (gateway 403 CONNECT denial); the SEC EDGAR fallback that would independently settle name/form/state (Meta is public, CIK 0001326801) is ALSO gateway-denied \u2014 do the EDGAR lookup on the re-run. The claim itself is low-risk ('Meta Platforms, Inc.' is Meta's universally used legal name), but per the rules an unfetched ToS confirms nothing \u2014 in particular the US-vs-Ireland contracting-entity split must be read from the actual ToS or the signed Tavus agreement. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check (verifier.md \u2014 a mismatch gets the whole package returned by SAP) could not be performed. AND: if the Llama API wound down 2026-07-06 (see research_caveat), the contracting relationship itself may be terminated \u2014 confirm before writing this cell."
+  },
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Meta Platforms, Inc., 1 Meta Way, Menlo Park, CA 94025, USA (ATTN: Privacy Operations); EU establishment Meta Platforms Ireland Limited, Merrion Road, Dublin 4, D04 X2K5, Ireland; no separate Article 27 GDPR representative \u2014 Meta operates through its own EU establishment\" citing https://www.facebook.com/privacy/policy/ (locator: 'How to contact Meta' sections; 1 Meta Way also as principal executive office in a Meta SEC Form S-8 POS). Page unreachable (gateway 403 CONNECT denial); the SEC filing that corroborates the 1 Meta Way address is on sec.gov, ALSO gateway-denied \u2014 fetch it on the re-run, it is the fastest restoration path for the US address. Re-run items: (a) the researcher's own locator notes older policy versions used 1601 Willow Road \u2014 confirm the CURRENT address on the live policy; (b) the Art.-27-absence claim is an absence-of-evidence claim from snippets of pages never fetched \u2014 for a group with an EU establishment (Meta Platforms Ireland Limited) no Art. 27 rep is expected, which is a legitimate finding, but it was never positively confirmed; confirm on a fetched page or in writing; (c) if 1.1.2 ends up 'N/A', a working privacy contact must appear in this column per the form instructions."
+  },
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable) + SCOPE FLAG, human decision required: researcher claimed \"Susan Cooper, Global Data Protection Officer; DPO contact form https://www.facebook.com/help/contact/540977946302970; postal: Data Protection Officer, Meta Platforms Ireland Limited, Merrion Road, Dublin 4, D04 X2K5, Ireland; no direct phone/email published\" citing https://about.fb.com/news/2025/08/privacy-conversations-risk-management-ai-susan-cooper-bojana-belamy/ (a NEWSROOM INTERVIEW page). Page unreachable (gateway 403 CONNECT denial). Two substantive concerns beyond the network block, the first partly flagged by the researcher themselves: (a) the published DPO designation attaches to Meta Platforms IRELAND Limited (the GDPR establishment), while the claimed contracting entity for a US customer is Meta Platforms, INC. \u2014 whether the same DPO formally covers the US entity was never confirmed, and the form cell must describe the sub-processor entity actually named in 1.1; (b) a newsroom interview identifying a person's title is weaker evidence of a formal Art. 37 designation than the privacy policy's own DPO section \u2014 on the re-run, source the name from the policy/help-center DPO designation page, not press. Unlike most US vendors Meta very likely DOES have a formal DPO, so 'N/A' is probably wrong here \u2014 but no name goes to SAP without a fetched primary source or Meta's written confirmation. Note the form asks for name plus telephone and/or email; only a web form and postal address were found \u2014 ask Meta for a phone/email the DPO can be reached at, or confirm the web form suffices."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed: session web-search budget exhausted (200/200) and all Meta hosts plus SEC/archive fallbacks are CONNECT-denied from this sandbox. Researcher's reasoning preserved and endorsed: no SOC 1/2/3 or ISO certification covering the LLAMA API was found on any Meta primary source; Meta's ISO 27001 page covers the WhatsApp Business Platform Cloud API \u2014 a DIFFERENT product \u2014 and asserting it for the Llama API would violate the no-inference rule (correctly refused; same product-scoping discipline the verifier had to enforce on the deepgram/mux passes, here self-applied). Second gate regardless of re-verification: scope.yaml soc2_on_file_in_vanta: null for Meta \u2014 per the field playbook (row 14) no audit-evidence dropdown value is written until a report covering the Llama API service period is on file in Vanta. FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option \u2014 this cell stays EMPTY. Ask the vendor which certifications covered the Llama API during the period Tavus used it (already in open questions). No upgrade."
+  },
+  "3.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher picked \"Others - pls indicate below\" citing https://llama.developer.meta.com/legal/terms-of-service (locator: ToS / product page 'your data is encrypted in transit and at rest using industry-standard security' \u2014 no TLS version published for the Llama API). Page unreachable (gateway 403 CONNECT denial). The researcher's reasoning was sound and unusually careful: they correctly refused THREE tempting wrong sources \u2014 (a) the TLS 1.3/mTLS material at llama.com/docs/deployment/security-in-production/ (customer SELF-HOSTED deployments, not the Meta-operated API), (b) the 'TLS 1.2 or equivalent' line in Meta's developer Data Security Requirements (obligations Meta imposes on THIRD-PARTY app developers, not statements about Meta's own service), and (c) Meta's Data Security Terms 'appropriate protocols' language (no version). That discipline stands; do not let a re-run regress into any of those three. FORM-SPEC WARNING: the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others - pls indicate below/None) \u2014 this cell cannot be written from this file; re-confirm 'Others - pls indicate below' against a fetched page or get Meta's written TLS floor for the Llama API endpoints (moot if the service is confirmed terminated). Logged to review_queue.md."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT (already the correct dropdown string for row 3.1.2); the SUPPORTING citation is unverifiable: researcher cited https://llama.developer.meta.com/legal/terms-of-service (locator: 'your data is encrypted in transit and at rest using industry-standard security'; 'Data processed by the Llama API is stored separately from other Meta product data') as affirming at-rest encryption exists while the algorithm/standard is unpublished \u2014 page unreachable (gateway 403 CONNECT denial), so even the encryption-exists claim is unconfirmed. Researcher correctly refused to upgrade to AES-256 from industry norms and correctly excluded the CMK/envelope-encryption content on llama.com deployment pages (customer self-hosted, not the Meta-operated API). Mandatory independent search could not run (web-search budget 200/200 exhausted). Ask vendor for the algorithm (already in open questions; moot if service terminated). No upgrade."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Meta domains CONNECT-denied). Researcher's finding (backup encryption not documented separately for the Llama API on any Meta primary source; searched the ToS, product page, Data Security Terms, and Meta TOMs pages via domain-restricted snippets) matches the field playbook's expectation for row 59 \u2014 'Not known' is common and correct here. Ask vendor whether backups of Llama API data are encrypted and with which algorithm (already in open questions). No upgrade."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Meta domains CONNECT-denied). The researcher correctly refused the playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') absent a primary source \u2014 the playbook itself calls that default an inference to check with a human, and no CMEK/BYOK offering is documented for the Llama API. SECOND GATE regardless of re-verification: if any customer-managed key option existed and Tavus used it, the answer flips to 'Key generated by your company' \u2014 human must confirm Tavus's actual configuration (moot if service terminated). No upgrade."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable) + DROPDOWN DISAGREEMENT, human decision required: researcher answered \"Yes\" citing https://www.facebook.com/legal/terms/Meta-Global-Processor-Terms/ (locator: MGPT General Terms 'Meta may de-identify and anonymize Applicable Personal Data received from Company under the Applicable Terms and Process such data as permitted by Applicable Law'; plus the Llama API ToS 'aggregate and anonymize data relating to how developers interact with the Services'). Page unreachable (gateway 403 CONNECT denial). SUBSTANTIVE DISPUTE independent of the network block: both cited clauses describe Meta's OWN RIGHT to de-identify/anonymize data for its own permitted business purposes \u2014 not an anonymize-on-customer-instruction processor capability, which is what row 62 asks about. The researcher flagged exactly this nuance in their own notes ('this is Meta's right to anonymize for its own permitted purposes, not necessarily an on-request anonymization service for the customer') and answered 'Yes' anyway \u2014 the same controller/own-purpose conflation the verifier disputed on the replicate, elevenlabs, fal and cerebras passes. Also note the second clause covers DEVELOPER USAGE data, not the personal data processed through the API. Do not restore 'Yes' from these citations even after a clean re-fetch; keep 'Not known' ('Not known' is an allowed dropdown value for 3.1.6) pending the vendor's written answer (already in open questions). Logged to review_queue.md."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Meta domains CONNECT-denied). Researcher's reasoning preserved and endorsed: the MGPT language found says 'de-identify and anonymize' \u2014 de-identification is not GDPR pseudonymization and equating them would be inference (correctly refused); Meta's TOMs page surfaced access-control/physical-security/transit-encryption measures but no pseudonymization statement. NOTED INCONSISTENCY for the human: the researcher applied this strict no-conflation reading on 3.1.7 but not on 3.1.6 (where the same MGPT clause was accepted as 'Yes') \u2014 the verifier has disputed 3.1.6 to match the 3.1.7 standard, not vice versa. Ask vendor (already in open questions). No upgrade."
+  },
+  "3.1.8": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher assembled nine free-text safeguard lines (API inputs/outputs not used to train Meta's AI models; strict role-based access controls; Llama API data stored separately from other Meta product data; customer data not used for advertising; MGPT personnel confidentiality obligations; least-privilege access management with regular reviews per Meta TOMs; MFA + encrypted remote access per Meta TOMs; data-center physical/environmental controls per Meta TOMs; MGPT 30-day return-or-delete on termination) with primary citation https://llama.developer.meta.com/legal/terms-of-service and a composite locator spanning FOUR sources (Llama API ToS, developer.meta.com product page, facebook.com MGPT, facebook.com Meta TOMs). NONE of the pages was reachable (gateway 403 CONNECT denial); every line is snippet-sourced only and none can go to SAP unconfirmed. Researcher discipline worth preserving on the re-run: they deliberately EXCLUDED safeguards from llama.com self-hosted deployment guides (mTLS, certificate pinning, CMK envelope encryption) as customer-operated, not Meta-operated \u2014 keep that exclusion. Re-run flags: (a) re-verify EACH line against its OWN page \u2014 the composite locator spans four URLs; (b) the no-training and no-ads commitments are the lines SAP will care about most \u2014 quote them verbatim from the fetched ToS; (c) the MGPT lines apply only if the MGPT is confirmed to be incorporated into the Llama API terms (that incorporation is itself an unverified snippet claim); (d) all of it is moot if the service is confirmed terminated \u2014 then the 30-day return-or-delete line becomes the question that matters (when was Tavus data deleted?)."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Meta domains CONNECT-denied). Researcher's reasoning preserved and endorsed: no Meta primary source states the Llama API offers an EU region / EU data residency, and the researcher correctly refused to misread the MGPT 'European Region Terms' (a TRANSFER MECHANISM governing international transfers, SCC-equivalent) as an EU processing-region offering \u2014 the playbook test is 'offers an EU region'. Largely moot given the reported 2026-07-06 service wind-down, but ask the vendor where Tavus's Llama API data was processed/stored and whether any Meta-hosted successor service offers EU Access (already in open questions). No upgrade."
+  }
+ },
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "downgraded_to_not_known",
+   "1.1.1": "downgraded_to_not_known",
+   "1.1.2": "downgraded_to_not_known",
+   "1.4.2": "not_upgraded_search_unavailable",
+   "3.1.1": "downgraded_to_not_known",
+   "3.1.2": "downgraded_to_not_known",
+   "3.1.3": "not_upgraded_search_unavailable",
+   "3.1.4": "not_upgraded_search_unavailable",
+   "3.1.6": "downgraded_to_not_known",
+   "3.1.7": "not_upgraded_search_unavailable",
+   "3.1.8": "downgraded_to_not_known",
+   "3.2.1": "not_upgraded_search_unavailable"
+  },
+  "disputes": [
+   "meta/ALL sourced fields: network gateway policy-denies CONNECT to llama.developer.meta.com, www.facebook.com, about.fb.com (the three hosts carrying all seven source URLs) AND the SEC EDGAR / ai.meta.com / llama.com fallbacks \u2014 zero source URLs fetchable via WebFetch (403) or curl (CONNECT 403), each host probed individually this session (independently reproduced, not taken from the researcher's caveat); all 7 sourced fields verdict unverifiable, values downgraded to Not known per resolution rules",
+   "meta/VENDOR-STATUS (blocks the whole column): the researcher reports Meta's own deprecation notice says the Llama API wound down 2026-07-06 \u2014 BEFORE the form date. Unverified (page gateway-blocked). If true, Meta may belong OFF the form or annotated as terminated, and the operative question becomes when Tavus data was deleted under the MGPT return-or-delete clause. Human decision required before any restoration work",
+   "meta/1.1: TOM questionnaire #8.3 not found in repo \u2014 mandatory legal-entity cross-check (verifier.md) could not be performed; the US-vs-Ireland contracting-entity split (Meta Platforms, Inc. for US/Canada customers) must be read from the actual ToS or signed agreement; SEC EDGAR would settle name/form/state but sec.gov is also gateway-denied \u2014 do the EDGAR lookup on the re-run",
+   "meta/1.1.2: SCOPE FLAG, human decision required \u2014 the claimed DPO (Susan Cooper) is sourced from a NEWSROOM INTERVIEW and the designation attaches to Meta Platforms IRELAND Limited, while the contracting entity for Tavus would be Meta Platforms, INC.; whether the DPO formally covers the US entity was never confirmed. On the re-run, source any name from the privacy policy's formal DPO designation, not press; no name goes to SAP without a fetched primary source or Meta's written confirmation. 'N/A' is probably also wrong (Meta very likely has a formal DPO) \u2014 this cell needs vendor confirmation either way",
+   "meta/1.4.2: dropdown has no 'Not known' option \u2014 cell stays empty; researcher correctly refused to project Meta's WhatsApp-scoped ISO 27001 onto the Llama API (product-scoping discipline self-applied); scope.yaml soc2_on_file_in_vanta null \u2014 Vanta gate stands regardless of re-verification",
+   "meta/3.1.1: dropdown has no 'Not known' option \u2014 cell cannot be written from this file; researcher's honest pick was 'Others - pls indicate below' (encryption affirmed, no TLS version published) and they correctly refused three tempting wrong sources (self-hosted deployment guide TLS 1.3; third-party-developer 'TLS 1.2 or equivalent' requirements; versionless Data Security Terms) \u2014 do not let a re-run regress into any of them",
+   "meta/3.1.6: DROPDOWN DISAGREEMENT independent of the network block, human decision required \u2014 researcher answered 'Yes' from the MGPT clause giving META THE RIGHT to de-identify/anonymize Applicable Personal Data for its own permitted purposes (plus a developer-USAGE-data aggregation clause); that is not an anonymize-on-customer-instruction processor capability, which is what row 62 asks. Researcher flagged the exact nuance in their own notes and answered Yes anyway \u2014 same own-purpose conflation disputed on replicate/elevenlabs/fal/cerebras. Do not restore 'Yes' from these citations even after a clean re-fetch; keep 'Not known' pending the vendor's written answer",
+   "meta/3.1.7-vs-3.1.6 consistency: researcher applied the strict no-conflation reading on 3.1.7 (de-identification is not pseudonymization -> 'Not known') but not on 3.1.6 \u2014 verifier has aligned 3.1.6 to the 3.1.7 standard",
+   "meta/3.1.8: all nine safeguard lines snippet-sourced and unverifiable; composite locator spans four URLs \u2014 re-verify each line against its own page; the MGPT lines depend on the (itself unverified) claim that the MGPT is incorporated into the Llama API terms; researcher's exclusion of self-hosted-deployment safeguards was correct \u2014 preserve it",
+   "meta/1.4.2+3.1.3+3.1.4+3.1.7+3.2.1: mandatory independent searches skipped \u2014 session web-search budget exhausted (200/200) and all fetch fallbacks gateway-denied; values stay Not known, zero upgrades",
+   "meta/bucket-check: PASS \u2014 no Bucket B or Bucket C field was populated by the researcher (1.4.2 is A+B per the playbook; only its researched A-part was present, and it was left 'Not known'); level 1 matches scope.yaml"
+  ],
+  "network_note": "Re-run this verification from an environment that can reach llama.developer.meta.com, facebook.com, about.fb.com and sec.gov before any value from data/vendors/meta.json is promoted. But FIRST resolve the vendor-status question: if the Llama API really wound down 2026-07-06, the correct deliverable may be removing Meta from the form (plus written confirmation of Tavus data deletion) rather than filling this column. The researcher's work is internally consistent and carefully caveated (confidence capped at 'low' throughout, snippet-sourcing disclosed, three wrong-source traps on 3.1.1 and the WhatsApp-ISO trap on 1.4.2 refused, industry-norm inferences refused on 3.1.2/3.1.4); most values are downgraded because they could not be independently confirmed, not because contrary evidence was found \u2014 with two exceptions: 3.1.6, where the cited MGPT clause does not support 'Yes' for the capability the row actually asks about even if the page were fetched, and 1.1.2, where the DPO claim is press-sourced and entity-mismatched and must not be restored without a formal designation source."
+ },
+ "open_questions_for_vendor": [
+  "Meta's deprecation notice states the Llama API public preview wound down on July 6, 2026. Please confirm in writing: (a) whether any Tavus data is still processed by Meta after that date, (b) when all Tavus Content (API inputs/outputs, logs) was or will be deleted per the MGPT return-or-delete obligations, and (c) whether Meta remains a Tavus sub-processor for any successor service.",
+  "Please confirm the exact Meta legal entity (name and legal form) that contracted with Tavus, Inc. for the Llama API (we understand Meta Platforms, Inc. for US customers) and its registered address, so it can be reconciled with the entity named in TOM questionnaire #8.3.",
+  "Does Meta Platforms, Inc. (as distinct from Meta Platforms Ireland Limited) designate a representative under Article 27 GDPR, or does the Meta group rely on its EU establishment (Meta Platforms Ireland Limited, Merrion Road, Dublin 4, D04 X2K5)? If a representative is designated, please provide name and full address.",
+  "Please confirm the authoritative Data Protection Officer contact for data-protection requests concerning Llama API customer data (name, telephone number and/or email address) \u2014 is the DPO of Meta Platforms Ireland Limited also formally competent for Meta Platforms, Inc., and is there a phone number or email address (rather than only a web form) at which the DPO can be reached?",
+  "Which third-party audit certifications (SOC 1 / SOC 2 / SOC 3, ISO 27001, ISO 27018, ISO 27701, ISO 22301, ISO 9001) covered the Llama API service and its infrastructure during the period Tavus used it, and can you provide the reports/certificates as audit evidence for row 1.4.2?",
+  "Your terms state Llama API data is 'encrypted in transit and at rest using industry-standard security'. Please specify: (a) the minimum TLS version enforced on the API endpoints, (b) the at-rest encryption algorithm (e.g. AES-256), (c) whether backups of Llama API data are encrypted and with which algorithm, and (d) who generates and manages the encryption keys (Meta-managed, customer-specific or not; any CMEK/BYOK option).",
+  "Beyond the MGPT right to de-identify and anonymize Applicable Personal Data for Meta's own permitted purposes, can Meta anonymize and/or pseudonymize customer personal data on the customer's instruction as a processor service?",
+  "Please confirm that the Meta Global Processor Terms were incorporated into the Llama API Terms of Service applicable to Tavus's use of the service.",
+  "Did the Llama API offer an EU processing region / EU data residency option ('EU Access'), and where (which country/region) was Tavus's Llama API data processed and stored?"
+ ]
+}

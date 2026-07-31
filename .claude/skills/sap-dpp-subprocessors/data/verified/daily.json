@@ -1,0 +1,137 @@
+{
+ "vendor_name": "Daily, Inc.",
+ "slug": "daily",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to ALL Daily domains (www.daily.co, daily.co, docs.daily.co, trust.daily.co, help.daily.co) for WebFetch and curl alike (independently reproduced this session: WebFetch HTTP 403 on the first two source URLs and curl 'CONNECT tunnel failed, response 403' on every host \u2014 not taken from the researcher's caveat; agent-proxy status shows 'gateway answered 403 to CONNECT (policy denial)'). Archive/mirror fallbacks (web.archive.org, r.jina.ai, webcache.googleusercontent.com) and the DPF registry (dataprivacyframework.gov) are also CONNECT-denied. Not one researcher source_url could be fetched. Per the verifier resolution rules ('unverifiable -> downgrade to Not known; never keep a value you could not confirm'), every sourced value has been downgraded. The researcher's claims, URLs and locators are preserved in each field's notes so a re-verification pass from an unrestricted network can restore them quickly. Additionally, the session web-search budget was exhausted (200/200) before the mandatory independent searches for the 'Not known' fields (3.1.3, 3.1.4, 3.1.6, 3.1.7) could run, so no upgrades were possible either. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Daily domains.",
+ "fields": {
+  "1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Daily, Inc.\" citing https://www.daily.co/legal/privacy/ (locator: legal-docs section \u2014 Privacy Policy, ToS, DPA, Sub-Processors pages; company page https://www.daily.co/company/). Page unreachable (gateway 403 CONNECT denial; archives also blocked). The researcher already disclosed that the legal form and state of incorporation were NOT confirmed from a fetched primary source \u2014 'Daily, Inc.' is how daily.co-restricted search snippets reference the company. Do not write a state of incorporation. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check (verifier.md) could not be performed \u2014 a mismatch here gets the whole package returned by SAP. Reconcile the signed Tavus\u2013Daily DPA signature block (authoritative) against the #8.3 submission before writing this cell."
+  },
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"full registered postal address not published (company page: founding team based in San Francisco, USA); privacy contact help@daily.co; no Article 27 GDPR representative identified\" citing https://www.daily.co/company/contact/ and https://www.daily.co/security/gdpr-compliance/. Pages unreachable (gateway 403 CONNECT denial). Two claims here need a fetched page, not a snippet: (a) the Art.-27-absence claim is an absence-of-evidence claim that MUST be confirmed on the live privacy/GDPR pages or in writing \u2014 Daily is a US company self-described as DPF-certified and targeting EU subjects, so a rep would normally be expected; (b) even the negative claim 'no published address' cannot be confirmed from snippets of pages never fetched in full. Registered address must come from the signed Tavus\u2013Daily DPA or vendor in writing. Researcher invented nothing \u2014 good \u2014 but nothing is confirmed either."
+  },
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"N/A \u2014 no formally named DPO; Daily's GDPR page references a 'Data Privacy Manager' role without publishing a name or phone; data-protection contact help@daily.co\" citing https://www.daily.co/security/gdpr-compliance/. Page unreachable (gateway 403 CONNECT denial). For the re-run: (a) the N/A-vs-named-DPO decision turns on whether the 'Data Privacy Manager' is a formally designated GDPR DPO \u2014 vendor written confirmation required; (b) if 'N/A' is written here, the working privacy contact (help@daily.co) must appear in the 1.1.1 column per the form spec; (c) researcher discipline noted and endorsed: one search summary attributed the role to 'Mark Backman' but a follow-up contradicted it (Daily's own blog describes him as leading Product) \u2014 the name was correctly NOT asserted; do not resurrect it on the re-run without a fetched primary source."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"SOC 2\" (dropdown pick) citing https://www.daily.co/products/security-at-daily/ (locator: 'Daily is SOC 2 Type 2 certified, covering the Security and Confidentiality Trust Service Criteria'; plus an ISO 27001 ISMS claim audited by Dansa D'Arata Soucia LLP on the same page / trust.daily.co). Pages unreachable (gateway 403 CONNECT denial). INDEPENDENT BLOCKER even if re-verified: scope.yaml has soc2_on_file_in_vanta: null for Daily \u2014 per the field playbook (row 14), do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta; the researcher self-flagged this gate in notes but populated the value anyway. SECOND unresolved point, correctly flagged by the researcher: the ISO 27001 sentence pivots to Daily's DATA CENTERS (AWS) holding ISO 27001 \u2014 whether Daily itself holds an ISO 27001 certificate vs. relying on AWS's must be settled with the vendor before 'ISO 27001' is ever considered as the dropdown pick. Do not conflate AWS facility certifications with Daily's own audits. Dropdown has no 'Not known' option \u2014 cell stays empty until both gates (page re-fetch + Vanta) clear."
+  },
+  "3.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Others - pls indicate below\" (real standard: WebRTC media via DTLS-SRTP with AES-256 in SFU mode / AES-128 minimum P2P; data channels DTLS; signaling/API '256-bit TLS' HTTPS-only, minimum TLS VERSION not published) citing https://www.daily.co/security/secure-calls/ and https://www.daily.co/security/security-controls/. Pages unreachable (gateway 403 CONNECT denial). The researcher's reasoning is sound and preserved: WebRTC media does not travel over plain TLS, and no Daily page surfaced published a TLS version floor, so none of the versioned dropdown options can be asserted honestly \u2014 never write 'TLS 1.2'/'TLS 1.3' without a source scoped to the signaling/API endpoints or written vendor confirmation. FORM-SPEC WARNING: the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others/None) \u2014 this cell cannot be filled from this file; re-confirm 'Others - pls indicate below' against a fetched page or the cell stays empty."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable) + DROPDOWN-SELECTION DISAGREEMENT (review_queue): researcher claimed \"AES-256\" citing https://www.daily.co/blog/hipaa-compliance-details-for-the-daily-co-video-call-api/ (locator: 'AES-256 encryption protects stored chat data' and 'Daily stores data encrypted both in flight and at rest'). Page unreachable (gateway 403 CONNECT denial). Beyond the network issue, the verifier disputes the selection itself: the only algorithm-specific statement covers STORED CHAT DATA on a HIPAA-marketing blog post \u2014 too narrow to assert AES-256 for the vendor's at-rest encryption generally (recordings, transcripts, logs, metadata). The researcher's own notes concede this ('verifier may prefer to downgrade to Others or Not known') and correctly refused to launder the AWS S3 default-encryption fact as a Daily statement. Also: in the Tavus deployment recordings can be written directly to a Tavus-managed S3 bucket ('Daily does not store the recording on its own servers at any point' in that configuration), in which case at-rest encryption of recordings is governed by Tavus's bucket settings, not Daily's. Do not restore 'AES-256' from the chat-data sentence alone after re-fetch \u2014 get the vendor's per-data-category algorithm in writing; human decides the dropdown."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed: session web-search budget exhausted (200/200) and all Daily domains plus archive mirrors are CONNECT-denied from this sandbox. Per the field playbook, 'Not known' is common and correct for row 59 (backup encryption is rarely documented separately). No upgrade."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Daily domains CONNECT-denied). The researcher correctly refused the playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') absent a primary source \u2014 that discipline stands; TLS-certificate tooling (Amazon/letsencrypt, 90-day rotation) is transport-cert management, not at-rest key management, and was rightly not counted as evidence. SECOND GATE regardless of re-verification: when recordings go to a Tavus-managed S3 bucket, at-rest keys for recordings sit on the Tavus/AWS side \u2014 if Tavus uses customer-managed keys there, the honest answer for that data category flips to 'Key generated by your company'; human must confirm Tavus's actual configuration. No upgrade."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Daily domains CONNECT-denied). Researcher correctly distinguished Daily's data-MINIMIZATION statements ('never stores audio/video except through documented recording APIs') from an anonymize-on-instruction processor capability \u2014 the conflation trap that produced disputes on the replicate/elevenlabs/fal passes was avoided here. Ask vendor. No upgrade."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Daily domains CONNECT-denied). No pseudonymization statement was found by the researcher either. Ask vendor. No upgrade."
+  },
+  "3.1.8": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher assembled eleven free-text safeguard lines (DTLS-SRTP AES-256 SFU / AES-128 P2P media encryption; optional true E2EE; HTTPS-only + 90-day cert rotation; least-privilege + 2FA + AWS IAM logging, employees cannot see calls; annual pen tests + HackerOne + Responsible Disclosure Policy; data minimization; direct-to-customer-S3 recordings; geofencing to Europe/US/Asia regions; SOC 2 Type 2 + ISO 27001 ISMS claim + DPF certification; HIPAA-capable configuration with BAA; AWS hosting with facility certifications) from six daily.co pages, primary citation https://www.daily.co/security/security-controls/. None of the pages was reachable (gateway 403 CONNECT denial). Every line is snippet-sourced only; none can go to SAP unconfirmed. Flags for the re-run: (a) whether geofencing / E2EE / the HIPAA configuration are enabled on the Tavus account are deployment facts for the human, not vendor capabilities to assert here; (b) do NOT let the 'true end-to-end encryption available' line leak into row 3.1.5 (Bucket C \u2014 almost certainly 'Partly'; E2EE is an option, not the default in SFU mode); (c) the researcher correctly kept the AWS facility certifications (SOC 1/SOC 2/ISO 27001) separate from Daily's own SOC 2 Type 2 \u2014 preserve that separation; (d) the DPF certification line is double-checkable on dataprivacyframework.gov (also gateway-blocked this session) as a second primary source. Re-verify each line against its page before restoring."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Yes\" (EU call-server region eu-central-1 Frankfurt added alongside eu-west-2 London; geofencing to confine media to geographic regions incl. Europe; transcription region can be set to 'eu') citing https://www.daily.co/blog/how-our-new-european-call-server-region-can-benefit-call-performance/ plus docs/security pages. Page unreachable (gateway 403 CONNECT denial). The playbook test ('offers an EU region', not 'we use it') was correctly applied and the claim is plausible and likely re-confirmable, but the rule is the rule: unverifiable values do not survive the pass. Flags for the re-run: (a) the primary citation is a BLOG POST \u2014 anchor the restored value to the docs/product page for region selection as well; (b) the researcher's own open point stands: Daily's surfaced pages describe geofencing for the MEDIA plane \u2014 whether signaling, API metadata, dashboard data and logs stay in-region is unconfirmed and belongs in the vendor questions; (c) note eu-west-2 is London \u2014 the UK is on SAP's 1.7 TIA country list, so the EU-member region (Frankfurt) is the one that matters; (d) whether Tavus USES the EU region is 3.2.2 (Bucket B, human answers). 'Not known' is an allowed dropdown value for 3.2.1."
+  }
+ },
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "downgraded_to_not_known",
+   "1.1.1": "downgraded_to_not_known",
+   "1.1.2": "downgraded_to_not_known",
+   "1.4.2": "downgraded_to_not_known",
+   "3.1.1": "downgraded_to_not_known",
+   "3.1.2": "downgraded_to_not_known",
+   "3.1.3": "not_upgraded_search_unavailable",
+   "3.1.4": "not_upgraded_search_unavailable",
+   "3.1.6": "not_upgraded_search_unavailable",
+   "3.1.7": "not_upgraded_search_unavailable",
+   "3.1.8": "downgraded_to_not_known",
+   "3.2.1": "downgraded_to_not_known"
+  },
+  "disputes": [
+   "daily/ALL sourced fields: network gateway policy-denies CONNECT to www.daily.co, daily.co, docs.daily.co, trust.daily.co, help.daily.co AND web.archive.org/r.jina.ai/webcache.googleusercontent.com/dataprivacyframework.gov \u2014 zero source URLs fetchable (independently reproduced this session via WebFetch 403 + curl CONNECT-403 per host, not taken from the researcher's caveat); all 8 sourced fields verdict unverifiable, values downgraded to Not known per resolution rules",
+   "daily/1.1: TOM questionnaire #8.3 not found in repo \u2014 mandatory legal-entity cross-check (verifier.md) could not be performed; 'Daily, Inc.' is snippet-sourced with legal form and state of incorporation unconfirmed \u2014 the signed Tavus\u2013Daily DPA signature block must settle the contracting entity before this cell is written",
+   "daily/1.4.2: independent blocker \u2014 scope.yaml soc2_on_file_in_vanta is null for Daily; playbook forbids asserting SOC 2 until the report is on file in Vanta, yet the researcher populated 'SOC 2' anyway (gate flagged only in notes); also unresolved: whether Daily itself holds ISO 27001 or only its AWS data centers do \u2014 do not conflate; dropdown has no 'Not known' option, cell stays empty until both gates clear",
+   "daily/3.1.1: form dropdown has no 'Not known' option \u2014 downgraded value cannot be written to the workbook cell; re-confirm 'Others - pls indicate below' (WebRTC media DTLS-SRTP AES-256; signaling/API TLS with no published version floor) against a fetched page or the cell stays empty; never write a versioned TLS option without a source scoped to the signaling/API endpoints",
+   "daily/3.1.2: DROPDOWN-SELECTION DISAGREEMENT, human decision required \u2014 researcher picked 'AES-256' from a HIPAA-blog statement covering STORED CHAT DATA only; too narrow to assert vendor-wide at-rest encryption (recordings/transcripts/logs unaddressed), and recordings written to a Tavus-managed S3 bucket are governed by Tavus's bucket settings, not Daily's. Researcher's own notes invited the downgrade. Do not restore 'AES-256' from that sentence alone after re-fetch \u2014 get per-data-category confirmation from the vendor",
+   "daily/3.1.3+3.1.4+3.1.6+3.1.7: mandatory independent searches skipped \u2014 session web-search budget exhausted (200/200) and all fetch fallbacks gateway-denied; values stay Not known, zero upgrades",
+   "daily/3.1.8: all eleven safeguard lines snippet-sourced and unverifiable; geofencing/E2EE/HIPAA-config lines describe options whose activation on the Tavus account is a deployment fact for the human; the 'true end-to-end encryption available' line must not leak into row 3.1.5 (Bucket C, almost certainly 'Partly')",
+   "daily/3.2.1: downgraded on network grounds only \u2014 EU region claim (eu-central-1 Frankfurt) is plausible and likely re-confirmable; re-run flags: primary citation is a blog post, geofencing coverage of non-media planes (signaling/logs/metadata) unconfirmed, and eu-west-2 is London (UK is on SAP's 1.7 TIA list)",
+   "daily/1.1.2: researcher correctly rejected the 'Mark Backman' Data-Privacy-Manager attribution after a contradicting follow-up search \u2014 endorsed; the N/A-vs-named-DPO decision still requires vendor written confirmation of whether a formal GDPR DPO is designated",
+   "daily/bucket-check: PASS \u2014 no Bucket B or Bucket C field was populated by the researcher (1.4.2 is A+B per the playbook; only its researched A-part is present)"
+  ],
+  "network_note": "Re-run this verification from an environment that can reach Daily domains before any value from data/vendors/daily.json is promoted. The researcher's claims are internally consistent, carefully caveated (confidence capped at 'low', snippet-sourcing disclosed, no names or states invented) and plausibly correct; they are downgraded because they could not be independently confirmed, not because contrary evidence was found \u2014 with the single exception of 3.1.2, where the chat-data-only citation would not support a vendor-wide 'AES-256' even if the page were fetched."
+ },
+ "open_questions_for_vendor": [
+  "Please confirm the exact legal entity that contracts with Tavus for WebRTC infrastructure services \u2014 full legal name, legal form, and state/country of incorporation (we believe 'Daily, Inc.') \u2014 and provide your registered office / principal place of business address (your public pages state only that the founding team is based in San Francisco).",
+  "Have you designated a representative in the EU under Article 27 GDPR (and in the UK under UK GDPR)? If yes, please provide the representative's name and full address; if no, please state the basis on which Art. 27 is considered inapplicable.",
+  "Have you formally appointed a Data Protection Officer? Your GDPR page references a 'Data Privacy Manager' \u2014 if that person (or a DPO) is formally designated, please provide their name and telephone number and/or email; if not, please confirm that help@daily.co is the authoritative contact entitled to respond to data-protection-related requests from customers and their customers (SAP requires a named channel).",
+  "Please provide your current SOC 2 Type II report (period covered, Trust Service Criteria in scope) under NDA so Tavus can place it on file (our records show no report on file in Vanta yet). Please also clarify whether Daily itself holds an ISO 27001 certificate for its ISMS (your pages cite an audit by Dansa D'Arata Soucia LLP) or whether the ISO 27001 reference applies only to the AWS data centers hosting your service \u2014 if Daily holds a certificate, please provide it with the scope statement.",
+  "What minimum TLS version (e.g. TLS 1.2, TLS 1.3) is enforced for signaling, REST API, and dashboard endpoints? Your pages state '256-bit TLS' and HTTPS-only but do not publish a protocol-version floor.",
+  "Please confirm the encryption-at-rest algorithm and key length for each category of stored data in your service: call recordings stored on Daily-managed storage, stored chat data (your pages state AES-256), transcripts, and logs/metadata.",
+  "Are backups encrypted, and with which algorithm?",
+  "Who generates and manages the encryption keys for data at rest (platform-managed AWS KMS, customer-specific keys, CMEK/BYOK options)? Are keys customer-specific or shared?",
+  "Can Daily, acting as a processor, anonymize and/or pseudonymize personal data (call metadata, transcripts, recordings, logs) on the customer's instruction?",
+  "For the EU region / geofencing capability: does confining a call to the EU region (e.g. eu-central-1 Frankfurt) keep ALL processing in-region \u2014 signaling, TURN/SFU media relay, recording processing, transcription, logs, and API metadata \u2014 or only the media plane? Where are dashboard/account data and logs stored?",
+  "Please provide your current sub-processor list for the video/WebRTC service (https://www.daily.co/legal/sub-processors/ could not be retrieved) \u2014 SAP requires the processing chain to Level 2, e.g. the underlying cloud provider(s) and any transcription/recording vendors.",
+  "Please confirm your EU-US Data Privacy Framework and Swiss-US DPF certification status (registry entry name) so it can be cited as a transfer mechanism alongside SCCs in the DPA."
+ ]
+}

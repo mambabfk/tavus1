@@ -1,0 +1,139 @@
+{
+ "vendor_name": "Cerebras Systems Inc.",
+ "slug": "cerebras",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to ALL Cerebras hosts cited by the researcher (cloud.cerebras.ai, www.cerebras.ai, trust.cerebras.ai, support.cerebras.net, investors.cerebras.ai, inference-docs.cerebras.ai) for WebFetch and curl alike \u2014 independently reproduced this session, not taken from the researcher's caveat: WebFetch HTTP 403 on all five source URLs, curl 'CONNECT tunnel failed, response 403' on every host, agent-proxy status confirms 'gateway answered 403 to CONNECT (policy denial or upstream failure)'. Fallbacks are also CONNECT-denied: web.archive.org, r.jina.ai, and www.sec.gov (which would otherwise settle the public-company entity facts \u2014 Cerebras trades as CBRS per the researcher). Not one researcher source_url could be fetched. Per the verifier resolution rules ('unsupported or unverifiable -> downgrade the value to Not known; do not keep a value you could not confirm'), every sourced value has been downgraded. The researcher's claims, URLs and locators are preserved in each field's notes so a re-verification pass from an unrestricted network (a normal browser loads these pages fine per the researcher) can restore them quickly. The session web-search budget was exhausted (200/200) before the mandatory independent searches for the five 'Not known' fields (3.1.1, 3.1.2, 3.1.3, 3.1.4, 3.1.7) could run, so no upgrades were possible either. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Cerebras domains. Two disagreements survive the network issue and need a human regardless of re-fetch: 3.1.6 (researcher 'Yes' rests on own-purpose de-identification language \u2014 the conflation trap disputed on the replicate/elevenlabs/fal/deepgram passes) and 1.4.2 (value 'SOC 2' populated despite the unmet Vanta gate).",
+ "fields": {
+  "1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Cerebras Systems Inc. (US corporation, 'Inc.'; state of incorporation not confirmed from a vendor source)\" citing https://cloud.cerebras.ai/privacy (locator: page titled 'Cerebras Systems Inc. Privacy Policy'; also https://www.cerebras.ai/terms-of-service: 'Cerebras Systems Inc. and its subsidiaries and affiliates own and maintain the Site and the Service'). Both pages unreachable (gateway 403 CONNECT denial; web.archive.org and r.jina.ai also blocked). The entity name is snippet-sourced only. Researcher correctly refused to assert Delaware from Wikipedia \u2014 do not write a state of incorporation until a registry record, the signed Tavus-Cerebras agreement, or an SEC filing is actually read. Cerebras is a public company (ticker CBRS per researcher); its 10-K on sec.gov would settle name, legal form and state \u2014 sec.gov is ALSO gateway-denied from this sandbox, so that check must happen on the re-run. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check (verifier.md) could not be performed \u2014 a mismatch here gets the whole package returned by SAP. Reconcile before this cell is written."
+  },
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Cerebras Systems Inc., 1237 E Arques Ave, Sunnyvale, CA 94085, USA; no Article 27 GDPR representative identified; privacy contact privacy@cerebras.net (general contact info@cerebras.ai)\" citing https://www.cerebras.ai/privacy-policy (locator: contact section). Page unreachable (gateway 403 CONNECT denial). Three re-run flags: (a) the Art.-27-absence claim is an absence-of-evidence claim from search excerpts of pages never fetched in full \u2014 the researcher's own note concedes a US company transferring EU personal data under SCCs would normally need a rep; vendor written confirmation required; (b) the privacy contact email is on a DIFFERENT domain (.net) than the websites (.ai) \u2014 plausibly a legacy domain, but confirm the exact address on the live page before it is written anywhere; (c) two distinct privacy-policy URLs were cited across fields (www.cerebras.ai/privacy-policy and cloud.cerebras.ai/privacy) \u2014 confirm which policy governs the Inference API service Tavus uses and take the address from that one."
+  },
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"N/A \u2014 no DPO identified; data-protection contact privacy@cerebras.net\" citing https://www.cerebras.ai/privacy-policy (locator: contact section directing privacy requests to privacy@cerebras.net / postal mail to 1237 E Arques Ave, Sunnyvale, CA 94085). Page unreachable (gateway 403 CONNECT denial). Same weakness as the fal/cartesia passes: the vendor never affirmatively states that no DPO exists \u2014 the N/A rests on absence from snippets of pages never fetched in full (researcher's targeted searches for 'data protection officer' / 'Article 27' surfaced nothing, which is evidence of absence from the INDEX, not from the vendor). No name was invented \u2014 good. Two paths to restore: re-fetch the live privacy policy, or get written vendor confirmation that privacy@cerebras.net is the authoritative data-protection contact. If 'N/A' is written here, the working privacy contact must appear in the 1.1.1 column per the form instructions."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"SOC 2\" (dropdown pick) citing https://trust.cerebras.ai/ (locator: SafeBase trust center listing SOC 2 Type 2, downloadable SOC 2 Report / Network Diagram / Pentest Report; plus a compliance-statement excerpt: 'Cerebras Systems maintains SOC 2 Type 2 certification and GDPR compliance'). Trust center unreachable this session AND last (gateway 403 CONNECT denial; the portal is gated/JS-rendered even on open networks). INDEPENDENT BLOCKER even if re-verified: scope.yaml has soc2_on_file_in_vanta: null for Cerebras \u2014 per the field playbook (row 14), do NOT assert SOC 2 in the form until Cerebras's SOC 2 Type II report is actually on file in Vanta; request it via trust.cerebras.ai. The researcher flagged this gate in their notes but populated the value anyway (same pattern as the inworld pass) \u2014 the gate is a blocker, not a footnote. Type/period/auditor unknown. Researcher correctly found no ISO 27001/27701/27018, ISO 9001, ISO 22301, SOC 1 or SOC 3 claim on any Cerebras source \u2014 do not add one. FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option (allowed: Self-created audit report(s) / ISO 9001 / ISO 27001 / BS 25999-ISO 22301 / ISO 27701 / ISO 27018 / SOC 1 / SOC 2 / SOC 3) \u2014 this cell stays EMPTY until both gates clear: (1) page re-fetch confirming the claim, (2) report on file in Vanta."
+  },
+  "3.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT (correct: no Cerebras primary source names a TLS version; trust center lists an 'Encryption-in-transit' control and the privacy policy cites 'encryption in transit' among safeguards, but neither names a standard; researcher's targeted 'Cerebras TLS 1.2/1.3/AES-256' query returned nothing vendor-specific). Verifier's mandatory independent search could NOT run: session web-search budget exhausted (200/200) and all Cerebras hosts plus web.archive.org/r.jina.ai are CONNECT-denied from this sandbox. No upgrade. FORM-SPEC WARNING (researcher also flagged this): the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others - pls indicate below/None) \u2014 this cell cannot be filled from this file; either get the vendor's written TLS floor for the Inference API endpoints (REST + streaming) or, once a fetched page confirms TLS-without-version, use 'Others - pls indicate below'. Do not guess a version."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT (correct: the trust center lists an 'Encryption-at-rest' control per snippets but the algorithm sits behind the gated SafeBase portal; no vendor source names AES-128/192/256 or anything else). Mandatory independent search blocked (web-search budget exhausted 200/200; Cerebras hosts and archive mirrors CONNECT-denied). No upgrade. 'Not known' is a valid dropdown option for this row. Useful context preserved from the researcher (itself unverified): Cerebras claims zero retention of prompts/outputs for the Inference API, which narrows what exists at rest at all \u2014 but that claim is snippet-sourced marketing/support language (see 3.1.8) and does not answer the algorithm question for what IS stored (account data, service logs). Ask the vendor or pull from the SOC 2 report once on file."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT (correct: the trust center lists 'data backups' among controls per snippets but names no encryption standard for them; per the field playbook, 'Not known' is common and correct for row 59). Mandatory independent search blocked (web-search budget exhausted 200/200; Cerebras hosts CONNECT-denied). No upgrade. Ask the vendor which algorithm covers backups \u2014 already in open_questions_for_vendor."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 and the discipline is endorsed: the researcher explicitly refused the playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') as an industry-norm inference with no primary source, and found no CMEK/BYOK documentation. Mandatory independent search blocked (web-search budget exhausted 200/200; Cerebras hosts CONNECT-denied). No upgrade. SECOND GATE regardless of re-verification: if Cerebras offers and Tavus uses any customer-managed key option, the answer flips to 'Key generated by your company' \u2014 human must confirm Tavus's actual key configuration with Cerebras before this cell is written."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable) + SUBSTANTIVE DISPUTE independent of the network block: researcher answered \"Yes\" citing https://www.cerebras.ai/privacy-policy (locator: Cerebras 'may aggregate and/or de-identify information collected through the Services' with a no-reidentification commitment; ToS: usage analytics shared 'solely in de-identified or aggregated form'). Pages unreachable (gateway 403 CONNECT denial). Beyond unverifiability, the verifier disputes the selection itself: this language describes Cerebras de-identifying/aggregating data IT collects through its Services for ITS OWN purposes (analytics, sharing) \u2014 a controller-scoped practice, not an anonymize-on-customer-instruction processor capability over Tavus-submitted personal data, which is what row 62 asks. This is the same controller/processor conflation that produced disputes on the replicate, elevenlabs, fal and deepgram passes; the researcher's own caveat concedes the gap ('confirm in writing that anonymization can be applied to Tavus-submitted personal data on instruction'). Do NOT restore 'Yes' from this citation even after a clean re-fetch \u2014 keep 'Not known' pending the vendor's written answer. Dropdown disagreement (Yes vs Not known) routed to review_queue.md per verifier.md. Mandatory independent search also blocked (budget 200/200 exhausted)."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT (correct \u2014 and internally consistent reasoning: the researcher noted the de-identification/aggregation language in the privacy policy is about anonymization/aggregation, not reversible pseudonymization; oddly the same strictness was NOT applied to 3.1.6, see the dispute there). Mandatory independent search blocked (web-search budget exhausted 200/200; Cerebras hosts CONNECT-denied). No upgrade. Ask the vendor."
+  },
+  "3.1.8": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher assembled eleven free-text safeguard lines from five Cerebras sources \u2014 zero data retention for the Inference API (no prompt content, API requests/responses, chat logs, user input or model output retained; service logs deleted when no longer necessary) per support.cerebras.net article 'Does Cerebras retain my data?' (https://support.cerebras.net/articles/1811589793-does-cerebras-retain-my-data, the primary citation); 'Cerebras Inference runs 100% in U.S.-based AI datacenters with zero data retention or transfer' (blog/press); encryption-in-transit, encryption-at-rest, data access controls and data backups controls (trust.cerebras.ai category labels); monitoring and regular security assessments (privacy policy); SOC 2 Type 2 attestation + pentest report + network diagram (trust center); SCCs for cross-border transfers (privacy policy); responsible-disclosure policy (www.cerebras.ai/cerebras-responsible-disclosure-policy); on-premises/custom data center deployment option. NONE of the pages was reachable (gateway 403 CONNECT denial on every host). Every line is snippet-sourced; none can go to SAP unconfirmed. Re-run flags: (a) the zero-data-retention claim is marketing/support-page language \u2014 the researcher rightly flagged that some providers gate ZDR to enterprise tiers; get written confirmation it applies contractually to Tavus's API traffic, plus the transient-log retention window; (b) the trust-center lines are SafeBase CATEGORY LABELS, not control text \u2014 read the live portal; (c) the SOC 2 line duplicates the 1.4.2 claim and inherits its Vanta gate; (d) the on-premises option is a customer-deployed alternative, not a safeguard of the hosted service Tavus uses \u2014 cut it or caveat it; (e) do not let the ZDR / '100% US-based' lines leak into rows 3.1.5 (Bucket C, almost certainly 'Partly' \u2014 inference requires plaintext in memory) or 3.2.1. Re-verify each line against its own page before restoring."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher answered \"No\" citing https://investors.cerebras.ai/news-releases/news-release-details/cerebras-systems-accelerates-european-expansion-200mw-ai-compute (locator: July 2026 press release \u2014 first European data center capacity online 'by the end of 2026', 200MW across France and the Nordics by end of 2027) plus current-state vendor statements ('Cerebras Inference runs 100% in U.S.-based AI datacenters'). Pages unreachable (gateway 403 CONNECT denial). The playbook test ('does the vendor OFFER an EU region' today) was correctly applied and the 'No' reasoning is coherent, but three things keep this at 'Not known': (a) nothing was fetchable \u2014 the entire timeline rests on search snippets; (b) the researcher's own note records a CONFLICTING vendor statement \u2014 a March 2025 press release title mentioning datacenters 'Across North America and Europe' \u2014 which must be resolved against the July 2026 release on the live pages; (c) 'No' vs 'Not known' is a dropdown disagreement, so per verifier.md this goes to review_queue.md even though the researcher's pick may well be right. TIME-SENSITIVE: per the cited release the answer likely flips to Yes around end of 2026 \u2014 ask the vendor for the confirmed go-live date and whether EU routing will include EU data-at-rest. Whether Tavus USES it is 3.2.2 (Bucket B, human answers). 'Not known' is an allowed dropdown value for 3.2.1."
+  }
+ },
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "downgraded_to_not_known",
+   "1.1.1": "downgraded_to_not_known",
+   "1.1.2": "downgraded_to_not_known",
+   "1.4.2": "downgraded_to_not_known",
+   "3.1.1": "not_upgraded_search_unavailable",
+   "3.1.2": "not_upgraded_search_unavailable",
+   "3.1.3": "not_upgraded_search_unavailable",
+   "3.1.4": "not_upgraded_search_unavailable",
+   "3.1.6": "downgraded_to_not_known",
+   "3.1.7": "not_upgraded_search_unavailable",
+   "3.1.8": "downgraded_to_not_known",
+   "3.2.1": "downgraded_to_not_known"
+  },
+  "disputes": [
+   "cerebras/ALL sourced fields: network gateway policy-denies CONNECT to cloud.cerebras.ai, www.cerebras.ai, trust.cerebras.ai, support.cerebras.net, investors.cerebras.ai, inference-docs.cerebras.ai AND web.archive.org/r.jina.ai/www.sec.gov \u2014 zero source URLs fetchable (independently reproduced this session via WebFetch 403 + curl CONNECT-403 + proxy status log, not taken from the researcher's caveat); all 7 sourced fields verdict unverifiable, values downgraded to Not known per resolution rules",
+   "cerebras/1.1: TOM questionnaire #8.3 not found in repo \u2014 mandatory legal-entity cross-check (verifier.md) could not be performed; state of incorporation never stated on any surfaced vendor page \u2014 do not write one; Cerebras is a public company (CBRS) whose SEC 10-K would settle name/form/state, but sec.gov is also gateway-denied \u2014 do the EDGAR lookup on the re-run and reconcile against the #8.3 submission",
+   "cerebras/1.1.1: Art.-27-absence is an absence-of-evidence claim from snippets of pages never fetched; privacy contact email is on a different domain (privacy@cerebras.net) than the websites (.ai) \u2014 confirm on the live page; two distinct privacy-policy URLs cited (www.cerebras.ai/privacy-policy vs cloud.cerebras.ai/privacy) \u2014 confirm which governs the Inference API before taking the address from it",
+   "cerebras/1.1.2: 'N/A \u2014 no DPO' rests on absence from search snippets of pages never fetched in full; vendor written confirmation required before N/A is written; if it stands, privacy@cerebras.net must appear in the 1.1.1 column",
+   "cerebras/1.4.2: PROCESS FLAG \u2014 researcher populated 'SOC 2' despite scope.yaml soc2_on_file_in_vanta: null for Cerebras; the playbook forbids asserting SOC 2 until the report is on file in Vanta (gate acknowledged in the researcher's own notes but the value was written anyway, same pattern as the inworld pass); dropdown has no 'Not known' option \u2014 cell stays empty until page re-fetch AND Vanta both clear",
+   "cerebras/3.1.1: form dropdown has no 'Not known' option \u2014 downgraded value cannot be written to the workbook cell; get the vendor's written TLS floor for the Inference API endpoints or re-confirm 'Others - pls indicate below' against a fetched page; never guess a TLS version",
+   "cerebras/3.1.1+3.1.2+3.1.3+3.1.4+3.1.7: mandatory independent searches skipped \u2014 session web-search budget exhausted (200/200) and all fetch fallbacks gateway-denied; values stay Not known, zero upgrades",
+   "cerebras/3.1.4: even if re-verified, dropdown choice depends on whether Tavus uses any customer-managed key option with Cerebras \u2014 human must confirm before the cell is written",
+   "cerebras/3.1.6: DROPDOWN DISAGREEMENT (researcher Yes vs verifier Not known), substantive and independent of the network block \u2014 the cited privacy-policy/ToS language ('aggregate and/or de-identify information collected through the Services', analytics shared 'in de-identified or aggregated form') is Cerebras's OWN-purpose de-identification of data it collects, not an anonymize-on-customer-instruction processor capability over Tavus-submitted data; same controller/processor conflation disputed on the replicate/elevenlabs/fal/deepgram passes, and the researcher's own caveat concedes the gap; do not restore Yes from this citation even after a clean re-fetch \u2014 human decision required",
+   "cerebras/3.2.1: dropdown disagreement (researcher No vs verifier Not known) \u2014 routed to review_queue.md per verifier.md; the 'No' reasoning (US-only inference today; first EU capacity end-2026 per July 2026 press release) is coherent but wholly snippet-sourced, and the researcher's own note records a conflicting March 2025 release title ('Across North America and Europe') that must be resolved on the live pages; TIME-SENSITIVE \u2014 likely flips to Yes around end of 2026",
+   "cerebras/3.1.8: all eleven safeguard lines snippet-sourced and unverifiable; zero-data-retention is support/marketing language \u2014 confirm it applies contractually to Tavus's traffic (some vendors gate ZDR to enterprise tiers); trust-center lines are SafeBase category labels, not control text; on-prem deployment option is not a safeguard of the hosted service \u2014 cut or caveat; do not let ZDR/'100% US' lines leak into rows 3.1.5 or 3.2.1",
+   "cerebras/bucket-check: PASS \u2014 no Bucket B or Bucket C field was populated by the researcher (1.4.2 is A+B per the playbook; only its researched A-part was present)"
+  ],
+  "network_note": "Re-run this verification from an environment that can reach Cerebras domains (and sec.gov for the CBRS 10-K entity check) before any value from data/vendors/cerebras.json is promoted. The researcher's work is largely disciplined \u2014 confidence capped at 'low' everywhere, snippet-sourcing disclosed up front, Delaware refused without a registry source, no DPO name invented, the playbook's key-provider default refused, and 3.1.7 handled strictly. Values are downgraded because they could not be independently confirmed, not because contrary evidence was found \u2014 with two exceptions: 3.1.6, where the citation would not support 'Yes' even if fetched (own-purpose de-identification, not an on-instruction capability), and 1.4.2, where the unmet Vanta gate blocks the value regardless of re-fetch."
+ },
+ "open_questions_for_vendor": [
+  "Please confirm Cerebras's full legal entity name, legal form and state of incorporation (we have 'Cerebras Systems Inc.' from your privacy policy; public sources suggest a Delaware corporation) and the registered address to be used for GDPR purposes (we have 1237 E Arques Ave, Sunnyvale, CA 94085 from your privacy policy).",
+  "Has Cerebras Systems Inc. designated a representative in the Union under Article 27 GDPR? If yes, please provide the representative's name and full address; if no, please confirm in writing.",
+  "Has Cerebras formally designated a Data Protection Officer? If yes, please provide the DPO's name and telephone number and/or email; if no, please confirm that privacy@cerebras.net is the authoritative contact for data-protection requests from SAP.",
+  "Which privacy policy governs the Cerebras Inference API service (www.cerebras.ai/privacy-policy or cloud.cerebras.ai/privacy), and is privacy@cerebras.net the correct data-protection contact given your websites use the .ai domain?",
+  "Which TLS version is enforced (minimum and preferred) on the Cerebras Inference API endpoints that carry prompt content and model output in transit?",
+  "Which encryption standard (e.g. AES-256) is used for customer data at rest, and does the same standard cover backups (your trust center lists encryption-at-rest and data-backup controls without naming algorithms)?",
+  "Who generates and manages the encryption keys for data at rest \u2014 Cerebras-managed keys (customer-specific or shared), or is a customer-managed key (CMEK/BYOK) option available?",
+  "Your support documentation states Cerebras does not retain prompt content, API requests/responses, or model inputs/outputs for the Inference API. Please confirm in writing that this zero-data-retention posture applies contractually to Tavus's API traffic (not only to specific tiers), and how long transient service logs are kept before deletion.",
+  "Can Cerebras anonymize and/or pseudonymize personal data submitted through the Inference API on the customer's instruction (beyond the aggregation/de-identification of usage data described in your privacy policy)?",
+  "Does Cerebras currently offer an EU processing region for inference, and if not, what is the confirmed go-live date for the announced France/Nordics capacity \u2014 and will EU routing keep data processed and at rest within the EU? (Your March 2025 release mentions datacenters 'Across North America and Europe' while your July 2026 release says first European capacity arrives end of 2026 \u2014 please reconcile.)",
+  "Please provide your current SOC 2 Type II report, penetration-test summary, and Data Processing Agreement via trust.cerebras.ai or directly, so the report can be placed on file in Vanta as audit evidence for row 1.4.2, and confirm whether you hold any ISO certifications (27001/27701/27018) \u2014 we could not confirm any from public sources.",
+  "Please provide your current sub-processor list for the Inference service (your trust center was not machine-readable to us)."
+ ]
+}

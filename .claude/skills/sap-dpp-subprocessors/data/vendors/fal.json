@@ -1,0 +1,108 @@
+{
+  "vendor_name": "fal – Features & Labels, Inc.",
+  "slug": "fal",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: the sandbox network gateway (agent proxy) returned 403 CONNECT denials for all fal domains (fal.ai, docs.fal.ai, trust.fal.ai, blog.fal.ai) for both WebFetch and curl in this session — WebFetch was in fact blocked for ALL hosts (even example.com returned 403), the same environment condition documented in aws.json and cerebrium.json. No page could be fetched directly. Every value below is sourced from fal's own pages as returned verbatim in domain-restricted web-search snippets (allowed_domains limited to fal.ai / www.fal.ai / docs.fal.ai / trust.fal.ai / blog.fal.ai). Per researcher hard rules, confidence is therefore capped at 'low' even where the underlying fal documentation is unambiguous. Notably, fal's Trust Center (trust.fal.ai, incl. /controls) is referenced by fal's own pages as the authoritative compliance source but exposes almost nothing to search indexing — its contents (certifications, encryption controls, subprocessor list) could not be read at all this session. The verifier pass should re-fetch each source_url from an unrestricted network before values are promoted.",
+  "fields": {
+    "1.1": {
+      "value": "fal – Features & Labels, Inc. (US corporation, 'Inc.'; headquartered in San Francisco, California)",
+      "source_url": "https://fal.ai/terms",
+      "locator": "Terms of Service, Claimant Notices / arbitration clause: 'fal – Features & Labels Inc., 2261 Market St. Suite 10467, San Francisco, CA 94114'; Privacy Policy opening: 'fal - Features & Labels Inc. ... describes how it collects, uses, discloses, and otherwise processes information'",
+      "confidence": "low",
+      "notes": "Entity name 'fal – Features & Labels, Inc.' appears in both the Terms of Service and the Privacy Policy. State of incorporation is NOT stated on any page surfaced this session (SF HQ is a place of business, not necessarily the state of registration) — confirm with vendor. Field playbook says 1.1 must match the entity named in TOM questionnaire #8.3 that Tavus already submitted; NO TOM questionnaire file exists in this repo, so the filler/human must reconcile against that submission before writing the cell. Pages not fetchable this session (gateway 403); text from fal.ai-restricted search snippets."
+    },
+    "1.1.1": {
+      "value": "fal – Features & Labels, Inc., 2261 Market St. Suite 10467, San Francisco, CA 94114, USA. Privacy/data-protection contact: support@fal.ai (legal@fal.ai for legal/acceptable-use matters). No Article 27 GDPR representative identified on any fal page retrieved this session.",
+      "source_url": "https://fal.ai/terms",
+      "locator": "Terms of Service: notices 'should be sent to fal – Features & Labels Inc., 2261 Market St. Suite 10467, San Francisco, CA 94114 by certified mail or by email to support@fal.ai'; Privacy Policy: users 'can email support@fal.ai to make privacy-related requests, including requests to access, delete, or correct personal information'; Acceptable Use Policy: violations reported to legal@fal.ai",
+      "confidence": "low",
+      "notes": "2261 Market St. Suite 10467 is a suite-numbered mailbox-style address common for startups — ask the vendor for their principal place of business / operating office. fal is a US (non-EU) vendor whose privacy policy states it 'is located in the United States and stores personal information on servers in the United States and other countries'; whether it has designated an Art. 27 EU representative could not be determined because the privacy policy could not be fetched in full — absence recorded as a finding of this session's search, not asserted as fact. The representative question goes to the vendor in writing."
+    },
+    "1.1.2": {
+      "value": "N/A — no data protection officer identified on any fal page retrieved this session. Data-protection contact: support@fal.ai.",
+      "source_url": "https://fal.ai/legal/privacy-policy",
+      "locator": "Privacy Policy: privacy-related requests (access, delete, correct) are directed to support@fal.ai; no DPO named anywhere in the policy text surfaced this session",
+      "confidence": "low",
+      "notes": "Per the form rule, if no DPO is formally named the cell takes 'N/A' plus a working privacy contact in the 1.1.1 column (support@fal.ai, included above). No name invented. IMPORTANT caveat: unlike Cerebrium, fal does not (in any snippet retrieved) explicitly STATE that no DPO has been appointed — the N/A is based on absence from the retrieved excerpts of a page that could not be fetched in full (gateway 403). Confirm in writing before submission."
+    },
+    "1.4.2": {
+      "value": "SOC 2",
+      "source_url": "https://fal.ai/enterprise",
+      "locator": "Enterprise page: SOC 2 listed among enterprise security/compliance features ('fal offers SOC 2 compliance as part of its enterprise features'; 'fal is SOC 2 compliant with a public trust portal'), alongside SSO, private endpoints, and 24/7 priority support; fal directs customers to trust.fal.ai for its compliance posture",
+      "confidence": "low",
+      "notes": "SOC 2 compliance is claimed on fal's own enterprise/homepage copy, but the Type (I vs II) and report period are NOT published anywhere retrieved this session — the trust portal (trust.fal.ai) that would state this could not be read (gateway 403 + no indexable content). A fal careers posting (Security Compliance Lead, https://fal.ai/careers/4019490009) references compliance programs 'including SOC 2, HIPAA, GDPR, and ISO 27001' — programs in progress are NOT certifications held; do not write ISO 27001 into the form on that basis. GATE: scope.yaml has soc2_on_file_in_vanta: null for Fal — per the playbook, do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta. All snippet-sourced; direct fetches blocked."
+    },
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "source_url": "https://docs.fal.ai/model-apis/model-endpoints",
+      "locator": "API docs: all model endpoints are served over HTTPS (e.g. https://queue.fal.run); real-time docs recommend short-lived JWT tokens over WebSocket connections; no TLS version stated",
+      "confidence": "low",
+      "notes": "HTTPS/TLS is the documented transport for all fal API and model endpoints, but NO TLS version is published anywhere retrieved this session, so none of the versioned dropdown options can be selected honestly (and 3.1.1 has no 'Not known' option). Real standard to indicate below: 'HTTPS/TLS (version not published by vendor — confirmation requested)'. Ask the vendor for the minimum negotiated TLS version on API/inference endpoints (1.2 floor? 1.3 supported?). Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No general statement about encryption of customer data at rest (existence or algorithm) was found on any fal primary source surfaced this session. The only at-rest encryption statement retrieved is scoped to platform secrets: 'Secrets stored on fal are encrypted and their values are never displayed again' (https://fal.ai/docs/documentation/development/manage-secrets-securely) — that covers API keys/credentials, not customer media or personal data. fal's Trust Center controls page (trust.fal.ai/controls) would be the authoritative source but exposed no readable content this session. Ask vendor. Searched fal.ai/enterprise, trust.fal.ai, trust.fal.ai/controls, fal.ai/legal/privacy-policy, docs.fal.ai (domain-restricted search; direct fetches blocked, gateway 403)."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No statement about backups or backup encryption was found on any fal primary source this session. Per the field playbook, 'Not known' is the common and correct answer here. Same pages searched as 3.1.2."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No public documentation of key management (who generates/holds encryption keys, KMS provider, CMEK/BYOK options) was found on any fal primary source this session. The playbook default for managed cloud ('Key generated by Subprocessor (not customer-specific)') is an industry-norm inference and is deliberately NOT asserted — hard rule against inferring from norms. Ask vendor. Same pages searched as 3.1.2."
+    },
+    "3.1.6": {
+      "value": "Yes",
+      "source_url": "https://fal.ai/legal/privacy-policy",
+      "locator": "Privacy Policy: fal 'discloses aggregated or de-identified information that cannot reasonably be used to identify' individuals and 'maintain[s] and use[s] this information only in a de-identified fashion and will not attempt to re-identify such information' except as permitted; Terms of Service: 'Usage Data' is defined as 'anonymized or aggregated data collected, computed, originated, or stored by the company resulting from the use or provision of the Services, which may include data based on or derived from Customer Input'",
+      "confidence": "low",
+      "notes": "fal's own legal documents state that it produces anonymized/de-identified/aggregated data — including data derived from Customer Input — so the capability exists and is documented. Two caveats for the human: (1) this is fal's OWN-PURPOSE de-identification, not a documented customer-controllable anonymization feature — confirm whether fal can anonymize on customer instruction; (2) RED FLAG for legal review: the ToS reserves the right to generate 'Usage Data' derived from Customer Input and use/disclose it for analytics, service improvement, and 'to design, develop, and offer products, services, and AI models' — confirm whether Tavus's enterprise agreement/DPA carves Customer Input (end-user video/audio frames) out of this. fal's enterprise page separately claims it 'never trains its LLMs on enterprise customers' data'. Snippet-sourced; direct fetch blocked (gateway 403)."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary-source statement about pseudonymization (as distinct from the anonymization/aggregation language in 3.1.6) was found on any fal page surfaced this session. Ask vendor. Same pages searched as 3.1.2 plus fal.ai/legal/terms-of-service."
+    },
+    "3.1.8": {
+      "value": "Platform secrets (API keys, credentials) encrypted at rest; values never redisplayed after entry\nShort-lived JWT tokens recommended/used for client authentication instead of embedding long-lived API keys (auto-refreshed by the fal client)\nSecrets withheld from environment variables during image build stage to prevent leakage through cached/shared images\nServer-side proxy pattern documented so API credentials never reach browsers/mobile clients\nSingle Sign-On (SSO) available for enterprise accounts\nPrivate endpoints available for enterprise accounts\nStated commitment not to train models on enterprise customers' data\nPublic trust portal (trust.fal.ai) with a controls listing for compliance monitoring",
+      "source_url": "https://fal.ai/docs/documentation/development/manage-secrets-securely",
+      "locator": "Assembled one-per-line from the Secrets docs (encrypted secrets, build-stage withholding), real-time API docs https://docs.fal.ai/model-apis/real-time/secrets (short-lived JWT, server-side proxy), and the Enterprise page https://fal.ai/enterprise (SSO, private endpoints, no-training-on-enterprise-data commitment, trust portal)",
+      "confidence": "low",
+      "notes": "Every line traces to a fal-domain statement retrieved this session via domain-restricted search; none of the pages could be fetched directly (gateway 403). Deliberately excludes safeguards commonly attributed to GPU/inference clouds but not evidenced this session (workload isolation, penetration testing, vulnerability scanning, MFA — none of these were found stated on a fal page)."
+    },
+    "3.2.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No fal page surfaced this session documents an EU region or EU data-residency offering. The closest retrieved statements point the other way: the Privacy Policy states fal 'is located in the United States and stores personal information on servers in the United States and other countries', and the compute docs describe instances 'automatically provisioned with region assignment' across 'global regions' without naming any region. 'Other countries' and 'global regions' are not evidence of an EU Access OFFERING (the 3.2.1 test), so 'Not known' rather than 'No'. Ask vendor whether EU-region inference/data residency is available. Searched fal.ai/legal/privacy-policy, fal.ai/enterprise, docs.fal.ai (compute instances), trust.fal.ai (domain-restricted search; direct fetches blocked, gateway 403)."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm the exact legal entity (full name, legal form, and state/country of incorporation) that contracts with Tavus, Inc. — is it fal – Features & Labels, Inc., and where is it registered? Please also provide your principal place of business (2261 Market St. Suite 10467, San Francisco appears to be a mailbox-style address).",
+    "As a US company processing EU data subjects' personal data: have you designated an EU representative under Article 27 GDPR? If yes, please provide the representative's name and full address; if no, please state the basis on which Article 27 does not apply to you.",
+    "Have you appointed a data protection officer? If yes, please provide the DPO's name, telephone number, and email address; if no, please confirm in writing that support@fal.ai is the authoritative contact entitled to respond to data-protection-related requests (SAP requires a named channel).",
+    "Is your current SOC 2 attestation Type I or Type II, what is the report period and auditor, and can you provide the report under NDA? Your careers materials reference compliance programs 'including SOC 2, HIPAA, GDPR, and ISO 27001' — which of these are completed certifications/attestations (with certificates and scope statements) versus programs in progress?",
+    "What minimum TLS version is enforced for data in transit to your API and inference endpoints, including WebSocket (real-time) connections (TLS 1.2, TLS 1.3)?",
+    "Is customer data (including video/audio media submitted for inference) encrypted at rest, and with which algorithm and key length (e.g. AES-256)?",
+    "Are backups encrypted, and with which algorithm? Do backups ever contain customer media or request payloads?",
+    "Who generates and manages the encryption keys for data at rest (platform-managed KMS, customer-specific keys, CMEK/BYOK options)?",
+    "Can fal, acting as a processor, anonymize or pseudonymize personal data (including video/audio frames processed during inference) on the customer's instruction, or is the anonymization/aggregation described in your Privacy Policy and Terms of Service limited to fal's own 'Usage Data' purposes?",
+    "Your Terms of Service define 'Usage Data' as anonymized or aggregated data that 'may include data based on or derived from Customer Input' and reserve rights to use it to 'design, develop, and offer products, services, and AI models'. Does Tavus's enterprise agreement/DPA exclude Customer Input (end-user video/audio) from Usage Data and from any model training or product development use?",
+    "Do you offer an EU region or EU data-residency option for inference workloads and stored data? If yes, in which country/countries, and does it cover the full processing path (ingestion, inference, logging, storage)?",
+    "For inference workloads: is customer media (video/audio frames) persisted at any point (queuing, caching, logging, persistent storage), and if so where and for how long — or is it processed in memory only?",
+    "Please provide your current sub-processor list and the underlying cloud/data-center provider(s) hosting your GPU fleet (SAP requires the processing chain to Level 2), and confirm a signed DPA with Tavus that flows down GDPR Art. 28 obligations."
+  ]
+}

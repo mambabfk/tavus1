@@ -1,0 +1,136 @@
+{
+ "vendor_name": "Theai, Inc. (dba Inworld AI)",
+ "slug": "inworld",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to ALL Inworld domains (inworld.ai, docs.inworld.ai, trust.inworld.ai) for WebFetch and curl alike (independently reproduced this session: WebFetch HTTP 403 on inworld.ai/privacy and inworld.ai/security; curl 'CONNECT tunnel failed, response 403' on inworld.ai/privacy, inworld.ai/security, docs.inworld.ai/tts/resources/zero-data-retention, inworld.ai/on-prem, trust.inworld.ai \u2014 this reproduces, rather than takes on trust, the exact condition the researcher disclosed). Archive/mirror fallbacks are also dead (web.archive.org 'unable to fetch', r.jina.ai 403). Alternate fetchable primary sources were attempted and are ALSO gateway-blocked: SEC EDGAR (www.sec.gov + efts.sec.gov, CONNECT 403 \u2014 would have settled the Theai, Inc. entity/state question) and dataprivacyframework.gov (403). Not one researcher source_url could be fetched. Per the verifier resolution rules ('unsupported or unverifiable -> downgrade to Not known; do not keep a value you could not confirm'), every sourced value has been downgraded; the researcher's claims, URLs and locators are preserved in each field's notes so a re-verification pass from an unrestricted network can restore them quickly. The session web-search budget was exhausted (200/200) before the mandatory independent searches for the five 'Not known' fields (3.1.3, 3.1.4, 3.1.6, 3.1.7, 3.2.1) could run, so no upgrades were possible either. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Inworld domains. Bucket check: PASS \u2014 the researcher populated no Bucket B or C fields (1.4.2 is A+B; only its researched A-part was present).",
+ "fields": {
+  "1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Theai, Inc. (dba Inworld AI) \u2014 US corporation ('Inc.'; state of incorporation not confirmed from a vendor source)\" citing https://inworld.ai/privacy (locator: Privacy Notice opening 'Theai, Inc. (\"Inworld AI\") collects, uses, discloses and processes information about you'; also https://inworld.ai/jobs-privacy naming 'Theai, Inc. dba Inworld AI'). Pages unreachable (gateway 403 CONNECT denial; archives and r.jina.ai blocked). Verifier attempted an independent primary source \u2014 SEC EDGAR company search for 'Theai' (a Form D would state the legal name and state of incorporation) \u2014 but sec.gov/efts.sec.gov are also CONNECT-denied from this sandbox; retry from an unrestricted network. Researcher correctly refused to infer a state of incorporation (ToS reportedly California-governed, Referral Program Rules Delaware-governed \u2014 neither states the state of incorporation). ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check could not be performed \u2014 a mismatch here gets the whole package returned by SAP. Re-fetch inworld.ai/privacy, check EDGAR/state registry, and reconcile against the #8.3 submission before writing this cell."
+  },
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Theai, Inc. (dba Inworld AI), 1975 W El Camino Real #300, Mountain View, CA 94040, USA; no Article 27 GDPR representative identified; data-protection contact privacy@inworld.ai\" citing https://inworld.ai/privacy (locator: contact section 'Inworld AI is located at 1975 W El Camino Real #300, Mountain View, CA 94040'). Page unreachable (gateway 403 CONNECT denial). Two claims here need a fetched page, not a snippet: (a) the Art.-27-absence claim is an absence-of-evidence claim from search excerpts of a page never fetched in full \u2014 it MUST be confirmed on the live privacy policy or in writing from the vendor (as a US company serving EU data subjects without a known EU establishment, Inworld would normally need a representative); (b) the address itself. Researcher's framing (absence is a finding to confirm in writing, not evidence none exists) is correct and preserved for the re-run."
+  },
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"N/A \u2014 no DPO identified in Inworld's published privacy policy; data-protection contact privacy@inworld.ai\" citing https://inworld.ai/privacy (locator: 'any questions related to your personal data can be forwarded to privacy@inworld.ai'). Page unreachable (gateway 403 CONNECT denial). The N/A rests on absence from search excerpts of a page never fetched in full \u2014 the live page must settle whether a formal DPO exists, which decides between 'N/A' and a named entry per the form spec. If 'N/A' is confirmed, the working privacy contact (privacy@inworld.ai) must appear in the 1.1.1 column. Researcher correctly invented no name, and correctly noted that data/vendor_contacts.md's Oliver Louie entry is an outreach lead, NOT a DPO designation. Nothing here is confirmed; get vendor written confirmation."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"SOC 2\" (dropdown pick) citing https://inworld.ai/security (locator: platform described as 'SOC 2 Type II certified' and 'HIPAA and GDPR compliant', 'validated through rigorous third-party audits'). Page unreachable (gateway 403 CONNECT denial); trust.inworld.ai also unreachable, so Type/period/auditor unknown. INDEPENDENT BLOCKER even if re-verified: scope.yaml has soc2_on_file_in_vanta: null for InWorld \u2014 per the field playbook (row 14), do NOT assert SOC 2 in the form until Inworld's SOC 2 Type II report is confirmed on file in Vanta. The researcher populated the value anyway while flagging the gate in notes \u2014 the gate must actually clear before the cell is written; the dropdown has no 'Not known' option, so the cell stays EMPTY until then. Researcher rightly excluded the Nudge Security third-party claims (ISO 27001 / FedRAMP / CSA STAR / PCI) as sources; ask the vendor in writing which certifications they actually hold. Two gates before this cell is written: (1) security-page/trust-center re-fetch, (2) Vanta check."
+  },
+  "3.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Others - pls indicate below\" (real standard: TLS, version not publicly documented) citing https://inworld.ai/security (locator: 'All data is encrypted ... in transit using TLS'). Page unreachable (gateway 403 CONNECT denial). The researcher's reasoning \u2014 no retrieved excerpt names a TLS version, so none of the versioned dropdown options can be asserted \u2014 is sound and preserved for the re-run; never write a versioned TLS option without a fetched source or written vendor confirmation of the minimum enforced version. FORM-SPEC WARNING: the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others/None) \u2014 this cell cannot be filled from this file; re-confirm 'Others - pls indicate below' against a fetched page or the cell stays empty."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Others - pls indicate below\" (real standard: AES, key length not publicly documented) citing https://inworld.ai/security (locator: 'All data is encrypted at rest using AES encryption'). Page unreachable (gateway 403 CONNECT denial). Researcher correctly refused to assert AES-256 without a key length in the source. Unlike 3.1.1, this row's dropdown DOES include 'Not known', so the downgraded value is directly writable. Re-fetch the security page (and trust.inworld.ai, which likely documents the exact standard) or ask the vendor for the key length, then replace with the exact dropdown value."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed: session web-search budget exhausted (200/200) and all Inworld domains plus archive mirrors are CONNECT-denied from this sandbox. Per the field playbook, 'Not known' is common and correct for row 59 (backup encryption is rarely documented separately). No upgrade. Ask the vendor which algorithm covers backups."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed (web-search budget 200/200 exhausted; all Inworld hosts CONNECT-denied). Researcher correctly declined the playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') as an industry-norm inference. TWO human dependencies before this cell is written: (1) vendor's key-management documentation (trust center / SOC 2 report), (2) whether Tavus has any CMEK/BYOK arrangement with Inworld \u2014 that flips the answer to 'Key generated by your company'."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed (web-search budget 200/200 exhausted; all Inworld hosts CONNECT-denied). Researcher's distinction is correct and preserved: Inworld's workspace-level Zero Data Retention mode for TTS (docs.inworld.ai/tts/resources/zero-data-retention \u2014 input text and generated audio 'immediately redacted from the logging systems') is non-retention/redaction, NOT an anonymize-on-customer-instruction capability, so it does not answer row 62. Same conflation trap flagged on the replicate/elevenlabs/fal passes \u2014 do not upgrade to Yes on ZDR's strength. Ask the vendor."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed (web-search budget 200/200 exhausted; all Inworld hosts CONNECT-denied). No pseudonymization capability documented on any surfaced Inworld source. No upgrade. Ask the vendor."
+  },
+  "3.1.8": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed seven one-per-line safeguards \u2014 (1) zero-trust framework with continuous monitoring; (2) job-function-need access restriction with logged, periodically reviewed access; (3) enterprise SSO (social login + SAML/OIDC); (4) microsegmentation with automatic policy enforcement; (5) third-party-audit-validated posture + comprehensive audit trails; (6) workspace-level Zero Data Retention mode for TTS (in-memory processing, immediate log redaction, only non-sensitive metadata retained); (7) on-premise / self-managed VPC deployment options for the voice pipeline ('sensitive information is guaranteed to never leave your corporate firewall') \u2014 citing https://inworld.ai/security, https://docs.inworld.ai/tts/resources/zero-data-retention, and https://inworld.ai/on-prem. All three hosts unreachable (gateway 403 CONNECT denial); every line is snippet-sourced and none could be verified. Re-run flags: read the live pages in full before restoring any line; and do NOT let the security page's 'end-to-end encryption with AES' marketing phrasing leak into row 3.1.5 (Bucket C, human answer \u2014 almost certainly 'Partly', inference requires plaintext in memory), a trap the researcher already flagged."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed (web-search budget 200/200 exhausted; all Inworld hosts CONNECT-denied). Researcher's reasoning is sound and preserved: no Inworld primary source documents an EU region for the HOSTED service; the on-prem/self-managed-VPC options (inworld.ai/on-prem) are customer-deployed infrastructure, not a vendor-offered EU region, so they do not satisfy the row's test ('does the vendor offer an EU region') \u2014 do not upgrade to Yes on their strength. Ask the vendor whether the hosted API offers EU-region processing/storage."
+  }
+ },
+ "open_questions_for_vendor": [
+  "Please confirm Inworld's full legal entity name, legal form and state of incorporation (we have 'Theai, Inc. dba Inworld AI' from your privacy notice) and the registered address to be used for GDPR purposes (we have 1975 W El Camino Real #300, Mountain View, CA 94040 from your privacy notice).",
+  "Has Theai, Inc. designated a representative in the Union under Article 27 GDPR? If yes, please provide the representative's name and full address; if no, please confirm in writing.",
+  "Has Inworld formally designated a Data Protection Officer? If yes, please provide the DPO's name and telephone number and/or email; if no, please confirm that privacy@inworld.ai is the authoritative contact for data-protection requests from SAP/Tavus.",
+  "Which TLS version is enforced (minimum and preferred) for the Inworld API and streaming endpoints that carry text inputs and generated speech audio in transit? Your security page says 'TLS' without a version.",
+  "Which AES key length (128/192/256) is used for customer data at rest, and does the same standard cover backups and archived media? Your security page says 'AES' without a key length and does not document backup encryption separately.",
+  "Who generates and manages the encryption keys for customer data at rest \u2014 Inworld-managed keys (customer-specific or shared), or is a customer-managed key (CMEK/BYOK) option available?",
+  "Can Inworld anonymize and/or pseudonymize customer personal data on the customer's instruction (beyond the workspace-level Zero Data Retention mode documented for TTS)?",
+  "Does Inworld's hosted API offer an EU region \u2014 i.e., processing and storage of customer data within the EU \u2014 as opposed to the on-premise/self-managed-VPC options on your website? If yes, which cloud regions?",
+  "Please provide your current SOC 2 Type II report (via trust.inworld.ai or directly to Tavus) so it can be placed on file as audit evidence for row 1.4.2, and confirm in writing which other certifications you actually hold \u2014 third-party profiles claim ISO 27001, FedRAMP, CSA STAR Level 1, PCI and HIPAA for Inworld, but we could only confirm SOC 2 Type II, HIPAA and GDPR claims from your own pages.",
+  "Please provide your current sub-processor list for the TTS/voice service (which cloud provider(s) host inference, and in which regions)."
+ ],
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "downgraded_to_not_known",
+   "1.1.1": "downgraded_to_not_known",
+   "1.1.2": "downgraded_to_not_known",
+   "1.4.2": "downgraded_to_not_known",
+   "3.1.1": "downgraded_to_not_known",
+   "3.1.2": "downgraded_to_not_known",
+   "3.1.8": "downgraded_to_not_known"
+  },
+  "not_known_fields_searched": {
+   "3.1.3": "search impossible \u2014 web-search budget exhausted (200/200); no upgrade",
+   "3.1.4": "search impossible \u2014 web-search budget exhausted (200/200); no upgrade",
+   "3.1.6": "search impossible \u2014 web-search budget exhausted (200/200); no upgrade",
+   "3.1.7": "search impossible \u2014 web-search budget exhausted (200/200); no upgrade",
+   "3.2.1": "search impossible \u2014 web-search budget exhausted (200/200); no upgrade"
+  },
+  "bucket_check": "PASS \u2014 no Bucket B or C field populated (1.4.2 is A+B; only its researched A-part was present)",
+  "tom_8_3_cross_check": "NOT PERFORMED \u2014 TOM questionnaire #8.3 is not in the repo; human must reconcile the 1.1 entity name against the submitted #8.3 before any cell is written",
+  "disputes": [
+   "inworld/1.1: downgraded to Not known \u2014 https://inworld.ai/privacy unreachable (gateway 403 CONNECT denial; WebFetch, curl, archive.org, r.jina.ai all blocked); SEC EDGAR fallback for the entity/state also gateway-blocked; TOM #8.3 entity cross-check not performed (file absent from repo)",
+   "inworld/1.1.1: downgraded to Not known \u2014 same network block; Art.-27-absence is an absence-of-evidence claim from snippets that must be confirmed on a fetched page or in writing",
+   "inworld/1.1.2: downgraded to Not known \u2014 same network block; the 'N/A' DPO answer rests on snippet absence from a page never fetched in full; vendor written confirmation required",
+   "inworld/1.4.2: downgraded to Not known \u2014 https://inworld.ai/security unreachable; INDEPENDENT BLOCKER: scope.yaml soc2_on_file_in_vanta: null \u2014 playbook forbids asserting SOC 2 until the report is confirmed in Vanta, yet the researcher populated the value anyway (gate flagged only in notes); dropdown has no 'Not known' option, cell stays empty",
+   "inworld/3.1.1: downgraded to Not known \u2014 https://inworld.ai/security unreachable; form dropdown has NO 'Not known' option, so the cell cannot be written until 'Others - pls indicate below' (TLS, version unpublished) is re-confirmed against a fetched page",
+   "inworld/3.1.2: downgraded to Not known \u2014 https://inworld.ai/security unreachable; 'Others - pls indicate below' (AES, key length unpublished) must be re-confirmed against a fetched page",
+   "inworld/3.1.8: downgraded to Not known \u2014 all seven safeguard lines snippet-sourced from three unreachable hosts (inworld.ai/security, docs.inworld.ai ZDR page, inworld.ai/on-prem); none verified",
+   "inworld/3.1.3, 3.1.4, 3.1.6, 3.1.7, 3.2.1: mandatory independent searches skipped \u2014 session web-search budget exhausted (200/200) and all fetch fallbacks gateway-denied; stay Not known, zero upgrades"
+  ]
+ }
+}

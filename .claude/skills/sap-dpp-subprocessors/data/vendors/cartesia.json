@@ -1,0 +1,105 @@
+{
+  "vendor_name": "Cartesia AI, Inc.",
+  "slug": "cartesia",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: every Cartesia-owned host (www.cartesia.ai, cartesia.ai, docs.cartesia.ai, trust.cartesia.ai) returned HTTP 403 to WebFetch in this session (bot protection), the sandbox egress proxy denied direct curl CONNECTs to those hosts, and web.archive.org is unreachable from this environment. No Cartesia page could be fetched directly. Every value below is sourced from Cartesia's OWN pages (cartesia.ai / docs.cartesia.ai) as quoted verbatim in web-search result excerpts. Per researcher hard rules ('confidence: high requires a URL you actually fetched'), confidence is capped at 'low' everywhere, even where the underlying vendor page is unambiguous. The verifier pass should re-fetch each source_url from an unrestricted network (a normal browser loads these pages fine) before any value is promoted. The trust center at https://trust.cartesia.ai/ exists but its contents could not be read at all this session — it very likely answers the encryption questions marked Not known below.",
+  "fields": {
+    "1.1": {
+      "value": "Cartesia AI, Inc. (US corporation, 'Inc.'; state of incorporation not confirmed from a vendor source this session)",
+      "source_url": "https://www.cartesia.ai/legal/dpa",
+      "locator": "Data Protection Addendum, opening paragraph: the DPA 'supplements and forms part of the Master Service Agreement' between 'Cartesia AI, Inc. (\"Service Provider\")' and the Customer. The Terms of Service (https://cartesia.ai/legal/terms.html) also uses 'Cartesia AI, Inc.' in its notice block.",
+      "confidence": "low",
+      "notes": "Entity name appeared verbatim in search excerpts of Cartesia's own DPA and Terms of Service pages; the pages themselves returned 403 to all fetch attempts this session. State of incorporation (likely Delaware for a US AI startup, but that would be inference — not asserted) was NOT found on a vendor source. Field playbook: this cell must match the entity Tavus named in TOM questionnaire #8.3 already submitted to SAP — no TOM questionnaire file exists in this repo, so the human must reconcile before the cell is written."
+    },
+    "1.1.1": {
+      "value": "Cartesia AI, Inc., 1766 18th Street, San Francisco, CA, USA (street address from the Terms of Service notice block; suite/ZIP not confirmed from a vendor source this session). No Article 27 GDPR representative identified in any Cartesia material retrieved. Privacy contact: security@cartesia.ai.",
+      "source_url": "https://cartesia.ai/legal/terms.html",
+      "locator": "Terms of Service, DMCA/notice section: 'Cartesia AI, Inc., Attn: DMCA Compliance Officer, 1766 18th [Street...]' (search excerpt truncated after the street number)",
+      "confidence": "low",
+      "notes": "The street address '1766 18th' came from a search excerpt of Cartesia's own Terms of Service; the city/state completion (San Francisco, CA 94107, Suite 1200) appeared only in third-party company-profile sites, which are not permissible sources — so only the vendor-sourced fragment plus city/state is asserted, and the full registered address is in open questions. Cartesia announced GDPR compliance (https://www.cartesia.ai/blog/gdpr-compliance, 2025-09-24) and its DPA incorporates the EU SCCs (Commission Implementing Decision (EU) 2021/914), but no Art. 27 representative name/address was found in any retrieved excerpt of the DPA, privacy policy, or GDPR blog post. As a US company without an EU establishment serving EU subjects, Cartesia would normally need one — absence from retrieved material is a finding to confirm with the vendor, not evidence none exists."
+    },
+    "1.1.2": {
+      "value": "N/A — no data protection officer identified in Cartesia's published privacy policy or DPA. Data-protection contact: security@cartesia.ai.",
+      "source_url": "https://www.cartesia.ai/legal/privacy",
+      "locator": "Privacy Policy, contact section: privacy questions directed to security@cartesia.ai (support@cartesia.ai given for general questions on the AI Safety page)",
+      "confidence": "low",
+      "notes": "Per the form instructions, N/A plus a working data-protection contact in the 1.1.1 column is the correct answer when no DPO is formally named. No DPO name appeared in any retrieved excerpt of cartesia.ai/legal/privacy, /legal/dpa, or the GDPR-compliance blog post. Do not invent a name. Confirm with the vendor whether a DPO has been formally designated (their September 2025 GDPR-compliance push may have added one after these pages were indexed)."
+    },
+    "1.4.2": {
+      "value": "SOC 2",
+      "source_url": "https://www.cartesia.ai/blog/gdpr-compliance",
+      "locator": "Cartesia pages (GDPR-compliance blog post, agents page, healthcare page): 'strong security foundation includes SOC 2 Type II, PCI-DSS (service level provider), HIPAA, and optional Zero Data Retention'; API described as 'globally available with GDPR, SOC 2 Type II, PCI Level 1, and HIPAA compliance'",
+      "confidence": "low",
+      "notes": "Cartesia's own pages consistently claim SOC 2 Type II, PCI-DSS (Level 1 service provider), HIPAA, and GDPR compliance. Of the form's dropdown options only 'SOC 2' matches. ISO 27001 was NOT confirmed on any vendor source this session (the only ISO 27001 mention was a third-party site — disregarded). GATE: scope.yaml has soc2_on_file_in_vanta: null for Cartesia — per the playbook, do not assert SOC 2 in the form until Cartesia's SOC 2 Type II report is actually on file in Vanta; request it via trust.cartesia.ai."
+    },
+    "3.1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Cartesia primary source retrieved this session states the TLS version used for data in transit. The DPA Annex II (www.cartesia.ai/legal/dpa) requires measures so data 'cannot be read, copied, modified or deleted without authorization during electronic transmission', but names no standard. A third-party site claimed 'TLS 1.3' — disallowed as a source, not used. Searched: www.cartesia.ai/legal/dpa, trust.cartesia.ai (unfetchable), docs.cartesia.ai, cartesia.ai/blog/gdpr-compliance. NOTE FOR FILLER: the 3.1.1 dropdown has no 'Not known' option — leave blank or use 'Others - pls indicate below' pending the vendor's written answer; do not guess a TLS version."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Cartesia primary source retrieved this session names an encryption-at-rest standard (AES-128/192/256 etc.). A third-party site claimed 'AES-256 at rest' — disallowed as a source, not used. Searched: www.cartesia.ai/legal/dpa (Annex II excerpts retrieved mention encryption only for 'archived data media', no algorithm), trust.cartesia.ai (403 on every fetch attempt — likely documents this), docs.cartesia.ai, privacy policy. 'Not known' is a valid dropdown option for this row."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Backup encryption is not documented with a standard. The DPA Annex II (www.cartesia.ai/legal/dpa) does list 'encryption of archived data media' among its technical and organizational measures — so archived/backup media are stated to be encrypted — but no algorithm is named, and per form_spec the dropdown wants a standard. 'Not known' with this note is the honest answer; ask the vendor which algorithm covers backups."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Cartesia primary source retrieved this session describes key management or who generates encryption keys (no CMEK/BYOK documentation found on docs.cartesia.ai excerpts). The playbook default for managed cloud ('Key generated by Subprocessor (not customer-specific)') is plausible but would be an industry-norm inference, which the hard rules forbid. Ask the vendor; also confirm with the human whether Tavus has any customer-managed-key arrangement with Cartesia."
+    },
+    "3.1.6": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Cartesia primary source retrieved this session states whether Cartesia can anonymize customer personal data. Cartesia offers 'optional Zero Data Retention' (vendor pages, e.g. GDPR blog / docs onboarding flow) — that is deletion/non-retention, not anonymization, so it does not answer this row. Searched DPA, privacy policy, docs.cartesia.ai, trust center (unfetchable)."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Cartesia primary source retrieved this session states a pseudonymization capability. The DPA references the EU SCCs (which nominally require pseudonymization/encryption 'as appropriate' in Annex II), but no retrieved excerpt shows Cartesia asserting it pseudonymizes customer personal data. Ask the vendor."
+    },
+    "3.1.8": {
+      "value": "User identification and authentication procedures (DPA Annex II)\nID/password security procedures — special characters, minimum length, forced password change (DPA Annex II)\nAutomatic blocking and monitoring of break-in attempts with automatic turn-off of the user ID after repeated erroneous password attempts (DPA Annex II)\nOne master record per user; user-master data procedures per data processing environment (DPA Annex II)\nEncryption of archived data media (DPA Annex II)\nAccess-rights restriction: persons entitled to use a data processing system gain access only to Customer Personal Data in accordance with their access rights (DPA Annex II)\nTransmission/transport/storage control: Customer Personal Data cannot be read, copied, modified or deleted without authorization during electronic transmission, transport or storage; disclosure recipients verifiable (DPA Annex II)\nSOC 2 Type II attestation; PCI-DSS (Level 1 service provider); HIPAA compliance with BAA available on enterprise contracts (vendor pages)\nOptional Zero Data Retention mode, enabled via onboarding flow or account settings (vendor pages/docs)\nGDPR compliance with EU Standard Contractual Clauses (Commission Implementing Decision (EU) 2021/914) incorporated in the DPA\nRegional API endpoints with in-region inference (US, EU, APAC routing) for data-residency requirements (vendor deployments page / docs changelog)",
+      "source_url": "https://www.cartesia.ai/legal/dpa",
+      "locator": "Assembled one-per-line from: DPA Annex II technical and organizational measures (www.cartesia.ai/legal/dpa); GDPR-compliance blog (www.cartesia.ai/blog/gdpr-compliance); deployments page (www.cartesia.ai/deployments); docs changelog regionalization note (docs.cartesia.ai/changelog/2026)",
+      "confidence": "low",
+      "notes": "Every line traces to a Cartesia-domain statement quoted in search excerpts this session; no page could be fetched directly (vendor bot-protection 403s + sandbox egress denials). The Annex II list is partial — only the portions surfaced in excerpts are included; the full Annex II should be read by the verifier from the live page."
+    },
+    "3.2.1": {
+      "value": "Yes",
+      "source_url": "https://docs.cartesia.ai/changelog/2026",
+      "locator": "Cartesia docs changelog: regionalization implemented 'with calls routed to US, EU, and APAC by origin'; deployments page (www.cartesia.ai/deployments): 'inference runs in-region, keeping customers within their latency envelope, data residency obligations, and compliance frameworks' via 'regional API endpoints across the globe'; self-hosted docs additionally allow hosting 'in any geographic region with GPU availability'",
+      "confidence": "low",
+      "notes": "The test is 'does the vendor OFFER an EU region', and Cartesia's own docs/marketing state EU-routed regional endpoints and in-region inference for data-residency purposes — so Yes. Whether the EU region keeps data at rest in the EU (vs. only inference routing) is not established; ask the vendor. Whether Tavus USES it is row 3.2.2 (Bucket B, human answer). Snippet-sourced; direct fetch blocked."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm Cartesia's full legal entity name, legal form and state of incorporation (we have 'Cartesia AI, Inc.' from your DPA), and the registered address to be used for GDPR purposes (we have '1766 18th Street, San Francisco, CA' from your Terms of Service — please confirm suite and ZIP).",
+    "Has Cartesia AI, Inc. designated a representative in the Union under Article 27 GDPR? If yes, please provide the representative's name and full address; if no, please confirm in writing.",
+    "Has Cartesia formally designated a Data Protection Officer? If yes, please provide the DPO's name and telephone number and/or email; if no, please confirm that security@cartesia.ai is the authoritative contact for data-protection requests.",
+    "Which TLS version is enforced (minimum and preferred) for the Cartesia API and WebSocket endpoints that carry customer text and generated speech audio in transit?",
+    "Which encryption standard (e.g. AES-256) is used for customer data at rest, and does the same standard cover backups and archived media (your DPA Annex II lists 'encryption of archived data media' without naming an algorithm)?",
+    "Who generates and manages the encryption keys for customer data at rest — Cartesia-managed keys (customer-specific or shared), or is a customer-managed key option available?",
+    "Can Cartesia anonymize and/or pseudonymize customer personal data on the customer's instruction (beyond the optional Zero Data Retention mode)?",
+    "For the EU region routing described in your docs: is customer data processed AND stored at rest within the EU when EU endpoints are used, or is routing in-region for inference only?",
+    "Please provide your current SOC 2 Type II report and confirm your PCI-DSS and HIPAA attestations (and whether you hold ISO 27001 — we could not confirm it from public sources) via trust.cartesia.ai or directly, so the report can be placed on file as audit evidence for row 1.4.2.",
+    "Please provide your current sub-processor list (your trust center was not machine-readable to us)."
+  ]
+}

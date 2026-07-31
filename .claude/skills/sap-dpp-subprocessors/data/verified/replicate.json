@@ -1,0 +1,136 @@
+{
+ "vendor_name": "Replicate, LLC",
+ "slug": "replicate",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to replicate.com for WebFetch and curl alike (confirmed this pass: 'CONNECT tunnel failed, response 403' on curl; WebFetch returned HTTP 403 on all four source URLs; agent-proxy status log shows 'gateway answered 403 to CONNECT (policy denial)' for sibling vendor domains). Archive and search-engine fallbacks are equally denied (html.duckduckgo.com also 403). Not one researcher source_url could be fetched \u2014 exactly the condition the researcher's own file disclosed and asked the verifier to cure; it could NOT be cured from this environment. Additionally the session's web-search budget was exhausted (200/200 WebSearch calls) before the mandatory independent searches for the seven 'Not known' fields (1.4.2, 3.1.2, 3.1.3, 3.1.4, 3.1.6, 3.1.7, 3.2.1) could run, so no upgrades were possible. Per the verifier resolution rules ('unverifiable -> downgrade to Not known; never keep a value you could not confirm'), every sourced value has been downgraded. The researcher's claims and URLs are preserved in each field's notes so a re-verification pass from an unrestricted network can restore them quickly. ENTITY CAVEAT carried forward: Replicate publicly announced it is joining Cloudflare (replicate.com/blog/replicate-cloudflare); current pages reportedly name 'Replicate, LLC' where older documents said 'Replicate, Inc.' \u2014 the exact current legal entity and its relationship to Cloudflare, Inc. must be confirmed with the vendor and reconciled against Tavus's TOM questionnaire #8.3, which is NOT in this repo. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Replicate domains.",
+ "fields": {
+  "1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Replicate, LLC (US limited liability company)\" citing https://replicate.com/terms (ToS opening paragraph naming 'Replicate, LLC'; governing law California, venue San Francisco). Gateway 403 CONNECT denial on replicate.com; no archive or search-engine fallback reachable. TWO independent blockers even if re-fetched: (a) TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check could not be performed \u2014 a mismatch here gets the whole package returned by SAP; (b) the Cloudflare acquisition (replicate.com/blog/replicate-cloudflare) means the historical entity 'Replicate, Inc.' may have converted to 'Replicate, LLC' as a Cloudflare, Inc. subsidiary \u2014 whichever name Tavus wrote in #8.3 may now be stale. State of formation not published. Reconcile with the vendor AND the #8.3 submission before writing this cell."
+  },
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Replicate, LLC, 101 Townsend Street, San Francisco, CA 94107, USA; privacy contact privacy@replicate.com; no Article 27 GDPR representative identified\" citing https://replicate.com/privacy. Page unreachable (gateway 403 CONNECT denial). Three things need a fetched page: (a) the address \u2014 the researcher itself flagged a DISCREPANCY: internal.replicate.com/privacy reportedly lists '2261 Market Street #4056, San Francisco, CA 94114' instead; (b) which of the two addresses is the registered/authoritative one; (c) the Art.-27-absence claim, which is an absence-of-evidence claim that MUST be confirmed on a fetched page, not inferred from search snippets. All three are already in open_questions_for_vendor."
+  },
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"N/A (no formally named DPO); data-protection requests via privacy@replicate.com\" citing https://replicate.com/privacy. Page unreachable (gateway 403 CONNECT denial). If re-verified, 'N/A' plus privacy@replicate.com carried in the 1.1.1 contact column is the correct form pattern per the playbook and the researcher applied the do-not-invent rule properly \u2014 but the DPO-absence claim is snippet-sourced and absence must be positively confirmed on the fetched policy (the researcher said the same). Unconfirmed as of this pass; question already in open_questions_for_vendor."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed: web-search budget exhausted (200/200) and all Replicate domains plus search-engine fallbacks unfetchable (gateway 403). Researcher found NO SOC 1/2/3 or ISO 27001/27701/27018/9001/22301 claim on any Replicate-owned page and no public trust center \u2014 consistent with this verifier's prior knowledge that Replicate does not publish a certification list, but unconfirmed this session. TWO independent blockers regardless: (a) scope.yaml has soc2_on_file_in_vanta: null for Replicate \u2014 playbook forbids asserting SOC 2 until the report is confirmed on file in Vanta; (b) post-acquisition coverage under Cloudflare, Inc.'s audit program (Cloudflare holds ISO 27001/27701/27018, SOC 2 Type II) must NOT be assumed to extend to the Replicate service without vendor confirmation. FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option \u2014 this cell stays empty until the certification question in open_questions_for_vendor is answered and evidence is on file."
+  },
+  "3.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Others - pls indicate below\" citing https://replicate.com/blog/shared-network-vulnerability-disclosure ('since February 20th, all internal traffic from model pods is encrypted using TLS'; api.replicate.com served over HTTPS per docs/reference/http), on the honest ground that no TLS VERSION is published so no versioned dropdown option can be selected. Page unreachable (gateway 403 CONNECT denial); an empirical TLS handshake against api.replicate.com was also impossible (gateway blocks CONNECT). FORM-SPEC WARNING: the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others/None) \u2014 this cell cannot be filled from this file. If the blog and docs pages are re-fetched and confirm TLS-with-no-version, the researcher's 'Others - pls indicate below' with note 'TLS (version not publicly documented; vendor confirmation requested)' is the defensible restore; the minimum-TLS-version question is already in open_questions_for_vendor. Do NOT write 'TLS 1.2'/'TLS 1.3' without vendor confirmation."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget 200/200 exhausted; Replicate domains and search fallbacks unfetchable). Researcher's reasoning stands on its own: no Replicate primary source states an encryption-at-rest standard for customer data; the Enterprise page's 'strict controls for... encryption' names no algorithm; and inferring the underlying hyperscaler's AES-256 default would violate the no-inference rule. 'Not known' is an allowed dropdown value for 3.1.2. Algorithm question already in open_questions_for_vendor. No upgrade."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted; domains unfetchable). Backup encryption undocumented publicly \u2014 the playbook itself says 'Not known is common and correct' for row 59. The researcher's mitigating-control observation (API prediction inputs/outputs auto-deleted after one hour by default, per docs/topics/predictions/data-retention) is itself unverified this pass and must not be carried into the workbook notes until the docs page is re-fetched. Backup-encryption question already in open_questions_for_vendor. No upgrade."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted; domains unfetchable). The researcher correctly refused to assert the playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') without a primary source, and found no CMEK/BYOK offering. SECOND GATE regardless of re-verification: the dropdown choice flips to 'Key generated by your company' if Tavus supplies its own keys \u2014 human must confirm Tavus's actual key configuration with Replicate (per the playbook: 'check with the human'). Key-management question already in open_questions_for_vendor. No upgrade."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted; domains unfetchable). The researcher's conflation warning is important and preserved: the privacy policy's 'de-identified, aggregate, or anonymous information about Website visitors' and the ToS 'Resultant Data' (aggregated/anonymized usage data) describe Replicate anonymizing ITS OWN analytics data \u2014 NOT an Art. 28(3)(e)-style processor capability to anonymize SAP/Tavus personal data on instruction. Do not upgrade to 'Yes' on the strength of those clauses. Question already in open_questions_for_vendor. No upgrade."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Same situation as 3.1.6: mandatory independent search blocked by exhausted web-search budget and Replicate-domain CONNECT denials; no mention of pseudonymization in any material the researcher retrieved. No upgrade."
+  },
+  "3.1.8": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher assembled eight free-text safeguard lines (one-hour auto-deletion of API prediction inputs/outputs/files/logs; internal pod traffic TLS-encrypted since 2024-02-20 with restricted privileged network access; containerized Cog/OCI model execution; automatic GitHub scanning and auto-disable of leaked API tokens plus scoped tokens; secret redaction in logs/metadata; audit logging of model access and deployment changes; private dedicated endpoints via deployments; published responsible-disclosure practice with post-incident reports) from https://replicate.com/docs/topics/predictions/data-retention, blog/shared-network-vulnerability-disclosure, docs/topics/security/api-tokens, docs/topics/predictions/secrets, docs/topics/deployments. NONE of these pages was reachable this pass (gateway 403 CONNECT denial). Every line is snippet-sourced only; none can go to SAP unconfirmed. Credit where due: the researcher deliberately excluded third-party claims and hyperscaler-inferred boilerplate. Re-verify each line against its named page before restoring."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted; domains unfetchable). The researcher applied the right test ('does the vendor OFFER an EU region', not 'does it run on clouds that have EU regions') and found no Replicate documentation of region selection or EU data residency. Post-Cloudflare-acquisition regionality (Cloudflare's global network) is undocumented for the Replicate service and must not be assumed. 'Not known' is an allowed dropdown value for 3.2.1. EU-region question already in open_questions_for_vendor. No upgrade."
+  }
+ },
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "downgraded_to_not_known",
+   "1.1.1": "downgraded_to_not_known",
+   "1.1.2": "downgraded_to_not_known",
+   "1.4.2": "not_upgraded_search_unavailable",
+   "3.1.1": "downgraded_to_not_known",
+   "3.1.2": "not_upgraded_search_unavailable",
+   "3.1.3": "not_upgraded_search_unavailable",
+   "3.1.4": "not_upgraded_search_unavailable",
+   "3.1.6": "not_upgraded_search_unavailable",
+   "3.1.7": "not_upgraded_search_unavailable",
+   "3.1.8": "downgraded_to_not_known",
+   "3.2.1": "not_upgraded_search_unavailable"
+  },
+  "disputes": [
+   "replicate/ALL sourced fields: network gateway policy-denies CONNECT to replicate.com (curl and WebFetch both 403; search-engine and archive fallbacks also 403) \u2014 zero source URLs fetchable; all 5 sourced values downgraded to Not known per resolution rules",
+   "replicate/1.1: TOM questionnaire #8.3 not found in repo \u2014 mandatory legal-entity cross-check could not be performed; ADDITIONALLY the Cloudflare acquisition means 'Replicate, LLC' (current pages) vs 'Replicate, Inc.' (historical) vs whatever Tavus wrote in #8.3 may all differ \u2014 human must reconcile all three before this cell is written",
+   "replicate/1.1.1: researcher-flagged address discrepancy unresolved \u2014 replicate.com/privacy says 101 Townsend Street SF 94107, internal.replicate.com/privacy says 2261 Market Street #4056 SF 94114; authoritative address must come from the vendor",
+   "replicate/1.4.2: independent blocker \u2014 scope.yaml soc2_on_file_in_vanta is null for Replicate and no certification claim exists on any Replicate page; Cloudflare's certifications must NOT be assumed to cover the Replicate service. Dropdown has no 'Not known' option \u2014 cell stays empty",
+   "replicate/3.1.1: form dropdown has no 'Not known' option \u2014 downgraded value cannot be written to the workbook cell; if re-fetched pages confirm TLS-with-unpublished-version, restore the researcher's 'Others - pls indicate below', never a specific TLS version without vendor confirmation",
+   "replicate/3.1.4: even if re-verified, dropdown choice depends on whether Tavus uses CMEK/BYOK with Replicate \u2014 human must confirm Tavus's key configuration before the cell is written",
+   "replicate/1.4.2+3.1.2+3.1.3+3.1.4+3.1.6+3.1.7+3.2.1: mandatory independent searches skipped \u2014 session web-search budget exhausted (200/200) and all fetch fallbacks gateway-denied; values stay Not known, zero upgrades",
+   "replicate/3.1.6: verifier flag for the re-run \u2014 do NOT read the privacy policy's 'de-identified/aggregate' language or the ToS 'Resultant Data' clause as an anonymization-on-instruction capability; they describe Replicate's own analytics data",
+   "replicate/1.1.4-level: scope.yaml sets level 1, but the playbook flags that Replicate runs on hyperscaler infrastructure, making AWS/GCP arguably Level 1 AND Level 2 \u2014 the processing-chain answer for row 7 needs Replicate's sub-processor list (replicate.com/docs/topics/site-policy/subprocessors, unretrievable this session) before a human signs off",
+   "replicate/bucket-check: PASS \u2014 no Bucket B or Bucket C field was populated by the researcher (1.1.3, 1.1.4, 1.2-1.7, 2.x, 3.1.5, 3.2.2 all absent from the fields map; top-level 'level: 1' is scope.yaml metadata, not a form cell)"
+  ],
+  "network_note": "Re-run this verification from an environment that can reach replicate.com before any value from data/vendors/replicate.json is promoted. The researcher's claims are internally consistent, honestly caveated (confidence capped at low, gateway condition disclosed, entity and address discrepancies self-flagged), and plausibly correct; they are downgraded because they could not be independently confirmed, not because contrary evidence was found."
+ },
+ "open_questions_for_vendor": [
+  "Please confirm the exact current legal entity that contracts for the Replicate service (name, legal form, state of formation, and registered address) following the Cloudflare acquisition \u2014 is it Replicate, LLC, and is it a wholly-owned subsidiary of Cloudflare, Inc.? Your public pages show two addresses (101 Townsend Street, San Francisco, CA 94107 on replicate.com/privacy; 2261 Market Street #4056, San Francisco, CA 94114 on internal.replicate.com/privacy) \u2014 which is authoritative?",
+  "Has Replicate (or its Cloudflare parent, on Replicate's behalf) designated a representative in the EU under Article 27 GDPR? If yes, please provide the representative's name and full address.",
+  "Does Replicate have a formally appointed Data Protection Officer? If yes, please provide name, telephone number and/or email; if not, please confirm privacy@replicate.com as the contact entitled to respond to data-protection requests.",
+  "Which security certifications or audit reports does Replicate currently hold (SOC 2 Type II, SOC 1/3, ISO/IEC 27001, 27018, 27701, 22301, 9001)? Please provide the current reports/certificates. If Replicate is now covered under Cloudflare, Inc.'s compliance program, please state which certifications extend to the Replicate service and from what date.",
+  "What minimum TLS version is enforced for data in transit (a) on the public API endpoints (api.replicate.com) and (b) for internal traffic between services and model pods?",
+  "Is customer data (prediction inputs, outputs, files, logs, custom model weights) encrypted at rest, with which algorithm (e.g. AES-256), and on which underlying cloud provider(s) and region(s) is it stored?",
+  "Are backups of customer data taken, and if so are they encrypted and with which algorithm?",
+  "Who generates and manages the encryption keys for data at rest \u2014 Replicate/its cloud provider (shared or customer-specific keys), or can customers supply their own keys (CMEK/BYOK)?",
+  "Can Replicate anonymize and/or pseudonymize customer personal data on the customer's documented instruction (Art. 28(3)(e) GDPR support), as opposed to the aggregated/anonymized 'Resultant Data' described in your Terms?",
+  "Does Replicate offer an EU processing region or EU data residency option (inference executed and data stored within the EU/EEA)? If yes, how is it enabled and does it cover video/audio inference workloads?",
+  "Please provide your current sub-processor list (your docs reference replicate.com/docs/topics/site-policy/subprocessors) so the full processing chain (Level 2: underlying cloud/GPU providers) can be reported to SAP."
+ ]
+}

@@ -1,0 +1,105 @@
+{
+  "vendor_name": "Orb",
+  "slug": "orb",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: NO primary source for Orb could be fetched in this session. Every access path failed: (1) the session's WebSearch budget was already fully exhausted (200/200) before this vendor's research began, so no search snippets could be gathered either; (2) WebFetch reached www.withorb.com, withorb.com, docs.withorb.com, and security.withorb.com but every path (including /robots.txt) returned HTTP 403 from the site's bot protection; (3) curl through the org egress proxy was denied at CONNECT with a 403 policy denial for www.withorb.com (proxy README: do not route around policy denials); (4) trust.withorb.com does not resolve (NXDOMAIN); (5) web.archive.org is blocked for both WebFetch and curl; (6) render proxies (r.jina.ai) returned 403; (7) withorb.safebase.us returned 403. Per the researcher hard rules, no value may come from training data or industry norms, so ALL Bucket A fields are 'Not known' with confidence 'none'. The verifier / a human must re-run this vendor from an unrestricted network (Orb's site, their trust center, DPA, and privacy policy) or email Orb directly. Note: security.withorb.com resolves and answers, which suggests a trust-center subdomain likely exists — check it first from an unrestricted network. scope.yaml has soc2_on_file_in_vanta: null for Orb — check Vanta before asserting any certification in 1.4.2.",
+  "fields": {
+    "1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Legal entity name and legal form could not be sourced. No Orb page (privacy policy, terms, DPA) was fetchable this session; searched/attempted: https://www.withorb.com/security, https://www.withorb.com/privacy, https://withorb.com/security, https://docs.withorb.com/, https://security.withorb.com/, https://trust.withorb.com/ (NXDOMAIN), https://withorb.safebase.us/, web.archive.org copies (blocked). Also: the field playbook says 1.1 must match the entity Tavus named in TOM questionnaire #8.3 — no TOM questionnaire file exists in this repo, so the filler/human must reconcile against that submission. Do NOT write a name from memory; confirm from Orb's DPA signature block or terms of service."
+    },
+    "1.1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Full registered address and any Article 27 GDPR EU representative could not be sourced — Orb's privacy policy and legal pages were unreachable (see research_caveat; same URL list as 1.1). Orb appears to be a US vendor per Tavus's own subprocessor scoping, in which case an Art. 27 representative may or may not be designated; absence would be a legitimate finding but was NOT confirmed this session. Must come from Orb's privacy policy or DPA."
+    },
+    "1.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Could not determine whether Orb has formally named a DPO, nor find a privacy contact email. The playbook default for US vendors ('N/A' plus a privacy contact in 1.1.1) cannot be applied because absence of a DPO was not verified on any fetched page — writing 'N/A' now would be an invention. Searched the same unreachable URL set as 1.1. Ask Orb directly for the DPO (if any) and an authoritative privacy contact (email/phone) entitled to answer SAP data-protection requests."
+    },
+    "1.4.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No certification (SOC 2, ISO 27001, etc.) could be verified from any Orb primary source this session — trust center / security pages all unreachable (see research_caveat). Additionally scope.yaml has soc2_on_file_in_vanta: null for Orb; per the playbook, do not assert SOC 2 unless the report is actually on file in Vanta. security.withorb.com exists (resolves and responds) and is the most likely place their certification list lives — check from an unrestricted network, and pull the actual report via Vanta or from Orb."
+    },
+    "3.1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Encryption-in-transit standard (TLS version) not sourced — no Orb security documentation reachable (see research_caveat URL list). Note the form's dropdown for 3.1.1 has no 'Not known' option; the filler must leave the cell blank or obtain the answer from Orb before writing anything. Do not default to TLS 1.2/1.3 from industry norms."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Encryption-at-rest standard not sourced. 'Not known' is a legal dropdown value for this row. Same unreachable URL set as research_caveat."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Backup encryption not sourced (rarely documented separately even by vendors with rich trust centers; here nothing at all was reachable). 'Not known' is a legal dropdown value for this row."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Key provider not sourced. The playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') was NOT applied because it would be an inference from industry norms, not from an Orb document. 'Not known' is a legal dropdown value for this row."
+    },
+    "3.1.6": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Anonymization capability not sourced; no Orb DPA or security documentation reachable. 'Not known' is a legal dropdown value."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Pseudonymization capability not sourced; same situation as 3.1.6. 'Not known' is a legal dropdown value."
+    },
+    "3.1.8": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No other technical safeguards can be listed — every candidate line would have to trace to a fetched Orb statement and none exists this session. Leave the free-text cell empty rather than writing 'Not known' into the form; this JSON value just records the research outcome."
+    },
+    "3.2.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Whether Orb offers an EU hosting region / EU Access could not be determined — no infrastructure or data-residency documentation reachable (see research_caveat). 'Not known' is a legal dropdown value for this row. Ask Orb where customer data (usage events, billing metadata) is hosted and whether an EU region is offered."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm the full legal name and legal form of the Orb entity that contracts with Tavus, Inc. (as it appears in the DPA signature block), and its registered address. This must match the entity Tavus named in TOM questionnaire #8.3.",
+    "Have you designated a representative in the EU under Article 27 GDPR? If yes, please provide the representative's name and full address; if no, please confirm in writing that none is designated.",
+    "Have you formally appointed a Data Protection Officer? If yes, please provide the DPO's name, telephone number and/or email address. If no, please provide the telephone number and/or email address of a contact entitled to respond to data-protection-related requests from SAP.",
+    "Which third-party audit certifications do you currently hold (SOC 1, SOC 2 Type I/II, SOC 3, ISO 27001, ISO 27018, ISO 27701, ISO 9001, ISO 22301)? Please provide the current SOC 2 Type II report and/or certificates so they can be attached as audit evidence and filed in Vanta.",
+    "What encryption standard do you enforce for data in transit between Tavus and Orb (exact minimum TLS version)?",
+    "What encryption standard do you use for customer data at rest (e.g. AES-256), and are backups of customer data encrypted with the same standard?",
+    "Who generates and manages the encryption keys protecting Tavus's data at rest — Orb (shared or customer-specific keys), or does Orb support customer-managed keys?",
+    "Can Orb anonymize and/or pseudonymize personal data processed on Tavus's behalf (e.g. billing contact identifiers, usage event attributes) on instruction?",
+    "Please list your other technical safeguards relevant to the SAP DPP TOM (network isolation, access controls, MFA/SSO for admin access, logging/monitoring, vulnerability management, etc.).",
+    "Where is customer data hosted (cloud provider and regions), and do you offer an EU hosting region / EU data residency option for the data Orb processes for Tavus?"
+  ]
+}

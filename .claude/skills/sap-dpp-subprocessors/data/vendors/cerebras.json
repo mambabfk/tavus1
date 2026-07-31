@@ -1,0 +1,106 @@
+{
+  "vendor_name": "Cerebras Systems Inc.",
+  "slug": "cerebras",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: every Cerebras-owned host attempted this session (www.cerebras.ai, cerebras.ai, cloud.cerebras.ai, trust.cerebras.ai, support.cerebras.net, investors.cerebras.ai, and the Cloudfront-hosted Inference Terms d7umqicpi7263.cloudfront.net) returned HTTP 403 to WebFetch, and the sandbox egress proxy denied direct curl CONNECTs outright (confirmed via the agent-proxy status endpoint: 'gateway answered 403 to CONNECT (policy denial or upstream failure)'). web.archive.org is also unreachable from this environment (per sibling-agent findings this session). No Cerebras page could be fetched directly. Every value below is sourced from Cerebras's OWN pages (cerebras.ai, cloud.cerebras.ai, trust.cerebras.ai, support.cerebras.net, investors.cerebras.ai) as quoted in web-search result excerpts. Per researcher hard rules ('confidence: high requires a URL you actually fetched'), confidence is capped at 'low' everywhere, even where the underlying vendor page is unambiguous. The verifier pass should re-fetch each source_url from an unrestricted network (these pages load fine in a normal browser) before any value is promoted. The trust center at https://trust.cerebras.ai/ (SafeBase) exists and, per search excerpts, holds the SOC 2 Report, Network Diagram, Pentest Report, and documented controls for encryption-at-rest, encryption-in-transit, data access, and data backups — it very likely answers the encryption questions marked Not known below, but its contents are gated/JS-rendered and could not be read at all this session.",
+  "fields": {
+    "1.1": {
+      "value": "Cerebras Systems Inc. (US corporation, 'Inc.'; state of incorporation not confirmed from a vendor source this session)",
+      "source_url": "https://cloud.cerebras.ai/privacy",
+      "locator": "Privacy policy page titled 'Cerebras Systems Inc. Privacy Policy'; the Website Terms of Use (https://www.cerebras.ai/terms-of-service) also states 'Cerebras Systems Inc. and its subsidiaries and affiliates own and maintain the Site and the Service.'",
+      "confidence": "low",
+      "notes": "Entity name 'Cerebras Systems Inc.' appeared verbatim in search excerpts of Cerebras's own privacy policy and terms pages; the pages themselves returned 403 to all fetch attempts this session. Third-party sources (Wikipedia) say incorporated April 2016 as a Delaware corporation, and Cerebras is now a public company (investors.cerebras.ai, ticker CBRS) whose SEC filings would state the state of incorporation — but no vendor/registry source was fetchable this session, so Delaware is NOT asserted. Field playbook: this cell must match the entity Tavus named in TOM questionnaire #8.3 already submitted to SAP — no TOM questionnaire file exists in this repo, so the human must reconcile before the cell is written."
+    },
+    "1.1.1": {
+      "value": "Cerebras Systems Inc., 1237 E Arques Ave, Sunnyvale, CA 94085, USA. No Article 27 GDPR representative identified in any Cerebras material retrieved. Privacy contact: privacy@cerebras.net (general contact: info@cerebras.ai).",
+      "source_url": "https://www.cerebras.ai/privacy-policy",
+      "locator": "Privacy Policy, contact section: 'Cerebras Systems Inc. 1237 E Arques Ave, Sunnyvale, CA 94085' with privacy contact email privacy@cerebras.net",
+      "confidence": "low",
+      "notes": "Address and privacy email appeared in search excerpts quoting Cerebras's own privacy policy (cerebras.ai/privacy-policy and cloud.cerebras.ai/privacy); pages unfetchable this session. The privacy policy acknowledges transfers of personal data to the United States protected by Standard Contractual Clauses (search excerpt of the same policy), but no Article 27 EU representative name/address surfaced in any retrieved excerpt. As a US company serving EU subjects, Cerebras would normally need one — absence from retrieved material is a finding to confirm with the vendor in writing, not evidence none exists."
+    },
+    "1.1.2": {
+      "value": "N/A — no data protection officer identified in Cerebras's published privacy policy. Data-protection contact: privacy@cerebras.net.",
+      "source_url": "https://www.cerebras.ai/privacy-policy",
+      "locator": "Privacy Policy, contact section: privacy questions and privacy-rights requests directed to privacy@cerebras.net / postal mail to Cerebras Systems Inc., 1237 E Arques Ave, Sunnyvale, CA 94085",
+      "confidence": "low",
+      "notes": "Per the form instructions, N/A plus a working data-protection contact in the 1.1.1 column is the correct answer when no DPO is formally named. Targeted searches for 'data protection officer', 'EU representative', and 'Article 27' against Cerebras's privacy documentation surfaced no DPO name. Do not invent a name. Confirm in writing whether a DPO has been formally designated."
+    },
+    "1.4.2": {
+      "value": "SOC 2",
+      "source_url": "https://trust.cerebras.ai/",
+      "locator": "Cerebras Systems Trust Center (SafeBase): compliance documentation includes SOC 2 Type 2; downloadable items listed include SOC 2 Report, Network Diagram, and Pentest Report. Cerebras's privacy/compliance statements (search excerpt): 'Cerebras Systems maintains SOC 2 Type 2 certification and GDPR compliance.'",
+      "confidence": "low",
+      "notes": "SOC 2 Type 2 is the only certification confirmed from Cerebras-domain material this session. No ISO 27001, ISO 27701, ISO 27018, ISO 9001, ISO 22301, SOC 1, or SOC 3 claim was found on any Cerebras source (targeted search returned nothing). GATE: scope.yaml has soc2_on_file_in_vanta: null for Cerebras — per the playbook, do not assert SOC 2 in the form until Cerebras's SOC 2 Type II report is actually on file in Vanta; request it via trust.cerebras.ai."
+    },
+    "3.1.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Cerebras primary source retrieved this session states the TLS version used for data in transit. Cerebras's own materials confirm encryption-in-transit exists as a control (trust.cerebras.ai lists an 'Encryption-in-transit' control; the privacy policy cites 'administrative, technical, and physical safeguards... including encryption in transit, access controls, monitoring, and regular assessments of security posture') but name no standard. Searched: trust.cerebras.ai (unfetchable, gated), www.cerebras.ai/privacy-policy, cloud.cerebras.ai/privacy, inference-docs.cerebras.ai, support.cerebras.net, plus a targeted query for 'Cerebras TLS 1.2/1.3/AES-256' which returned nothing vendor-specific. NOTE FOR FILLER: the 3.1.1 dropdown has no 'Not known' option — leave blank or use 'Others - pls indicate below' pending the vendor's written answer; do not guess a TLS version."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Cerebras primary source retrieved this session names an encryption-at-rest standard (AES-128/192/256 etc.). The trust center lists an 'Encryption-at-rest' control (search excerpt) but the algorithm is behind the gated SafeBase portal, which could not be read this session. 'Not known' is a valid dropdown option for this row. Ask the vendor or pull from their SOC 2 report / trust center once access is granted. Note: for the Cerebras Inference API specifically, Cerebras states zero retention of prompts/outputs (see 3.1.8), which reduces what exists at rest at all."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Backup encryption is not documented publicly. The trust center lists 'data backups' among its security controls (search excerpt of trust.cerebras.ai) but names no encryption standard for them. 'Not known' with this note is the honest answer; ask the vendor which algorithm covers backups. Per the field playbook this is rarely documented separately and 'Not known' is common and correct."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Cerebras primary source retrieved this session describes key management or who generates encryption keys (no CMEK/BYOK documentation found in inference-docs.cerebras.ai excerpts or anywhere else). The playbook default for managed cloud ('Key generated by Subprocessor (not customer-specific)') is plausible but would be an industry-norm inference, which the hard rules forbid. Ask the vendor; also confirm with the human whether Tavus has any customer-managed-key arrangement with Cerebras."
+    },
+    "3.1.6": {
+      "value": "Yes",
+      "source_url": "https://www.cerebras.ai/privacy-policy",
+      "locator": "Privacy Policy: Cerebras 'may aggregate and/or de-identify information collected through the Services' and commits to 'maintaining and using that data in deidentified form without attempting to reidentify it'; Terms of Service (www.cerebras.ai/terms-of-service): usage analytics shared with third parties 'solely in de-identified or aggregated form'",
+      "confidence": "low",
+      "notes": "Cerebras's own policy documents a de-identification/aggregation capability with a no-reidentification commitment, which supports 'Yes' for anonymization capability. Caveat: these statements concern data Cerebras collects through its Services generally, not a customer-instructed anonymization service over customer personal data — confirm in writing that anonymization can be applied to Tavus-submitted personal data on instruction. Snippet-sourced; direct fetch blocked."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Cerebras primary source retrieved this session states a pseudonymization capability over customer personal data. The de-identification/aggregation language in the privacy policy (see 3.1.6) is about anonymization/aggregation, not reversible pseudonymization. Ask the vendor."
+    },
+    "3.1.8": {
+      "value": "Zero data retention for the Cerebras Inference API: Cerebras states it does not retain prompt content, API requests or responses, chat or transaction logs, or user input or model output; service logs are deleted when no longer necessary to provide services (support.cerebras.net article 'Does Cerebras retain my data?'; reiterated on cerebras.ai blog/press pages)\nAll inference requests processed in Cerebras-operated, US-based data centers ('Cerebras Inference runs 100% in U.S.-based AI datacenters with zero data retention or transfer' — vendor blog/press pages)\nEncryption-in-transit control (trust.cerebras.ai security controls; privacy policy cites encryption in transit among safeguards)\nEncryption-at-rest control (trust.cerebras.ai security controls; standard not published)\nData access controls (trust.cerebras.ai security controls; privacy policy cites access controls)\nData backups control (trust.cerebras.ai security controls)\nMonitoring and regular assessments of security posture (privacy policy: 'administrative, technical, and physical safeguards... including encryption in transit, access controls, monitoring, and regular assessments of security posture')\nSOC 2 Type 2 attestation; independent penetration-test report and network diagram available via trust center (trust.cerebras.ai)\nGDPR cross-border transfers protected by Standard Contractual Clauses / contractual safeguards (privacy policy)\nResponsible disclosure / vulnerability disclosure policy published (www.cerebras.ai/cerebras-responsible-disclosure-policy)\nOn-premises / custom data center deployment option for full data ownership (vendor pages)",
+      "source_url": "https://support.cerebras.net/articles/1811589793-does-cerebras-retain-my-data",
+      "locator": "Assembled one-per-line from: support.cerebras.net 'Does Cerebras retain my data?'; trust.cerebras.ai security-controls listing; www.cerebras.ai/privacy-policy safeguards section; www.cerebras.ai blog/press pages on inference (e.g. /blog/cerebras-launches-worlds-fastest-deepseek-r1-llama-70b-inference); www.cerebras.ai/cerebras-responsible-disclosure-policy",
+      "confidence": "low",
+      "notes": "Every line traces to a Cerebras-domain statement quoted in search excerpts this session; no page could be fetched directly (gateway CONNECT denials + vendor 403s). The zero-data-retention claim is marketing/support-page language — ask the vendor to confirm it applies contractually to Tavus's API traffic (some providers make ZDR an enterprise-tier option). The trust-center control names are category labels from the SafeBase portal listing, not full control text; the verifier should read the live portal."
+    },
+    "3.2.1": {
+      "value": "No",
+      "source_url": "https://investors.cerebras.ai/news-releases/news-release-details/cerebras-systems-accelerates-european-expansion-200mw-ai-compute",
+      "locator": "Cerebras press release, 2026-07-08/09 ('Cerebras Systems Accelerates European Expansion with 200MW of AI Compute Capacity by End of 2027'): first European data center capacity comes online 'by the end of 2026', with build-out across France and the Nordics to 200MW by end of 2027. Current-state vendor statements: 'Cerebras Inference runs 100% in U.S.-based AI datacenters' / 'runs exclusively in US-based data centers' (cerebras.ai blog/press pages).",
+      "confidence": "low",
+      "notes": "The test is 'does the vendor OFFER an EU region' today. Cerebras's own July 2026 press release says its FIRST European capacity arrives end of 2026 — i.e., as of 2026-07-31 no EU region is offered; inference is US-only per vendor pages. Announced (not yet live) EU data centers in France/Norway/Finland are noted here so the answer can flip to Yes once live — worth asking the vendor for the go-live date and whether EU routing will include EU data-at-rest. A March 2025 vendor press release title mentions datacenters 'Across North America and Europe' but the later, more specific July 2026 release confirms EU capacity is still future. Snippet-sourced; direct fetch blocked."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm Cerebras's full legal entity name, legal form and state of incorporation (we have 'Cerebras Systems Inc.' from your privacy policy; public sources suggest a Delaware corporation) and the registered address to be used for GDPR purposes (we have 1237 E Arques Ave, Sunnyvale, CA 94085 from your privacy policy).",
+    "Has Cerebras Systems Inc. designated a representative in the Union under Article 27 GDPR? If yes, please provide the representative's name and full address; if no, please confirm in writing.",
+    "Has Cerebras formally designated a Data Protection Officer? If yes, please provide the DPO's name and telephone number and/or email; if no, please confirm that privacy@cerebras.net is the authoritative contact for data-protection requests from SAP.",
+    "Which TLS version is enforced (minimum and preferred) on the Cerebras Inference API endpoints that carry prompt content and model output in transit?",
+    "Which encryption standard (e.g. AES-256) is used for customer data at rest, and does the same standard cover backups (your trust center lists encryption-at-rest and data-backup controls without naming algorithms)?",
+    "Who generates and manages the encryption keys for data at rest — Cerebras-managed keys (customer-specific or shared), or is a customer-managed key (CMEK/BYOK) option available?",
+    "Your support documentation states Cerebras does not retain prompt content, API requests/responses, or model inputs/outputs for the Inference API. Please confirm in writing that this zero-data-retention posture applies contractually to Tavus's API traffic, and how long transient service logs are kept before deletion.",
+    "Can Cerebras anonymize and/or pseudonymize personal data submitted through the Inference API on the customer's instruction (beyond the aggregation/de-identification of usage data described in your privacy policy)?",
+    "Does Cerebras currently offer an EU processing region for inference, and if not, what is the confirmed go-live date for the announced France/Nordics capacity — and will EU routing keep data processed and at rest within the EU?",
+    "Please provide your current SOC 2 Type II report, penetration-test summary, and Data Processing Agreement via trust.cerebras.ai or directly, so the report can be placed on file in Vanta as audit evidence for row 1.4.2, and confirm whether you hold any ISO certifications (27001/27701/27018) — we could not confirm any from public sources.",
+    "Please provide your current sub-processor list for the Inference service (your trust center was not machine-readable to us)."
+  ]
+}
