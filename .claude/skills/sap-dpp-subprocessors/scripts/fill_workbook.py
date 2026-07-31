@@ -22,6 +22,12 @@ def load_program_answers():
     return yaml.safe_load(open(os.path.join(ROOT, "config/tavus_program_answers.yaml"))) or {}
 
 
+def load_overflow_handling():
+    import yaml
+    cfg = yaml.safe_load(open(os.path.join(ROOT, "config/scope.yaml"))) or {}
+    return cfg.get("overflow_handling")
+
+
 def program_map(cfg):
     """config keys are '<row_id>_<slug>' -> map back to row ids."""
     out = {}
@@ -47,48 +53,55 @@ def main():
 
     out = os.path.join(ROOT, args.out)
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    shutil.copy(BLANK, out)
-
-    wb = openpyxl.load_workbook(out)
-    ws = wb[SPEC["sheet"]]
 
     files = sorted(glob.glob(os.path.join(ROOT, "data/verified/*.json"))) or \
             sorted(glob.glob(os.path.join(ROOT, "data/vendors/*.json")))
     cols = list(SPEC["vendor_columns"].values())
-    if len(files) > len(cols):
-        print(f"{len(files)} vendors but {len(cols)} columns. Resolve scope first.")
+    if len(files) > len(cols) and load_overflow_handling() != "second_sheet":
+        print(f"{len(files)} vendors but {len(cols)} columns and scope.yaml's "
+              "overflow_handling is not 'second_sheet'. Resolve scope first.")
         sys.exit(1)
 
     prog = program_map(load_program_answers())
     gaps, sourced = [], 0
+    outputs = []
 
-    for col, path in zip(cols, files):
-        d = json.load(open(path))
-        name = d.get("vendor_name") or os.path.basename(path)
-        ws[f"{col}1"] = name
+    base, ext = os.path.splitext(out)
+    for sheet_no, start in enumerate(range(0, len(files), len(cols)), 1):
+        chunk = files[start:start + len(cols)]
+        out_path = out if sheet_no == 1 else f"{base}_{sheet_no}{ext}"
+        shutil.copy(BLANK, out_path)
+        wb = openpyxl.load_workbook(out_path)
+        ws = wb[SPEC["sheet"]]
 
-        for rid, val in prog.items():          # Bucket B, uniform
-            ws[f"{col}{ROW_OF[rid]}"] = val
+        for col, path in zip(cols, chunk):
+            d = json.load(open(path))
+            name = d.get("vendor_name") or os.path.basename(path)
+            ws[f"{col}1"] = name
 
-        for rid, f in (d.get("fields") or {}).items():
-            if rid not in ROW_OF:
-                gaps.append(f"{name}: unknown field id '{rid}', skipped")
-                continue
-            val = f.get("value")
-            if val in (None, ""):
-                continue
-            if rid in ALLOWED and val not in ALLOWED[rid]:
-                gaps.append(f"{name}/{rid}: illegal dropdown value '{val}', left blank")
-                continue
-            cell = ws[f"{col}{ROW_OF[rid]}"]
-            cell.value = val
-            if val == "Not known":
-                cell.font = Font(name="Arial", italic=True)
-                gaps.append(f"{name}/{rid}: NOT KNOWN — {f.get('notes','no note')}")
-            else:
-                sourced += 1
+            for rid, val in prog.items():          # Bucket B, uniform
+                ws[f"{col}{ROW_OF[rid]}"] = val
 
-    wb.save(out)
+            for rid, f in (d.get("fields") or {}).items():
+                if rid not in ROW_OF:
+                    gaps.append(f"{name}: unknown field id '{rid}', skipped")
+                    continue
+                val = f.get("value")
+                if val in (None, ""):
+                    continue
+                if rid in ALLOWED and val not in ALLOWED[rid]:
+                    gaps.append(f"{name}/{rid}: illegal dropdown value '{val}', left blank")
+                    continue
+                cell = ws[f"{col}{ROW_OF[rid]}"]
+                cell.value = val
+                if val == "Not known":
+                    cell.font = Font(name="Arial", italic=True)
+                    gaps.append(f"{name}/{rid}: NOT KNOWN — {f.get('notes','no note')}")
+                else:
+                    sourced += 1
+
+        wb.save(out_path)
+        outputs.append(out_path)
 
     report = os.path.join(os.path.dirname(out), "gap_report.md")
     with open(report, "w") as fh:
@@ -102,7 +115,8 @@ def main():
                  "- Row 1.6 (incidents) and Section 2 (data categories) are counsel's call.\n"
                  "- Row 1.7: answering Yes invites SAP to require non-US processing.\n")
 
-    print(f"Wrote {out}")
+    for p in outputs:
+        print(f"Wrote {p}")
     print(f"Wrote {report}  ({sourced} sourced cells, {len(gaps)} gaps)")
     print("\nThis form is not done. Read the gap report.")
 

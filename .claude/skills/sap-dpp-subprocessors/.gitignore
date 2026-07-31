@@ -1,4 +1,1 @@
 output/
-data/vendors/*.json
-data/verified/*.json
-data/review_queue.md
