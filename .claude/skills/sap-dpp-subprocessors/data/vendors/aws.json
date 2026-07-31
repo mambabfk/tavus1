@@ -1,0 +1,101 @@
+{
+  "vendor_name": "Amazon Web Services, Inc.",
+  "slug": "aws",
+  "level": 1,
+  "contact_directly": false,
+  "research_caveat": "IMPORTANT: the sandbox network gateway (agent proxy) returned 403 CONNECT denials for ALL AWS-owned domains (aws.amazon.com, docs.aws.amazon.com, d1.awsstatic.com) for both WebFetch and curl in this session. No page could be fetched directly. Every value below is sourced from AWS's own pages as returned verbatim in domain-restricted web-search snippets (allowed_domains limited to aws.amazon.com / docs.aws.amazon.com / d1.awsstatic.com). Per researcher hard rules, confidence is therefore capped at 'low' even where the underlying AWS documentation is unambiguous. The verifier pass should re-fetch each source_url from an unrestricted network before values are promoted.",
+  "fields": {
+    "1.1": {
+      "value": "Amazon Web Services, Inc. (US corporation; 'Inc.'). For EEA processing the AWS group entity Amazon Web Services EMEA SARL (societe a responsabilite limitee, Luxembourg) may be the contracting party.",
+      "source_url": "https://d1.awsstatic.com/legal/aws-gdpr/aws-gdpr-dpa-online.pdf",
+      "locator": "AWS Data Processing Addendum, opening paragraph: 'This DPA is an agreement between you and the entity you represent ... and Amazon Web Services, Inc. and the AWS Contracting Party or AWS Contracting Parties (as applicable) under the Agreement (together \"AWS\")'",
+      "confidence": "low",
+      "notes": "DPA names Amazon Web Services, Inc. plus the applicable 'AWS Contracting Party' - which AWS entity actually contracts with Tavus depends on Tavus's account jurisdiction (US accounts contract with Amazon Web Services, Inc.). The field playbook says this must match the entity named in TOM questionnaire #8.3 that Tavus already submitted; NO TOM questionnaire file exists in this repo, so the filler/human must reconcile against that submission before writing the cell. Direct fetch of the DPA PDF was blocked by the network gateway (403); entity names come from AWS-domain search snippets."
+    },
+    "1.1.1": {
+      "value": "Amazon Web Services, Inc., 410 Terry Avenue North, Seattle, WA 98109-5210, USA (ATTN: AWS Legal). EU establishment: Amazon Web Services EMEA SARL, 38 Avenue John F. Kennedy, L-1855 Luxembourg. No separate Article 27 GDPR representative found - AWS operates through its own EU establishment (AWS EMEA SARL), so an Art. 27 representative is not expected; none is named in the material retrieved.",
+      "source_url": "https://aws.amazon.com/privacy/",
+      "locator": "AWS Privacy Notice, 'Contact Information' / controller sections: mailing address 'Amazon Web Services, Inc., 410 Terry Avenue North, Seattle, WA 98109-5210, ATTN: AWS Legal'; 'Amazon Web Services EMEA SARL, 38 Avenue John F. Kennedy, L-1855, Luxembourg' identified as data controller for AWS offerings in that region",
+      "confidence": "low",
+      "notes": "Addresses quoted from AWS Privacy Notice text surfaced in aws.amazon.com-restricted search snippets; the page itself could not be fetched (gateway 403). Absence of an Art. 27 representative is a legitimate finding for a vendor with an EU establishment, but was not positively confirmed on a fetched page - included in open questions."
+    },
+    "1.1.2": {
+      "value": "DPO appointed for Amazon Web Services EMEA SARL; contact email: aws-EU-privacy@amazon.com. No individual DPO name or telephone number is published.",
+      "source_url": "https://aws.amazon.com/privacy/",
+      "locator": "AWS Privacy Notice, EMEA/GDPR section: 'the data protection officer for Amazon Web Services EMEA SARL can be contacted at aws-EU-privacy@amazon.com'",
+      "confidence": "low",
+      "notes": "AWS does publish a DPO contact (unlike most US vendors), so 'N/A' is NOT correct here. Name and phone are not published - form asks for name, phone and/or email; email alone satisfies the 'and/or'. Source text from search snippet of the AWS Privacy Notice; direct fetch blocked."
+    },
+    "1.4.2": {
+      "value": "SOC 2",
+      "source_url": "https://aws.amazon.com/compliance/programs/",
+      "locator": "AWS Compliance Programs page (SOC 1 / SOC 2 / SOC 3 listed) and https://aws.amazon.com/compliance/iso-certified/ ('AWS has certification for compliance with ISO/IEC 27001:2022, 27017:2015, 27018:2019, 27701:2019, 22301:2019, 20000-1:2018, 9001:2015')",
+      "confidence": "low",
+      "notes": "AWS publicly attests to holding, among the form's dropdown options: SOC 1, SOC 2, SOC 3, ISO 9001, ISO 27001, ISO 27018, ISO 27701, and ISO 22301 (maps to 'BS 25999/ISO 22301'). Dropdown takes one value; 'SOC 2' chosen as the audit evidence Tavus most likely relies on. GATE: scope.yaml has soc2_on_file_in_vanta: null for AWS - per the playbook, do NOT assert SOC 2 in the form until the AWS SOC 2 report is confirmed on file in Vanta (AWS distributes it via AWS Artifact). Pages not fetchable (gateway 403); cert list from AWS-domain search snippets."
+    },
+    "3.1.1": {
+      "value": "TLS 1.2",
+      "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryptionInTransit.html",
+      "locator": "S3 user guide 'Protecting data in transit with encryption' (TLS 1.2 and TLS 1.3 supported across all API endpoints); AWS announcement 'TLS 1.2 to become the minimum TLS protocol level for all AWS API endpoints' (https://aws.amazon.com/blogs/security/tls-1-2-required-for-aws-endpoints/): as of 2024-02-27 all AWS service API endpoints require minimum TLS 1.2, TLS 1.0/1.1 deprecated",
+      "confidence": "low",
+      "notes": "TLS 1.2 is the enforced floor on all AWS service API endpoints; TLS 1.3 is supported and negotiated where the client allows (AWS recommends 1.3, current SDKs default to it). 'TLS 1.2' selected as the guaranteed standard; note the 1.3 support in the cell comment if the form allows. Sources are AWS documentation/announcements surfaced in domain-restricted search; direct fetch blocked."
+    },
+    "3.1.2": {
+      "value": "AES-256",
+      "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html",
+      "locator": "S3 user guide, server-side encryption with Amazon S3 managed keys (SSE-S3): 'uses 256-bit Advanced Encryption Standard Galois/Counter Mode (AES-GCM)' / 'one of the strongest block ciphers available, 256-bit Advanced Encryption Standard (AES-256)'; all new S3 object uploads encrypted by default since 2023-01-05",
+      "confidence": "low",
+      "notes": "Documented as AES-256-GCM; encryption at rest is on by default for S3 (where Tavus-stored recordings/media would live). Source text from AWS docs search snippets; direct fetch blocked by gateway."
+    },
+    "3.1.3": {
+      "value": "AES-256",
+      "source_url": "https://docs.aws.amazon.com/aws-backup/latest/devguide/encryption.html",
+      "locator": "AWS Backup developer guide, 'Encryption for backups in AWS Backup': 'When AWS Backup independently encrypts a backup, it uses the industry-standard AES-256 encryption algorithm', controlled via the AWS KMS key on the backup vault; cross-account/cross-Region copies automatically encrypted",
+      "confidence": "low",
+      "notes": "Scope caveat: this documents the AWS Backup service (customer-configured backups AES-256 via KMS) and backups of encrypted source resources inherit encryption. AWS does not publish a single statement covering every internal backup path, so treat as low confidence and confirm Tavus's actual backup configuration; falling back to 'Not known' would also be defensible. Snippet-sourced; direct fetch blocked."
+    },
+    "3.1.4": {
+      "value": "Key generated by Subprocessor (not customer-specific)",
+      "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html",
+      "locator": "S3 SSE-S3 documentation: 'Amazon S3 encrypts each object with a unique key. As an additional safeguard, it encrypts the key itself with a key that it rotates regularly' - default keys are generated and managed by AWS",
+      "confidence": "low",
+      "notes": "Default managed-cloud answer per the field playbook. AWS also offers customer-managed KMS keys (SSE-KMS/CMK) and customer-provided keys (SSE-C/BYOK); if Tavus uses customer-managed KMS keys for its buckets, the correct dropdown flips to 'Key generated by your company' - HUMAN MUST CONFIRM Tavus's actual key configuration before the cell is written."
+    },
+    "3.1.6": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "AWS is IaaS: under the shared-responsibility model AWS does not act on the content of customer data, and no AWS primary source retrieved states that AWS (as processor) anonymizes customer personal data. AWS documents tooling customers can use to build anonymization/pseudonymization themselves (Navigating GDPR Compliance on AWS whitepaper, docs.aws.amazon.com/whitepapers/latest/navigating-gdpr-compliance/), but that is customer-operated, not a subprocessor capability. Searched: aws.amazon.com/compliance/gdpr-center/, docs.aws.amazon.com navigating-gdpr-compliance whitepaper pages (all direct fetches blocked by gateway 403; domain-restricted search snippets showed no statement that AWS itself anonymizes)."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Same reasoning as 3.1.6: pseudonymization on AWS is documented as a customer-built/customer-operated pattern (e.g. AWS whitepaper and reference architectures), not as something AWS performs on customer data as a processor. No primary-source statement found that AWS the subprocessor pseudonymizes customer personal data. Searched the same AWS GDPR pages as 3.1.6."
+    },
+    "3.1.8": {
+      "value": "Server-side encryption enabled by default for all new Amazon S3 objects (unique per-object data keys; wrapping key rotated regularly)\nMinimum TLS 1.2 enforced on all AWS service API endpoints since 2024-02-27 (TLS 1.0/1.1 deprecated; TLS 1.3 supported)\nPolicy-level enforcement of encryption in transit available (e.g. s3:TlsVersion IAM condition key to reject old-TLS clients)\nAWS KMS-based key management for storage and backup vaults\nPhysically separated Availability Zones (minimum three per Region) for resilience and fault isolation\nIndependent third-party audit program (SOC 1/2/3; ISO/IEC 27001, 27017, 27018, 27701, 22301, 9001)",
+      "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html",
+      "locator": "Assembled one-per-line from: S3 SSE docs (default encryption, per-object keys), aws.amazon.com/blogs/security/tls-1-2-required-for-aws-endpoints/ (TLS floor), docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryptionInTransit.html (s3:TlsVersion), docs.aws.amazon.com/aws-backup/latest/devguide/encryption.html (KMS vault keys), aws.amazon.com/about-aws/global-infrastructure/regions_az/ (>=3 AZs per Region), aws.amazon.com/compliance/programs/ (audit program)",
+      "confidence": "low",
+      "notes": "Every line traces to an AWS-domain statement retrieved this session via domain-restricted search; none of the pages could be fetched directly (gateway 403). Deliberately excludes safeguards commonly attributed to AWS but not evidenced this session (e.g. Nitro System isolation, FIPS 140-3 HSMs)."
+    },
+    "3.2.1": {
+      "value": "Yes",
+      "source_url": "https://aws.amazon.com/about-aws/global-infrastructure/regions_az/",
+      "locator": "AWS Global Infrastructure - Regions & AZs: European Regions in Frankfurt, Ireland, London, Paris, Stockholm (eu-north-1 named as the fifth European region, joining Ireland, London, Frankfurt, Paris); see also aws.amazon.com/blogs/security/aws-european-sovereign-cloud-achieves-first-compliance-milestone-soc-2-and-c5-reports-plus-seven-iso-certifications/ (AWS European Sovereign Cloud)",
+      "confidence": "low",
+      "notes": "The test is 'offers an EU region', which AWS unambiguously does (multiple EU Regions incl. Frankfurt, Ireland, Paris, Stockholm, plus the AWS European Sovereign Cloud). Whether Tavus USES an EU region is 3.2.2 (Bucket B, human answer). Snippet-sourced; direct fetch blocked."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm the exact AWS legal entity (name and legal form) that contracts with Tavus, Inc. under the AWS Customer Agreement / AWS DPA (Amazon Web Services, Inc. or another AWS Contracting Party), and its registered address. This must match the entity Tavus named in TOM questionnaire #8.3.",
+    "Does the AWS contracting entity for Tavus rely on its EU establishment (Amazon Web Services EMEA SARL, Luxembourg) rather than designating a representative under Article 27 GDPR? If a representative is designated, please provide the name and full address.",
+    "Please confirm the current contact details of the AWS data protection officer competent for customer data-protection requests (name, phone and/or email) - is aws-EU-privacy@amazon.com the authoritative DPO contact for Amazon Web Services, Inc. as well as AWS EMEA SARL?",
+    "For customer content stored in AWS services used by Tavus (S3, etc.): are ALL backups/replicas made by AWS of that content encrypted, and with which algorithm (we understand AWS Backup uses AES-256 via KMS - does this hold for internal replication/backup paths)?",
+    "Can AWS, acting as a (sub-)processor, anonymize or pseudonymize customer personal data on the customer's instruction, or does anonymization/pseudonymization rest entirely with the customer under the shared-responsibility model?",
+    "Please provide the current SOC 2 Type II report and ISO/IEC 27001, 27018, 27701 and 22301 certificates (or confirm availability via AWS Artifact) so they can be attached as audit evidence for row 1.4.2."
+  ]
+}
