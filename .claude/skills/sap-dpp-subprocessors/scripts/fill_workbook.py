@@ -80,6 +80,8 @@ def main():
             ws[f"{col}1"] = name
 
             for rid, val in prog.items():          # Bucket B, uniform
+                if rid in ALLOWED and val not in ALLOWED[rid]:
+                    continue  # conditional dropdown (e.g. 1.5.3 when 1.5=No): leave empty
                 ws[f"{col}{ROW_OF[rid]}"] = val
 
             for rid, f in (d.get("fields") or {}).items():

@@ -1,134 +1,135 @@
 {
-  "vendor_name": "Pylon (legal entity name and form not verified this session — see research_caveat)",
-  "slug": "pylon",
-  "level": 1,
-  "contact_directly": true,
-  "research_caveat": "IMPORTANT: NO Pylon primary source could be consulted in this session at all. Two independent environment failures: (1) the sandbox network gateway (agent proxy) returned 403 CONNECT denials — an organization egress-policy block, per /root/.ccr/README.md 'do not retry or route around it' — for every Pylon host attempted via both WebFetch and curl: https://usepylon.com/security, https://usepylon.com/privacy, https://www.usepylon.com/security, https://trust.usepylon.com/, https://docs.usepylon.com/ (security.usepylon.com does not resolve); web.archive.org was also unreachable, so no archived copy could be read either. This is the same environment condition documented in deepgram.json, daily.json, mux.json, and cerebras.json (those hosts appear in the proxy's recentRelayFailures log alongside these). (2) Unlike those sibling vendors, this session ALSO had zero web-search budget remaining (200/200 WebSearch calls already consumed before the first Pylon query), so not even domain-restricted search snippets of Pylon's own pages were available. Per the researcher hard rules (never infer from training data or industry norms; a value requires a URL fetched in THIS session), every Bucket A field below is 'Not known' with confidence 'none'. This says nothing about Pylon's actual documentation, which may well be thorough — a verifier or human re-run from an unrestricted network should visit usepylon.com (security/trust/privacy/DPA pages) FIRST and will likely be able to fill most fields before falling back to the written vendor questions. The trade name 'Pylon' and role 'Customer support platform' come from config/scope.yaml (Tavus's authorized-subprocessor list), not from vendor research.",
-  "fields": {
-    "1.1": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Trade name 'Pylon' (customer support platform, domain usepylon.com) per Tavus's own scope config; the full legal entity name and legal form (e.g. 'Pylon Labs, Inc.' or similar, state of incorporation) could not be verified — no vendor page was fetchable (gateway 403 on all usepylon.com hosts; search budget exhausted; archive.org blocked). Field playbook: 1.1 must match the entity named in TOM questionnaire #8.3 that Tavus already submitted — no TOM questionnaire file exists in this repo, so the human must reconcile against that submission and/or the signed Tavus–Pylon agreement/DPA signature block, which is the best offline source for this cell."
-    },
-    "1.1.1": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Full address and any Article 27 GDPR EU representative not verifiable — no fetchable source this session. Attempted: usepylon.com/security, usepylon.com/privacy, www.usepylon.com, trust.usepylon.com, docs.usepylon.com (all gateway 403), web.archive.org (blocked), WebSearch (budget exhausted). Pylon is understood to be a US company, so an Art. 27 representative may or may not be designated — absence would be a legitimate finding, but it must be confirmed from their privacy policy or in writing, not assumed. The signed Tavus–Pylon DPA signature block is the best offline source for the address."
-    },
-    "1.1.2": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Could not determine whether Pylon has formally named a DPO. Do NOT write 'N/A' yet — the form only permits N/A after confirming from the vendor's privacy policy that no DPO is named, and the policy was not fetchable this session (gateway 403 on all usepylon.com hosts; search budget exhausted). If the vendor confirms no DPO, the form needs 'N/A' here plus a working privacy contact email in the 1.1.1 column; obtain both in writing."
-    },
-    "1.4.2": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Certifications actually held (SOC 2 Type I/II, ISO 27001, etc.) could not be verified from any primary source this session (gateway 403 on usepylon.com and trust.usepylon.com; search budget exhausted). Additionally, scope.yaml has soc2_on_file_in_vanta: null for Pylon — per the playbook, do not assert SOC 2 in the form until a report is confirmed on file in Vanta. Check Vanta first (a SOC 2 report on file there would satisfy both the evidence question and this cell), then ask the vendor for current certificates/reports."
-    },
-    "3.1.1": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Encryption-in-transit standard (TLS version floor) not verifiable — no Pylon page fetchable this session (gateway 403; search budget exhausted; archive.org blocked). NOTE: the dropdown for 3.1.1 has no 'Not known' option (choices are TLS 1.3/1.2/1.1/1.0, SAP Network, Others - pls indicate below, None) — do not write a TLS version without evidence; leave the cell for the human or use 'Others - pls indicate below' with an explanatory note only after the vendor answers in writing. Per hard rules, no version is asserted from industry norms."
-    },
-    "3.1.2": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Encryption-at-rest standard not verifiable this session ('Not known' is a valid dropdown option for 3.1.2). Attempted usepylon.com/security, trust.usepylon.com, docs.usepylon.com (all gateway 403); search budget exhausted; archive.org blocked. Ask vendor for the algorithm (e.g. AES-256) and scope (databases, object storage, attachments in support conversations)."
-    },
-    "3.1.3": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Backup encryption is rarely documented separately even on reachable trust pages ('Not known' is common and correct per the playbook); here it is additionally unverifiable because no Pylon page was fetchable this session (gateway 403; search budget exhausted). Ask vendor."
-    },
-    "3.1.4": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Key management (who generates/holds encryption keys; KMS provider; any CMEK/BYOK option) not verifiable this session. The playbook default for managed cloud ('Key generated by Subprocessor (not customer-specific)') is an industry-norm inference and is deliberately NOT asserted — hard rule against inferring from norms. 'Not known' is a valid dropdown option for 3.1.4. Ask vendor."
-    },
-    "3.1.6": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Whether Pylon can anonymize personal data (e.g. redact/anonymize end-customer contact records and support-conversation content on customer instruction) not verifiable this session (gateway 403 on all usepylon.com hosts; search budget exhausted). 'Not known' is a valid dropdown option. Ask vendor."
-    },
-    "3.1.7": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Whether Pylon can pseudonymize personal data not verifiable this session (same access failures as 3.1.6). 'Not known' is a valid dropdown option. Ask vendor."
-    },
-    "3.1.8": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Other technical safeguards (SSO/SAML, MFA, RBAC, audit logs, penetration testing, vulnerability management, sub-processor list, hosting provider, etc.) could not be enumerated — no Pylon security/trust page was fetchable this session (gateway 403; search budget exhausted; archive.org blocked). A re-run from an unrestricted network should populate this from usepylon.com's security/trust pages before falling back to the vendor questionnaire."
-    },
-    "3.2.1": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Whether Pylon OFFERS an EU region / EU data residency option (the test is 'offers', not 'Tavus uses') not verifiable this session (gateway 403 on all usepylon.com hosts; search budget exhausted). 'Not known' is a valid dropdown option for 3.2.1. Ask vendor; 3.2.2 (whether Tavus uses it) is a Bucket B human answer either way."
-    }
+ "vendor_name": "Pylon",
+ "slug": "pylon",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "IMPORTANT: NO Pylon primary source could be consulted in this session at all. Two independent environment failures: (1) the sandbox network gateway (agent proxy) returned 403 CONNECT denials \u2014 an organization egress-policy block, per /root/.ccr/README.md 'do not retry or route around it' \u2014 for every Pylon host attempted via both WebFetch and curl: https://usepylon.com/security, https://usepylon.com/privacy, https://www.usepylon.com/security, https://trust.usepylon.com/, https://docs.usepylon.com/ (security.usepylon.com does not resolve); web.archive.org was also unreachable, so no archived copy could be read either. This is the same environment condition documented in deepgram.json, daily.json, mux.json, and cerebras.json (those hosts appear in the proxy's recentRelayFailures log alongside these). (2) Unlike those sibling vendors, this session ALSO had zero web-search budget remaining (200/200 WebSearch calls already consumed before the first Pylon query), so not even domain-restricted search snippets of Pylon's own pages were available. Per the researcher hard rules (never infer from training data or industry norms; a value requires a URL fetched in THIS session), every Bucket A field below is 'Not known' with confidence 'none'. This says nothing about Pylon's actual documentation, which may well be thorough \u2014 a verifier or human re-run from an unrestricted network should visit usepylon.com (security/trust/privacy/DPA pages) FIRST and will likely be able to fill most fields before falling back to the written vendor questions. The trade name 'Pylon' and role 'Customer support platform' come from config/scope.yaml (Tavus's authorized-subprocessor list), not from vendor research.",
+ "fields": {
+  "1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Trade name 'Pylon' (customer support platform, domain usepylon.com) per Tavus's own scope config; the full legal entity name and legal form (e.g. 'Pylon Labs, Inc.' or similar, state of incorporation) could not be verified \u2014 no vendor page was fetchable (gateway 403 on all usepylon.com hosts; search budget exhausted; archive.org blocked). Field playbook: 1.1 must match the entity named in TOM questionnaire #8.3 that Tavus already submitted \u2014 no TOM questionnaire file exists in this repo, so the human must reconcile against that submission and/or the signed Tavus\u2013Pylon agreement/DPA signature block, which is the best offline source for this cell."
   },
-  "open_questions_for_vendor": [
-    "Please confirm the full legal name and legal form of the Pylon entity that contracts with Tavus for the customer support platform (e.g. '..., Inc.', state/country of incorporation), and confirm it matches the entity named in your DPA signature block.",
-    "Please provide your registered/principal business address, and state whether you have designated a representative in the EU under Article 27 GDPR (if yes: representative's name and full address; if no: your position on why Art. 27 does not apply).",
-    "Have you formally appointed a Data Protection Officer? If yes, please provide the DPO's name, telephone number and/or email address. If no, please provide the email address and/or telephone number of a contact entitled to respond to data-protection requests.",
-    "Which security certifications and audit reports do you currently hold (SOC 2 Type I/II — auditor and period covered, SOC 1/3, ISO 27001, ISO 27018, ISO 27701, ISO 9001, ISO 22301)? Please provide the current SOC 2 Type II report and/or certificates with scope statements under NDA so Tavus can place them on file.",
-    "What minimum TLS version is enforced for data in transit to your application and APIs (TLS 1.2 or TLS 1.3 floor)?",
-    "Which encryption standard is used for data at rest (e.g. AES-256), and does it cover all customer data including support-conversation content and attachments?",
-    "Are backups encrypted, and with which algorithm?",
-    "Who generates and manages the encryption keys (platform-managed KMS — which provider; customer-specific keys; any CMEK/BYOK option)?",
-    "Can Pylon, acting as a processor, anonymize and/or pseudonymize personal data stored in the platform (contact records, support conversations) on customer instruction — e.g. redaction or deletion/anonymization workflows?",
-    "Please list your other technical safeguards: SSO/SAML and MFA support, role-based access control, audit logging, penetration testing cadence, vulnerability management, and your underlying hosting/cloud provider(s).",
-    "Do you offer an EU hosting region or EU data-residency option for customer data? If yes, which cloud provider and region(s), and does it cover processing, storage, and backups?",
-    "Please provide your current sub-processor list for the service (SAP requires the processing chain to Level 2, e.g. the cloud provider hosting your platform and any AI/LLM sub-processors used on support-conversation content)."
-  ],
-  "verification": {
-    "verified_by": "verifier pass 2026-07-31",
-    "verdicts": {
-      "1.1": "not_upgraded_search_unavailable",
-      "1.1.1": "not_upgraded_search_unavailable",
-      "1.1.2": "not_upgraded_search_unavailable",
-      "1.4.2": "not_upgraded_search_unavailable",
-      "3.1.1": "not_upgraded_search_unavailable",
-      "3.1.2": "not_upgraded_search_unavailable",
-      "3.1.3": "not_upgraded_search_unavailable",
-      "3.1.4": "not_upgraded_search_unavailable",
-      "3.1.6": "not_upgraded_search_unavailable",
-      "3.1.7": "not_upgraded_search_unavailable",
-      "3.1.8": "not_upgraded_search_unavailable",
-      "3.2.1": "not_upgraded_search_unavailable"
-    },
-    "disputes": [
-      "pylon/ALL fields: researcher populated ZERO sourced values (every field 'Not known', null source_url) — nothing to confirm, dispute, or find unsupported; verifier independently reproduced the researcher's stated causes this session, not taken from their caveat (WebFetch 403 on usepylon.com/security and usepylon.com/privacy; curl 'CONNECT tunnel failed, response 403' on usepylon.com, trust.usepylon.com, docs.usepylon.com AND web.archive.org; proxy status confirms gateway CONNECT policy denials; WebSearch budget 200/200 exhausted)",
-      "pylon/ALL 'Not known' fields: mandatory one-independent-search-per-field upgrades could not be performed (search budget exhausted; all fetch fallbacks gateway-denied) — zero upgrades; every field stays 'Not known'; the re-run is effectively a fresh research pass starting at usepylon.com (security/trust/privacy/DPA pages)",
-      "pylon/1.1: TOM questionnaire #8.3 not found in repo — mandatory legal-entity cross-check (verifier.md) could not be performed; only the trade name 'Pylon' is known, and it comes from Tavus's own scope.yaml, not vendor research; the full legal entity name/form must be taken from the signed Tavus–Pylon DPA signature block and reconciled against the #8.3 submission before this cell is written",
-      "pylon/1.1.2: do NOT write 'N/A' for the DPO — the form permits N/A only after the vendor's privacy policy confirms no DPO is named, and no Pylon page was fetchable in either session; vendor written confirmation required (plus a working privacy contact in the 1.1.1 column if N/A stands)",
-      "pylon/1.4.2: independent blocker beyond the network — scope.yaml soc2_on_file_in_vanta is null for Pylon; playbook forbids asserting SOC 2 until the report is confirmed on file in Vanta, regardless of what a re-fetch of trust.usepylon.com shows; dropdown has no 'Not known' option — cell stays empty until both gates clear",
-      "pylon/3.1.1: form dropdown has no 'Not known' option (TLS 1.3/1.2/1.1/1.0, SAP Network, Others, None) — cell cannot be written from this file; get the vendor's written TLS floor or re-confirm against a fetched page; never write a TLS version from industry norms",
-      "pylon/3.1.4: dropdown additionally depends on Tavus's own key config (CMEK/BYOK would flip the answer to 'Key generated by your company') — human confirmation required even after the vendor answers"
-    ],
-    "network_note": "Gateway CONNECT 403 (policy denial) independently reproduced this session for usepylon.com, trust.usepylon.com, docs.usepylon.com and web.archive.org; WebSearch budget 200/200 exhausted before any Pylon query could run. Zero sourced claims existed to verify; zero upgrades possible. Bucket check PASS: all 12 populated field entries are Bucket A (1.4.2 is A+B; only its researched A-part present, and it holds no asserted value); top-level level=1 matches scope.yaml (the sanctioned Bucket B source). NOTHING from this vendor file may be written to the workbook until a re-run from a network that can reach Pylon domains."
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Full address and any Article 27 GDPR EU representative not verifiable \u2014 no fetchable source this session. Attempted: usepylon.com/security, usepylon.com/privacy, www.usepylon.com, trust.usepylon.com, docs.usepylon.com (all gateway 403), web.archive.org (blocked), WebSearch (budget exhausted). Pylon is understood to be a US company, so an Art. 27 representative may or may not be designated \u2014 absence would be a legitimate finding, but it must be confirmed from their privacy policy or in writing, not assumed. The signed Tavus\u2013Pylon DPA signature block is the best offline source for the address."
+  },
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Could not determine whether Pylon has formally named a DPO. Do NOT write 'N/A' yet \u2014 the form only permits N/A after confirming from the vendor's privacy policy that no DPO is named, and the policy was not fetchable this session (gateway 403 on all usepylon.com hosts; search budget exhausted). If the vendor confirms no DPO, the form needs 'N/A' here plus a working privacy contact email in the 1.1.1 column; obtain both in writing."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Certifications actually held (SOC 2 Type I/II, ISO 27001, etc.) could not be verified from any primary source this session (gateway 403 on usepylon.com and trust.usepylon.com; search budget exhausted). Additionally, scope.yaml has soc2_on_file_in_vanta: null for Pylon \u2014 per the playbook, do not assert SOC 2 in the form until a report is confirmed on file in Vanta. Check Vanta first (a SOC 2 report on file there would satisfy both the evidence question and this cell), then ask the vendor for current certificates/reports."
+  },
+  "3.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Encryption-in-transit standard (TLS version floor) not verifiable \u2014 no Pylon page fetchable this session (gateway 403; search budget exhausted; archive.org blocked). NOTE: the dropdown for 3.1.1 has no 'Not known' option (choices are TLS 1.3/1.2/1.1/1.0, SAP Network, Others - pls indicate below, None) \u2014 do not write a TLS version without evidence; leave the cell for the human or use 'Others - pls indicate below' with an explanatory note only after the vendor answers in writing. Per hard rules, no version is asserted from industry norms."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Encryption-at-rest standard not verifiable this session ('Not known' is a valid dropdown option for 3.1.2). Attempted usepylon.com/security, trust.usepylon.com, docs.usepylon.com (all gateway 403); search budget exhausted; archive.org blocked. Ask vendor for the algorithm (e.g. AES-256) and scope (databases, object storage, attachments in support conversations)."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Backup encryption is rarely documented separately even on reachable trust pages ('Not known' is common and correct per the playbook); here it is additionally unverifiable because no Pylon page was fetchable this session (gateway 403; search budget exhausted). Ask vendor."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Key management (who generates/holds encryption keys; KMS provider; any CMEK/BYOK option) not verifiable this session. The playbook default for managed cloud ('Key generated by Subprocessor (not customer-specific)') is an industry-norm inference and is deliberately NOT asserted \u2014 hard rule against inferring from norms. 'Not known' is a valid dropdown option for 3.1.4. Ask vendor."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Whether Pylon can anonymize personal data (e.g. redact/anonymize end-customer contact records and support-conversation content on customer instruction) not verifiable this session (gateway 403 on all usepylon.com hosts; search budget exhausted). 'Not known' is a valid dropdown option. Ask vendor."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Whether Pylon can pseudonymize personal data not verifiable this session (same access failures as 3.1.6). 'Not known' is a valid dropdown option. Ask vendor."
+  },
+  "3.1.8": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Other technical safeguards (SSO/SAML, MFA, RBAC, audit logs, penetration testing, vulnerability management, sub-processor list, hosting provider, etc.) could not be enumerated \u2014 no Pylon security/trust page was fetchable this session (gateway 403; search budget exhausted; archive.org blocked). A re-run from an unrestricted network should populate this from usepylon.com's security/trust pages before falling back to the vendor questionnaire."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Whether Pylon OFFERS an EU region / EU data residency option (the test is 'offers', not 'Tavus uses') not verifiable this session (gateway 403 on all usepylon.com hosts; search budget exhausted). 'Not known' is a valid dropdown option for 3.2.1. Ask vendor; 3.2.2 (whether Tavus uses it) is a Bucket B human answer either way."
   }
+ },
+ "open_questions_for_vendor": [
+  "Please confirm the full legal name and legal form of the Pylon entity that contracts with Tavus for the customer support platform (e.g. '..., Inc.', state/country of incorporation), and confirm it matches the entity named in your DPA signature block.",
+  "Please provide your registered/principal business address, and state whether you have designated a representative in the EU under Article 27 GDPR (if yes: representative's name and full address; if no: your position on why Art. 27 does not apply).",
+  "Have you formally appointed a Data Protection Officer? If yes, please provide the DPO's name, telephone number and/or email address. If no, please provide the email address and/or telephone number of a contact entitled to respond to data-protection requests.",
+  "Which security certifications and audit reports do you currently hold (SOC 2 Type I/II \u2014 auditor and period covered, SOC 1/3, ISO 27001, ISO 27018, ISO 27701, ISO 9001, ISO 22301)? Please provide the current SOC 2 Type II report and/or certificates with scope statements under NDA so Tavus can place them on file.",
+  "What minimum TLS version is enforced for data in transit to your application and APIs (TLS 1.2 or TLS 1.3 floor)?",
+  "Which encryption standard is used for data at rest (e.g. AES-256), and does it cover all customer data including support-conversation content and attachments?",
+  "Are backups encrypted, and with which algorithm?",
+  "Who generates and manages the encryption keys (platform-managed KMS \u2014 which provider; customer-specific keys; any CMEK/BYOK option)?",
+  "Can Pylon, acting as a processor, anonymize and/or pseudonymize personal data stored in the platform (contact records, support conversations) on customer instruction \u2014 e.g. redaction or deletion/anonymization workflows?",
+  "Please list your other technical safeguards: SSO/SAML and MFA support, role-based access control, audit logging, penetration testing cadence, vulnerability management, and your underlying hosting/cloud provider(s).",
+  "Do you offer an EU hosting region or EU data-residency option for customer data? If yes, which cloud provider and region(s), and does it cover processing, storage, and backups?",
+  "Please provide your current sub-processor list for the service (SAP requires the processing chain to Level 2, e.g. the cloud provider hosting your platform and any AI/LLM sub-processors used on support-conversation content)."
+ ],
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "not_upgraded_search_unavailable",
+   "1.1.1": "not_upgraded_search_unavailable",
+   "1.1.2": "not_upgraded_search_unavailable",
+   "1.4.2": "not_upgraded_search_unavailable",
+   "3.1.1": "not_upgraded_search_unavailable",
+   "3.1.2": "not_upgraded_search_unavailable",
+   "3.1.3": "not_upgraded_search_unavailable",
+   "3.1.4": "not_upgraded_search_unavailable",
+   "3.1.6": "not_upgraded_search_unavailable",
+   "3.1.7": "not_upgraded_search_unavailable",
+   "3.1.8": "not_upgraded_search_unavailable",
+   "3.2.1": "not_upgraded_search_unavailable"
+  },
+  "disputes": [
+   "pylon/ALL fields: researcher populated ZERO sourced values (every field 'Not known', null source_url) \u2014 nothing to confirm, dispute, or find unsupported; verifier independently reproduced the researcher's stated causes this session, not taken from their caveat (WebFetch 403 on usepylon.com/security and usepylon.com/privacy; curl 'CONNECT tunnel failed, response 403' on usepylon.com, trust.usepylon.com, docs.usepylon.com AND web.archive.org; proxy status confirms gateway CONNECT policy denials; WebSearch budget 200/200 exhausted)",
+   "pylon/ALL 'Not known' fields: mandatory one-independent-search-per-field upgrades could not be performed (search budget exhausted; all fetch fallbacks gateway-denied) \u2014 zero upgrades; every field stays 'Not known'; the re-run is effectively a fresh research pass starting at usepylon.com (security/trust/privacy/DPA pages)",
+   "pylon/1.1: TOM questionnaire #8.3 not found in repo \u2014 mandatory legal-entity cross-check (verifier.md) could not be performed; only the trade name 'Pylon' is known, and it comes from Tavus's own scope.yaml, not vendor research; the full legal entity name/form must be taken from the signed Tavus\u2013Pylon DPA signature block and reconciled against the #8.3 submission before this cell is written",
+   "pylon/1.1.2: do NOT write 'N/A' for the DPO \u2014 the form permits N/A only after the vendor's privacy policy confirms no DPO is named, and no Pylon page was fetchable in either session; vendor written confirmation required (plus a working privacy contact in the 1.1.1 column if N/A stands)",
+   "pylon/1.4.2: independent blocker beyond the network \u2014 scope.yaml soc2_on_file_in_vanta is null for Pylon; playbook forbids asserting SOC 2 until the report is confirmed on file in Vanta, regardless of what a re-fetch of trust.usepylon.com shows; dropdown has no 'Not known' option \u2014 cell stays empty until both gates clear",
+   "pylon/3.1.1: form dropdown has no 'Not known' option (TLS 1.3/1.2/1.1/1.0, SAP Network, Others, None) \u2014 cell cannot be written from this file; get the vendor's written TLS floor or re-confirm against a fetched page; never write a TLS version from industry norms",
+   "pylon/3.1.4: dropdown additionally depends on Tavus's own key config (CMEK/BYOK would flip the answer to 'Key generated by your company') \u2014 human confirmation required even after the vendor answers"
+  ],
+  "network_note": "Gateway CONNECT 403 (policy denial) independently reproduced this session for usepylon.com, trust.usepylon.com, docs.usepylon.com and web.archive.org; WebSearch budget 200/200 exhausted before any Pylon query could run. Zero sourced claims existed to verify; zero upgrades possible. Bucket check PASS: all 12 populated field entries are Bucket A (1.4.2 is A+B; only its researched A-part present, and it holds no asserted value); top-level level=1 matches scope.yaml (the sanctioned Bucket B source). NOTHING from this vendor file may be written to the workbook until a re-run from a network that can reach Pylon domains."
+ },
+ "research_caveat_vendor_name": "Pylon (legal entity name and form not verified this session \u2014 see research_caveat)"
 }
