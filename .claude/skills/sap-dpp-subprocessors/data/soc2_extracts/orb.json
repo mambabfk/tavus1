@@ -1,0 +1,71 @@
+{
+  "slug": "orb",
+  "report_meta": {
+    "legal_entity": "Orb, Inc.",
+    "legal_entity_quote": "Report on Orb, Inc.'s Description of Its Billing Management Platform",
+    "legal_entity_page": 1,
+    "system": "Billing Management Platform",
+    "auditor": "Insight Compliance LLC dba Insight Assurance",
+    "auditor_quote": "Insight Compliance LLC dba Insight Assurance",
+    "auditor_page": 7,
+    "report_period": "November 1, 2024, to October 31, 2025",
+    "soc2_type": "SOC 2 Type 2",
+    "trust_services_criteria": "Security, Availability, and Confidentiality",
+    "cover_quote": "System and Organization Controls Report (SOC 2 Type 2) ... Relevant to Security, Availability, and Confidentiality Throughout the Period November 1, 2024, to October 31, 2025",
+    "cover_page": 1
+  },
+  "findings": {
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "quote": "The company uses secure data transmission protocols to encrypt confidential and sensitive data when transmitted over public networks. Inspected the company's website and TLS certificate",
+      "page": 60,
+      "control_ref": "CC6.6.3",
+      "note": "Standard stated is TLS (certificate inspected); no TLS version number appears anywhere in the report, so no exact dropdown match."
+    },
+    "3.1.2": {
+      "value": "Others - pls indicate below",
+      "quote": "The company's datastores housing sensitive customer data are encrypted at rest.",
+      "page": 53,
+      "control_ref": "CC6.1.2",
+      "note": "Encryption at rest confirmed but no algorithm (e.g. AES-256) is named in the report."
+    },
+    "3.1.3": {
+      "value": "Others - pls indicate below",
+      "quote": "The retention period for these snapshots is 7 days and is scheduled to run daily. All RDS snapshots are encrypted and stored with AWS.",
+      "page": 19,
+      "note": "Backup (RDS snapshot) encryption explicitly stated, but no algorithm is named."
+    },
+    "3.1.8": {
+      "value": [
+        "Annual third-party penetration tests of the production environment",
+        "Continuous host-based vulnerability scans on external-facing systems",
+        "Intrusion detection/prevention plus AWS security groups and AWS WAF",
+        "Automated continuous vulnerability management via Amazon Inspector, AWS GuardDuty, Systems Manager",
+        "Production authentication via unique usernames/passwords or authorized SSH keys; password policy enforced",
+        "Portable devices/workstations encrypted; Multi-AZ replication with daily encrypted snapshots for recovery"
+      ],
+      "quotes": [
+        {"quote": "External perimeter scans (penetration tests) are performed annually by a third-party vendor to expose potential vulnerabilities to the production environment and corporate data.", "page": 14},
+        {"quote": "Host-based vulnerability scans are performed continuously on external-facing [systems]", "page": 32, "control_ref": "CC2.1.3"},
+        {"quote": "In addition to using firewall configurations (e.g., security groups as well as AWS web application firewall), Orb uses either patch management or managed services with patching", "page": 14},
+        {"quote": "Orb uses tools such as Amazon Inspector, AWS GuardDuty, and Systems Manager for automatic, continuous vulnerability management.", "page": 14},
+        {"quote": "The company requires authentication to the \"production network\" to use unique usernames and passwords or authorized Secure Socket Shell (SSH) keys.", "page": 54, "control_ref": "CC6.1.7"},
+        {"quote": "The company encrypts portable devices when used.", "page": 61, "control_ref": "CC6.7.1"},
+        {"quote": "Orb Inc's database systems as well as in-flight streaming systems are configured to be Multi-AZ, allowing for quick recovery in case of partial outages.", "page": 19}
+      ]
+    },
+    "3.2.1_hosting": {
+      "value": "No EU-region statement in report",
+      "quote": "The Orb application infrastructure is located at AWS data centers. AWS acts as a hosting subservice organization (\"SSO\") for the company.",
+      "page": 14,
+      "note": "AWS is the sole named hosting subservice organization; the report never states AWS regions, data-center geography, or any EU/Europe hosting claim."
+    }
+  },
+  "absent": [
+    {"field": "3.1.1_version", "reason": "No TLS version number stated; captured as Others (TLS, version unspecified) under 3.1.1."},
+    {"field": "3.1.4", "reason": "The report contains no statement about who generates or manages encryption keys; the string 'encryption key' / 'KMS' does not appear."},
+    {"field": "3.1.6", "reason": "No anonymization statement anywhere in the report (zero matches for anonym*)."},
+    {"field": "3.1.7", "reason": "No pseudonymization or de-identification statement anywhere in the report."},
+    {"field": "3.2.1", "reason": "No EU access / EU region / data-residency statement in the report."}
+  ]
+}

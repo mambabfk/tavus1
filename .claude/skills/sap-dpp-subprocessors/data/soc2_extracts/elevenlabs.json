@@ -1,0 +1,89 @@
+{
+  "slug": "elevenlabs",
+  "report_meta": {
+    "legal_entity_cover_exact": "Eleven Labs, Inc.",
+    "legal_entity_note": "Cover (p1): 'Report on Eleven Labs, Inc.'s Description of Its AI-powered Audio and Voice Generation System...'. Legal form is 'Eleven Labs, Inc.' (two words, comma); 'ElevenLabs' is used as the defined short name (p4).",
+    "auditor": "Insight Compliance LLC dba Insight Assurance",
+    "auditor_quote": "Insight Compliance LLC / dba Insight Assurance / Tampa, Florida / August 25, 2025",
+    "auditor_page": 8,
+    "report_period": "January 1, 2025, to June 30, 2025",
+    "report_period_quote": "Relevant to Security, Availability, and Confidentiality and HIPAA Requirements Throughout the Period January 1, 2025, to June 30, 2025",
+    "report_period_page": 1,
+    "soc2_type": "SOC 2 Type 2 plus HIPAA",
+    "soc2_type_quote": "System and Organization Controls Report (SOC 2® Type 2) Plus HIPAA",
+    "soc2_type_page": 1,
+    "trust_services_criteria": "Security, Availability, Confidentiality + HIPAA Security Rule and Breach Notification Rule sections"
+  },
+  "findings": {
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "quote": "E-88 Data in transit is encrypted using strong cryptographic algorithms. Inspected the company's website and the Infrastructure as a Service provider's TLS certificate",
+      "page": 162,
+      "note": "TLS is evidenced (also CC6.6.3 p65: 'secure data transmission protocols... Inspected the company's website and TLS certificate') but no TLS version is stated anywhere. Indicate: 'TLS / strong cryptographic algorithms (version not specified in SOC 2 report)'."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "quote": "DCF-54 Data at rest is encrypted using strong cryptographic algorithms. Inspected the encryption configurations for data at rest",
+      "page": 164,
+      "note": "Also CC6.1.7 (p59): 'The company's databases housing sensitive archived customer data are encrypted at rest.' No algorithm named anywhere (no AES mention), so the specific standard is Not known from this source."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "quote": "A1.2.1 Backups are encrypted and segmented from production systems (e.g., air-gapped, replicated to a different region, stored offsite, etc.)",
+      "page": 84,
+      "note": "Also p21: 'Backup infrastructure is encrypted and maintained in GCP.' Backup encryption is explicitly addressed and tested, but no algorithm/standard is named."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "quote": "DCF-93 The company has an established key management process in place to support the organization's use of cryptographic techniques.",
+      "page": 113,
+      "note": "ElevenLabs manages keys under its Encryption Policy (also CC6.1.13 p60: restricts privileged access to encryption keys to business need), but the report does not state who generates the keys or whether they are customer-specific."
+    },
+    "3.1.8": [
+      {
+        "quote": "The company's production systems can only be remotely accessed by authorized employees possessing a valid MFA method.",
+        "page": 65,
+        "safeguard": "MFA required for remote access to production systems"
+      },
+      {
+        "quote": "Monthly vulnerability scans over the system and network, and annual penetration tests",
+        "page": 13,
+        "safeguard": "Monthly vulnerability scans and annual penetration tests"
+      },
+      {
+        "quote": "The organization uses GCP native tools for system logging within the GCP environment, feeding this information into Google SecOps.",
+        "page": 21,
+        "safeguard": "Centralized security logging/SIEM via Google SecOps (GCP access logs, VPC flow logs, DNS logs for threat detection, p22)"
+      },
+      {
+        "quote": "The firewall is configured to prevent unauthorized access to the company's network.",
+        "page": 65,
+        "safeguard": "Firewall preventing unauthorized network access (CC6.6.4; also CC6.1.8 p59)"
+      },
+      {
+        "quote": "CC6.7.2 The company encrypts all mobile devices",
+        "page": 66,
+        "safeguard": "All mobile devices encrypted; mobile device management/monitoring system in place (CC6.7.1 p65)"
+      },
+      {
+        "quote": "Backups are encrypted and segmented from production systems (e.g., air-gapped, replicated to a different region, stored offsite, etc.)",
+        "page": 84,
+        "safeguard": "Backups segmented/air-gapped from production with cross-region replication"
+      }
+    ],
+    "subservice_organizations": {
+      "value": "Google Cloud Platform (GCP)",
+      "quote": "ElevenLabs uses Google Cloud Platform (GCP) (“subservice organization”) as its infrastructure hosting provider.",
+      "page": 4,
+      "carve_out_quote": "This report does not include the cloud hosting services provided by GCP at multiple facilities.",
+      "carve_out_page": 22
+    }
+  },
+  "absent": [
+    {"field": "3.1.6", "reason": "No mention of anonymization anywhere in the 205-page report (grep 'anonym' = 0 hits)."},
+    {"field": "3.1.7", "reason": "No mention of pseudonymization anywhere in the report (grep 'pseudonym' = 0 hits)."},
+    {"field": "3.2.1", "reason": "No EU/Europe hosting-location statement (grep 'Europe/European/europe-west' = 0 hits); GCP facilities described only as 'multiple facilities' (p22). A1.2.1 mentions replication 'to a different region' without naming regions."},
+    {"field": "3.1.1_version", "reason": "TLS version never stated; report says only 'strong cryptographic algorithms'."},
+    {"field": "3.1.2_algorithm", "reason": "At-rest algorithm never stated (no AES/3DES mention); report says only 'strong cryptographic algorithms'."}
+  ]
+}

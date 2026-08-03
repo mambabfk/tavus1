@@ -1,0 +1,89 @@
+{
+  "slug": "pylon",
+  "report_meta": {
+    "legal_entity_cover_exact": "Pylon Labs, Inc.",
+    "legal_entity_note": "Cover: 'Report on Pylon Labs, Inc.'s Description of Its Services System...' (p1). Body text also uses 'Pylon Labs Inc.' without comma (e.g. p11, p14); cover/assertion form 'Pylon Labs, Inc.' is authoritative.",
+    "auditor": "ConstellationGRC CPA P.C.",
+    "auditor_quote": "Tineyi Gwariwa, CPA, ACA, MSA, MBA / ConstellationGRC CPA P.C. / 6051 Kimberly Dr / Huntington Beach, CA 92647 / August 20, 2025",
+    "auditor_page": 6,
+    "report_period": "August 15, 2024 - August 15, 2025",
+    "report_period_quote": "Relevant to Security Throughout the Period August 15, 2024 - August 15, 2025",
+    "report_period_page": 1,
+    "soc2_type": "SOC 2 Type 2",
+    "soc2_type_quote": "System and Organization Controls Report (SOC 2 TYPE 2)",
+    "soc2_type_page": 1,
+    "trust_services_criteria": "Security"
+  },
+  "findings": {
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "quote": "The company uses secure data transmission protocols to encrypt confidential and sensitive data when transmitted over public networks. Inspected the company's website and TLS certificate",
+      "page": 36,
+      "note": "TLS is evidenced (auditor inspected the TLS certificate) but no TLS version is stated anywhere in the report, so the versioned dropdown options cannot be supported. Indicate: 'TLS (version not specified in SOC 2 report)'."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "quote": "The company's databases housing sensitive archived customer data are encrypted at rest.",
+      "page": 33,
+      "note": "Encryption at rest is confirmed (control CC 6.1.3, no exceptions noted) but the report never names an algorithm (no AES mention anywhere), so the specific standard is Not known from this source."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "quote": "Backup infrastructure is maintained in AWS with physical access restricted according to the policies. Backups are encrypted, with access restricted to key personnel.",
+      "page": 14,
+      "note": "Backups are stated to be encrypted but no algorithm/standard is named."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "quote": "The company restricts privileged access to encryption keys to authorized users with a business need.",
+      "page": 33,
+      "note": "Control CC 6.1.4 shows Pylon manages access to encryption keys under a Cryptography Policy, but the report does not state who generates the keys or whether they are customer-specific."
+    },
+    "3.1.8": [
+      {
+        "quote": "The company's production systems can only be remotely accessed by authorized employees possessing a valid multi-factor authentication (MFA) method.",
+        "page": 33,
+        "safeguard": "MFA required for remote access to production systems"
+      },
+      {
+        "quote": "GuardDuty AWS Security application used for automated intrusion",
+        "page": 12,
+        "safeguard": "Automated intrusion detection via AWS GuardDuty"
+      },
+      {
+        "quote": "Inspected the completed penetration report to determine that a penetration test was performed annually.",
+        "page": 29,
+        "safeguard": "Annual penetration testing with remediation of critical/high findings"
+      },
+      {
+        "quote": "Host-based vulnerability scans are performed... vulnerabilities are tracked to remediation.",
+        "page": 30,
+        "safeguard": "Host-based vulnerability scanning with tracked remediation"
+      },
+      {
+        "quote": "The company encrypts portable and removable media devices when used.",
+        "page": 37,
+        "safeguard": "Encryption of portable/removable media (Encryption Policy + Data Management Policy)"
+      },
+      {
+        "quote": "The company requires authentication to production databases to use authorized secure authentication mechanisms, such as unique SSH key.",
+        "page": 33,
+        "safeguard": "Unique SSH-key authentication to production databases"
+      }
+    ],
+    "subservice_organizations": {
+      "value": "Amazon Web Services (AWS)",
+      "quote": "Pylon uses Amazon Web Services (AWS) to provide hosting services.",
+      "page": 4,
+      "carve_out_quote": "This report does not include the Cloud Hosting Services provided by AWS at multiple facilities.",
+      "carve_out_page": 16
+    }
+  },
+  "absent": [
+    {"field": "3.1.6", "reason": "No mention of anonymization anywhere in the report (grep 'anonym' = 0 relevant hits)."},
+    {"field": "3.1.7", "reason": "No mention of pseudonymization anywhere in the report."},
+    {"field": "3.2.1", "reason": "No EU/Europe/region or hosting-location statement in the report; AWS facilities described only as 'multiple facilities' (p16)."},
+    {"field": "3.1.1_version", "reason": "TLS version never stated."},
+    {"field": "3.1.2_algorithm", "reason": "At-rest encryption algorithm never stated (no AES/3DES mention)."}
+  ]
+}

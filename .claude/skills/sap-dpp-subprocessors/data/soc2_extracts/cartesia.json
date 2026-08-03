@@ -1,0 +1,82 @@
+{
+  "slug": "cartesia",
+  "report_meta": {
+    "legal_entity_cover_exact": "Cartesia AI, Inc.",
+    "legal_entity_note": "Cover page (p1) shows only the system name ('Cartesia API System'); the entity appears throughout as 'Cartesia AI, Inc.' WITH a comma (e.g. 'Assertion of Cartesia AI, Inc. Management', p2/p7). The PDF filename's 'Cartesia AI Inc' (no comma) does not match the in-report form.",
+    "auditor": "Johanson Group LLP",
+    "auditor_quote": "Signature image on the auditor's report reads 'JohansonGroup LLP'; text block: 'Colorado Springs, Colorado / December 9, 2025'",
+    "auditor_page": 6,
+    "auditor_note": "Firm name appears only as a signature image in the PDF (extracted from page 6 of the PDF and read visually); the plain-text dump contains only the city/date sign-off.",
+    "report_period": "June 30, 2025 to September 30, 2025",
+    "report_period_quote": "Report on Management's Description of its Cartesia API System For the Period June 30, 2025 to September 30, 2025",
+    "report_period_page": 1,
+    "soc2_type": "SOC 2 Type II",
+    "soc2_type_quote": "System and Organization Controls (SOC) 2 Type II",
+    "soc2_type_page": 1,
+    "trust_services_criteria": "Security"
+  },
+  "findings": {
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "quote": "The company uses secure data transmission protocols to encrypt confidential and sensitive data when transmitted over public networks. Inspected Cartesia AI, Inc.'s SSL/TLS enforced on the company website",
+      "page": 31,
+      "note": "SSL/TLS is evidenced but no TLS version is stated anywhere in the report. Indicate: 'SSL/TLS (version not specified in SOC 2 report)'."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "quote": "The company's datastores housing sensitive customer data are encrypted at rest. Inspected Cartesia AI, Inc.'s user data encryption to determine that the company's datastores... are encrypted at rest.",
+      "page": 29,
+      "note": "Encryption at rest confirmed (no exceptions noted) but no algorithm named anywhere (no AES mention in report)."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "quote": "Backup infrastructure is maintained in GCP, AWS, and BaseTen with physical access restricted according to the policies. Backups are encrypted, with access restricted to key personnel.",
+      "page": 14,
+      "note": "Backups are stated to be encrypted but no algorithm/standard is named."
+    },
+    "3.1.8": [
+      {
+        "quote": "GuardDuty AWS Security application used for automated intrusion detection (IDS)",
+        "page": 12,
+        "safeguard": "Automated intrusion detection via AWS GuardDuty"
+      },
+      {
+        "quote": "Cartesia engages an external security firm to perform annual penetration testing to look for unidentified vulnerabilities",
+        "page": 14,
+        "safeguard": "Annual third-party penetration testing"
+      },
+      {
+        "quote": "Host-based vulnerability scans are performed... Critical and high vulnerabilities are tracked",
+        "page": 23,
+        "safeguard": "Host-based vulnerability scanning with remediation SLAs for critical/high findings"
+      },
+      {
+        "quote": "The PaaS simplifies our logical network configuration by providing an effective firewall around all the... application containers",
+        "page": 14,
+        "safeguard": "Firewall around all application containers; privileged firewall access restricted to business need (p29)"
+      },
+      {
+        "quote": "Cartesia maintains an incident response plan to guide employees on reporting and responding to any information security or data privacy events or incidents.",
+        "page": 14,
+        "safeguard": "Documented incident response plan for security/privacy incidents"
+      }
+    ],
+    "subservice_organizations": {
+      "value": "AWS (carved-out subservice organization); production/backup infrastructure also on BaseTen and GCP",
+      "quote": "Cartesia AI, Inc. uses a subservice organization, to provide data center facility and hosting services.",
+      "page": 4,
+      "carve_out_quote": "This report does not include the Cloud Hosting Services provided by AWS at multiple facilities.",
+      "carve_out_page": 18,
+      "note": "CSOC section names AWS only (p18); description also states production servers are maintained by AWS and BaseTen (p13) and backup infrastructure in GCP, AWS, and BaseTen (p14)."
+    }
+  },
+  "absent": [
+    {"field": "3.1.4", "reason": "No statement about who generates or manages encryption keys; 'encryption key' does not appear in the report (backups quote's 'key personnel' means important staff, not crypto keys)."},
+    {"field": "3.1.6", "reason": "No mention of anonymization anywhere in the report."},
+    {"field": "3.1.7", "reason": "No mention of pseudonymization anywhere in the report."},
+    {"field": "3.2.1", "reason": "No EU/Europe/region or hosting-location statement; AWS facilities described only as 'multiple facilities' (p18)."},
+    {"field": "3.1.1_version", "reason": "SSL/TLS version never stated."},
+    {"field": "3.1.2_algorithm", "reason": "At-rest encryption algorithm never stated (no AES/3DES mention)."},
+    {"field": "MFA", "reason": "No MFA/multi-factor authentication control appears in this report (0 hits)."}
+  ]
+}

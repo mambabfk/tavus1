@@ -1,0 +1,69 @@
+{
+  "slug": "groq",
+  "report_meta": {
+    "legal_entity": "Groq, Inc.",
+    "legal_entity_note": "The extracted report text consistently writes the entity with a comma: the auditor's report is addressed 'Groq, Inc.' (p4) and Section II is titled 'ASSERTION OF GROQ, INC. MANAGEMENT' (p7). The text dump's cover page (p1) shows no entity name, only the system name 'GroqCloud'.",
+    "legal_entity_quote": "We have examined Groq, Inc.'s accompanying description of its GroqCloud (system) titled \"Description of GroqCloud\"",
+    "legal_entity_page": 4,
+    "system": "GroqCloud",
+    "auditor": null,
+    "auditor_note": "Auditor firm name is not present in the text extraction (likely rendered as a logo image in the PDF). The report signature block shows only 'Colorado Springs, Colorado, September 19, 2025' (p6); page headers show 'Colorado Springs, Colorado | San Jose, California' (p2).",
+    "report_period": "March 18, 2025 to June 18, 2025",
+    "report_date": "September 19, 2025",
+    "soc2_type": "SOC 2 Type II",
+    "trust_services_criteria": "Security",
+    "cover_quote": "System and Organization Controls (SOC) 2 Type II Report on Management's Description of its GroqCloud ... Relevant to Security For the Period March 18, 2025 to June 18, 2025",
+    "cover_page": 1
+  },
+  "findings": {
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "quote": "The company uses secure data transmission protocols to encrypt confidential and sensitive data when transmitted over public networks. Inspected Groq, Inc.'s SSL/TLS settings on the company website",
+      "page": 35,
+      "note": "Standard stated is SSL/TLS; no TLS version number appears anywhere in the report, so no exact dropdown match (TLS 1.2/1.3 cannot be claimed)."
+    },
+    "3.1.2": {
+      "value": "Others - pls indicate below",
+      "quote": "The company's datastores housing sensitive customer data are encrypted at rest. Inspected Groq, Inc.'s Standard GCP Cloud Storage encryption",
+      "page": 31,
+      "note": "Encryption at rest confirmed (standard GCP Cloud Storage encryption) but no algorithm (e.g. AES-256) is named in the report."
+    },
+    "3.1.3": {
+      "value": "Others - pls indicate below",
+      "quote": "Backup infrastructure is maintained in Google Cloud Platform with physical access restricted according to the policies. Backups are encrypted with access restricted to key personnel.",
+      "page": 14,
+      "note": "Backups are explicitly stated to be encrypted, but no algorithm is named."
+    },
+    "3.1.8": {
+      "value": [
+        "Multi-factor authentication (MFA) required for remote access to production systems",
+        "Access to encryption keys restricted to authorized users with a business need",
+        "Intrusion detection systems in place",
+        "Annual third-party penetration testing plus regular vulnerability scans",
+        "Firewall rulesets reviewed at least annually; privileged firewall access restricted",
+        "Production authentication via unique usernames/passwords or authorized SSH keys"
+      ],
+      "quotes": [
+        {"quote": "The company's production systems can only be remotely accessed by authorized employees possessing a valid multi-factor authentication (MFA) method.", "page": 32},
+        {"quote": "The company restricts privileged access to encryption keys to authorized users with a business need.", "page": 33},
+        {"quote": "Use of intrusion detection systems to prevent and identify potential security attacks from users outside the boundaries of the [system]", "page": 10},
+        {"quote": "Groq contracts with a third-party penetration testing firm to conduct annually recurring penetration testing and vulnerability scanning", "page": 15},
+        {"quote": "The company reviews its firewall rulesets at [least annually]", "page": 35},
+        {"quote": "The company requires authentication to the \"production network\" to use unique usernames and passwords or authorized Secure Socket Shell (SSH) keys.", "page": 32}
+      ]
+    },
+    "3.2.1_hosting": {
+      "value": "No EU-region statement in report",
+      "quote": "This report does not include the cloud hosting services provided by GCP at multiple facilities.",
+      "page": 15,
+      "note": "Production infrastructure and backup infrastructure are on Google Cloud Platform (pp. 12, 14); the report never states data-center geography, regions, or any EU/Europe hosting claim. Groq LPU Inference Engine compute and Cisco data-center networking are listed as infrastructure (p11) without locations."
+    }
+  },
+  "absent": [
+    {"field": "3.1.1_version", "reason": "No TLS version number stated; captured as Others (SSL/TLS) under 3.1.1."},
+    {"field": "3.1.4", "reason": "Report states privileged ACCESS to encryption keys is restricted (p33) but never states who generates/provides keys or whether they are customer-specific."},
+    {"field": "3.1.6", "reason": "No anonymization statement; the only 'anonymous' references are the anonymous whistleblower channel (p25)."},
+    {"field": "3.1.7", "reason": "No pseudonymization or de-identification statement anywhere in the report."},
+    {"field": "3.2.1", "reason": "No EU access / EU region / data-residency statement in the report."}
+  ]
+}

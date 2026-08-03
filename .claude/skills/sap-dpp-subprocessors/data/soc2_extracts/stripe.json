@@ -1,0 +1,96 @@
+{
+  "slug": "stripe",
+  "report_meta": {
+    "legal_entity": "Stripe, Inc.",
+    "auditor": "Coalfire Controls, LLC",
+    "report_period": "April 1, 2025 to March 31, 2026",
+    "soc2_type": "SOC 2 Type 2 (Security, Availability, Confidentiality)",
+    "system": "Stripe Global Payments and Revenue and Finance Automation (RFA) System",
+    "report_date": "April 3, 2026",
+    "meta_quotes": [
+      {
+        "fact": "entity_and_period",
+        "quote": "Report on Stripe, Inc.’s Description of Its Stripe Global Payments and Revenue and Finance Automation (RFA) System ... Throughout the Period April 1, 2025 to March 31, 2026",
+        "page": 1
+      },
+      {
+        "fact": "type",
+        "quote": "SOC 2® - SOC for Service Organizations: Trust Services Criteria – Integrated Type 2 Report Prepared in Accordance with the AICPA SSAE No. 18 and 21 as Amended, and IAASB ISAE 3000 Standards",
+        "page": 1
+      },
+      {
+        "fact": "auditor",
+        "quote": "Non-specified users may not rely on this report and do not acquire any rights against Coalfire Controls, LLC as a result of such access.",
+        "page": 7
+      }
+    ]
+  },
+  "findings": {
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "detail": "TLS (version not specified in report)",
+      "quote": "Sensitive customer data is encrypted via TLS in transit to ensure data security.",
+      "page": 67,
+      "note": "Report states TLS but never names a version (no 'TLS 1.2'/'TLS 1.3' anywhere), so no exact dropdown match. Also: 'Traffic between any Stripe device to internal services is encrypted via Transport Layer Security (TLS).' (p. 67)"
+    },
+    "3.1.2": {
+      "value": "AES-256",
+      "quote": "Amazon Aurora databases (\"Aurora DBs\") utilize encryption at rest to secure their data using Advanced Encryption Standard (AES)-256.",
+      "page": 61
+    },
+    "3.1.8": {
+      "value": [
+        "Network segmentation of the cardholder data environment and transaction processing environment (SOC 2 p. 61)",
+        "Mandatory multi-factor authentication plus LDAP group membership for production access (p. 60)",
+        "Intrusion detection system (IDS) for continuous network monitoring (p. 25)",
+        "Weekly external network vulnerability scans plus annual external / semi-annual internal penetration testing (pp. 25, 39)",
+        "File integrity monitoring (FIM) and anti-malware on production systems (p. 25)",
+        "Daily database backups with real-time replication to a secondary data center (pp. 27, 123)"
+      ],
+      "quotes": [
+        {
+          "quote": "the cardholder data environment and transaction processing environment were segmented to prevent unauthorized access to user confidential data",
+          "page": 61
+        },
+        {
+          "quote": "Access to the Stripe production environment requires multi-factor authentication and valid Lightweight Directory Access Protocol (LDAP) group membership.",
+          "page": 60
+        },
+        {
+          "quote": "The Company uses an intrusion detection system (IDS) for comprehensive system monitoring.",
+          "page": 25
+        },
+        {
+          "quote": "External network vulnerability scans are performed weekly to identify, quantify, and prioritize vulnerabilities.",
+          "page": 39
+        },
+        {
+          "quote": "the Company performs external penetration testing annually and internal network penetration testing semi-annually",
+          "page": 25
+        },
+        {
+          "quote": "A file integrity monitoring (FIM) tool is utilized to maintain the integrity of the production system.",
+          "page": 25
+        },
+        {
+          "quote": "The Company also implements real-time replication of databases to a secondary data center",
+          "page": 27
+        }
+      ]
+    }
+  },
+  "absent": [
+    "3.1.3",
+    "3.1.4",
+    "3.1.6",
+    "3.1.7",
+    "3.2.1"
+  ],
+  "absent_notes": {
+    "3.1.3": "Backups are addressed (daily Aurora/RDS backups, p. 123) but the report never states an encryption standard for backups.",
+    "3.1.4": "No statement on who generates or manages encryption keys; 'key management'/'KMS'/'encryption key' do not appear in the report. Database encryption is partly carved out to AWS/Equinix CSOCs: 'AWS and Equinix should encrypt databases in their control.' (p. 29).",
+    "3.1.6": "No mention of anonymization anywhere in the report.",
+    "3.1.7": "No mention of pseudonymization (or tokenization) anywhere in the report.",
+    "3.2.1": "Report names AWS and Equinix as data-center colocation subservice organizations (p. 17) but never states data-center regions/locations; the Ireland mentions (pp. 14-15) are Stripe legal entities, not hosting locations."
+  }
+}

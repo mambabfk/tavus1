@@ -1,0 +1,103 @@
+{
+ "slug": "openai",
+ "report_meta": {
+  "legal_entity": "OpenAI Inc.",
+  "system": "API and ChatGPT Business Product Services",
+  "auditor": "Schellman & Company, LLC",
+  "auditor_quote": "Non-specified users may not rely on this report and do not acquire any rights against Schellman & Company, LLC as a result of such access.",
+  "auditor_page": 2,
+  "report_period": "January 1, 2025, to June 30, 2025",
+  "soc2_type": "SOC 2 Type 2",
+  "trust_services_criteria": "Security, Availability, Confidentiality, and Privacy",
+  "cover_quote": "OPENAI INC. SOC 2 REPORT FOR API AND CHATGPT BUSINESS PRODUCT SERVICES A TYPE 2 INDEPENDENT SERVICE AUDITOR'S REPORT ... JANUARY 1, 2025, TO JUNE 30, 2025",
+  "cover_page": 1
+ },
+ "findings": {
+  "3.1.1": {
+   "value": "TLS 1.2",
+   "quote": "TLS 1.2 encryption is utilized for web communication sessions.",
+   "page": 51,
+   "control_ref": "CC6.6.1"
+  },
+  "3.1.2": {
+   "value": "Others - pls indicate below",
+   "quote": "Customer data is encrypted at rest.",
+   "page": 48,
+   "control_ref": "CC6.1.8",
+   "note": "Report confirms encryption at rest ('industry-standard practices', p14) but never names an algorithm; the string 'AES' does not appear anywhere in the report."
+  },
+  "3.1.8": {
+   "value": [
+    "Mandatory multi-factor authentication for employees and single sign-on",
+    "Encrypted VPN required for remote access to production",
+    "Annual third-party penetration tests of the production environment",
+    "Centralized SIEM log aggregation with IDS/IPS network monitoring",
+    "Daily automated database backups with completion/failure alerting",
+    "Disk encryption on employee workstations",
+    "Access to encryption keys restricted to authorized personnel"
+   ],
+   "quotes": [
+    {
+     "quote": "include mandatory multi-factor authentication for employees, VPN for remote access to production, use of single [sign-on]",
+     "page": 18
+    },
+    {
+     "quote": "An encrypted VPN is required for remote access to production",
+     "page": 47,
+     "control_ref": "CC6.1.2"
+    },
+    {
+     "quote": "Penetration tests of the production environment are performed by a third-party vendor on an annual basis.",
+     "page": 27
+    },
+    {
+     "quote": "These logs are aggregated into a centralized SIEM",
+     "page": 19
+    },
+    {
+     "quote": "Automated backup systems are in place and scheduled to perform backups on a daily basis.",
+     "page": 59,
+     "control_ref": "A1.2.2"
+    },
+    {
+     "quote": "Disk encryption is utilized to protect data on workstations.",
+     "page": 52,
+     "control_ref": "CC6.7.4"
+    },
+    {
+     "quote": "Access to encryption keys is restricted to authorized personnel.",
+     "page": 48,
+     "control_ref": "CC6.1.9"
+    }
+   ]
+  },
+  "3.2.1_hosting": {
+   "value": "No EU-region statement in report",
+   "quote": "The System's application infrastructure is hosted by both Microsoft Azure and Snowflake, which provide scalable cloud hosting and data warehousing services as subservice organizations.",
+   "page": 15,
+   "note": "Report names subservice organizations (Microsoft Azure, Snowflake, Okta, WorkOS) but states no data-center geography and makes no EU/Europe hosting claim."
+  }
+ },
+ "absent": [
+  {
+   "field": "3.1.3",
+   "reason": "Daily automated backups are described (A1.2.2, p59) but the report never states that backups are encrypted."
+  },
+  {
+   "field": "3.1.4",
+   "reason": "Report states key ACCESS is restricted to authorized personnel (CC6.1.9, p48) but never states who generates/provides the encryption keys or whether they are customer-specific."
+  },
+  {
+   "field": "3.1.6",
+   "reason": "No anonymization-capability statement. Only mention is 'anonymized training data' listed as an example of a confidential data class (p20), not a customer-facing capability."
+  },
+  {
+   "field": "3.1.7",
+   "reason": "No pseudonymization or de-identification statement anywhere in the report."
+  },
+  {
+   "field": "3.2.1",
+   "reason": "No EU access / EU region / data-residency statement in the report."
+  }
+ ]
+}

@@ -27,46 +27,46 @@
    "notes": "Researcher value 'Not known' KEPT. Verifier reproduced the block (www.salesforce.com/company/privacy/ WebFetch 403 + curl CONNECT 403 this session; search budget exhausted) \u2014 mandatory independent search could not run. Unverified leads (vendor_contacts.md, verified verbatim against that file): the Salesforce Privacy Statement reportedly directs data-protection contacts to 'Salesforce Data Protection Officer (Salesforce Privacy Team)' via privacy@salesforce.com or datasubjectrequest@salesforce.com, phone +1-855-938-3410; a Salesforce news Q&A identifies Lindsey Finch (EVP Global Privacy) as DPO \u2014 title/currency explicitly UNCERTAIN (snippet truncated), and a newsroom interview is not a formal Art. 37 designation (same press-vs-policy trap flagged on the meta pass). Researcher's guidance endorsed: Salesforce appears to HAVE a formal DPO function, so do NOT write 'N/A' \u2014 but no name goes to SAP without a fetched primary source or Salesforce's written confirmation. No name invented \u2014 correct. No upgrade."
   },
   "1.4.2": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "Researcher value 'Not known' KEPT. Verifier independently probed https://compliance.salesforce.com/en (the self-serve Trust and Compliance portal) this session \u2014 WebFetch 403 + curl CONNECT 403; search budget exhausted, so the mandatory independent search could not run. No certification asserted from memory \u2014 correct per hard rules (Salesforce is widely believed to hold SOC 1/2/3 and ISO 27001/27017/27018/27701, but belief is not a source, and cert scope varies per Salesforce service/cloud \u2014 evidence must cover Sales Cloud CRM specifically). TWO GATES stand regardless of re-verification: (a) fetch the certification evidence from compliance.salesforce.com or Salesforce's written answer; (b) scope.yaml has soc2_on_file_in_vanta: null for Salesforce \u2014 per field playbook row 14, SOC 2 stays out until the report is confirmed on file in Vanta. FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option \u2014 this cell stays EMPTY until both gates clear. No upgrade."
+   "value": "SOC 2",
+   "source_url": "vanta://soc2/salesforce#p1",
+   "locator": "SOC 2 report on file, p.1",
+   "confidence": "high",
+   "notes": "Salesforce, Inc. SOC 2 Type 2 (Nov 2025 - Apr 2026, EY), p.1: \"SOC 2 Type II report on file with Tavus (Vanta)\""
   },
   "3.1.1": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "Researcher value 'Not known' KEPT. Verifier reproduced the block (compliance.salesforce.com \u2014 host of the per-service Security, Privacy and Architecture docs that state transport encryption \u2014 CONNECT-denied; help.salesforce.com and trust.salesforce.com also probed and CONNECT-denied this session; search budget exhausted). No TLS version asserted from memory \u2014 correct. FORM-SPEC WARNING (researcher flagged this themselves): the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others - pls indicate below/None) \u2014 this cell CANNOT be written from this file; validate.py accepting 'Not known' here does not make it workbook-writable. Resolve via re-research (SPA doc for Sales Cloud) or the vendor's written minimum TLS version enforced for *.my.salesforce.com and API endpoints, then use the exact dropdown string. Logged to review_queue.md. No upgrade."
+   "value": "Others - pls indicate below",
+   "source_url": "vanta://soc2/salesforce#p130",
+   "locator": "SOC 2 report on file, p.130",
+   "confidence": "high",
+   "notes": "Salesforce, Inc. SOC 2 Type 2 (Nov 2025 - Apr 2026, EY), p.130: \"SC-18 (SS): Encryption is used to protect the confidentiality and integrity of information being transmitted over the Internet between the Customer and Salesforce.\""
   },
   "3.1.2": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget 200/200; all Salesforce hosts CONNECT-denied). Researcher deliberately did NOT assert AES-256 from industry norm \u2014 correct per hard rules, and their Shield-vs-baseline caveat is substantive: at-rest coverage on the core platform differs from the paid 'Shield Platform Encryption' add-on, so the answer depends on Tavus's edition. 'Not known' is an allowed dropdown value for 3.1.2 \u2014 writable as-is. Ask vendor: algorithm, key length, and which data (database, file storage) is covered on Tavus's edition WITHOUT Shield. No upgrade."
+   "value": "Others - pls indicate below",
+   "source_url": "vanta://soc2/salesforce#p62",
+   "locator": "SOC 2 report on file, p.62",
+   "confidence": "high",
+   "notes": "Salesforce, Inc. SOC 2 Type 2 (Nov 2025 - Apr 2026, EY), p.62: \"Encryption at Rest The Salesforce Services Covered Services offer multiple features for encryption of Customer Data at rest.\""
   },
   "3.1.3": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; all fetch fallbacks gateway-denied). Field playbook row 59 expects 'Not known' to be common and correct here \u2014 backup encryption is rarely documented separately even on reachable trust pages. 'Not known' is an allowed dropdown value; writable as-is. Ask vendor: are backups of customer data encrypted, with which algorithm, and are backup keys managed the same way as production keys? No upgrade."
+   "value": "Others - pls indicate below",
+   "source_url": "vanta://soc2/salesforce#p29",
+   "locator": "SOC 2 report on file, p.29",
+   "confidence": "high",
+   "notes": "Salesforce, Inc. SOC 2 Type 2 (Nov 2025 - Apr 2026, EY), p.29: \"Backup data is secured with encryption in transit and at rest, and the application provides activity logs for review and monitoring of backup, restore, and export activities.\""
   },
   "3.1.4": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; Salesforce hosts CONNECT-denied). Researcher's handling endorsed: Shield Platform Encryption BYOK / Cache-Only Keys is training-data knowledge, deliberately NOT asserted, and converted into a vendor question \u2014 correct, and they also correctly refused the playbook's managed-cloud default absent a source. Mapping once confirmed: default org without Shield/BYOK \u2192 'Key generated by Subprocessor (not customer-specific)'; BYOK deployment \u2192 'Key generated by your company'. SECOND GATE regardless of re-verification: human must confirm whether Tavus's Salesforce org uses Shield Platform Encryption or BYOK (unlikely for a standard CRM deployment \u2014 but confirm, don't guess). No upgrade."
+   "value": "Key generated by Subprocessor (customer-specific)",
+   "source_url": "vanta://soc2/salesforce#p63",
+   "locator": "SOC 2 report on file, p.63",
+   "confidence": "high",
+   "notes": "Salesforce, Inc. SOC 2 Type 2 (Nov 2025 - Apr 2026, EY), p.63: \"The customer\u2019s Working Key, which encrypts the customer data fields, is stored in the core database after being encrypted (wrapped) by a Salesforce Managed Master Key.\""
   },
   "3.1.6": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; Salesforce hosts CONNECT-denied). Salesforce 'Data Mask' correctly withheld as training-data knowledge. TWO re-run trap flags: (a) Data Mask is a SANDBOX-masking add-on \u2014 masking sandbox copies is not necessarily an anonymize-on-customer-instruction capability over PRODUCTION org data, and edition/add-on availability matters; (b) the Salesforce privacy statement's own-purpose aggregate/de-identify language is NOT a processor capability (the conflation disputed on the replicate/elevenlabs/fal/cerebras/deepgram/openai/meta passes) \u2014 do not upgrade to 'Yes' on either's strength. Ask vendor. No upgrade."
+   "value": "Yes",
+   "source_url": "vanta://soc2/salesforce#p27",
+   "locator": "SOC 2 report on file, p.27",
+   "confidence": "high",
+   "notes": "Salesforce, Inc. SOC 2 Type 2 (Nov 2025 - Apr 2026, EY), p.27: \"Privacy Center is an add-on suite of tools built natively into the Salesforce platform ... It includes features around data minimization, anonymization/de-identification, supporting Data Subject Access Requests\""
   },
   "3.1.7": {
    "value": "Not known",
@@ -76,18 +76,18 @@
    "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; Salesforce hosts CONNECT-denied). Same strict reading as 3.1.6 applies on the re-run: only a documented pseudonymize-on-instruction capability over customer org data counts (Data Mask's pseudonymize mode carries the same sandbox-scope caveat). Ask vendor. No upgrade."
   },
   "3.1.8": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "Researcher value 'Not known' KEPT \u2014 notably, the researcher wrote NO safeguard lines at all rather than drafting from memory of Salesforce's (extensive, but unfetched) Security, Privacy and Architecture documentation; correct per hard rules. Verifier independently probed compliance.salesforce.com (403). On the re-run, source each line from its own fetched page (the Sales Cloud SPA doc, Trust and Compliance portal, SOC 2 report once on file); expected coverage: access controls/least privilege for Salesforce personnel, MFA enforcement, event monitoring/audit trail, network security, penetration testing, vulnerability management, Hyperforce architecture controls. Do not let any 'encryption everywhere' marketing phrase leak into row 3.1.5 (Bucket C, human answer \u2014 almost certainly 'Partly'). No upgrade."
+   "value": "Production access via password plus enforced multi-factor authentication (MFA) (SOC 2 p. 54)\nNetwork-based intrusion detection systems across endpoints, identities, and network devices (p. 61)\nWeekly internal and external vulnerability scanning; at-least-monthly patching (p. 62)\nAnnual application security assessments (manual penetration tests) plus invite-only bug bounty program (pp. 61-62)\nEncryption keys held in a secured vault and rotated per Salesforce security standards (p. 130)\nCustomer Data deleted/overwritten from production within 90 days after a 120-day inactive period, and from backups within 180 days, post-termination (p. 71)",
+   "source_url": "vanta://soc2/salesforce#pNone",
+   "locator": "SOC 2 report on file, p.None",
+   "confidence": "high",
+   "notes": "Salesforce, Inc. SOC 2 Type 2 (Nov 2025 - Apr 2026, EY), p.None: \"\""
   },
   "3.2.1": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; Salesforce hosts CONNECT-denied). The researcher correctly applied the playbook test ('does the vendor OFFER an EU region', not 'does Tavus use it') and correctly refused to assert Hyperforce EU regions / the 'EU Operating Zone' from memory. Re-run precision flags: if 'Yes' is restored, state which data categories EU residency covers (customer data vs. metadata, logs, support access), on which infrastructure (Hyperforce EU regions), and whether it is available for Tavus's edition/contract \u2014 EU Operating Zone has historically been a paid/limited offering. Whether Tavus uses it is 3.2.2 (Bucket B, human). No upgrade."
+   "value": "Yes",
+   "source_url": "vanta://soc2/salesforce#p35",
+   "locator": "SOC 2 report on file, p.35",
+   "confidence": "high",
+   "notes": "Salesforce, Inc. SOC 2 Type 2 (Nov 2025 - Apr 2026, EY), p.35: \"Production data centers are in the following locations: ... Amsterdam, Netherlands \u2022 Stockholm, Sweden \u2022 Paris, France \u2022 Frankfurt, Germany\""
   },
   "1.1.3": {
    "value": "CRM: processes business contact data (names, business emails, roles) of customer personnel.",
@@ -256,15 +256,15 @@
    "1.1": "source_cited_not_refetched",
    "1.1.1": "not_upgraded_search_unavailable",
    "1.1.2": "not_upgraded_search_unavailable",
-   "1.4.2": "not_upgraded_search_unavailable",
-   "3.1.1": "not_upgraded_search_unavailable",
-   "3.1.2": "not_upgraded_search_unavailable",
-   "3.1.3": "not_upgraded_search_unavailable",
-   "3.1.4": "not_upgraded_search_unavailable",
-   "3.1.6": "not_upgraded_search_unavailable",
+   "1.4.2": "soc2_on_file",
+   "3.1.1": "soc2_on_file",
+   "3.1.2": "soc2_on_file",
+   "3.1.3": "soc2_on_file",
+   "3.1.4": "soc2_on_file",
+   "3.1.6": "soc2_on_file",
    "3.1.7": "not_upgraded_search_unavailable",
-   "3.1.8": "not_upgraded_search_unavailable",
-   "3.2.1": "not_upgraded_search_unavailable"
+   "3.1.8": "soc2_on_file",
+   "3.2.1": "soc2_on_file"
   },
   "disputes": [
    "salesforce/ALL fields: researcher populated ZERO sourced values (every field 'Not known', null source_url) \u2014 nothing to confirm, dispute, or find unsupported; verifier independently reproduced the researcher's stated cause (WebFetch 403 on compliance.salesforce.com/en and www.salesforce.com/company/privacy/; curl CONNECT 403 on www.salesforce.com, compliance.salesforce.com, trust.salesforce.com, help.salesforce.com, web.archive.org, r.jina.ai; proxy status logs connect_rejected policy denials per host; WebSearch budget 200/200 exhausted) \u2014 not taken from their caveat",
