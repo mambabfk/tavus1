@@ -101,7 +101,7 @@
    "value": "No",
    "source_url": null,
    "confidence": "judgment",
-   "notes": "All Tavus sub-processors are US-based; the service has no non-US deployment path today, so no viable alternative avoiding US processing exists for the current architecture.",
+   "notes": "1.7 = No, confirmed by tim@tavus.io 2026-08-03 against the actual form text. Rationale: (a) the question requires alternatives that exclude transfers to ALL listed countries (incl. USA and UK) at similar quality \u2014 no such alternative sub-processor chain exists for real-time conversational video AI; the competitive supply chain (GPU inference, voice models, WebRTC) is US-controlled. (b) Not inconsistent with 3.2.1=Yes for hyperscalers: an EU region changes where data sits, not who controls it \u2014 a US parent remains subject to US legal process with US-based administrative access, so USA transfer is not 'excluded' by region choice. Reliance is on SCCs/DPF + supplementary measures, not transfer avoidance.",
    "requires_signoff": true,
    "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
   },
