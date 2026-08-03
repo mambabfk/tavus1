@@ -88,6 +88,166 @@
    "locator": null,
    "confidence": "none",
    "notes": "Whether Pylon OFFERS an EU region / EU data residency option (the test is 'offers', not 'Tavus uses') not verifiable this session (gateway 403 on all usepylon.com hosts; search budget exhausted). 'Not known' is a valid dropdown option for 3.2.1. Ask vendor; 3.2.2 (whether Tavus uses it) is a Bucket B human answer either way."
+  },
+  "1.1.3": {
+   "value": "Customer support platform: processes business contact data and support conversation content of customer personnel.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "1.7": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "All Tavus sub-processors are US-based; the service has no non-US deployment path today, so no viable alternative avoiding US processing exists for the current architecture.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.3": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "The vendor necessarily processes personal data in clear text at the application layer to provide its service.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "3.1.5": {
+   "value": "Partly",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Encrypted in transit and at rest; data is necessarily processed in plaintext in memory during processing/inference.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.biometric": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Tavus processes face/voice media to render conversational replicas, not to uniquely identify natural persons; no biometric identification or authentication is performed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.browsing_history": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.cvs": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.driving_behavior": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.health": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.genetic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.hr": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.sex_life": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.photo": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.political": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.racial_ethnic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.voice_session": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.religious": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.trade_union": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.other": {
+   "value": "None",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "No other special categories intentionally processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.2": {
+   "value": "Business contact data (names, business email addresses, roles); billing and usage metadata; support communications.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
   }
  },
  "open_questions_for_vendor": [

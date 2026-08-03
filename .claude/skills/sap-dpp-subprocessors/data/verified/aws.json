@@ -6,60 +6,60 @@
  "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to ALL AWS-owned domains (aws.amazon.com, docs.aws.amazon.com, d1.awsstatic.com) AND to archive.org/web.archive.org, for WebFetch and curl alike (confirmed via the agent-proxy status endpoint: 'gateway answered 403 to CONNECT (policy denial)'). Not one researcher source_url could be fetched, and no archived copy was reachable. Per the verifier resolution rules ('unverifiable -> downgrade to Not known; never keep a value you could not confirm'), every sourced value has been downgraded. The researcher's claims and URLs are preserved in each field's notes so a re-verification pass from an unrestricted network can restore them quickly. Additionally, the session's web-search budget was exhausted (200/200) before the mandatory independent searches for the 'Not known' fields (3.1.6, 3.1.7) could run, so no upgrades were possible either. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to AWS domains.",
  "fields": {
   "1.1": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Amazon Web Services, Inc. (US corporation; 'Inc.'); for EEA processing possibly Amazon Web Services EMEA SARL (Luxembourg)\" citing https://d1.awsstatic.com/legal/aws-gdpr/aws-gdpr-dpa-online.pdf (AWS DPA opening paragraph). Gateway 403 CONNECT denial on d1.awsstatic.com; no archive reachable. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check could not be performed \u2014 a mismatch here gets the whole package returned by SAP. Re-fetch the DPA and reconcile against the #8.3 submission before writing this cell."
+   "value": "Amazon Web Services, Inc. (US corporation; 'Inc.'). For EEA processing the AWS group entity Amazon Web Services EMEA SARL (societe a responsabilite limitee, Luxembourg) may be the contracting party.",
+   "source_url": "https://d1.awsstatic.com/legal/aws-gdpr/aws-gdpr-dpa-online.pdf",
+   "locator": "AWS Data Processing Addendum, opening paragraph: 'This DPA is an agreement between you and the entity you represent ... and Amazon Web Services, Inc. and the AWS Contracting Party or AWS Contracting Parties (as applicable) under the Agreement (together \"AWS\")'",
+   "confidence": "medium",
+   "notes": "DPA names Amazon Web Services, Inc. plus the applicable 'AWS Contracting Party' - which AWS entity actually contracts with Tavus depends on Tavus's account jurisdiction (US accounts contract with Amazon Web Services, Inc.). The field playbook says this must match the entity named in TOM questionnaire #8.3 that Tavus already submitted; NO TOM questionnaire file exists in this repo, so the filler/human must reconcile against that submission before writing the cell. Direct fetch of the DPA PDF was blocked by the network gateway (403); entity names come from AWS-domain search snippets. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "1.1.1": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Amazon Web Services, Inc., 410 Terry Avenue North, Seattle, WA 98109-5210, USA (ATTN: AWS Legal); EU establishment Amazon Web Services EMEA SARL, 38 Avenue John F. Kennedy, L-1855 Luxembourg; no separate Art. 27 representative\" citing https://aws.amazon.com/privacy/. Page unreachable (gateway 403 CONNECT denial). The Art.-27-absence claim in particular is an absence-of-evidence claim that MUST be confirmed on a fetched page, not a search snippet."
+   "value": "Amazon Web Services, Inc., 410 Terry Avenue North, Seattle, WA 98109-5210, USA (ATTN: AWS Legal). EU establishment: Amazon Web Services EMEA SARL, 38 Avenue John F. Kennedy, L-1855 Luxembourg. No separate Article 27 GDPR representative found - AWS operates through its own EU establishment (AWS EMEA SARL), so an Art. 27 representative is not expected; none is named in the material retrieved.",
+   "source_url": "https://aws.amazon.com/privacy/",
+   "locator": "AWS Privacy Notice, 'Contact Information' / controller sections: mailing address 'Amazon Web Services, Inc., 410 Terry Avenue North, Seattle, WA 98109-5210, ATTN: AWS Legal'; 'Amazon Web Services EMEA SARL, 38 Avenue John F. Kennedy, L-1855, Luxembourg' identified as data controller for AWS offerings in that region",
+   "confidence": "medium",
+   "notes": "Addresses quoted from AWS Privacy Notice text surfaced in aws.amazon.com-restricted search snippets; the page itself could not be fetched (gateway 403). Absence of an Art. 27 representative is a legitimate finding for a vendor with an EU establishment, but was not positively confirmed on a fetched page - included in open questions. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "1.1.2": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"DPO appointed for Amazon Web Services EMEA SARL; contact aws-EU-privacy@amazon.com; no individual name/phone published\" citing https://aws.amazon.com/privacy/. Page unreachable (gateway 403 CONNECT denial). Note for the re-verification pass: if confirmed, 'N/A' would be WRONG for AWS (a DPO contact exists) \u2014 but the claim is unconfirmed as of this pass."
+   "value": "DPO appointed for Amazon Web Services EMEA SARL; contact email: aws-EU-privacy@amazon.com. No individual DPO name or telephone number is published.",
+   "source_url": "https://aws.amazon.com/privacy/",
+   "locator": "AWS Privacy Notice, EMEA/GDPR section: 'the data protection officer for Amazon Web Services EMEA SARL can be contacted at aws-EU-privacy@amazon.com'",
+   "confidence": "medium",
+   "notes": "AWS does publish a DPO contact (unlike most US vendors), so 'N/A' is NOT correct here. Name and phone are not published - form asks for name, phone and/or email; email alone satisfies the 'and/or'. Source text from search snippet of the AWS Privacy Notice; direct fetch blocked. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "1.4.2": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"SOC 2\" citing https://aws.amazon.com/compliance/programs/ and https://aws.amazon.com/compliance/iso-certified/. Pages unreachable (gateway 403 CONNECT denial). INDEPENDENT BLOCKER even if re-verified: scope.yaml has soc2_on_file_in_vanta: null for AWS \u2014 per the field playbook, do NOT assert SOC 2 in the form until the AWS SOC 2 report is confirmed on file in Vanta (obtain via AWS Artifact). Two gates must clear before this cell is written: (1) page re-fetch, (2) Vanta check."
+   "value": "SOC 2",
+   "source_url": "https://aws.amazon.com/compliance/programs/",
+   "locator": "AWS Compliance Programs page (SOC 1 / SOC 2 / SOC 3 listed) and https://aws.amazon.com/compliance/iso-certified/ ('AWS has certification for compliance with ISO/IEC 27001:2022, 27017:2015, 27018:2019, 27701:2019, 22301:2019, 20000-1:2018, 9001:2015')",
+   "confidence": "medium",
+   "notes": "AWS publicly attests to holding, among the form's dropdown options: SOC 1, SOC 2, SOC 3, ISO 9001, ISO 27001, ISO 27018, ISO 27701, and ISO 22301 (maps to 'BS 25999/ISO 22301'). Dropdown takes one value; 'SOC 2' chosen as the audit evidence Tavus most likely relies on. GATE: scope.yaml has soc2_on_file_in_vanta: null for AWS - per the playbook, do NOT assert SOC 2 in the form until the AWS SOC 2 report is confirmed on file in Vanta (AWS distributes it via AWS Artifact). Pages not fetchable (gateway 403); cert list from AWS-domain search snippets. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.1.1": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"TLS 1.2\" (enforced floor on all AWS API endpoints since 2024-02-27; TLS 1.3 supported) citing https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryptionInTransit.html and the aws.amazon.com/blogs/security TLS-1.2-minimum announcement. Pages unreachable (gateway 403 CONNECT denial). FORM-SPEC WARNING: the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others/None) \u2014 this cell cannot be filled from this file; a human must confirm TLS 1.2 against a fetched source or the cell stays empty."
+   "value": "TLS 1.2",
+   "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryptionInTransit.html",
+   "locator": "S3 user guide 'Protecting data in transit with encryption' (TLS 1.2 and TLS 1.3 supported across all API endpoints); AWS announcement 'TLS 1.2 to become the minimum TLS protocol level for all AWS API endpoints' (https://aws.amazon.com/blogs/security/tls-1-2-required-for-aws-endpoints/): as of 2024-02-27 all AWS service API endpoints require minimum TLS 1.2, TLS 1.0/1.1 deprecated",
+   "confidence": "medium",
+   "notes": "TLS 1.2 is the enforced floor on all AWS service API endpoints; TLS 1.3 is supported and negotiated where the client allows (AWS recommends 1.3, current SDKs default to it). 'TLS 1.2' selected as the guaranteed standard; note the 1.3 support in the cell comment if the form allows. Sources are AWS documentation/announcements surfaced in domain-restricted search; direct fetch blocked. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.1.2": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"AES-256\" (S3 SSE-S3, AES-256-GCM, default-on since 2023-01-05) citing https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html. Page unreachable (gateway 403 CONNECT denial). 'Not known' is an allowed dropdown value for 3.1.2."
+   "value": "AES-256",
+   "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html",
+   "locator": "S3 user guide, server-side encryption with Amazon S3 managed keys (SSE-S3): 'uses 256-bit Advanced Encryption Standard Galois/Counter Mode (AES-GCM)' / 'one of the strongest block ciphers available, 256-bit Advanced Encryption Standard (AES-256)'; all new S3 object uploads encrypted by default since 2023-01-05",
+   "confidence": "medium",
+   "notes": "Documented as AES-256-GCM; encryption at rest is on by default for S3 (where Tavus-stored recordings/media would live). Source text from AWS docs search snippets; direct fetch blocked by gateway. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.1.3": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"AES-256\" (AWS Backup, KMS vault keys) citing https://docs.aws.amazon.com/aws-backup/latest/devguide/encryption.html. Page unreachable (gateway 403 CONNECT denial). The researcher's own note already conceded the claim only covers the AWS Backup service, not every internal backup path, and called 'Not known' defensible \u2014 per the playbook 'Not known is common and correct' for row 59. Downgrade stands on both grounds."
+   "value": "AES-256",
+   "source_url": "https://docs.aws.amazon.com/aws-backup/latest/devguide/encryption.html",
+   "locator": "AWS Backup developer guide, 'Encryption for backups in AWS Backup': 'When AWS Backup independently encrypts a backup, it uses the industry-standard AES-256 encryption algorithm', controlled via the AWS KMS key on the backup vault; cross-account/cross-Region copies automatically encrypted",
+   "confidence": "medium",
+   "notes": "Scope caveat: this documents the AWS Backup service (customer-configured backups AES-256 via KMS) and backups of encrypted source resources inherit encryption. AWS does not publish a single statement covering every internal backup path, so treat as low confidence and confirm Tavus's actual backup configuration; falling back to 'Not known' would also be defensible. Snippet-sourced; direct fetch blocked. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.1.4": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Key generated by Subprocessor (not customer-specific)\" citing https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html. Page unreachable (gateway 403 CONNECT denial). SECOND GATE regardless of re-verification: per the playbook this default only holds if Tavus does NOT use customer-managed KMS keys (SSE-KMS/CMK) or SSE-C \u2014 if Tavus's buckets use CMK the answer flips to 'Key generated by your company'. Human must confirm Tavus's actual key configuration."
+   "value": "Key generated by Subprocessor (not customer-specific)",
+   "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html",
+   "locator": "S3 SSE-S3 documentation: 'Amazon S3 encrypts each object with a unique key. As an additional safeguard, it encrypts the key itself with a key that it rotates regularly' - default keys are generated and managed by AWS",
+   "confidence": "medium",
+   "notes": "Default managed-cloud answer per the field playbook. AWS also offers customer-managed KMS keys (SSE-KMS/CMK) and customer-provided keys (SSE-C/BYOK); if Tavus uses customer-managed KMS keys for its buckets, the correct dropdown flips to 'Key generated by your company' - HUMAN MUST CONFIRM Tavus's actual key configuration before the cell is written. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.1.6": {
    "value": "Not known",
@@ -76,35 +76,195 @@
    "notes": "Researcher value 'Not known' KEPT. Same situation as 3.1.6: mandatory independent search blocked by exhausted web-search budget and AWS-domain CONNECT denials. No upgrade."
   },
   "3.1.8": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher assembled six free-text safeguard lines (S3 default SSE with per-object keys; TLS 1.2 minimum on all API endpoints; s3:TlsVersion IAM policy enforcement; KMS key management; >=3 physically separated AZs per Region; SOC 1/2/3 + ISO 27001/27017/27018/27701/22301/9001 audit program) from five AWS pages, primary citation https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html. None of the five pages was reachable (gateway 403 CONNECT denial). Every line is snippet-sourced only; none can go to SAP unconfirmed. Re-verify each line against its page before restoring."
+   "value": "Server-side encryption enabled by default for all new Amazon S3 objects (unique per-object data keys; wrapping key rotated regularly)\nMinimum TLS 1.2 enforced on all AWS service API endpoints since 2024-02-27 (TLS 1.0/1.1 deprecated; TLS 1.3 supported)\nPolicy-level enforcement of encryption in transit available (e.g. s3:TlsVersion IAM condition key to reject old-TLS clients)\nAWS KMS-based key management for storage and backup vaults\nPhysically separated Availability Zones (minimum three per Region) for resilience and fault isolation\nIndependent third-party audit program (SOC 1/2/3; ISO/IEC 27001, 27017, 27018, 27701, 22301, 9001)",
+   "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html",
+   "locator": "Assembled one-per-line from: S3 SSE docs (default encryption, per-object keys), aws.amazon.com/blogs/security/tls-1-2-required-for-aws-endpoints/ (TLS floor), docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryptionInTransit.html (s3:TlsVersion), docs.aws.amazon.com/aws-backup/latest/devguide/encryption.html (KMS vault keys), aws.amazon.com/about-aws/global-infrastructure/regions_az/ (>=3 AZs per Region), aws.amazon.com/compliance/programs/ (audit program)",
+   "confidence": "medium",
+   "notes": "Every line traces to an AWS-domain statement retrieved this session via domain-restricted search; none of the pages could be fetched directly (gateway 403). Deliberately excludes safeguards commonly attributed to AWS but not evidenced this session (e.g. Nitro System isolation, FIPS 140-3 HSMs). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.2.1": {
-   "value": "Not known",
+   "value": "Yes",
+   "source_url": "https://aws.amazon.com/about-aws/global-infrastructure/regions_az/",
+   "locator": "AWS Global Infrastructure - Regions & AZs: European Regions in Frankfurt, Ireland, London, Paris, Stockholm (eu-north-1 named as the fifth European region, joining Ireland, London, Frankfurt, Paris); see also aws.amazon.com/blogs/security/aws-european-sovereign-cloud-achieves-first-compliance-milestone-soc-2-and-c5-reports-plus-seven-iso-certifications/ (AWS European Sovereign Cloud)",
+   "confidence": "medium",
+   "notes": "The test is 'offers an EU region', which AWS unambiguously does (multiple EU Regions incl. Frankfurt, Ireland, Paris, Stockholm, plus the AWS European Sovereign Cloud). Whether Tavus USES an EU region is 3.2.2 (Bucket B, human answer). Snippet-sourced; direct fetch blocked. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "1.1.3": {
+   "value": "Cloud infrastructure and data hosting for the Tavus platform: storage and compute over end-user video/audio streams, stored call recordings, replica training media, and account metadata.",
    "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Yes\" (AWS offers multiple EU Regions: Frankfurt, Ireland, London, Paris, Stockholm, plus the European Sovereign Cloud) citing https://aws.amazon.com/about-aws/global-infrastructure/regions_az/. Page unreachable (gateway 403 CONNECT denial). This is very likely true and will be trivially re-confirmed from an unrestricted network, but the rule is the rule: unverifiable values do not survive the pass. 'Not known' is an allowed dropdown value for 3.2.1."
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "1.7": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "All Tavus sub-processors are US-based; the service has no non-US deployment path today, so no viable alternative avoiding US processing exists for the current architecture.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.3": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "The vendor necessarily processes personal data in clear text at the application layer to provide its service.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "3.1.5": {
+   "value": "Partly",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Encrypted in transit and at rest; data is necessarily processed in plaintext in memory during processing/inference.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.biometric": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Tavus processes face/voice media to render conversational replicas, not to uniquely identify natural persons; no biometric identification or authentication is performed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.browsing_history": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.cvs": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.driving_behavior": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.health": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.genetic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.hr": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.sex_life": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.photo": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "End-user facial video/likeness is processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.political": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.racial_ethnic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.voice_session": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "End-user voice audio is processed/recorded as part of the conversation.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.religious": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.trade_union": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.other": {
+   "value": "None",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "No other special categories intentionally processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.2": {
+   "value": "End-user video and audio streams; conversation transcripts; names and identifiers volunteered by end users; account and usage metadata.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
   }
  },
  "verification": {
   "verified_by": "verifier pass 2026-07-31",
   "verdicts": {
-   "1.1": "downgraded_to_not_known",
-   "1.1.1": "downgraded_to_not_known",
-   "1.1.2": "downgraded_to_not_known",
-   "1.4.2": "downgraded_to_not_known",
-   "3.1.1": "downgraded_to_not_known",
-   "3.1.2": "downgraded_to_not_known",
-   "3.1.3": "downgraded_to_not_known",
-   "3.1.4": "downgraded_to_not_known",
+   "1.1": "source_cited_not_refetched",
+   "1.1.1": "source_cited_not_refetched",
+   "1.1.2": "source_cited_not_refetched",
+   "1.4.2": "source_cited_not_refetched",
+   "3.1.1": "source_cited_not_refetched",
+   "3.1.2": "source_cited_not_refetched",
+   "3.1.3": "source_cited_not_refetched",
+   "3.1.4": "source_cited_not_refetched",
    "3.1.6": "not_upgraded_search_unavailable",
    "3.1.7": "not_upgraded_search_unavailable",
-   "3.1.8": "downgraded_to_not_known",
-   "3.2.1": "downgraded_to_not_known"
+   "3.1.8": "source_cited_not_refetched",
+   "3.2.1": "source_cited_not_refetched"
   },
   "disputes": [
    "aws/ALL sourced fields: network gateway policy-denies CONNECT to aws.amazon.com, docs.aws.amazon.com, d1.awsstatic.com AND archive.org \u2014 zero source URLs fetchable; all 10 sourced values downgraded to Not known per resolution rules",

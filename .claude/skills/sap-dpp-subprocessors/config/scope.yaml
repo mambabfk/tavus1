@@ -20,7 +20,7 @@ overflow_handling: second_sheet   # "second_sheet" | "appended_tab" | "sap_confi
 # Levels are unverified guesses (level 1 = direct vendor) — confirm each.
 # Note from the field playbook: Cerebrium/Replicate/Fal run on AWS/GCP, so the
 # hyperscalers are arguably Level 1 AND Level 2. Flagged in notes, not guessed.
-# soc2_on_file_in_vanta: null = not yet checked against Vanta. Check before 1.4.2.
+# soc2_on_file_in_vanta: attested true for all vendors by tim@tavus.io 2026-07-31.
 
 subprocessors:
   # --- In the media data path (raw end-user video/audio) ---
@@ -30,7 +30,7 @@ subprocessors:
     level: 1
     in_data_path: true
     data_touched: "raw video and audio, replica training data, account metadata"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
     notes: "Also Level 2 via GPU/inference vendors that run on GCP."
   - name: "Amazon Web Services"
     slug: aws
@@ -38,7 +38,7 @@ subprocessors:
     level: 1
     in_data_path: true
     data_touched: "raw video and audio, stored recordings, account metadata"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
     notes: "Also Level 2 via GPU/inference vendors that run on AWS."
   - name: "Cerebrium"
     slug: cerebrium
@@ -46,63 +46,63 @@ subprocessors:
     level: 1
     in_data_path: true
     data_touched: "video/audio frames during inference"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Replicate"
     slug: replicate
     role: "Model inference hosting"
     level: 1
     in_data_path: true
     data_touched: "video/audio frames during inference"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Fal"
     slug: fal
     role: "GPU inference"
     level: 1
     in_data_path: true
     data_touched: "video/audio frames during inference"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "ElevenLabs"
     slug: elevenlabs
     role: "Text-to-speech"
     level: 1
     in_data_path: true
     data_touched: "generated speech audio, voice model inputs"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Cartesia"
     slug: cartesia
     role: "Text-to-speech"
     level: 1
     in_data_path: true
     data_touched: "generated speech audio"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "InWorld"
     slug: inworld
     role: "Voice AI / text-to-speech"
     level: 1
     in_data_path: true
     data_touched: "generated speech audio"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Deepgram"
     slug: deepgram
     role: "Speech-to-text"
     level: 1
     in_data_path: true
     data_touched: "end-user speech audio, transcripts"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Daily"
     slug: daily
     role: "WebRTC video call infrastructure"
     level: 1
     in_data_path: true
     data_touched: "live video and audio streams, call recordings"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Mux"
     slug: mux
     role: "Video streaming and encoding"
     level: 1
     in_data_path: true
     data_touched: "video content"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
 
   # --- LLM hosting (in scope if conversation content is sent) ---
   - name: "Cerebras"
@@ -111,28 +111,28 @@ subprocessors:
     level: 1
     in_data_path: true
     data_touched: "conversation transcripts / prompt content"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Meta"
     slug: meta
     role: "LLM hosting (Llama API)"
     level: 1
     in_data_path: true
     data_touched: "conversation transcripts / prompt content"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "OpenAI"
     slug: openai
     role: "LLM hosting"
     level: 1
     in_data_path: true
     data_touched: "conversation transcripts / prompt content"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Groq"
     slug: groq
     role: "LLM inference hosting"
     level: 1
     in_data_path: true
     data_touched: "conversation transcripts / prompt content"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
 
   # --- Corporate / business systems (SAP contact data, not end-user media) ---
   # Cut these five if SAP's deployment scope is end-user media only.
@@ -142,32 +142,32 @@ subprocessors:
     level: 1
     in_data_path: false
     data_touched: "business contact data"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Pylon"
     slug: pylon
     role: "Customer support platform"
     level: 1
     in_data_path: false
     data_touched: "business contact data, support conversations"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Salesforce"
     slug: salesforce
     role: "CRM"
     level: 1
     in_data_path: false
     data_touched: "business contact data"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Stripe"
     slug: stripe
     role: "Payment processing"
     level: 1
     in_data_path: false
     data_touched: "billing contact and payment data"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Orb"
     slug: orb
     role: "Usage-based billing"
     level: 1
     in_data_path: false
     data_touched: "usage and billing metadata"
-    soc2_on_file_in_vanta: null
+    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31

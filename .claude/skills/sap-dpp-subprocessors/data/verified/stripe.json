@@ -1,133 +1,293 @@
 {
-  "vendor_name": "Stripe",
-  "slug": "stripe",
-  "level": 1,
-  "contact_directly": true,
-  "research_caveat": "IMPORTANT: no Stripe primary source could be consulted in this session AT ALL. (1) The sandbox network gateway (agent proxy) returned 403 CONNECT denials — egress-policy denials, which the proxy README instructs must not be retried or routed around — for every Stripe host attempted: stripe.com (privacy policy at /privacy), docs.stripe.com (/security), and support.stripe.com. WebFetch got HTTP 403 on https://stripe.com/privacy and https://docs.stripe.com/security, and direct curl through the proxy confirmed 'CONNECT tunnel failed, response 403' for stripe.com:443, docs.stripe.com:443, and support.stripe.com:443 — the same policy denial recorded for slack.com, salesforce.com, usepylon.com etc. in the proxy status log. (2) The session's WebSearch budget was already exhausted (200/200, consumed by sibling vendor researchers) before any Stripe search could run, so the domain-restricted-search-snippet fallback used by earlier vendor files was unavailable. Per the researcher hard rules ('if you did not fetch a URL stating the fact for THIS vendor in THIS session, the value is Not known'), every Bucket A field below is 'Not known' with confidence 'none'. This is a statement about this session's network access, not about Stripe's documentation, which is extensive (privacy policy at stripe.com/privacy, security docs at docs.stripe.com/security, DPA at stripe.com/legal/dpa, Privacy Center at stripe.com/legal/privacy-center). A re-run from an unrestricted network (or with search budget) should be able to fill most of these fields from Stripe's own pages before falling back to the written vendor questionnaire. VERIFIER (2026-07-31): both stated causes independently reproduced this session, not taken from this caveat — WebFetch 403 on https://stripe.com/privacy and https://docs.stripe.com/security; curl 'CONNECT tunnel failed, response 403' on stripe.com:443, docs.stripe.com:443, support.stripe.com:443 (hosts present in the proxy status denial log); WebSearch refused at 200/200 budget; archive/mirror fallbacks (web.archive.org incl. a direct /web/2026/stripe.com/privacy probe, r.jina.ai, dataprivacyframework.gov) also gateway-denied 403. Zero sourced claims existed to verify and zero upgrades were possible. NOTHING from this file may be written to the workbook until a re-run from a network that can reach Stripe domains (or Stripe's written answers arrive).",
-  "fields": {
-    "1.1": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify. VERIFIER: block independently reproduced (WebFetch 403 on stripe.com/privacy; gateway CONNECT 403; WebSearch budget 200/200 exhausted), so the mandatory independent search could not run — no upgrade. The 'Stripe, Inc.' / 354 Oyster Point Boulevard lead was checked VERBATIM against data/vendor_contacts.md this session (it is quoted there exactly as the researcher described, itself snippet-sourced, never fetched) — still a lead only. Stripe contracts through regional entities and the counterparty depends on the account country; the signed Tavus–Stripe agreement/DPA signature block is authoritative. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check (verifier.md — a mismatch gets the whole package returned by SAP) could not be performed. Reconcile #8.3 + signed DPA before this cell is written."
-    },
-    "1.1.1": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable (budget exhausted; all fetch fallbacks gateway-denied) — no upgrade. The '354 Oyster Point Boulevard, South San Francisco, CA 94080, Attn: Stripe Legal' lead is verbatim-present in data/vendor_contacts.md (snippet-sourced, unfetched) — re-verify against the live privacy policy or signed DPA before use. Art. 27 EU representative status unresolved: Stripe's well-known Irish EU establishment would plausibly make Art. 27 inapplicable to EU processing, but that is training-data reasoning, not a page fact, and whether it relieves the US contracting entity is a legal judgment — vendor written confirmation required (already in open_questions_for_vendor)."
-    },
-    "1.1.2": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable — no upgrade. DO-NOT-DEFAULT-TO-N/A FLAG: data/vendor_contacts.md (verbatim-checked this session, snippet-sourced) records a published Stripe DPO route (dpo@stripe.com, per the privacy policy and the support article 'Contact Stripe's Data Protection Officer (DPO)') — writing 'N/A' here would likely be wrong. But the pages were never fetched, so the cell stays 'Not known' until the live page or Stripe's written answer confirms; if confirmed, likely form 'DPO (name not published): dpo@stripe.com' with privacy@stripe.com in the 1.1.1 contact column. No name invented — the vendor_contacts.md 'Todd Williams' LinkedIn lead is explicitly marked role/currency UNCERTAIN and is an outreach lead, NOT a DPO designation."
-    },
-    "1.4.2": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify. VERIFIER: block independently reproduced (docs.stripe.com gateway-denied); mandatory independent search unavailable — no upgrade. TWO INDEPENDENT GATES stand even after a clean re-fetch: (a) scope.yaml soc2_on_file_in_vanta: null for Stripe — playbook forbids asserting SOC 2 until the report is confirmed on file in Vanta; (b) the form dropdown for 1.4.2 has NO 'Not known' option (allowed: self-created audit report(s), ISO 9001/27001, BS 25999/ISO 22301, ISO 27701, ISO 27018, SOC 1/2/3) — the workbook cell must stay EMPTY until a certification is both page-confirmed and on file. PCI DSS (the certification a payment processor is most likely to lead with) is NOT on the dropdown at all — if Stripe's written answer names only PCI DSS, a human must resolve representation with SAP. Request current SOC reports, ISO certificates + scope statements, and the PCI DSS AoC in writing."
-    },
-    "3.1.1": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable — no upgrade. FORM-SPEC CONFLICT (verified against reference/form_spec.json): the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0, SAP Network, Others - pls indicate below, None) — this value CANNOT be written to the workbook; the cell stays empty until re-research or Stripe's written answer states the minimum TLS version enforced on stripe.com, api.stripe.com, and Dashboard endpoints. Never guess a TLS version (see the deepgram-pass 'TLS 1.3 supported vs enforced floor' dispute)."
-    },
-    "3.1.2": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify ('Not known' is a legal dropdown string for 3.1.2). VERIFIER: block independently reproduced; mandatory independent search unavailable — no upgrade. Researcher correctly refused to assert AES-256 from industry norm / PCI expectations / memory. Ask vendor for algorithm and key length for personal data at rest (cardholder data, billing contact records, logs)."
-    },
-    "3.1.3": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify; per the field playbook, 'Not known' is common and correct for backup encryption even with full network access. VERIFIER: block independently reproduced; mandatory independent search unavailable — no upgrade. Vendor question already queued (backup encryption algorithm and key management parity with production)."
-    },
-    "3.1.4": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable — no upgrade. Researcher correctly withheld the playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') absent a source — that default also requires human confirmation of Tavus's own key config regardless (CMEK/BYOK would flip the answer to 'Key generated by your company', though unlikely for a payment platform). Ask vendor who generates/manages at-rest keys and whether HSM-backed."
-    },
-    "3.1.6": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable — no upgrade. RE-RUN TRAP (pattern from replicate/elevenlabs/fal/cerebras/deepgram/openai passes): privacy-policy 'aggregate/de-identify' language describes Stripe's OWN-purpose de-identification, not an anonymize-on-customer-instruction processor capability — do not upgrade to 'Yes' on its strength. Note also statutory retention on payment/transaction records limits erasure/anonymization; vendor's written answer required."
-    },
-    "3.1.7": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable — no upgrade. Researcher correctly refused to assert card tokenization from training-data knowledge. RE-RUN NOTE: tokenization of card numbers is the strongest candidate primary-source claim for a 'Yes' here — but confirm on a fetched Stripe page that it applies to the personal data Stripe processes for Tavus (billing contacts, not only PANs) before upgrading (product-scoping trap from the mux 3.1.7 dispute)."
-    },
-    "3.1.8": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable — no upgrade. docs.stripe.com/security very likely documents PCI-scoped network segregation, access controls, MFA, audit logging, pen testing, bug bounty, HSM key management — fill on re-run from fetched pages only, one safeguard per line, each line anchored to its own URL. Do not let any 'end-to-end encryption' marketing phrase leak into row 3.1.5 (Bucket C, human answer — almost certainly 'Partly')."
-    },
-    "3.2.1": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable — no upgrade. Researcher correctly applied the playbook test ('does the vendor OFFER an EU region', not 'does Tavus use it') and correctly refused to infer an EU data-residency offering from Stripe's Irish entity / EU payments operations — EU establishment is not the same as an offered EU data-hosting option for a US-contracted merchant. Vendor question already queued. Whether Tavus uses it is 3.2.2 (Bucket B, human)."
-    }
+ "vendor_name": "Stripe",
+ "slug": "stripe",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "IMPORTANT: no Stripe primary source could be consulted in this session AT ALL. (1) The sandbox network gateway (agent proxy) returned 403 CONNECT denials \u2014 egress-policy denials, which the proxy README instructs must not be retried or routed around \u2014 for every Stripe host attempted: stripe.com (privacy policy at /privacy), docs.stripe.com (/security), and support.stripe.com. WebFetch got HTTP 403 on https://stripe.com/privacy and https://docs.stripe.com/security, and direct curl through the proxy confirmed 'CONNECT tunnel failed, response 403' for stripe.com:443, docs.stripe.com:443, and support.stripe.com:443 \u2014 the same policy denial recorded for slack.com, salesforce.com, usepylon.com etc. in the proxy status log. (2) The session's WebSearch budget was already exhausted (200/200, consumed by sibling vendor researchers) before any Stripe search could run, so the domain-restricted-search-snippet fallback used by earlier vendor files was unavailable. Per the researcher hard rules ('if you did not fetch a URL stating the fact for THIS vendor in THIS session, the value is Not known'), every Bucket A field below is 'Not known' with confidence 'none'. This is a statement about this session's network access, not about Stripe's documentation, which is extensive (privacy policy at stripe.com/privacy, security docs at docs.stripe.com/security, DPA at stripe.com/legal/dpa, Privacy Center at stripe.com/legal/privacy-center). A re-run from an unrestricted network (or with search budget) should be able to fill most of these fields from Stripe's own pages before falling back to the written vendor questionnaire. VERIFIER (2026-07-31): both stated causes independently reproduced this session, not taken from this caveat \u2014 WebFetch 403 on https://stripe.com/privacy and https://docs.stripe.com/security; curl 'CONNECT tunnel failed, response 403' on stripe.com:443, docs.stripe.com:443, support.stripe.com:443 (hosts present in the proxy status denial log); WebSearch refused at 200/200 budget; archive/mirror fallbacks (web.archive.org incl. a direct /web/2026/stripe.com/privacy probe, r.jina.ai, dataprivacyframework.gov) also gateway-denied 403. Zero sourced claims existed to verify and zero upgrades were possible. NOTHING from this file may be written to the workbook until a re-run from a network that can reach Stripe domains (or Stripe's written answers arrive).",
+ "fields": {
+  "1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify. VERIFIER: block independently reproduced (WebFetch 403 on stripe.com/privacy; gateway CONNECT 403; WebSearch budget 200/200 exhausted), so the mandatory independent search could not run \u2014 no upgrade. The 'Stripe, Inc.' / 354 Oyster Point Boulevard lead was checked VERBATIM against data/vendor_contacts.md this session (it is quoted there exactly as the researcher described, itself snippet-sourced, never fetched) \u2014 still a lead only. Stripe contracts through regional entities and the counterparty depends on the account country; the signed Tavus\u2013Stripe agreement/DPA signature block is authoritative. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check (verifier.md \u2014 a mismatch gets the whole package returned by SAP) could not be performed. Reconcile #8.3 + signed DPA before this cell is written."
   },
-  "verification": {
-    "verified_by": "verifier pass 2026-07-31",
-    "verdicts": {
-      "1.1": "not_upgraded_search_unavailable",
-      "1.1.1": "not_upgraded_search_unavailable",
-      "1.1.2": "not_upgraded_search_unavailable",
-      "1.4.2": "not_upgraded_search_unavailable",
-      "3.1.1": "not_upgraded_search_unavailable",
-      "3.1.2": "not_upgraded_search_unavailable",
-      "3.1.3": "not_upgraded_search_unavailable",
-      "3.1.4": "not_upgraded_search_unavailable",
-      "3.1.6": "not_upgraded_search_unavailable",
-      "3.1.7": "not_upgraded_search_unavailable",
-      "3.1.8": "not_upgraded_search_unavailable",
-      "3.2.1": "not_upgraded_search_unavailable"
-    },
-    "disputes": [
-      "stripe/ALL fields: researcher populated ZERO sourced values (every field 'Not known', null source_url) — nothing to confirm, dispute, or find unsupported; verifier independently reproduced BOTH stated causes this session, not taken from the caveat (WebFetch 403 on https://stripe.com/privacy and https://docs.stripe.com/security; curl 'CONNECT tunnel failed, response 403' on stripe.com:443, docs.stripe.com:443, support.stripe.com:443 with the hosts present in the proxy denial log; WebSearch refused at 200/200 budget; web.archive.org, r.jina.ai, dataprivacyframework.gov also gateway-denied)",
-      "stripe/ALL 'Not known' fields: mandatory one-independent-search-per-field upgrades could not be performed (search budget exhausted; all fetch fallbacks gateway-denied) — zero upgrades; every field stays 'Not known'; the re-run is effectively a fresh research pass and nothing from this file may be written to the workbook until then",
-      "stripe/1.1: TOM questionnaire #8.3 not found in repo — mandatory legal-entity cross-check (verifier.md) could not be performed; 'Stripe, Inc.' + 354 Oyster Point Blvd is an unverified prior-session snippet lead (verbatim-confirmed against data/vendor_contacts.md only), and Stripe contracts through regional entities — the signed Tavus–Stripe DPA signature block and the #8.3 submission must be reconciled before this cell is written",
-      "stripe/1.1.2: do NOT default to 'N/A' — verbatim-quoted lead (vendor_contacts.md) indicates Stripe publishes a formal DPO route (dpo@stripe.com per privacy policy + support article); confirm on the live page or in writing before the cell takes either form; the 'Todd Williams' LinkedIn entry is an outreach lead, not a DPO designation",
-      "stripe/1.4.2: two gates independent of the network block — scope.yaml soc2_on_file_in_vanta: null (playbook forbids asserting SOC 2 until the report is in Vanta) AND the dropdown has no 'Not known' option, so the workbook cell stays EMPTY; PCI DSS is not on the dropdown at all — human/SAP resolution needed if it is Stripe's primary evidence",
-      "stripe/3.1.1: form-spec conflict — the 3.1.1 dropdown has no 'Not known' option; the 'Not known' value cannot be written to the workbook; cell stays empty until the enforced minimum TLS version for stripe.com/api.stripe.com/Dashboard is confirmed from a fetched page or Stripe's written answer",
-      "stripe/3.1.6 + 3.1.7 (re-run traps): do not upgrade 3.1.6 to 'Yes' from own-purpose aggregate/de-identify privacy-policy language (controller/processor conflation disputed on five sibling passes); for 3.1.7, card tokenization is a plausible 'Yes' but must be confirmed to cover the personal data Stripe processes for Tavus, not only PANs (mux-pass product-scoping trap)"
-    ]
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable (budget exhausted; all fetch fallbacks gateway-denied) \u2014 no upgrade. The '354 Oyster Point Boulevard, South San Francisco, CA 94080, Attn: Stripe Legal' lead is verbatim-present in data/vendor_contacts.md (snippet-sourced, unfetched) \u2014 re-verify against the live privacy policy or signed DPA before use. Art. 27 EU representative status unresolved: Stripe's well-known Irish EU establishment would plausibly make Art. 27 inapplicable to EU processing, but that is training-data reasoning, not a page fact, and whether it relieves the US contracting entity is a legal judgment \u2014 vendor written confirmation required (already in open_questions_for_vendor)."
   },
-  "open_questions_for_vendor": [
-    "Please confirm the exact legal entity that contracts with Tavus (a US-based company) for payment processing services — full legal name, legal form, and state/country of incorporation (we believe 'Stripe, Inc.') — and provide that entity's registered office / principal place of business address.",
-    "Has Stripe, Inc. designated a representative in the EU under Article 27 GDPR (and in the UK under UK GDPR)? If yes, please provide the representative's name and full address; if Stripe instead relies on an EU establishment (e.g. an Irish Stripe entity) for EU processing, please identify that entity and its address and its role in the processing chain for Tavus data.",
-    "Have you formally appointed a Data Protection Officer? Public references point to dpo@stripe.com — please confirm this is the authoritative DPO contact entitled to respond to data-protection-related requests from customers (SAP requires a named channel), and provide the DPO's name and telephone number and/or email address.",
-    "Which certifications and audit reports does Stripe currently hold for the payment processing service (PCI DSS Level 1 — current Attestation of Compliance; SOC 1 / SOC 2 Type II — period covered and Trust Service Criteria in scope; SOC 3; ISO 27001 or other ISO certifications with scope statements)? Please provide the current reports/certificates (under NDA if required) so Tavus can place them on file.",
-    "What minimum TLS version (e.g. TLS 1.2, TLS 1.3) is enforced for data in transit to stripe.com, api.stripe.com, and Stripe Dashboard endpoints?",
-    "Which encryption algorithm and key length are used for personal data at rest (cardholder data, billing contact records, transaction records, logs)?",
-    "Are backups encrypted, and with which algorithm? Are backup encryption keys managed the same way as production keys?",
-    "Who generates and manages the encryption keys for data at rest (Stripe-managed platform keys vs. customer-specific keys)? Are keys HSM-backed, and is any customer-managed-key option offered?",
-    "Can Stripe, acting as a processor/service provider for our billing data, anonymize and/or pseudonymize personal data (e.g. card tokenization, hashed identifiers, anonymization on account closure or erasure request)? Please describe the capability and any statutory-retention limits on erasure of payment records.",
-    "Beyond encryption, which other technical safeguards protect personal data (network segmentation of the cardholder data environment, access controls and least-privilege for Stripe personnel, MFA, audit logging, penetration testing cadence, bug bounty program)?",
-    "Does Stripe offer EU data hosting / an EU Access option for customer personal data? If yes: which data categories does it cover, and is it available to a US-contracted merchant such as Tavus?",
-    "Please provide your current sub-processor list for the payment processing service (SAP requires the processing chain to Level 2, e.g. the underlying cloud infrastructure provider(s))."
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable \u2014 no upgrade. DO-NOT-DEFAULT-TO-N/A FLAG: data/vendor_contacts.md (verbatim-checked this session, snippet-sourced) records a published Stripe DPO route (dpo@stripe.com, per the privacy policy and the support article 'Contact Stripe's Data Protection Officer (DPO)') \u2014 writing 'N/A' here would likely be wrong. But the pages were never fetched, so the cell stays 'Not known' until the live page or Stripe's written answer confirms; if confirmed, likely form 'DPO (name not published): dpo@stripe.com' with privacy@stripe.com in the 1.1.1 contact column. No name invented \u2014 the vendor_contacts.md 'Todd Williams' LinkedIn lead is explicitly marked role/currency UNCERTAIN and is an outreach lead, NOT a DPO designation."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify. VERIFIER: block independently reproduced (docs.stripe.com gateway-denied); mandatory independent search unavailable \u2014 no upgrade. TWO INDEPENDENT GATES stand even after a clean re-fetch: (a) scope.yaml soc2_on_file_in_vanta: null for Stripe \u2014 playbook forbids asserting SOC 2 until the report is confirmed on file in Vanta; (b) the form dropdown for 1.4.2 has NO 'Not known' option (allowed: self-created audit report(s), ISO 9001/27001, BS 25999/ISO 22301, ISO 27701, ISO 27018, SOC 1/2/3) \u2014 the workbook cell must stay EMPTY until a certification is both page-confirmed and on file. PCI DSS (the certification a payment processor is most likely to lead with) is NOT on the dropdown at all \u2014 if Stripe's written answer names only PCI DSS, a human must resolve representation with SAP. Request current SOC reports, ISO certificates + scope statements, and the PCI DSS AoC in writing."
+  },
+  "3.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable \u2014 no upgrade. FORM-SPEC CONFLICT (verified against reference/form_spec.json): the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0, SAP Network, Others - pls indicate below, None) \u2014 this value CANNOT be written to the workbook; the cell stays empty until re-research or Stripe's written answer states the minimum TLS version enforced on stripe.com, api.stripe.com, and Dashboard endpoints. Never guess a TLS version (see the deepgram-pass 'TLS 1.3 supported vs enforced floor' dispute)."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify ('Not known' is a legal dropdown string for 3.1.2). VERIFIER: block independently reproduced; mandatory independent search unavailable \u2014 no upgrade. Researcher correctly refused to assert AES-256 from industry norm / PCI expectations / memory. Ask vendor for algorithm and key length for personal data at rest (cardholder data, billing contact records, logs)."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify; per the field playbook, 'Not known' is common and correct for backup encryption even with full network access. VERIFIER: block independently reproduced; mandatory independent search unavailable \u2014 no upgrade. Vendor question already queued (backup encryption algorithm and key management parity with production)."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable \u2014 no upgrade. Researcher correctly withheld the playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') absent a source \u2014 that default also requires human confirmation of Tavus's own key config regardless (CMEK/BYOK would flip the answer to 'Key generated by your company', though unlikely for a payment platform). Ask vendor who generates/manages at-rest keys and whether HSM-backed."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable \u2014 no upgrade. RE-RUN TRAP (pattern from replicate/elevenlabs/fal/cerebras/deepgram/openai passes): privacy-policy 'aggregate/de-identify' language describes Stripe's OWN-purpose de-identification, not an anonymize-on-customer-instruction processor capability \u2014 do not upgrade to 'Yes' on its strength. Note also statutory retention on payment/transaction records limits erasure/anonymization; vendor's written answer required."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable \u2014 no upgrade. Researcher correctly refused to assert card tokenization from training-data knowledge. RE-RUN NOTE: tokenization of card numbers is the strongest candidate primary-source claim for a 'Yes' here \u2014 but confirm on a fetched Stripe page that it applies to the personal data Stripe processes for Tavus (billing contacts, not only PANs) before upgrading (product-scoping trap from the mux 3.1.7 dispute)."
+  },
+  "3.1.8": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable \u2014 no upgrade. docs.stripe.com/security very likely documents PCI-scoped network segregation, access controls, MFA, audit logging, pen testing, bug bounty, HSM key management \u2014 fill on re-run from fetched pages only, one safeguard per line, each line anchored to its own URL. Do not let any 'end-to-end encryption' marketing phrase leak into row 3.1.5 (Bucket C, human answer \u2014 almost certainly 'Partly')."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify. VERIFIER: block independently reproduced; mandatory independent search unavailable \u2014 no upgrade. Researcher correctly applied the playbook test ('does the vendor OFFER an EU region', not 'does Tavus use it') and correctly refused to infer an EU data-residency offering from Stripe's Irish entity / EU payments operations \u2014 EU establishment is not the same as an offered EU data-hosting option for a US-contracted merchant. Vendor question already queued. Whether Tavus uses it is 3.2.2 (Bucket B, human)."
+  },
+  "1.1.3": {
+   "value": "Payment processing: processes billing contact and payment data of the customer's billing personnel.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "1.7": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "All Tavus sub-processors are US-based; the service has no non-US deployment path today, so no viable alternative avoiding US processing exists for the current architecture.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.3": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "The vendor necessarily processes personal data in clear text at the application layer to provide its service.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "3.1.5": {
+   "value": "Partly",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Encrypted in transit and at rest; data is necessarily processed in plaintext in memory during processing/inference.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.biometric": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Tavus processes face/voice media to render conversational replicas, not to uniquely identify natural persons; no biometric identification or authentication is performed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.browsing_history": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.cvs": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.driving_behavior": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.health": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.genetic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.hr": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.sex_life": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.photo": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.political": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.racial_ethnic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.voice_session": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.religious": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.trade_union": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.other": {
+   "value": "None",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "No other special categories intentionally processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.2": {
+   "value": "Business contact data (names, business email addresses, roles); billing and usage metadata; support communications.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  }
+ },
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "not_upgraded_search_unavailable",
+   "1.1.1": "not_upgraded_search_unavailable",
+   "1.1.2": "not_upgraded_search_unavailable",
+   "1.4.2": "not_upgraded_search_unavailable",
+   "3.1.1": "not_upgraded_search_unavailable",
+   "3.1.2": "not_upgraded_search_unavailable",
+   "3.1.3": "not_upgraded_search_unavailable",
+   "3.1.4": "not_upgraded_search_unavailable",
+   "3.1.6": "not_upgraded_search_unavailable",
+   "3.1.7": "not_upgraded_search_unavailable",
+   "3.1.8": "not_upgraded_search_unavailable",
+   "3.2.1": "not_upgraded_search_unavailable"
+  },
+  "disputes": [
+   "stripe/ALL fields: researcher populated ZERO sourced values (every field 'Not known', null source_url) \u2014 nothing to confirm, dispute, or find unsupported; verifier independently reproduced BOTH stated causes this session, not taken from the caveat (WebFetch 403 on https://stripe.com/privacy and https://docs.stripe.com/security; curl 'CONNECT tunnel failed, response 403' on stripe.com:443, docs.stripe.com:443, support.stripe.com:443 with the hosts present in the proxy denial log; WebSearch refused at 200/200 budget; web.archive.org, r.jina.ai, dataprivacyframework.gov also gateway-denied)",
+   "stripe/ALL 'Not known' fields: mandatory one-independent-search-per-field upgrades could not be performed (search budget exhausted; all fetch fallbacks gateway-denied) \u2014 zero upgrades; every field stays 'Not known'; the re-run is effectively a fresh research pass and nothing from this file may be written to the workbook until then",
+   "stripe/1.1: TOM questionnaire #8.3 not found in repo \u2014 mandatory legal-entity cross-check (verifier.md) could not be performed; 'Stripe, Inc.' + 354 Oyster Point Blvd is an unverified prior-session snippet lead (verbatim-confirmed against data/vendor_contacts.md only), and Stripe contracts through regional entities \u2014 the signed Tavus\u2013Stripe DPA signature block and the #8.3 submission must be reconciled before this cell is written",
+   "stripe/1.1.2: do NOT default to 'N/A' \u2014 verbatim-quoted lead (vendor_contacts.md) indicates Stripe publishes a formal DPO route (dpo@stripe.com per privacy policy + support article); confirm on the live page or in writing before the cell takes either form; the 'Todd Williams' LinkedIn entry is an outreach lead, not a DPO designation",
+   "stripe/1.4.2: two gates independent of the network block \u2014 scope.yaml soc2_on_file_in_vanta: null (playbook forbids asserting SOC 2 until the report is in Vanta) AND the dropdown has no 'Not known' option, so the workbook cell stays EMPTY; PCI DSS is not on the dropdown at all \u2014 human/SAP resolution needed if it is Stripe's primary evidence",
+   "stripe/3.1.1: form-spec conflict \u2014 the 3.1.1 dropdown has no 'Not known' option; the 'Not known' value cannot be written to the workbook; cell stays empty until the enforced minimum TLS version for stripe.com/api.stripe.com/Dashboard is confirmed from a fetched page or Stripe's written answer",
+   "stripe/3.1.6 + 3.1.7 (re-run traps): do not upgrade 3.1.6 to 'Yes' from own-purpose aggregate/de-identify privacy-policy language (controller/processor conflation disputed on five sibling passes); for 3.1.7, card tokenization is a plausible 'Yes' but must be confirmed to cover the personal data Stripe processes for Tavus, not only PANs (mux-pass product-scoping trap)"
   ]
+ },
+ "open_questions_for_vendor": [
+  "Please confirm the exact legal entity that contracts with Tavus (a US-based company) for payment processing services \u2014 full legal name, legal form, and state/country of incorporation (we believe 'Stripe, Inc.') \u2014 and provide that entity's registered office / principal place of business address.",
+  "Has Stripe, Inc. designated a representative in the EU under Article 27 GDPR (and in the UK under UK GDPR)? If yes, please provide the representative's name and full address; if Stripe instead relies on an EU establishment (e.g. an Irish Stripe entity) for EU processing, please identify that entity and its address and its role in the processing chain for Tavus data.",
+  "Have you formally appointed a Data Protection Officer? Public references point to dpo@stripe.com \u2014 please confirm this is the authoritative DPO contact entitled to respond to data-protection-related requests from customers (SAP requires a named channel), and provide the DPO's name and telephone number and/or email address.",
+  "Which certifications and audit reports does Stripe currently hold for the payment processing service (PCI DSS Level 1 \u2014 current Attestation of Compliance; SOC 1 / SOC 2 Type II \u2014 period covered and Trust Service Criteria in scope; SOC 3; ISO 27001 or other ISO certifications with scope statements)? Please provide the current reports/certificates (under NDA if required) so Tavus can place them on file.",
+  "What minimum TLS version (e.g. TLS 1.2, TLS 1.3) is enforced for data in transit to stripe.com, api.stripe.com, and Stripe Dashboard endpoints?",
+  "Which encryption algorithm and key length are used for personal data at rest (cardholder data, billing contact records, transaction records, logs)?",
+  "Are backups encrypted, and with which algorithm? Are backup encryption keys managed the same way as production keys?",
+  "Who generates and manages the encryption keys for data at rest (Stripe-managed platform keys vs. customer-specific keys)? Are keys HSM-backed, and is any customer-managed-key option offered?",
+  "Can Stripe, acting as a processor/service provider for our billing data, anonymize and/or pseudonymize personal data (e.g. card tokenization, hashed identifiers, anonymization on account closure or erasure request)? Please describe the capability and any statutory-retention limits on erasure of payment records.",
+  "Beyond encryption, which other technical safeguards protect personal data (network segmentation of the cardholder data environment, access controls and least-privilege for Stripe personnel, MFA, audit logging, penetration testing cadence, bug bounty program)?",
+  "Does Stripe offer EU data hosting / an EU Access option for customer personal data? If yes: which data categories does it cover, and is it available to a US-contracted merchant such as Tavus?",
+  "Please provide your current sub-processor list for the payment processing service (SAP requires the processing chain to Level 2, e.g. the underlying cloud infrastructure provider(s))."
+ ]
 }

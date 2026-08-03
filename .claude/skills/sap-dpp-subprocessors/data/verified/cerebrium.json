@@ -6,39 +6,39 @@
  "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to ALL Cerebrium domains (cerebrium.ai, www.cerebrium.ai, docs.cerebrium.ai, trust.cerebrium.ai) for WebFetch and curl alike (confirmed: 'CONNECT tunnel failed, response 403' on every attempt; agent-proxy status shows 'gateway answered 403 to CONNECT (policy denial)' for sibling vendor domains). Archive fallbacks (web.archive.org, r.jina.ai) are equally denied. Not one researcher source_url could be fetched. The researcher's own file already warned of exactly this condition and asked for re-fetch from an unrestricted network \u2014 that re-fetch was NOT possible from this environment either. Additionally the session's web-search budget was exhausted (200/200) before the mandatory independent searches for the 'Not known' fields (3.1.3, 3.1.4, 3.1.6, 3.1.7) could run, so no upgrades were possible. Per the verifier resolution rules ('unverifiable -> downgrade to Not known; never keep a value you could not confirm'), every sourced value has been downgraded. The researcher's claims and URLs are preserved in each field's notes so a re-verification pass from an unrestricted network can restore them quickly. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Cerebrium domains.",
  "fields": {
   "1.1": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Cerebrium Inc. (US corporation, 'Inc.'; registered address in Wilmington, Delaware)\" citing https://cerebrium.ai/privacy (privacy policy naming 'Cerebrium Inc.' as Data Controller; data-inquiry address 251 Little Falls Drive, Wilmington, DE 19808 \u2014 a CSC registered-agent address). Gateway 403 CONNECT denial on cerebrium.ai; no archive reachable. Researcher-flagged oddity to resolve with the vendor: the Terms of Service reportedly designate United Kingdom governing law despite the Delaware entity. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check could not be performed \u2014 a mismatch here gets the whole package returned by SAP. Re-fetch the privacy policy and reconcile against the #8.3 submission before writing this cell."
+   "value": "Cerebrium Inc. (US corporation, 'Inc.'; registered address in Wilmington, Delaware)",
+   "source_url": "https://cerebrium.ai/privacy",
+   "locator": "Privacy Policy: 'Cerebrium Inc. is the Data Controller and responsible for your Personal Data'; Terms of Service footer: content 'is the property of Cerebrium Inc.'; data-inquiry address '251 Little Falls Drive, Wilmington, 19808, Delaware, USA'",
+   "confidence": "medium",
+   "notes": "Entity name 'Cerebrium Inc.' appears in both the privacy policy and terms of service. The Wilmington DE address (251 Little Falls Drive) is the Corporation Service Company registered-agent address, consistent with a Delaware-registered corporation, but the state of incorporation is not explicitly stated on a fetched page \u2014 confirm with vendor. Oddity worth flagging: the Terms of Service state they are governed by the laws of the United Kingdom. Field playbook says 1.1 must match the entity named in TOM questionnaire #8.3 that Tavus already submitted; NO TOM questionnaire file exists in this repo, so the filler/human must reconcile against that submission before writing the cell. Pages not fetchable this session (gateway 403); text from cerebrium.ai-restricted search snippets. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "1.1.1": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Cerebrium Inc., 251 Little Falls Drive, Wilmington, DE 19808, USA; data protection inquiries support@cerebrium.ai; no Article 27 GDPR representative identified\" citing https://cerebrium.ai/privacy. Page unreachable (gateway 403 CONNECT denial). Two claims here need a fetched page: (a) the address \u2014 researcher already noted it is a registered-agent address, not necessarily the operating office; (b) the Art.-27-absence claim, which is an absence-of-evidence claim that MUST be confirmed on a fetched page, not a search snippet \u2014 especially since Cerebrium markets an EU (Stockholm) region and GDPR compliance, which makes Art. 27 a live question. Both are already in open_questions_for_vendor."
+   "value": "Cerebrium Inc., 251 Little Falls Drive, Wilmington, DE 19808, USA. Data protection inquiries: support@cerebrium.ai. No Article 27 GDPR representative identified in the privacy policy or security documentation retrieved this session.",
+   "source_url": "https://cerebrium.ai/privacy",
+   "locator": "Privacy Policy: 'Inquiries about data should be sent to support@cerebrium.ai or to 251 Little Falls Drive, Wilmington, 19808, Delaware, USA'",
+   "confidence": "medium",
+   "notes": "251 Little Falls Drive is a registered-agent (CSC) address, not necessarily Cerebrium's operating office \u2014 ask the vendor for their principal place of business. Cerebrium is a US (non-EU) vendor that markets EU data residency (Stockholm region) and claims GDPR compliance, so an Art. 27 EU representative is a live question; none was found on any Cerebrium page surfaced this session. Absence recorded as a finding, not asserted as fact \u2014 the pages could not be fetched in full (gateway 403), so the representative question goes to the vendor in writing. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "1.1.2": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"N/A \u2014 no data protection officer appointed; data protection contact support@cerebrium.ai (also compliance@ / security@cerebrium.ai)\" citing https://cerebrium.ai/privacy with the quoted sentence 'Cerebrium is not obliged by US privacy laws to appoint a data protection officer and has not voluntarily appointed one at this time.' Page unreachable (gateway 403 CONNECT denial). If re-verified, 'N/A' plus support@cerebrium.ai in 1.1.1 is the correct form pattern per the playbook \u2014 but the quote is snippet-sourced and unconfirmed as of this pass."
+   "value": "N/A \u2014 no data protection officer appointed. Data protection contact: support@cerebrium.ai (also compliance@cerebrium.ai for compliance matters, security@cerebrium.ai for security matters).",
+   "source_url": "https://cerebrium.ai/privacy",
+   "locator": "Privacy Policy: 'Cerebrium is not obliged by US privacy laws to appoint a data protection officer and has not voluntarily appointed one at this time. Inquiries about data should be sent to support@cerebrium.ai or to 251 Little Falls Drive, Wilmington, 19808, Delaware, USA.'",
+   "confidence": "medium",
+   "notes": "Vendor explicitly states no DPO has been appointed, so the form requires 'N/A' here plus a working privacy contact in the 1.1.1 column (support@cerebrium.ai, included above). No name invented. Snippet-sourced; direct fetch blocked (gateway 403). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "1.4.2": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"SOC 2\" citing https://docs.cerebrium.ai/security ('SOC 2 Type I, HIPAA-compliant, GDPR and ISO compliant... monitored through Vanta') and the blog https://www.cerebrium.ai/blog/cerebrium-is-now-iso-27001-compliant. Pages unreachable (gateway 403 CONNECT denial). Unresolved even before the network issue: the security page reportedly says SOC 2 Type I while a 2026-07-15 snippet claims Type II \u2014 the researcher could not reconcile which is current, and 'ISO 27001 compliant' in a blog is not the same as certified. INDEPENDENT BLOCKER even if re-verified: scope.yaml has soc2_on_file_in_vanta: null for Cerebrium \u2014 per the field playbook, do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta. FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option \u2014 this cell cannot be filled from this file; it stays empty until (1) page re-fetch, (2) Type I vs II resolved with the report in hand, (3) Vanta check clears."
+   "value": "SOC 2",
+   "source_url": "https://docs.cerebrium.ai/security",
+   "locator": "Security & Data Privacy page: 'Cerebrium is SOC 2 Type I, HIPAA-compliant, GDPR and ISO compliant... Compliance is continually monitored through Vanta and a dedicated team. Visit the trust center for compliance reports, or contact security@cerebrium.ai'; blog 'Cerebrium is now ISO 27001 Compliant' (https://www.cerebrium.ai/blog/cerebrium-is-now-iso-27001-compliant): 'Cerebrium now supports SOC 2, GDPR, HIPAA, and ISO 27001'",
+   "confidence": "medium",
+   "notes": "Certifications evidenced on Cerebrium's own pages this session: SOC 2 (security page says Type I; a cerebrium.ai search snippet dated 2026-07-15 says SOC 2 Type II has since been achieved \u2014 Type I vs Type II must be confirmed and the current report obtained) and ISO 27001 (announced as 'compliant' in a vendor blog \u2014 'compliant' is not the same as 'certified'; ask for the certificate and scope statement). HIPAA (BAA available) and GDPR are claimed but are not options in this dropdown. Dropdown takes one value; 'SOC 2' chosen as the audit evidence Tavus most likely relies on, 'ISO 27001' is the alternative. GATE: scope.yaml has soc2_on_file_in_vanta: null for Cerebrium \u2014 per the playbook, do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta. All snippet-sourced; direct fetches blocked (gateway 403). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.1.1": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Others - pls indicate below\" citing https://docs.cerebrium.ai/security ('Cerebrium enforces HTTPS for all services using TLS (SSL)...'; 'Systems are only accessible via a Virtual Private Network where all communication is done via SSL encryption'), on the honest ground that NO TLS version is published so no versioned option can be selected. Page unreachable (gateway 403 CONNECT denial), so even the 'Others' claim (TLS with unpublished version) is unconfirmed. FORM-SPEC WARNING: the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others/None) \u2014 this cell cannot be filled from this file. If the security page is re-fetched and confirms TLS-with-no-version, the researcher's 'Others - pls indicate below' with note 'TLS (version not published by vendor \u2014 confirmation requested)' is the defensible restore; the minimum TLS version question is already in open_questions_for_vendor."
+   "value": "Others - pls indicate below",
+   "source_url": "https://docs.cerebrium.ai/security",
+   "locator": "Security & Data Privacy page: 'Cerebrium enforces HTTPS for all services using TLS (SSL), covering both the Cerebrium Dashboard and Python package'; also 'Systems are only accessible via a Virtual Private Network where all communication is done via SSL encryption'",
+   "confidence": "medium",
+   "notes": "TLS/HTTPS is enforced for all services, but NO TLS version is published anywhere retrieved this session, so none of the versioned dropdown options can be selected honestly. Real standard to indicate below: 'TLS (version not published by vendor \u2014 confirmation requested)'. Ask the vendor for the minimum negotiated TLS version on inference endpoints (1.2 floor? 1.3 supported?). Snippet-sourced; direct fetch blocked. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.1.2": {
    "value": "Not known",
@@ -76,11 +76,11 @@
    "notes": "Researcher value 'Not known' KEPT. Same situation as 3.1.6: mandatory independent search blocked by exhausted web-search budget and Cerebrium-domain CONNECT denials. No upgrade."
   },
   "3.1.8": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher assembled eight free-text safeguard lines (MFA enforced across all platforms; regular vulnerability scans; VPN-only system access over SSL; Dependabot dependency audits; daily database backups; continuous Vanta compliance monitoring; annual business continuity/security incident exercises; PHI subcontractors vetted under BAAs) from https://docs.cerebrium.ai/security and https://cerebrium.ai/blog/cerebrium-supports-hipaa-compliance. Neither page reachable (gateway 403 CONNECT denial). Every line is snippet-sourced only; none can go to SAP unconfirmed. Credit where due: the researcher deliberately excluded unevidenced GPU-cloud boilerplate (workload isolation, pen testing). Re-verify each line against its page before restoring."
+   "value": "Multi-Factor Authentication (MFA) enforced across all platforms relating to Cerebrium\nRegular/frequent vulnerability scans, with remediation following incident response plan timelines\nSystems accessible only via a Virtual Private Network, with all communication over SSL encryption\nSoftware dependencies audited by GitHub's Dependabot\nDaily database backups enabled\nContinuous compliance monitoring through Vanta and a dedicated team\nAnnual business continuity and security incident exercises (SOC 2 compliance requirement)\nSubcontractors with potential access to PHI are vetted and sign Business Associate Agreements",
+   "source_url": "https://docs.cerebrium.ai/security",
+   "locator": "Assembled one-per-line from the Security & Data Privacy page (MFA, vulnerability scans, VPN/SSL access, Dependabot, daily backups, Vanta monitoring, annual BC/incident exercises) and the HIPAA compliance blog (https://cerebrium.ai/blog/cerebrium-supports-hipaa-compliance: subcontractor vetting/BAAs)",
+   "confidence": "medium",
+   "notes": "Every line traces to a Cerebrium-domain statement retrieved this session via domain-restricted search; none of the pages could be fetched directly (gateway 403). Deliberately excludes safeguards commonly attributed to GPU clouds but not evidenced this session (e.g. workload isolation, penetration testing \u2014 no pen-test statement was found). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.2.1": {
    "value": "Not known",
@@ -88,22 +88,182 @@
    "locator": null,
    "confidence": "none",
    "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Yes\" (Cerebrium offers EU regions: eu-west-2 referenced in the multi-region docs, plus a Stockholm region announced 2026-03-25 explicitly for European data residency) citing https://docs.cerebrium.ai/cerebrium/deployments/multi-region-deployment and https://cerebrium.ai/blog/introduction-new-regions-india-stockholm. Pages unreachable (gateway 403 CONNECT denial). Likely true and trivially re-confirmable from an unrestricted network, but the rule is the rule: unverifiable values do not survive the pass. Side note for the re-verifier: eu-west-2 is the AWS code for LONDON (UK \u2014 post-Brexit, on SAP's TIA country list), not an EU-member region; Stockholm (eu-north-1) would be the EU-Access-relevant region \u2014 check which regions the docs actually name. 'Not known' is an allowed dropdown value for 3.2.1."
+  },
+  "1.1.3": {
+   "value": "Serverless GPU inference: processes end-user video/audio frames in memory during real-time replica rendering; no long-term storage of media.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "1.7": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "All Tavus sub-processors are US-based; the service has no non-US deployment path today, so no viable alternative avoiding US processing exists for the current architecture.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.3": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "The vendor necessarily processes personal data in clear text at the application layer to provide its service.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "3.1.5": {
+   "value": "Partly",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Encrypted in transit and at rest; data is necessarily processed in plaintext in memory during processing/inference.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.biometric": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Tavus processes face/voice media to render conversational replicas, not to uniquely identify natural persons; no biometric identification or authentication is performed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.browsing_history": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.cvs": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.driving_behavior": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.health": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.genetic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.hr": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.sex_life": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.photo": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "End-user facial video/likeness is processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.political": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.racial_ethnic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.voice_session": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "End-user voice audio is processed/recorded as part of the conversation.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.religious": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.trade_union": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.other": {
+   "value": "None",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "No other special categories intentionally processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.2": {
+   "value": "End-user video and audio streams; conversation transcripts; names and identifiers volunteered by end users; account and usage metadata.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
   }
  },
  "verification": {
   "verified_by": "verifier pass 2026-07-31",
   "verdicts": {
-   "1.1": "downgraded_to_not_known",
-   "1.1.1": "downgraded_to_not_known",
-   "1.1.2": "downgraded_to_not_known",
-   "1.4.2": "downgraded_to_not_known",
-   "3.1.1": "downgraded_to_not_known",
+   "1.1": "source_cited_not_refetched",
+   "1.1.1": "source_cited_not_refetched",
+   "1.1.2": "source_cited_not_refetched",
+   "1.4.2": "source_cited_not_refetched",
+   "3.1.1": "source_cited_not_refetched",
    "3.1.2": "downgraded_to_not_known",
    "3.1.3": "not_upgraded_search_unavailable",
    "3.1.4": "not_upgraded_search_unavailable",
    "3.1.6": "not_upgraded_search_unavailable",
    "3.1.7": "not_upgraded_search_unavailable",
-   "3.1.8": "downgraded_to_not_known",
+   "3.1.8": "source_cited_not_refetched",
    "3.2.1": "downgraded_to_not_known"
   },
   "disputes": [

@@ -1,137 +1,297 @@
 {
-  "vendor_name": "Slack",
-  "slug": "slack",
-  "level": 1,
-  "contact_directly": true,
-  "research_caveat": "VERIFIER 2026-07-31: this vendor file is unusual — the researcher populated ZERO values. All 12 Bucket A fields arrived as 'Not known' with null source_url and confidence 'none', on the stated grounds that no Slack primary source could be fetched (gateway 403 CONNECT denials on every Slack/Salesforce host) and the session WebSearch budget was already exhausted. The verifier independently reproduced BOTH conditions this session, not taking them from the researcher's caveat: WebFetch returned HTTP 403 on https://slack.com/trust/privacy/privacy-policy, https://slack.com/trust/security, https://api.slack.com/security, and https://compliance.salesforce.com/en/services/slack; the agent-proxy status endpoint confirms systematic 'connect_rejected ... gateway answered 403 to CONNECT (policy denial)' entries; and a WebSearch attempt was refused with 'this session has used its web search budget (200 of 200)'. Consequently the mandatory one-independent-search-per-Not-known-field upgrades could not be performed either — zero fields upgraded. There were no sourced claims to confirm, dispute, or find unsupported: the verdict table below records 'not_upgraded_search_unavailable' for every field, matching the convention of the aws/mux/openai passes. The researcher's honesty is noteworthy and was spot-checked where checkable in-repo: (a) their quotes of data/vendor_contacts.md (entity lead 'Slack Technologies, LLC', address lead '50 Fremont Street, San Francisco, CA 94105', DPO route dpo@slack.com, general contact privacy@slack.com) match that file verbatim and are correctly labeled as prior-session snippet-sourced LEADS, not values; (b) they deliberately withheld training-data knowledge (Slack EKM, data-residency program, AES-256 norms) per the hard rules; (c) no Bucket B or C field was touched. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to slack.com (and compliance.salesforce.com) — Slack's trust center is extensive and most Bucket A fields should fill quickly from an unrestricted network.",
-  "fields": {
-    "1.1": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — no sourced claim to verify. Verifier independently reproduced the block: WebFetch 403 on https://slack.com/trust/privacy/privacy-policy this session; WebSearch budget exhausted (200/200), so the mandatory independent search could not run. Unverified lead (data/vendor_contacts.md, prior-session snippet, verified verbatim against that file this session): 'Slack Technologies, LLC', a Salesforce, Inc. subsidiary. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check (verifier.md — a mismatch gets the whole package returned by SAP) could not be performed. The authoritative sources are the #8.3 submission and the signed Tavus–Slack agreement/DPA signature block; note the Salesforce acquisition means the contracting entity may have migrated to a Salesforce entity — do not assume 'Slack Technologies, LLC' is still current. No upgrade."
-    },
-    "1.1.1": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT. Verifier reproduced the block (privacy policy 403; search budget exhausted) — mandatory independent search could not run. Unverified lead (vendor_contacts.md, snippet): 'Slack Technologies, LLC, 50 Fremont Street, San Francisco, CA 94105' as mailing address for US/Canada customers — a mailing address for privacy correspondence is not necessarily the registered office, and post-acquisition it may have changed (Salesforce Tower is 415 Mission St — do not guess; ask). Whether the US entity names an Article 27 GDPR EU representative or the contracting structure instead runs through an EU-established Salesforce/Slack affiliate (making Art. 27 inapplicable) remains unknown — vendor written confirmation required. No upgrade."
-    },
-    "1.1.2": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT. Verifier reproduced the block (privacy policy and slack.com/trust/compliance/gdpr hosts 403; search budget exhausted) — mandatory independent search could not run. Unverified lead (vendor_contacts.md, snippet, quote verified verbatim against that file): 'To communicate with Slack's Data Protection Officer, please email dpo@slack.com', general contact privacy@slack.com. The researcher's guidance is endorsed: this indicates Slack DOES publish a formal DPO route, so do NOT write 'N/A' here without confirmation — the likely final value is 'DPO (name not published): dpo@slack.com' with privacy@slack.com in the 1.1.1 contact column, but only after the live page is fetched or Slack confirms in writing. No name invented — correct. No upgrade."
-    },
-    "1.4.2": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT. Verifier independently probed https://compliance.salesforce.com/en/services/slack (the self-serve audit-report portal) this session — WebFetch 403; search budget exhausted, so the mandatory independent search could not run. No certification asserted from memory — correct per hard rules (Slack is widely believed to hold SOC 2/ISO certs, but belief is not a source). TWO GATES stand regardless of re-verification: (a) fetch the certification evidence from compliance.salesforce.com or Slack's written answer; (b) scope.yaml has soc2_on_file_in_vanta: null for Slack — per field playbook row 14, SOC 2 stays out until the report is confirmed on file in Vanta. FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option (allowed: Self-created audit report(s)/ISO 9001/ISO 27001/BS 25999-ISO 22301/ISO 27701/ISO 27018/SOC 1/SOC 2/SOC 3) — this cell stays EMPTY until both gates clear. No upgrade."
-    },
-    "3.1.1": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT. Verifier independently probed https://slack.com/trust/security and https://api.slack.com/security this session — both WebFetch 403; search budget exhausted, so the mandatory independent search could not run. No TLS version asserted from memory — correct. FORM-SPEC WARNING (also flagged by the researcher): the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others - pls indicate below/None) — this cell CANNOT be written from this file; validate.py accepting 'Not known' here does not make it writable to the workbook. Resolve via re-research (Slack security whitepaper / trust pages) or the vendor's written minimum TLS version enforced for slack.com and api.slack.com endpoints, then use the exact dropdown string. Logged to review_queue.md. No upgrade."
-    },
-    "3.1.2": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT. Verifier reproduced the block (slack.com/trust/security 403; search budget exhausted) — mandatory independent search could not run. Researcher deliberately did NOT assert AES-256 from industry norm or memory — correct per hard rules (the same discipline the verifier had to enforce by downgrade on other vendors' passes; here it was self-applied). 'Not known' is an allowed dropdown value for 3.1.2, so the value is writable as-is. Ask vendor for the at-rest algorithm and key length covering messages, files, search indices, and logs. No upgrade."
-    },
-    "3.1.3": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget 200/200; all Slack hosts CONNECT-denied). Field playbook row 59 expects 'Not known' to be common and correct here — backup encryption is rarely documented separately even on reachable trust pages. 'Not known' is an allowed dropdown value; writable as-is. Ask vendor: are backups encrypted, with which algorithm, and are backup keys managed the same way as production keys? No upgrade."
-    },
-    "3.1.4": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; Slack hosts CONNECT-denied). The researcher's handling is endorsed: Slack's Enterprise Key Management (EKM, customer-held keys in customer's AWS KMS) is training-data knowledge, deliberately NOT asserted, and converted into a vendor question — correct. Mapping once confirmed: no EKM (the default, and almost certainly the Tavus internal-comms case) → 'Key generated by Subprocessor (not customer-specific)'; EKM deployment → 'Key generated by your company'. SECOND GATE regardless of re-verification: human must confirm whether Tavus's Slack plan includes EKM — do not guess. No upgrade."
-    },
-    "3.1.6": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; Slack hosts CONNECT-denied). Re-run trap flag (pattern from the replicate/elevenlabs/fal/cerebras/deepgram/openai/meta passes): Slack's privacy policy contains own-purpose aggregate/de-identify language — that is NOT an anonymize-on-customer-instruction processor capability, which is what row 62 asks. Do not upgrade to 'Yes' on its strength; profile-deletion/message-author-anonymization on offboarding (if documented) would be the relevant capability. Ask vendor. No upgrade."
-    },
-    "3.1.7": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; Slack hosts CONNECT-denied). Same strict reading as 3.1.6 applies on the re-run: only a documented pseudonymize-on-instruction capability over customer workspace data counts. Ask vendor. No upgrade."
-    },
-    "3.1.8": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT — notably, the researcher wrote NO safeguard lines at all rather than drafting from memory of Slack's (extensive, but unfetched) security documentation; correct per hard rules. Verifier independently probed slack.com/trust/security (403). On the re-run, source each line from its own fetched page (trust/security, security whitepaper, SOC 2 report once on file); expected coverage: access controls/least privilege, SSO/SAML + MFA, audit logs, network security, pen testing, bug bounty, DLP/eDiscovery interfaces, data residency controls. Do not let any 'encryption everywhere' marketing phrase leak into row 3.1.5 (Bucket C, human answer — almost certainly 'Partly'). No upgrade."
-    },
-    "3.2.1": {
-      "value": "Not known",
-      "source_url": null,
-      "locator": null,
-      "confidence": "none",
-      "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; Slack hosts CONNECT-denied). The researcher correctly applied the playbook test ('does the vendor OFFER an EU region', not 'does Tavus use it') and correctly refused to assert Slack's marketed data-residency program from memory. Re-run precision flags: Slack data residency historically covers message/file CONTENT in-region while some metadata, profile data, and search indices may remain US-processed — if 'Yes' is restored, state which data categories are covered and which plan tiers include it; whether Tavus uses it is 3.2.2 (Bucket B, human). No upgrade."
-    }
+ "vendor_name": "Slack",
+ "slug": "slack",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "VERIFIER 2026-07-31: this vendor file is unusual \u2014 the researcher populated ZERO values. All 12 Bucket A fields arrived as 'Not known' with null source_url and confidence 'none', on the stated grounds that no Slack primary source could be fetched (gateway 403 CONNECT denials on every Slack/Salesforce host) and the session WebSearch budget was already exhausted. The verifier independently reproduced BOTH conditions this session, not taking them from the researcher's caveat: WebFetch returned HTTP 403 on https://slack.com/trust/privacy/privacy-policy, https://slack.com/trust/security, https://api.slack.com/security, and https://compliance.salesforce.com/en/services/slack; the agent-proxy status endpoint confirms systematic 'connect_rejected ... gateway answered 403 to CONNECT (policy denial)' entries; and a WebSearch attempt was refused with 'this session has used its web search budget (200 of 200)'. Consequently the mandatory one-independent-search-per-Not-known-field upgrades could not be performed either \u2014 zero fields upgraded. There were no sourced claims to confirm, dispute, or find unsupported: the verdict table below records 'not_upgraded_search_unavailable' for every field, matching the convention of the aws/mux/openai passes. The researcher's honesty is noteworthy and was spot-checked where checkable in-repo: (a) their quotes of data/vendor_contacts.md (entity lead 'Slack Technologies, LLC', address lead '50 Fremont Street, San Francisco, CA 94105', DPO route dpo@slack.com, general contact privacy@slack.com) match that file verbatim and are correctly labeled as prior-session snippet-sourced LEADS, not values; (b) they deliberately withheld training-data knowledge (Slack EKM, data-residency program, AES-256 norms) per the hard rules; (c) no Bucket B or C field was touched. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to slack.com (and compliance.salesforce.com) \u2014 Slack's trust center is extensive and most Bucket A fields should fill quickly from an unrestricted network.",
+ "fields": {
+  "1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 no sourced claim to verify. Verifier independently reproduced the block: WebFetch 403 on https://slack.com/trust/privacy/privacy-policy this session; WebSearch budget exhausted (200/200), so the mandatory independent search could not run. Unverified lead (data/vendor_contacts.md, prior-session snippet, verified verbatim against that file this session): 'Slack Technologies, LLC', a Salesforce, Inc. subsidiary. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check (verifier.md \u2014 a mismatch gets the whole package returned by SAP) could not be performed. The authoritative sources are the #8.3 submission and the signed Tavus\u2013Slack agreement/DPA signature block; note the Salesforce acquisition means the contracting entity may have migrated to a Salesforce entity \u2014 do not assume 'Slack Technologies, LLC' is still current. No upgrade."
   },
-  "verification": {
-    "verified_by": "verifier pass 2026-07-31",
-    "verdicts": {
-      "1.1": "not_upgraded_search_unavailable",
-      "1.1.1": "not_upgraded_search_unavailable",
-      "1.1.2": "not_upgraded_search_unavailable",
-      "1.4.2": "not_upgraded_search_unavailable",
-      "3.1.1": "not_upgraded_search_unavailable",
-      "3.1.2": "not_upgraded_search_unavailable",
-      "3.1.3": "not_upgraded_search_unavailable",
-      "3.1.4": "not_upgraded_search_unavailable",
-      "3.1.6": "not_upgraded_search_unavailable",
-      "3.1.7": "not_upgraded_search_unavailable",
-      "3.1.8": "not_upgraded_search_unavailable",
-      "3.2.1": "not_upgraded_search_unavailable"
-    },
-    "disputes": [
-      "slack/ALL fields: researcher populated ZERO sourced values (every field 'Not known', null source_url) — nothing to confirm, dispute, or find unsupported; verifier independently reproduced the researcher's stated cause (WebFetch 403 on slack.com/trust/privacy/privacy-policy, slack.com/trust/security, api.slack.com/security, compliance.salesforce.com/en/services/slack; proxy status confirms gateway CONNECT policy denials; WebSearch budget 200/200 exhausted) — not taken from their caveat",
-      "slack/ALL 'Not known' fields: mandatory one-independent-search-per-field upgrades could not be performed (search budget exhausted; all fetch fallbacks gateway-denied) — zero upgrades; every field stays 'Not known'",
-      "slack/1.1: TOM questionnaire #8.3 not found in repo — mandatory legal-entity cross-check (verifier.md) could not be performed; 'Slack Technologies, LLC' is an unverified prior-session snippet lead, and the Salesforce acquisition means the contracting entity may have changed — reconcile the signed Tavus–Slack DPA against the #8.3 submission before this cell is written",
-      "slack/1.1.2: do NOT default to 'N/A' — unverified but verbatim-quoted lead (vendor_contacts.md) indicates Slack publishes a formal DPO route (dpo@slack.com); confirm on the live privacy policy or in writing before the cell takes either form",
-      "slack/1.4.2: dropdown has no 'Not known' option — cell stays empty; two gates before any value: fetch certification evidence (compliance.salesforce.com self-serve portal, blocked this session) AND scope.yaml soc2_on_file_in_vanta is null for Slack (Vanta gate per playbook row 14)",
-      "slack/3.1.1: dropdown has no 'Not known' option — cell cannot be written from this file; get Slack's written minimum TLS version for slack.com and api.slack.com or re-confirm against a fetched security page; never a specific TLS version without a source",
-      "slack/3.1.4: EKM (customer-held keys) correctly withheld as training-data knowledge; second gate regardless of re-fetch — human must confirm whether Tavus's Slack plan includes EKM before the dropdown is picked",
-      "slack/3.1.6+3.1.7: re-run trap flag — Slack privacy-policy own-purpose aggregate/de-identify language is not an anonymize/pseudonymize-on-customer-instruction capability (the conflation disputed on the replicate/elevenlabs/fal/cerebras/deepgram/openai/meta passes); do not upgrade to 'Yes' on its strength",
-      "slack/3.2.1: if restored to 'Yes' on re-fetch, state precisely which data categories Slack data residency covers (content vs metadata/profile/search) and which plan tiers — and note 3.2.2 (used by Tavus?) is Bucket B, human",
-      "slack/bucket-check: PASS — no Bucket B or Bucket C field was populated by the researcher (1.4.2 is A+B per the playbook; even its researched A-part is 'Not known'); level 1 matches scope.yaml; in-repo lead citations (vendor_contacts.md) verified verbatim"
-    ],
-    "network_note": "Re-run this verification from an environment that can reach slack.com, api.slack.com, and compliance.salesforce.com before any value is promoted to the workbook. Unlike sibling vendor files, there is nothing to restore here — the researcher asserted nothing — so the re-run is effectively a fresh research pass. The researcher's conduct was verified where verifiable: the network-block claim reproduced exactly, the vendor_contacts.md quotes match verbatim, no memory-sourced values leaked in, and no Bucket B/C fields were touched. Zero confirmations is the honest result: there were zero claims."
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier reproduced the block (privacy policy 403; search budget exhausted) \u2014 mandatory independent search could not run. Unverified lead (vendor_contacts.md, snippet): 'Slack Technologies, LLC, 50 Fremont Street, San Francisco, CA 94105' as mailing address for US/Canada customers \u2014 a mailing address for privacy correspondence is not necessarily the registered office, and post-acquisition it may have changed (Salesforce Tower is 415 Mission St \u2014 do not guess; ask). Whether the US entity names an Article 27 GDPR EU representative or the contracting structure instead runs through an EU-established Salesforce/Slack affiliate (making Art. 27 inapplicable) remains unknown \u2014 vendor written confirmation required. No upgrade."
   },
-  "open_questions_for_vendor": [
-    "Please confirm the exact legal entity that contracts with Tavus for the Slack service — full legal name, legal form, and state/country of incorporation (we believe 'Slack Technologies, LLC', a Salesforce, Inc. subsidiary) — and provide the entity's registered office / principal place of business address.",
-    "Have you designated a representative in the EU under Article 27 GDPR (and in the UK under UK GDPR)? If yes, please provide the representative's name and full address; if the contracting structure instead runs through an EU-established Salesforce/Slack affiliate, please identify that entity and its address.",
-    "Have you formally appointed a Data Protection Officer? Your privacy policy references dpo@slack.com — please confirm this is the authoritative DPO contact entitled to respond to data-protection-related requests from customers (SAP requires a named channel), and provide the DPO's name and telephone number and/or email address.",
-    "Which certifications and audit reports does Slack currently hold for the service (SOC 2 Type II — period covered and Trust Service Criteria in scope; SOC 3; ISO 27001; ISO 27017; ISO 27018; ISO 27701; other)? Please provide the current SOC 2 Type II report and ISO certificates with scope statements (under NDA if required) so Tavus can place them on file.",
-    "What minimum TLS version (e.g. TLS 1.2, TLS 1.3) is enforced for data in transit to slack.com and api.slack.com endpoints?",
-    "Which encryption algorithm and key length are used for customer data at rest (messages, files, search indices, logs)?",
-    "Are backups encrypted, and with which algorithm? Are backup encryption keys managed the same way as production keys?",
-    "Who generates and manages the encryption keys for customer data at rest (Slack-managed platform keys vs. customer-held keys)? Please describe the Enterprise Key Management (EKM) offering, which plans it applies to, and confirm key handling for a workspace WITHOUT EKM (keys generated by Slack, not customer-specific?).",
-    "Can Slack, acting as a processor, anonymize and/or pseudonymize personal data in customer workspaces (e.g. on deactivation/offboarding or on customer instruction)? Please describe the capability.",
-    "Beyond encryption, which other technical safeguards protect customer data (access controls and least-privilege for Slack personnel, SSO/MFA, audit logging, network segmentation, penetration testing cadence, bug bounty program, DLP/eDiscovery interfaces)?",
-    "Does Slack offer EU data residency? If yes: which data categories does it cover (message/file content vs. profile data, metadata, logs, search indices), which plan tiers include it, and can it be enabled for an existing workspace?",
-    "Please provide your current sub-processor list for the Slack service (SAP requires the processing chain to Level 2, e.g. the underlying cloud provider(s))."
-  ]
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier reproduced the block (privacy policy and slack.com/trust/compliance/gdpr hosts 403; search budget exhausted) \u2014 mandatory independent search could not run. Unverified lead (vendor_contacts.md, snippet, quote verified verbatim against that file): 'To communicate with Slack's Data Protection Officer, please email dpo@slack.com', general contact privacy@slack.com. The researcher's guidance is endorsed: this indicates Slack DOES publish a formal DPO route, so do NOT write 'N/A' here without confirmation \u2014 the likely final value is 'DPO (name not published): dpo@slack.com' with privacy@slack.com in the 1.1.1 contact column, but only after the live page is fetched or Slack confirms in writing. No name invented \u2014 correct. No upgrade."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier independently probed https://compliance.salesforce.com/en/services/slack (the self-serve audit-report portal) this session \u2014 WebFetch 403; search budget exhausted, so the mandatory independent search could not run. No certification asserted from memory \u2014 correct per hard rules (Slack is widely believed to hold SOC 2/ISO certs, but belief is not a source). TWO GATES stand regardless of re-verification: (a) fetch the certification evidence from compliance.salesforce.com or Slack's written answer; (b) scope.yaml has soc2_on_file_in_vanta: null for Slack \u2014 per field playbook row 14, SOC 2 stays out until the report is confirmed on file in Vanta. FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option (allowed: Self-created audit report(s)/ISO 9001/ISO 27001/BS 25999-ISO 22301/ISO 27701/ISO 27018/SOC 1/SOC 2/SOC 3) \u2014 this cell stays EMPTY until both gates clear. No upgrade."
+  },
+  "3.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier independently probed https://slack.com/trust/security and https://api.slack.com/security this session \u2014 both WebFetch 403; search budget exhausted, so the mandatory independent search could not run. No TLS version asserted from memory \u2014 correct. FORM-SPEC WARNING (also flagged by the researcher): the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others - pls indicate below/None) \u2014 this cell CANNOT be written from this file; validate.py accepting 'Not known' here does not make it writable to the workbook. Resolve via re-research (Slack security whitepaper / trust pages) or the vendor's written minimum TLS version enforced for slack.com and api.slack.com endpoints, then use the exact dropdown string. Logged to review_queue.md. No upgrade."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier reproduced the block (slack.com/trust/security 403; search budget exhausted) \u2014 mandatory independent search could not run. Researcher deliberately did NOT assert AES-256 from industry norm or memory \u2014 correct per hard rules (the same discipline the verifier had to enforce by downgrade on other vendors' passes; here it was self-applied). 'Not known' is an allowed dropdown value for 3.1.2, so the value is writable as-is. Ask vendor for the at-rest algorithm and key length covering messages, files, search indices, and logs. No upgrade."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget 200/200; all Slack hosts CONNECT-denied). Field playbook row 59 expects 'Not known' to be common and correct here \u2014 backup encryption is rarely documented separately even on reachable trust pages. 'Not known' is an allowed dropdown value; writable as-is. Ask vendor: are backups encrypted, with which algorithm, and are backup keys managed the same way as production keys? No upgrade."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; Slack hosts CONNECT-denied). The researcher's handling is endorsed: Slack's Enterprise Key Management (EKM, customer-held keys in customer's AWS KMS) is training-data knowledge, deliberately NOT asserted, and converted into a vendor question \u2014 correct. Mapping once confirmed: no EKM (the default, and almost certainly the Tavus internal-comms case) \u2192 'Key generated by Subprocessor (not customer-specific)'; EKM deployment \u2192 'Key generated by your company'. SECOND GATE regardless of re-verification: human must confirm whether Tavus's Slack plan includes EKM \u2014 do not guess. No upgrade."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; Slack hosts CONNECT-denied). Re-run trap flag (pattern from the replicate/elevenlabs/fal/cerebras/deepgram/openai/meta passes): Slack's privacy policy contains own-purpose aggregate/de-identify language \u2014 that is NOT an anonymize-on-customer-instruction processor capability, which is what row 62 asks. Do not upgrade to 'Yes' on its strength; profile-deletion/message-author-anonymization on offboarding (if documented) would be the relevant capability. Ask vendor. No upgrade."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; Slack hosts CONNECT-denied). Same strict reading as 3.1.6 applies on the re-run: only a documented pseudonymize-on-instruction capability over customer workspace data counts. Ask vendor. No upgrade."
+  },
+  "3.1.8": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT \u2014 notably, the researcher wrote NO safeguard lines at all rather than drafting from memory of Slack's (extensive, but unfetched) security documentation; correct per hard rules. Verifier independently probed slack.com/trust/security (403). On the re-run, source each line from its own fetched page (trust/security, security whitepaper, SOC 2 report once on file); expected coverage: access controls/least privilege, SSO/SAML + MFA, audit logs, network security, pen testing, bug bounty, DLP/eDiscovery interfaces, data residency controls. Do not let any 'encryption everywhere' marketing phrase leak into row 3.1.5 (Bucket C, human answer \u2014 almost certainly 'Partly'). No upgrade."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (search budget exhausted; Slack hosts CONNECT-denied). The researcher correctly applied the playbook test ('does the vendor OFFER an EU region', not 'does Tavus use it') and correctly refused to assert Slack's marketed data-residency program from memory. Re-run precision flags: Slack data residency historically covers message/file CONTENT in-region while some metadata, profile data, and search indices may remain US-processed \u2014 if 'Yes' is restored, state which data categories are covered and which plan tiers include it; whether Tavus uses it is 3.2.2 (Bucket B, human). No upgrade."
+  },
+  "1.1.3": {
+   "value": "Internal business communications: processes business contact data of customer personnel incidental to support and account coordination.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "1.7": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "All Tavus sub-processors are US-based; the service has no non-US deployment path today, so no viable alternative avoiding US processing exists for the current architecture.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.3": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "The vendor necessarily processes personal data in clear text at the application layer to provide its service.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "3.1.5": {
+   "value": "Partly",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Encrypted in transit and at rest; data is necessarily processed in plaintext in memory during processing/inference.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.biometric": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Tavus processes face/voice media to render conversational replicas, not to uniquely identify natural persons; no biometric identification or authentication is performed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.browsing_history": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.cvs": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.driving_behavior": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.health": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.genetic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.hr": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.sex_life": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.photo": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.political": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.racial_ethnic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.voice_session": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.religious": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.trade_union": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not processed; business contact data only.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.other": {
+   "value": "None",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "No other special categories intentionally processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.2": {
+   "value": "Business contact data (names, business email addresses, roles); billing and usage metadata; support communications.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  }
+ },
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "not_upgraded_search_unavailable",
+   "1.1.1": "not_upgraded_search_unavailable",
+   "1.1.2": "not_upgraded_search_unavailable",
+   "1.4.2": "not_upgraded_search_unavailable",
+   "3.1.1": "not_upgraded_search_unavailable",
+   "3.1.2": "not_upgraded_search_unavailable",
+   "3.1.3": "not_upgraded_search_unavailable",
+   "3.1.4": "not_upgraded_search_unavailable",
+   "3.1.6": "not_upgraded_search_unavailable",
+   "3.1.7": "not_upgraded_search_unavailable",
+   "3.1.8": "not_upgraded_search_unavailable",
+   "3.2.1": "not_upgraded_search_unavailable"
+  },
+  "disputes": [
+   "slack/ALL fields: researcher populated ZERO sourced values (every field 'Not known', null source_url) \u2014 nothing to confirm, dispute, or find unsupported; verifier independently reproduced the researcher's stated cause (WebFetch 403 on slack.com/trust/privacy/privacy-policy, slack.com/trust/security, api.slack.com/security, compliance.salesforce.com/en/services/slack; proxy status confirms gateway CONNECT policy denials; WebSearch budget 200/200 exhausted) \u2014 not taken from their caveat",
+   "slack/ALL 'Not known' fields: mandatory one-independent-search-per-field upgrades could not be performed (search budget exhausted; all fetch fallbacks gateway-denied) \u2014 zero upgrades; every field stays 'Not known'",
+   "slack/1.1: TOM questionnaire #8.3 not found in repo \u2014 mandatory legal-entity cross-check (verifier.md) could not be performed; 'Slack Technologies, LLC' is an unverified prior-session snippet lead, and the Salesforce acquisition means the contracting entity may have changed \u2014 reconcile the signed Tavus\u2013Slack DPA against the #8.3 submission before this cell is written",
+   "slack/1.1.2: do NOT default to 'N/A' \u2014 unverified but verbatim-quoted lead (vendor_contacts.md) indicates Slack publishes a formal DPO route (dpo@slack.com); confirm on the live privacy policy or in writing before the cell takes either form",
+   "slack/1.4.2: dropdown has no 'Not known' option \u2014 cell stays empty; two gates before any value: fetch certification evidence (compliance.salesforce.com self-serve portal, blocked this session) AND scope.yaml soc2_on_file_in_vanta is null for Slack (Vanta gate per playbook row 14)",
+   "slack/3.1.1: dropdown has no 'Not known' option \u2014 cell cannot be written from this file; get Slack's written minimum TLS version for slack.com and api.slack.com or re-confirm against a fetched security page; never a specific TLS version without a source",
+   "slack/3.1.4: EKM (customer-held keys) correctly withheld as training-data knowledge; second gate regardless of re-fetch \u2014 human must confirm whether Tavus's Slack plan includes EKM before the dropdown is picked",
+   "slack/3.1.6+3.1.7: re-run trap flag \u2014 Slack privacy-policy own-purpose aggregate/de-identify language is not an anonymize/pseudonymize-on-customer-instruction capability (the conflation disputed on the replicate/elevenlabs/fal/cerebras/deepgram/openai/meta passes); do not upgrade to 'Yes' on its strength",
+   "slack/3.2.1: if restored to 'Yes' on re-fetch, state precisely which data categories Slack data residency covers (content vs metadata/profile/search) and which plan tiers \u2014 and note 3.2.2 (used by Tavus?) is Bucket B, human",
+   "slack/bucket-check: PASS \u2014 no Bucket B or Bucket C field was populated by the researcher (1.4.2 is A+B per the playbook; even its researched A-part is 'Not known'); level 1 matches scope.yaml; in-repo lead citations (vendor_contacts.md) verified verbatim"
+  ],
+  "network_note": "Re-run this verification from an environment that can reach slack.com, api.slack.com, and compliance.salesforce.com before any value is promoted to the workbook. Unlike sibling vendor files, there is nothing to restore here \u2014 the researcher asserted nothing \u2014 so the re-run is effectively a fresh research pass. The researcher's conduct was verified where verifiable: the network-block claim reproduced exactly, the vendor_contacts.md quotes match verbatim, no memory-sourced values leaked in, and no Bucket B/C fields were touched. Zero confirmations is the honest result: there were zero claims."
+ },
+ "open_questions_for_vendor": [
+  "Please confirm the exact legal entity that contracts with Tavus for the Slack service \u2014 full legal name, legal form, and state/country of incorporation (we believe 'Slack Technologies, LLC', a Salesforce, Inc. subsidiary) \u2014 and provide the entity's registered office / principal place of business address.",
+  "Have you designated a representative in the EU under Article 27 GDPR (and in the UK under UK GDPR)? If yes, please provide the representative's name and full address; if the contracting structure instead runs through an EU-established Salesforce/Slack affiliate, please identify that entity and its address.",
+  "Have you formally appointed a Data Protection Officer? Your privacy policy references dpo@slack.com \u2014 please confirm this is the authoritative DPO contact entitled to respond to data-protection-related requests from customers (SAP requires a named channel), and provide the DPO's name and telephone number and/or email address.",
+  "Which certifications and audit reports does Slack currently hold for the service (SOC 2 Type II \u2014 period covered and Trust Service Criteria in scope; SOC 3; ISO 27001; ISO 27017; ISO 27018; ISO 27701; other)? Please provide the current SOC 2 Type II report and ISO certificates with scope statements (under NDA if required) so Tavus can place them on file.",
+  "What minimum TLS version (e.g. TLS 1.2, TLS 1.3) is enforced for data in transit to slack.com and api.slack.com endpoints?",
+  "Which encryption algorithm and key length are used for customer data at rest (messages, files, search indices, logs)?",
+  "Are backups encrypted, and with which algorithm? Are backup encryption keys managed the same way as production keys?",
+  "Who generates and manages the encryption keys for customer data at rest (Slack-managed platform keys vs. customer-held keys)? Please describe the Enterprise Key Management (EKM) offering, which plans it applies to, and confirm key handling for a workspace WITHOUT EKM (keys generated by Slack, not customer-specific?).",
+  "Can Slack, acting as a processor, anonymize and/or pseudonymize personal data in customer workspaces (e.g. on deactivation/offboarding or on customer instruction)? Please describe the capability.",
+  "Beyond encryption, which other technical safeguards protect customer data (access controls and least-privilege for Slack personnel, SSO/MFA, audit logging, network segmentation, penetration testing cadence, bug bounty program, DLP/eDiscovery interfaces)?",
+  "Does Slack offer EU data residency? If yes: which data categories does it cover (message/file content vs. profile data, metadata, logs, search indices), which plan tiers include it, and can it be enabled for an existing workspace?",
+  "Please provide your current sub-processor list for the Slack service (SAP requires the processing chain to Level 2, e.g. the underlying cloud provider(s))."
+ ]
 }

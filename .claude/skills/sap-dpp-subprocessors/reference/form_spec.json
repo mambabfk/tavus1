@@ -37,28 +37,28 @@
   {
    "row": 4,
    "id": "1.1.1",
-   "label": "\"Contact details of sub-processor”: please add the full address of the sub-processor and, if the sub-processor has a representative (Article 27 GDPR), please add the name and the full address of the representative.",
+   "label": "\"Contact details of sub-processor\u201d: please add the full address of the sub-processor and, if the sub-processor has a representative (Article 27 GDPR), please add the name and the full address of the representative.",
    "input_type": "free_text",
    "allowed_values": null
   },
   {
    "row": 5,
    "id": "1.1.2",
-   "label": "“Contact details of the sub-processor’s data protection officer”: if the sub-processor has a data protection officer, please add the data protection officer’s name, telephone number and/or email address. If the sub-processor has no data protection officer, please insert N/A and add instead a telephone number and/or email address where the sub-processor (i.e. of a contact of the sub-processor who is entitled to respond to data protection-related requests of SAP) can be reached into the contact details of sub-processor column.",
+   "label": "\u201cContact details of the sub-processor\u2019s data protection officer\u201d: if the sub-processor has a data protection officer, please add the data protection officer\u2019s name, telephone number and/or email address. If the sub-processor has no data protection officer, please insert N/A and add instead a telephone number and/or email address where the sub-processor (i.e. of a contact of the sub-processor who is entitled to respond to data protection-related requests of SAP) can be reached into the contact details of sub-processor column.",
    "input_type": "free_text",
    "allowed_values": null
   },
   {
    "row": 6,
    "id": "1.1.3",
-   "label": "“Processing operations of sub-processor”: please describe the concrete data processing services each sub-processor is performing (i.e. which categories of personal data of SAP and its customers are processed to which extent. Processing of personal data means any operation or set of operations which is performed on personal data or on sets of personal data, whether or not by automated means, such as collection, recording, organization, structuring, storage, adaptation or alteration, retrieval, consultation, use, disclosure by transmission, dissemination or otherwise making available (which includes the mere access to systems containing personal data while providing support), alignment or combination, restriction, erasure or destruction).",
+   "label": "\u201cProcessing operations of sub-processor\u201d: please describe the concrete data processing services each sub-processor is performing (i.e. which categories of personal data of SAP and its customers are processed to which extent. Processing of personal data means any operation or set of operations which is performed on personal data or on sets of personal data, whether or not by automated means, such as collection, recording, organization, structuring, storage, adaptation or alteration, retrieval, consultation, use, disclosure by transmission, dissemination or otherwise making available (which includes the mere access to systems containing personal data while providing support), alignment or combination, restriction, erasure or destruction).",
    "input_type": "free_text",
    "allowed_values": null
   },
   {
    "row": 7,
    "id": "1.1.4",
-   "label": "“Level”: please add the level on which the relevant sub-processor processes SAP and its customers’ personal data. Level 1 would mean a direct sub-processor of your entity, Level 2 a sub-processor of your direct sub-processor, etc. Please provide this information throughout the whole data processing chain.",
+   "label": "\u201cLevel\u201d: please add the level on which the relevant sub-processor processes SAP and its customers\u2019 personal data. Level 1 would mean a direct sub-processor of your entity, Level 2 a sub-processor of your direct sub-processor, etc. Please provide this information throughout the whole data processing chain.",
    "input_type": "free_text",
    "allowed_values": null
   },
@@ -85,21 +85,21 @@
   {
    "row": 10,
    "id": "1.3.1",
-   "label": "Please describe any deficiencies (“Gaps”)",
+   "label": "Please describe any deficiencies (\u201cGaps\u201d)",
    "input_type": "free_text",
    "allowed_values": null
   },
   {
    "row": 11,
    "id": "1.3.2",
-   "label": "Please let us know the “Remediation plan” until when your company will have closed each gap.",
+   "label": "Please let us know the \u201cRemediation plan\u201d until when your company will have closed each gap.",
    "input_type": "free_text",
    "allowed_values": null
   },
   {
    "row": 12,
    "id": "1.4",
-   "label": "Do you \"audit\" your sub-processors’ compliance with the terms of these sub-processing data protection agreements including the agreed technical and organizational measures (TOM)?",
+   "label": "Do you \"audit\" your sub-processors\u2019 compliance with the terms of these sub-processing data protection agreements including the agreed technical and organizational measures (TOM)?",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -109,7 +109,7 @@
   {
    "row": 13,
    "id": "1.4.1",
-   "label": "If Yes, i.e., audits are conducted - “By way of which means?” how these audits are conducted by selecting the accurate response per sub-processor.",
+   "label": "If Yes, i.e., audits are conducted - \u201cBy way of which means?\u201d how these audits are conducted by selecting the accurate response per sub-processor.",
    "input_type": "dropdown",
    "allowed_values": [
     "Data protection officer/organization",
@@ -120,7 +120,7 @@
   {
    "row": 14,
    "id": "1.4.2",
-   "label": "If Yes, i.e., audits are conducted - which “evidence” is your company creating regarding audits per sub-processor? Please attach the respective evidence.",
+   "label": "If Yes, i.e., audits are conducted - which \u201cevidence\u201d is your company creating regarding audits per sub-processor? Please attach the respective evidence.",
    "input_type": "dropdown",
    "allowed_values": [
     "Self-created audit report(s)",
@@ -154,7 +154,7 @@
   {
    "row": 17,
    "id": "1.5.2",
-   "label": "If Yes, i.e., audit findings were revealed - Please describe “Actions taken” (what did each sub-processor do in order to remedy each of the findings).",
+   "label": "If Yes, i.e., audit findings were revealed - Please describe \u201cActions taken\u201d (what did each sub-processor do in order to remedy each of the findings).",
    "input_type": "free_text",
    "allowed_values": null
   },
@@ -195,7 +195,7 @@
   {
    "row": 22,
    "id": "1.6.2",
-   "label": "If Yes, i.e., incidents were caused - Please describe “Actions taken” (what did each sub-processor do in order to remedy each of the incidents)",
+   "label": "If Yes, i.e., incidents were caused - Please describe \u201cActions taken\u201d (what did each sub-processor do in order to remedy each of the incidents)",
    "input_type": "free_text",
    "allowed_values": null
   },
@@ -242,8 +242,8 @@
   },
   {
    "row": 28,
-   "id": null,
-   "label": "• Biometric data for the purpose of uniquely identifying a natural person",
+   "id": "2.1.biometric",
+   "label": "\u2022 Biometric data for the purpose of uniquely identifying a natural person",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -252,8 +252,8 @@
   },
   {
    "row": 29,
-   "id": null,
-   "label": "• Browsing history",
+   "id": "2.1.browsing_history",
+   "label": "\u2022 Browsing history",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -262,8 +262,8 @@
   },
   {
    "row": 30,
-   "id": null,
-   "label": "• CVs",
+   "id": "2.1.cvs",
+   "label": "\u2022 CVs",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -272,8 +272,8 @@
   },
   {
    "row": 31,
-   "id": null,
-   "label": "• Driving behavior",
+   "id": "2.1.driving_behavior",
+   "label": "\u2022 Driving behavior",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -282,8 +282,8 @@
   },
   {
    "row": 32,
-   "id": null,
-   "label": "• Data concerning health",
+   "id": "2.1.health",
+   "label": "\u2022 Data concerning health",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -292,8 +292,8 @@
   },
   {
    "row": 33,
-   "id": null,
-   "label": "• Genetic data",
+   "id": "2.1.genetic",
+   "label": "\u2022 Genetic data",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -302,8 +302,8 @@
   },
   {
    "row": 34,
-   "id": null,
-   "label": "• HR data",
+   "id": "2.1.hr",
+   "label": "\u2022 HR data",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -312,8 +312,8 @@
   },
   {
    "row": 35,
-   "id": null,
-   "label": "• Natural person's sex life or sexual orientation",
+   "id": "2.1.sex_life",
+   "label": "\u2022 Natural person's sex life or sexual orientation",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -322,8 +322,8 @@
   },
   {
    "row": 36,
-   "id": null,
-   "label": "• Photo",
+   "id": "2.1.photo",
+   "label": "\u2022 Photo",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -332,8 +332,8 @@
   },
   {
    "row": 37,
-   "id": null,
-   "label": "• Political opinions",
+   "id": "2.1.political",
+   "label": "\u2022 Political opinions",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -342,8 +342,8 @@
   },
   {
    "row": 38,
-   "id": null,
-   "label": "• Racial or ethnic origin",
+   "id": "2.1.racial_ethnic",
+   "label": "\u2022 Racial or ethnic origin",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -352,8 +352,8 @@
   },
   {
    "row": 39,
-   "id": null,
-   "label": "• Recorded voice session",
+   "id": "2.1.voice_session",
+   "label": "\u2022 Recorded voice session",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -362,8 +362,8 @@
   },
   {
    "row": 40,
-   "id": null,
-   "label": "• Religious or philosophical beliefs",
+   "id": "2.1.religious",
+   "label": "\u2022 Religious or philosophical beliefs",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -372,8 +372,8 @@
   },
   {
    "row": 41,
-   "id": null,
-   "label": "• Trade union membership",
+   "id": "2.1.trade_union",
+   "label": "\u2022 Trade union membership",
    "input_type": "dropdown",
    "allowed_values": [
     "Yes",
@@ -382,8 +382,8 @@
   },
   {
    "row": 42,
-   "id": null,
-   "label": "• Other types of special categories of personal data  - if any",
+   "id": "2.1.other",
+   "label": "\u2022 Other types of special categories of personal data  - if any",
    "input_type": "free_text",
    "allowed_values": null
   },

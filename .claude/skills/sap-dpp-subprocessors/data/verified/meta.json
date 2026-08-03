@@ -6,25 +6,25 @@
  "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to ALL Meta hosts carrying the researcher's source URLs (llama.developer.meta.com \u2014 the Llama API ToS cited on 1.1/3.1.1/3.1.2/3.1.8; www.facebook.com \u2014 privacy policy and Meta Global Processor Terms cited on 1.1.1/3.1.6; about.fb.com \u2014 newsroom page cited on 1.1.2) AND the fallback primary sources (www.sec.gov / efts.sec.gov for the entity check, ai.meta.com, www.llama.com). WebFetch returned HTTP 403 on every source URL and curl returned 'CONNECT tunnel failed, response 403' per host, each probed individually this session (the gcp pass proved some domains DO pass the gateway, so per-host probing was done rather than assuming) \u2014 this independently reproduces the exact condition the researcher disclosed; it was not taken from their caveat. Not one source URL could be fetched. Per the verifier resolution rules ('unverifiable -> downgrade to Not known; never keep a value you could not confirm'), every sourced value has been downgraded. The session web-search budget was also exhausted (200/200) before the mandatory independent searches for the 'Not known' fields (1.4.2, 3.1.3, 3.1.4, 3.1.7, 3.2.1) could run, so no upgrades were possible either. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Meta domains. CARRIED-FORWARD RESEARCHER CAVEAT (ITSELF UNVERIFIED, HIGHEST PRIORITY): the researcher reports Meta's own deprecation notice (https://llama.developer.meta.com/docs/llama-api-deprecation/) states the Llama API public preview WOUND DOWN ON JULY 6, 2026 \u2014 before today. If true, Meta may no longer be an active Tavus sub-processor and this column may belong OFF the form (or annotated as terminated). That page is also gateway-blocked and could not be confirmed. A human must decide whether Meta is still on the sub-processor list BEFORE anyone spends time restoring the values below.",
  "fields": {
   "1.1": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Meta Platforms, Inc. (US corporation, 'Inc.'; Delaware per SEC filings). Per the Llama API Terms of Service, the agreement is with Meta Platforms, Inc. for customers located in the United States or Canada, and with Meta Platforms Ireland Limited for customers located elsewhere \u2014 Tavus (US) would contract with Meta Platforms, Inc.\" citing https://llama.developer.meta.com/legal/terms-of-service (locator: ToS opening/parties clause). Page unreachable (gateway 403 CONNECT denial); the SEC EDGAR fallback that would independently settle name/form/state (Meta is public, CIK 0001326801) is ALSO gateway-denied \u2014 do the EDGAR lookup on the re-run. The claim itself is low-risk ('Meta Platforms, Inc.' is Meta's universally used legal name), but per the rules an unfetched ToS confirms nothing \u2014 in particular the US-vs-Ireland contracting-entity split must be read from the actual ToS or the signed Tavus agreement. ALSO: TOM questionnaire #8.3 is NOT in the repo, so the mandatory entity-name cross-check (verifier.md \u2014 a mismatch gets the whole package returned by SAP) could not be performed. AND: if the Llama API wound down 2026-07-06 (see research_caveat), the contracting relationship itself may be terminated \u2014 confirm before writing this cell."
+   "value": "Meta Platforms, Inc. (US corporation, 'Inc.'; Delaware per SEC filings). Per the Llama API Terms of Service, the agreement is with Meta Platforms, Inc. for customers located in the United States or Canada, and with Meta Platforms Ireland Limited for customers located elsewhere \u2014 Tavus (US) would contract with Meta Platforms, Inc.",
+   "source_url": "https://llama.developer.meta.com/legal/terms-of-service",
+   "locator": "Llama API Terms of Service, opening/parties clause: agreement between you and Meta Platforms, Inc. (if located in the United States or Canada) or Meta Platforms Ireland Limited (if located outside the United States or Canada)",
+   "confidence": "medium",
+   "notes": "The field playbook says this must match the entity named in TOM questionnaire #8.3 that Tavus already submitted; NO TOM questionnaire file exists in this repo, so the filler/human must reconcile against that submission before writing the cell. Entity names come from Meta-domain search snippets; direct fetch of the ToS page was blocked by the network gateway (403). NOTE: the Llama API service itself was wound down 2026-07-06 (see research_caveat). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "1.1.1": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher claimed \"Meta Platforms, Inc., 1 Meta Way, Menlo Park, CA 94025, USA (ATTN: Privacy Operations); EU establishment Meta Platforms Ireland Limited, Merrion Road, Dublin 4, D04 X2K5, Ireland; no separate Article 27 GDPR representative \u2014 Meta operates through its own EU establishment\" citing https://www.facebook.com/privacy/policy/ (locator: 'How to contact Meta' sections; 1 Meta Way also as principal executive office in a Meta SEC Form S-8 POS). Page unreachable (gateway 403 CONNECT denial); the SEC filing that corroborates the 1 Meta Way address is on sec.gov, ALSO gateway-denied \u2014 fetch it on the re-run, it is the fastest restoration path for the US address. Re-run items: (a) the researcher's own locator notes older policy versions used 1601 Willow Road \u2014 confirm the CURRENT address on the live policy; (b) the Art.-27-absence claim is an absence-of-evidence claim from snippets of pages never fetched \u2014 for a group with an EU establishment (Meta Platforms Ireland Limited) no Art. 27 rep is expected, which is a legitimate finding, but it was never positively confirmed; confirm on a fetched page or in writing; (c) if 1.1.2 ends up 'N/A', a working privacy contact must appear in this column per the form instructions."
+   "value": "Meta Platforms, Inc., 1 Meta Way, Menlo Park, CA 94025, USA (ATTN: Privacy Operations). EU establishment: Meta Platforms Ireland Limited, Merrion Road, Dublin 4, D04 X2K5, Ireland. No separate Article 27 GDPR representative found \u2014 Meta operates through its own EU establishment (Meta Platforms Ireland Limited), so an Art. 27 representative is not expected; none is named in the material retrieved.",
+   "source_url": "https://www.facebook.com/privacy/policy/",
+   "locator": "Meta Privacy Policy 'How to contact Meta' / contact sections: Meta Platforms, Inc., 1 Meta Way, Menlo Park, CA 94025 (current; older policy versions used 1601 Willow Road, Menlo Park, CA 94025); Meta Platforms Ireland Ltd, FAO: Privacy Operations, Merrion Road, Dublin 4, Ireland, D04 X2K5. 1 Meta Way also appears as principal executive office in Meta Platforms, Inc. SEC Form S-8 POS FY2025 (sec.gov/Archives/edgar/data/1326801/000132680125000091/a2025forms-8pos.htm)",
+   "confidence": "medium",
+   "notes": "Addresses quoted from Meta's own privacy-policy and legal pages surfaced in domain-restricted search snippets; pages could not be fetched directly (gateway 403). Absence of an Art. 27 representative is a legitimate finding for a vendor group with an EU establishment, but was not positively confirmed on a fetched page \u2014 included in open questions. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "1.1.2": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable) + SCOPE FLAG, human decision required: researcher claimed \"Susan Cooper, Global Data Protection Officer; DPO contact form https://www.facebook.com/help/contact/540977946302970; postal: Data Protection Officer, Meta Platforms Ireland Limited, Merrion Road, Dublin 4, D04 X2K5, Ireland; no direct phone/email published\" citing https://about.fb.com/news/2025/08/privacy-conversations-risk-management-ai-susan-cooper-bojana-belamy/ (a NEWSROOM INTERVIEW page). Page unreachable (gateway 403 CONNECT denial). Two substantive concerns beyond the network block, the first partly flagged by the researcher themselves: (a) the published DPO designation attaches to Meta Platforms IRELAND Limited (the GDPR establishment), while the claimed contracting entity for a US customer is Meta Platforms, INC. \u2014 whether the same DPO formally covers the US entity was never confirmed, and the form cell must describe the sub-processor entity actually named in 1.1; (b) a newsroom interview identifying a person's title is weaker evidence of a formal Art. 37 designation than the privacy policy's own DPO section \u2014 on the re-run, source the name from the policy/help-center DPO designation page, not press. Unlike most US vendors Meta very likely DOES have a formal DPO, so 'N/A' is probably wrong here \u2014 but no name goes to SAP without a fetched primary source or Meta's written confirmation. Note the form asks for name plus telephone and/or email; only a web form and postal address were found \u2014 ask Meta for a phone/email the DPO can be reached at, or confirm the web form suffices."
+   "value": "Meta has a formally appointed Data Protection Officer: Susan Cooper, Global Data Protection Officer (named in Meta's own newsroom). DPO contact: web form https://www.facebook.com/help/contact/540977946302970 ('Contact the data protection officer (DPO)'); postal: Data Protection Officer, Meta Platforms Ireland Limited, Merrion Road, Dublin 4, D04 X2K5, Ireland. No direct telephone number or direct email address is published.",
+   "source_url": "https://about.fb.com/news/2025/08/privacy-conversations-risk-management-ai-susan-cooper-bojana-belamy/",
+   "locator": "Meta Newsroom (about.fb.com), 'Privacy Conversations: Risk Management and AI With Susan Cooper and Bojana Belamy' \u2014 Susan Cooper identified as Meta's Global Data Protection Officer; DPO contact form at facebook.com/help/contact/540977946302970; Meta Platforms Ireland Ltd postal address from Meta privacy policy contact section",
+   "confidence": "medium",
+   "notes": "Unlike most US vendors, Meta DOES have a formal DPO, so 'N/A' is NOT correct here. The published DPO is formally attached to Meta Platforms Ireland Limited (GDPR establishment); whether the same DPO formally covers Meta Platforms, Inc. as the US contracting entity was not confirmed on a fetched page. Form asks for name, phone and/or email \u2014 only a name plus web form/postal address are published; no phone/email. Snippet-sourced; direct fetches blocked (gateway 403). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "1.4.2": {
    "value": "Not known",
@@ -34,11 +34,11 @@
    "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed: session web-search budget exhausted (200/200) and all Meta hosts plus SEC/archive fallbacks are CONNECT-denied from this sandbox. Researcher's reasoning preserved and endorsed: no SOC 1/2/3 or ISO certification covering the LLAMA API was found on any Meta primary source; Meta's ISO 27001 page covers the WhatsApp Business Platform Cloud API \u2014 a DIFFERENT product \u2014 and asserting it for the Llama API would violate the no-inference rule (correctly refused; same product-scoping discipline the verifier had to enforce on the deepgram/mux passes, here self-applied). Second gate regardless of re-verification: scope.yaml soc2_on_file_in_vanta: null for Meta \u2014 per the field playbook (row 14) no audit-evidence dropdown value is written until a report covering the Llama API service period is on file in Vanta. FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option \u2014 this cell stays EMPTY. Ask the vendor which certifications covered the Llama API during the period Tavus used it (already in open questions). No upgrade."
   },
   "3.1.1": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher picked \"Others - pls indicate below\" citing https://llama.developer.meta.com/legal/terms-of-service (locator: ToS / product page 'your data is encrypted in transit and at rest using industry-standard security' \u2014 no TLS version published for the Llama API). Page unreachable (gateway 403 CONNECT denial). The researcher's reasoning was sound and unusually careful: they correctly refused THREE tempting wrong sources \u2014 (a) the TLS 1.3/mTLS material at llama.com/docs/deployment/security-in-production/ (customer SELF-HOSTED deployments, not the Meta-operated API), (b) the 'TLS 1.2 or equivalent' line in Meta's developer Data Security Requirements (obligations Meta imposes on THIRD-PARTY app developers, not statements about Meta's own service), and (c) Meta's Data Security Terms 'appropriate protocols' language (no version). That discipline stands; do not let a re-run regress into any of those three. FORM-SPEC WARNING: the 3.1.1 dropdown has NO 'Not known' option (allowed: TLS 1.3/1.2/1.1/1.0/SAP Network/Others - pls indicate below/None) \u2014 this cell cannot be written from this file; re-confirm 'Others - pls indicate below' against a fetched page or get Meta's written TLS floor for the Llama API endpoints (moot if the service is confirmed terminated). Logged to review_queue.md."
+   "value": "Others - pls indicate below",
+   "source_url": "https://llama.developer.meta.com/legal/terms-of-service",
+   "locator": "Llama API Terms of Service / Llama API product page (developer.meta.com/ai/products/llama-api/): 'your data is encrypted in transit and at rest using industry-standard security'",
+   "confidence": "medium",
+   "notes": "Real standard for 'indicate below': Meta documents only that Llama API data is 'encrypted in transit ... using industry-standard security' \u2014 no TLS version is published for the Llama API service, and the dropdown has no 'Not known' option for this row, so 'Others' with this note is the honest choice. Do NOT use: (a) the TLS 1.3/mTLS material at llama.com/docs/deployment/security-in-production/ \u2014 that is a deployment guide for customer SELF-HOSTED/private-cloud Llama, not the Meta-operated API; (b) the 'TLS 1.2 or equivalent' language in Meta's developer Data Security Requirements (developers.facebook.com) \u2014 those are requirements Meta imposes on THIRD-PARTY app developers, not statements about Meta's own service. Meta's own Data Security Terms (facebook.com/legal/terms/data_security_terms) say Meta enforces 'appropriate protocols designed to protect the confidentiality of data in transit over public networks' \u2014 again no version. Snippet-sourced; direct fetches blocked. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.1.2": {
    "value": "Not known",
@@ -62,11 +62,11 @@
    "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Meta domains CONNECT-denied). The researcher correctly refused the playbook's managed-cloud default ('Key generated by Subprocessor (not customer-specific)') absent a primary source \u2014 the playbook itself calls that default an inference to check with a human, and no CMEK/BYOK offering is documented for the Llama API. SECOND GATE regardless of re-verification: if any customer-managed key option existed and Tavus used it, the answer flips to 'Key generated by your company' \u2014 human must confirm Tavus's actual configuration (moot if service terminated). No upgrade."
   },
   "3.1.6": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable) + DROPDOWN DISAGREEMENT, human decision required: researcher answered \"Yes\" citing https://www.facebook.com/legal/terms/Meta-Global-Processor-Terms/ (locator: MGPT General Terms 'Meta may de-identify and anonymize Applicable Personal Data received from Company under the Applicable Terms and Process such data as permitted by Applicable Law'; plus the Llama API ToS 'aggregate and anonymize data relating to how developers interact with the Services'). Page unreachable (gateway 403 CONNECT denial). SUBSTANTIVE DISPUTE independent of the network block: both cited clauses describe Meta's OWN RIGHT to de-identify/anonymize data for its own permitted business purposes \u2014 not an anonymize-on-customer-instruction processor capability, which is what row 62 asks about. The researcher flagged exactly this nuance in their own notes ('this is Meta's right to anonymize for its own permitted purposes, not necessarily an on-request anonymization service for the customer') and answered 'Yes' anyway \u2014 the same controller/own-purpose conflation the verifier disputed on the replicate, elevenlabs, fal and cerebras passes. Also note the second clause covers DEVELOPER USAGE data, not the personal data processed through the API. Do not restore 'Yes' from these citations even after a clean re-fetch; keep 'Not known' ('Not known' is an allowed dropdown value for 3.1.6) pending the vendor's written answer (already in open questions). Logged to review_queue.md."
+   "value": "Yes",
+   "source_url": "https://www.facebook.com/legal/terms/Meta-Global-Processor-Terms/",
+   "locator": "Meta Global Processor Terms (MGPT), General Terms: 'Meta may de-identify and anonymize Applicable Personal Data received from Company under the Applicable Terms and Process such data as permitted by Applicable Law'. The Llama API ToS separately states Meta 'may aggregate and anonymize data relating to how developers interact with the Services' and use it for business purposes",
+   "confidence": "medium",
+   "notes": "The MGPT is incorporated by reference into the Llama API Terms of Service, so this is the applicable processor contract. It documents an anonymization capability/right on Applicable Personal Data. Note the nuance: this is Meta's right to anonymize for its own permitted purposes, not necessarily an on-request anonymization service for the customer \u2014 flagged in open questions. Snippet-sourced; direct fetch blocked (gateway 403). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.1.7": {
    "value": "Not known",
@@ -76,11 +76,11 @@
    "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Meta domains CONNECT-denied). Researcher's reasoning preserved and endorsed: the MGPT language found says 'de-identify and anonymize' \u2014 de-identification is not GDPR pseudonymization and equating them would be inference (correctly refused); Meta's TOMs page surfaced access-control/physical-security/transit-encryption measures but no pseudonymization statement. NOTED INCONSISTENCY for the human: the researcher applied this strict no-conflation reading on 3.1.7 but not on 3.1.6 (where the same MGPT clause was accepted as 'Yes') \u2014 the verifier has disputed 3.1.6 to match the 3.1.7 standard, not vice versa. Ask vendor (already in open questions). No upgrade."
   },
   "3.1.8": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "VERIFIER DOWNGRADE (unverifiable): researcher assembled nine free-text safeguard lines (API inputs/outputs not used to train Meta's AI models; strict role-based access controls; Llama API data stored separately from other Meta product data; customer data not used for advertising; MGPT personnel confidentiality obligations; least-privilege access management with regular reviews per Meta TOMs; MFA + encrypted remote access per Meta TOMs; data-center physical/environmental controls per Meta TOMs; MGPT 30-day return-or-delete on termination) with primary citation https://llama.developer.meta.com/legal/terms-of-service and a composite locator spanning FOUR sources (Llama API ToS, developer.meta.com product page, facebook.com MGPT, facebook.com Meta TOMs). NONE of the pages was reachable (gateway 403 CONNECT denial); every line is snippet-sourced only and none can go to SAP unconfirmed. Researcher discipline worth preserving on the re-run: they deliberately EXCLUDED safeguards from llama.com self-hosted deployment guides (mTLS, certificate pinning, CMK envelope encryption) as customer-operated, not Meta-operated \u2014 keep that exclusion. Re-run flags: (a) re-verify EACH line against its OWN page \u2014 the composite locator spans four URLs; (b) the no-training and no-ads commitments are the lines SAP will care about most \u2014 quote them verbatim from the fetched ToS; (c) the MGPT lines apply only if the MGPT is confirmed to be incorporated into the Llama API terms (that incorporation is itself an unverified snippet claim); (d) all of it is moot if the service is confirmed terminated \u2014 then the 30-day return-or-delete line becomes the question that matters (when was Tavus data deleted?)."
+   "value": "API inputs and outputs (Content) are not used to train Meta's AI models\nStrict role-based access controls limit access to customer data\nLlama API data is stored separately from other Meta product data\nCustomer data is not used for advertising or ad targeting\nPersonnel processing personal data are bound by contractual or statutory confidentiality obligations (MGPT)\nAccess management on least-privilege and separation-of-duties principles, with regular access reviews (Meta TOMs)\nRemote network access to Meta systems requires encrypted communication over secured protocols plus multi-factor authentication (Meta TOMs)\nPhysical access to Meta data centers restricted to authorized persons; environmental controls to detect, prevent and control destruction due to environmental hazards (Meta TOMs)\nReturn or deletion of Applicable Personal Data on termination: returned on written request within 30 days, otherwise deleted per retention policies (MGPT)",
+   "source_url": "https://llama.developer.meta.com/legal/terms-of-service",
+   "locator": "Assembled one-per-line from: Llama API Terms of Service / product page developer.meta.com/ai/products/llama-api/ (no-training commitment, role-based access controls, separate storage, no ads); facebook.com/legal/terms/Meta-Global-Processor-Terms/ (personnel confidentiality; 30-day return-or-delete on termination); facebook.com/legal/terms/Privacy/TOMs (least privilege, separation of duties, access reviews, MFA + encrypted remote access, data center physical and environmental controls)",
+   "confidence": "medium",
+   "notes": "Every line traces to a Meta-domain statement retrieved this session via domain-restricted search snippets; none of the pages could be fetched directly (gateway 403). Deliberately excludes safeguards from llama.com self-hosted deployment guides (mTLS, certificate pinning, CMK envelope encryption) \u2014 those describe customer-operated deployments, not the Meta-operated Llama API. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.2.1": {
    "value": "Not known",
@@ -88,22 +88,182 @@
    "locator": null,
    "confidence": "none",
    "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked (web-search budget exhausted 200/200; Meta domains CONNECT-denied). Researcher's reasoning preserved and endorsed: no Meta primary source states the Llama API offers an EU region / EU data residency, and the researcher correctly refused to misread the MGPT 'European Region Terms' (a TRANSFER MECHANISM governing international transfers, SCC-equivalent) as an EU processing-region offering \u2014 the playbook test is 'offers an EU region'. Largely moot given the reported 2026-07-06 service wind-down, but ask the vendor where Tavus's Llama API data was processed/stored and whether any Meta-hosted successor service offers EU Access (already in open questions). No upgrade."
+  },
+  "1.1.3": {
+   "value": "LLM hosting (Llama API): processes conversation transcripts and prompt content to generate replica dialogue; no end-user audio/video is sent.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "1.7": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "All Tavus sub-processors are US-based; the service has no non-US deployment path today, so no viable alternative avoiding US processing exists for the current architecture.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.3": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "The vendor necessarily processes personal data in clear text at the application layer to provide its service.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "3.1.5": {
+   "value": "Partly",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Encrypted in transit and at rest; data is necessarily processed in plaintext in memory during processing/inference.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.biometric": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Tavus processes face/voice media to render conversational replicas, not to uniquely identify natural persons; no biometric identification or authentication is performed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.browsing_history": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.cvs": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.driving_behavior": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.health": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.genetic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.hr": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.sex_life": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.photo": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.political": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.racial_ethnic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.voice_session": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.religious": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.trade_union": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.other": {
+   "value": "None",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "No other special categories intentionally processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.2": {
+   "value": "Conversation transcripts and prompt content; names and identifiers volunteered by end users; account metadata.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
   }
  },
  "verification": {
   "verified_by": "verifier pass 2026-07-31",
   "verdicts": {
-   "1.1": "downgraded_to_not_known",
-   "1.1.1": "downgraded_to_not_known",
-   "1.1.2": "downgraded_to_not_known",
+   "1.1": "source_cited_not_refetched",
+   "1.1.1": "source_cited_not_refetched",
+   "1.1.2": "source_cited_not_refetched",
    "1.4.2": "not_upgraded_search_unavailable",
-   "3.1.1": "downgraded_to_not_known",
+   "3.1.1": "source_cited_not_refetched",
    "3.1.2": "downgraded_to_not_known",
    "3.1.3": "not_upgraded_search_unavailable",
    "3.1.4": "not_upgraded_search_unavailable",
-   "3.1.6": "downgraded_to_not_known",
+   "3.1.6": "source_cited_not_refetched",
    "3.1.7": "not_upgraded_search_unavailable",
-   "3.1.8": "downgraded_to_not_known",
+   "3.1.8": "source_cited_not_refetched",
    "3.2.1": "not_upgraded_search_unavailable"
   },
   "disputes": [
