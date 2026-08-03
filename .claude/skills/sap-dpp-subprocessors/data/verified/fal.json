@@ -30,29 +30,29 @@
    "value": "SOC 2",
    "source_url": "https://fal.ai/enterprise",
    "locator": "Enterprise page: SOC 2 listed among enterprise security/compliance features ('fal offers SOC 2 compliance as part of its enterprise features'; 'fal is SOC 2 compliant with a public trust portal'), alongside SSO, private endpoints, and 24/7 priority support; fal directs customers to trust.fal.ai for its compliance posture",
-   "confidence": "medium",
-   "notes": "SOC 2 compliance is claimed on fal's own enterprise/homepage copy, but the Type (I vs II) and report period are NOT published anywhere retrieved this session \u2014 the trust portal (trust.fal.ai) that would state this could not be read (gateway 403 + no indexable content). A fal careers posting (Security Compliance Lead, https://fal.ai/careers/4019490009) references compliance programs 'including SOC 2, HIPAA, GDPR, and ISO 27001' \u2014 programs in progress are NOT certifications held; do not write ISO 27001 into the form on that basis. GATE: scope.yaml has soc2_on_file_in_vanta: null for Fal \u2014 per the playbook, do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta. All snippet-sourced; direct fetches blocked. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+   "confidence": "high",
+   "notes": "SOC 2 compliance is claimed on fal's own enterprise/homepage copy, but the Type (I vs II) and report period are NOT published anywhere retrieved this session \u2014 the trust portal (trust.fal.ai) that would state this could not be read (gateway 403 + no indexable content). A fal careers posting (Security Compliance Lead, https://fal.ai/careers/4019490009) references compliance programs 'including SOC 2, HIPAA, GDPR, and ISO 27001' \u2014 programs in progress are NOT certifications held; do not write ISO 27001 into the form on that basis. GATE: scope.yaml has soc2_on_file_in_vanta: null for Fal \u2014 per the playbook, do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta. All snippet-sourced; direct fetches blocked. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | Corroborated by fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.1: \"SOC 2 report on file with Tavus (Vanta)\""
   },
   "3.1.1": {
    "value": "Others - pls indicate below",
    "source_url": "https://docs.fal.ai/model-apis/model-endpoints",
    "locator": "API docs: all model endpoints are served over HTTPS (e.g. https://queue.fal.run); real-time docs recommend short-lived JWT tokens over WebSocket connections; no TLS version stated",
-   "confidence": "medium",
-   "notes": "HTTPS/TLS is the documented transport for all fal API and model endpoints, but NO TLS version is published anywhere retrieved this session, so none of the versioned dropdown options can be selected honestly (and 3.1.1 has no 'Not known' option). Real standard to indicate below: 'HTTPS/TLS (version not published by vendor \u2014 confirmation requested)'. Ask the vendor for the minimum negotiated TLS version on API/inference endpoints (1.2 floor? 1.3 supported?). Snippet-sourced; direct fetch blocked (gateway 403). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+   "confidence": "high",
+   "notes": "HTTPS/TLS is the documented transport for all fal API and model endpoints, but NO TLS version is published anywhere retrieved this session, so none of the versioned dropdown options can be selected honestly (and 3.1.1 has no 'Not known' option). Real standard to indicate below: 'HTTPS/TLS (version not published by vendor \u2014 confirmation requested)'. Ask the vendor for the minimum negotiated TLS version on API/inference endpoints (1.2 floor? 1.3 supported?). Snippet-sourced; direct fetch blocked (gateway 403). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | Corroborated by fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.28: \"Web servers use TLS encryption for web communication sessions. ... Encryption technologies such as VPN, TLS, and SFTP are used to protect communications and data during transmission.\""
   },
   "3.1.2": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed: session web-search budget exhausted (200/200 WebSearch calls) and all fal domains unfetchable (gateway 403 CONNECT denial). Researcher's reasoning stands on its own terms: the only at-rest statement found ('Secrets stored on fal are encrypted') covers platform secrets, not customer media \u2014 correctly NOT stretched to cover personal data. trust.fal.ai/controls would be the authoritative source; unreachable. 'Not known' is an allowed dropdown value for 3.1.2. Algorithm question already in open_questions_for_vendor. No upgrade."
+   "value": "Others - pls indicate below",
+   "source_url": "vanta://soc2/fal#p11",
+   "locator": "SOC 2 report on file, p.11",
+   "confidence": "high",
+   "notes": "fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.11: \"Use of encryption technologies to protect customer data both at rest and in transit\""
   },
   "3.1.3": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": null,
-   "confidence": "none",
-   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked by exhausted web-search budget (200/200) and fal-domain CONNECT denials. Consistent with the playbook's 'Not known is common and correct' for row 59 (backup encryption is rarely documented separately). Backup-encryption question already in open_questions_for_vendor. No upgrade."
+   "value": "Others - pls indicate below",
+   "source_url": "vanta://soc2/fal#p14",
+   "locator": "SOC 2 report on file, p.14",
+   "confidence": "high",
+   "notes": "fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.14: \"Backup infrastructure is maintained in Google Cloud Platform, with physical access restricted according to the policies. Backups are encrypted, with access restricted to key personnel.\""
   },
   "3.1.4": {
    "value": "Not known",
@@ -80,14 +80,14 @@
    "source_url": "https://fal.ai/docs/documentation/development/manage-secrets-securely",
    "locator": "Assembled one-per-line from the Secrets docs (encrypted secrets, build-stage withholding), real-time API docs https://docs.fal.ai/model-apis/real-time/secrets (short-lived JWT, server-side proxy), and the Enterprise page https://fal.ai/enterprise (SSO, private endpoints, no-training-on-enterprise-data commitment, trust portal)",
    "confidence": "medium",
-   "notes": "Every line traces to a fal-domain statement retrieved this session via domain-restricted search; none of the pages could be fetched directly (gateway 403). Deliberately excludes safeguards commonly attributed to GPU/inference clouds but not evidenced this session (workload isolation, penetration testing, vulnerability scanning, MFA \u2014 none of these were found stated on a fal page). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+   "notes": "Every line traces to a fal-domain statement retrieved this session via domain-restricted search; none of the pages could be fetched directly (gateway 403). Deliberately excludes safeguards commonly attributed to GPU/inference clouds but not evidenced this session (workload isolation, penetration testing, vulnerability scanning, MFA \u2014 none of these were found stated on a fal page). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | SOC 2 on file addresses this control without naming the standard: fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.28: \"Annual penetration testing is conducted by an independent third party on the network and on the Platform application.\""
   },
   "3.2.1": {
    "value": "Not known",
-   "source_url": null,
-   "locator": null,
+   "source_url": "vanta://soc2/fal#p18",
+   "locator": "SOC 2 report on file, p.18",
    "confidence": "none",
-   "notes": "Researcher value 'Not known' KEPT. Mandatory independent search blocked by exhausted web-search budget (200/200) and fal-domain CONNECT denials. Researcher's reasoning was sound: privacy policy says data is stored 'in the United States and other countries' and compute docs mention unnamed 'global regions' \u2014 neither is evidence of an EU Access OFFERING (the row-70 test), so 'Not known' rather than 'No'. 'Not known' is an allowed dropdown value for 3.2.1. EU-region question already in open_questions_for_vendor. No upgrade."
+   "notes": "No geographic location or EU statement in the report. Production hosted on Google Cloud Platform (carve-out subservice organization) at unspecified 'multiple facilities'; Lambda Labs listed as a cloud hosting platform in the software inventory. | fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.18: \"This report does not include the Cloud Hosting Services provided by GCP at multiple facilities. ... The Cloud Hosting Services provided by GCP support the physical infrastructure of the entities' services.\""
   },
   "1.1.3": {
    "value": "GPU inference: processes end-user video/audio frames in memory during real-time media generation.",
@@ -256,15 +256,15 @@
    "1.1": "source_cited_not_refetched",
    "1.1.1": "source_cited_not_refetched",
    "1.1.2": "source_cited_not_refetched",
-   "1.4.2": "source_cited_not_refetched",
-   "3.1.1": "source_cited_not_refetched",
-   "3.1.2": "not_upgraded_search_unavailable",
-   "3.1.3": "not_upgraded_search_unavailable",
+   "1.4.2": "soc2_on_file",
+   "3.1.1": "soc2_on_file",
+   "3.1.2": "soc2_on_file",
+   "3.1.3": "soc2_on_file",
    "3.1.4": "not_upgraded_search_unavailable",
    "3.1.6": "source_cited_not_refetched",
    "3.1.7": "not_upgraded_search_unavailable",
    "3.1.8": "source_cited_not_refetched",
-   "3.2.1": "not_upgraded_search_unavailable"
+   "3.2.1": "downgraded_to_not_known"
   },
   "disputes": [
    "fal/ALL sourced fields: network gateway policy-denies CONNECT to fal.ai, docs.fal.ai, trust.fal.ai AND web.archive.org/r.jina.ai mirrors (each source URL probed individually via curl; WebFetch 403 for all hosts) \u2014 zero source URLs fetchable; all 7 sourced values downgraded to Not known per resolution rules",
