@@ -1,38 +1,35 @@
 # Vendor privacy/security contacts — SAP DPP outreach
 
-Compiled 2026-07-31 from public LinkedIn search results and each vendor's own
-privacy/trust pages. **For outreach only** (sending the `open_questions_for_vendor`
-lists) — these are NOT form values; field 1.1.2 takes only primary-source DPO info.
+Compiled 2026-07-31, updated 2026-08-03 (CTO/engineering leaders added; Replicate,
+Meta, InWorld removed from scope). Sources: public LinkedIn search results, vendor
+privacy/trust pages, press. **For outreach only** — not form values. LinkedIn is
+login-walled, so names/titles come from search snippets and press with dates; items
+flagged uncertain in the detail sections deserve a quick check before contacting.
+No email addresses were guessed — published channels only.
 
-Caveat: the sandbox proxy blocked many direct page fetches, so several emails were
-extracted from search snippets of the vendors' own pages (sources cited per item in
-the group sections below). Worth a quick live confirmation before sending. No
-addresses were pattern-guessed.
+## Quick reference — 17 in-scope vendors
 
-## Quick reference — who to contact first
+| Vendor | Primary channel | Privacy/legal person | CTO / top engineering |
+|---|---|---|---|
+| Google Cloud | DPO form: support.google.com/cloud/contact/dpo | — (form only) | Will Grannis, VP & CTO Google Cloud (linkedin.com/in/wgrannis) |
+| AWS | aws-EU-privacy@amazon.com (EMEA DPO) + account team | — | Werner Vogels, VP & CTO Amazon (linkedin.com/in/wernervogels); Peter DeSantis leads AI/silicon org |
+| Cerebrium | security@cerebrium.ai (no DPO appointed) | Michael Louis, CEO | Jono Irwin, Co-founder & CTO (linkedin.com/in/jono-irwin) |
+| Fal | trust.fal.ai contact flow; support@fal.ai (unverified) | Burkay Gur (CEO) | Gorkem Yurtseven, co-founder (title unconfirmed) |
+| ElevenLabs | legal@elevenlabs.io (named DPO contact) | Alex Haskell (GC); Moussa Ismail (privacy-certified legal) | — |
+| Cartesia | security@cartesia.ai | Michael Le, GC (uncertain) | Karan Goel, CEO/co-founder (technical) |
+| Deepgram | security@deepgram.com → outsourced DPO | — (DPO unnamed) | Adam Sypniewski, Co-founder & CTO (linkedin.com/in/adam-sypniewski-32a25982) |
+| Daily | help@daily.co (GDPR/DPA contact) | Mark Backman, Data Privacy Manager | Kwindla Hultman Kramer, CEO (technical co-founder) |
+| Mux | privacy@mux.com; trust.mux.com | — | Adam Brown, Co-founder & CTO (title varies: "Head of Technology & Architecture" on Crunchbase) |
+| Cerebras | privacy@cerebras.net; trust.cerebras.ai | Naor Penso, CISO | Andrew Feldman, CEO/co-founder; CSO Andy Hock |
+| OpenAI | dpo@openai.com; trust.openai.com | — | No single CTO. Jakub Pachocki, Chief Scientist; Vijaye Raji, CTO of Applications; Uday Ruddarraju, CTO of Compute |
+| Groq | legal@groq.com; security@groq.com | Claire Hart, CLO (no verified LinkedIn) | — |
+| Slack | dpo@slack.com / privacy@slack.com | — | Parker Harris, CTO of Slack (Salesforce co-founder) |
+| Pylon | security@usepylon.com (no privacy email) | Aashish Kapur (security, uncertain) | Advith Chelikani / Robert Eng, technical co-founders |
+| Salesforce | privacy@salesforce.com + privacy-request form | Lindsey Finch, EVP Global Privacy | (Parker Harris is a Salesforce co-founder; corporate CTO structure not researched) |
+| Stripe | dpo@stripe.com | — | **CTO seat vacant** — Rahul Patil left Oct 2025, no announced successor as of Aug 2026 |
+| Orb | privacy@withorb.com / security@withorb.com | Alvaro Morales (CEO) | Kshitij Grover, Co-founder & CTO (linkedin.com/in/kshitij-grover-7754a456) |
 
-| Vendor | Primary channel | Named person (LinkedIn-sourced) |
-|---|---|---|
-| Google Cloud | Cloud Data Protection Team form: support.google.com/cloud/contact/dpo | — (form only) |
-| AWS | aws-EU-privacy@amazon.com (EMEA DPO) + your AWS account team | — |
-| Cerebrium | security@cerebrium.ai (no DPO appointed) | Michael Louis, CEO |
-| Replicate | privacy@replicate.com — note: acquired by Cloudflare (Nov 2025); escalate via dpo@cloudflare.com | Andreas Jansson, co-founder |
-| Fal | trust.fal.ai contact flow; support@fal.ai (unverified) | Burkay Gur (CEO), Gorkem Yurtseven |
-| ElevenLabs | legal@elevenlabs.io (named DPO contact) | Alex Haskell (GC); Moussa Ismail (privacy-certified legal) |
-| Cartesia | security@cartesia.ai (per their privacy policy) | Michael Le, GC (uncertain) |
-| InWorld | privacy@inworld.ai | Oliver Louie (title unconfirmed) |
-| Deepgram | security@deepgram.com → routes to outsourced DPO (name not published) | — |
-| Daily | help@daily.co (their GDPR/DPA contact) | Mark Backman, Data Privacy Manager |
-| Mux | privacy@mux.com; trust.mux.com | — (founders as fallback) |
-| Cerebras | privacy@cerebras.net; trust.cerebras.ai | Naor Penso, CISO |
-| Meta (Llama API) | DPO form facebook.com/help/contact/540977946302970 + Llama API managed-account channel | — |
-| OpenAI | dpo@openai.com; trust.openai.com for SOC 2/ISO evidence | — |
-| Groq | legal@groq.com; security@groq.com (security.txt) | Claire Hart, CLO (no verified LinkedIn) |
-| Slack | dpo@slack.com / privacy@slack.com | — |
-| Pylon | security@usepylon.com (no privacy email published) | Aashish Kapur (security, uncertain); Marty Kausas, CEO |
-| Salesforce | privacy@salesforce.com + privacy-request form | Lindsey Finch, EVP Global Privacy |
-| Stripe | dpo@stripe.com | — |
-| Orb | privacy@withorb.com / security@withorb.com | Alvaro Morales (CEO), Kshitij Grover (CTO) |
+Out of scope (removed 2026-08-03, research retained below): Replicate, Meta, InWorld.
 
 ---
 
@@ -400,3 +397,176 @@ No dedicated security/privacy/legal individual for Orb (withorb) surfaced in Lin
 - Contact form: https://www.withorb.com/contact-us
 
 **Recommendation:** Email **privacy@withorb.com** (cc **security@withorb.com**) first; fallback: LinkedIn message to CTO Kshitij Grover.
+# Top technical executives — Group 1 (Google Cloud, AWS, Meta, OpenAI)
+
+Researched via web search on 2026-08-03. LinkedIn URLs come from search-result
+snippets only (profiles are login-walled); every role claim carries a dated
+source. No email addresses were researched or guessed.
+
+## Google Cloud (division of Alphabet/Google)
+
+| Field | Value |
+|---|---|
+| Name | Will Grannis |
+| Exact title | VP and CTO, Google Cloud |
+| LinkedIn | https://www.linkedin.com/in/wgrannis (snippet title: "Will Grannis - VP and CTO, Google Cloud") |
+| Confirming source 1 | Google Cloud press corner bio: https://www.googlecloudpresscorner.com/Will-Grannis |
+| Confirming source 2 | SiliconANGLE interview, 2026-05-20: https://siliconangle.com/2026/05/20/enterprise-agentic-ai-focus-google-cloud-googlecloudnext/ ; Cloud Wars interview, 2026-04-13: https://cloudwars.com/ai/google-clouds-will-grannis-on-culture-metrics-and-winning-the-ai-economy/ |
+| As of | May 2026 (most recent dated source found) |
+
+**Confidence: High.** Division-level CTO exists and is current — multiple 2026
+interviews identify him as Google Cloud CTO (role held since 2020). Note:
+Google/Alphabet has no corporate-parent CTO; Grannis is the relevant tech
+executive for the Cloud division.
+
+## Amazon Web Services (AWS)
+
+| Field | Value |
+|---|---|
+| Name | Dr. Werner Vogels |
+| Exact title | VP and Chief Technology Officer, Amazon.com (corporate parent — AWS has **no division-level CTO**) |
+| LinkedIn | https://www.linkedin.com/in/wernervogels/ (snippet title: "Werner Vogels - Amazon.com") |
+| Confirming source 1 | Fortune, 2026-07-09 ("Amazon's CTO on how developers can ride out the AI-powered coding wave"): https://fortune.com/2026/07/09/amazons-cto-on-how-developers-can-ride-out-the-ai-powered-coding-wave/ |
+| Confirming source 2 | AboutAmazon / AWS Executive Insights, 2026 predictions (published ~Nov 2025): https://www.aboutamazon.com/news/aws/werner-vogels-amazon-cto-predictions-2026 |
+| As of | July 2026 |
+
+**Confidence: High** for Vogels being current Amazon CTO (Fortune feature dated
+2026-07-09). **Structural note:** AWS the division does not have its own CTO
+title; Vogels (Amazon corporate CTO since 2005) is the closest and most
+public-facing technical executive and is strongly AWS-associated. Secondary
+division-level contact: **Peter DeSantis**, long-time SVP of AWS Utility
+Computing, who in an early-2026 restructure by CEO Andy Jassy now leads a new
+unified org for AI models (Nova), custom silicon (Trainium/Graviton/Nitro),
+and quantum computing — sources: https://www.aboutamazon.com/news/company-news/andy-jassy-peter-desantis-amazon-leadership-update
+and https://www.ciodive.com/news/amazon-ai-chief-exits-leadership-shakeup/808189/ (2026);
+LinkedIn: https://www.linkedin.com/in/peterdesantis/ (snippet gives no title —
+title from press sources, not the LinkedIn snippet).
+
+## Meta Platforms
+
+| Field | Value |
+|---|---|
+| Name | Andrew "Boz" Bosworth |
+| Exact title | Chief Technology Officer, Meta (also Head of Reality Labs) |
+| LinkedIn | https://www.linkedin.com/in/andrew-bosworth-8247a01/ (snippet shows "Palo Alto, California"; matching /posts/andrew-bosworth-8247a01_ activity appears in results — high but not absolute certainty this is the Meta CTO's profile, as the snippet itself did not state the title) |
+| Confirming source 1 | Meta leadership page (current): https://www.meta.com/about/leadership/andrew-boz-bosworth/ |
+| Confirming source 2 | Fortune, 2026-04-24: https://fortune.com/2026/04/24/meta-cto-andrew-bosworth-only-stressed-5-times-a-year-actually-useful-signal/ ; PYMNTS 2026: https://www.pymnts.com/meta/2026/meta-cto-leads-efforts-to-equip-workforce-with-ai-tools/ |
+| As of | April 2026+ |
+
+**Confidence: High** on name/title (CTO since 2022, multiple 2026 sources).
+**Medium** on the LinkedIn URL — flagged above; Bosworth is not very active on
+LinkedIn and the snippet did not carry his title.
+
+## OpenAI
+
+**No single company-wide CTO exists.** Mira Murati (the last company-wide CTO)
+departed in September 2024 (https://techcrunch.com/2024/09/25/openais-chief-research-officer-has-left).
+OpenAI has since split the role into divisional CTOs; the top research/technical
+executive is the Chief Scientist.
+
+| Field | Value |
+|---|---|
+| Name (top technical/research exec) | Jakub Pachocki |
+| Exact title | Chief Scientist, OpenAI (since May 2024, succeeding Ilya Sutskever) |
+| LinkedIn | https://www.linkedin.com/in/jakub-pachocki/ (snippet title: "Jakub Pachocki - OpenAI") |
+| Confirming source 1 | OpenAI announcement: https://openai.com/index/jakub-pachocki-announced-as-chief-scientist/ (May 2024) |
+| Confirming source 2 | MIT Technology Review, 2026-03-20 (identifies him leading OpenAI research direction): https://www.technologyreview.com/2026/03/20/1134438/openai-is-throwing-everything-into-building-a-fully-automated-researcher/ |
+| As of | March 2026 |
+
+Divisional CTOs (both current, both plausible B2B outreach targets):
+
+| Name | Exact title | LinkedIn | Confirming source | As of |
+|---|---|---|---|---|
+| Vijaye Raji | CTO of Applications (product engineering for ChatGPT and Codex; reports to Fidji Simo) | https://www.linkedin.com/in/vijaye (inferred from his LinkedIn posts URL slug `/posts/vijaye_...` — flagged as inferred, not from a direct profile snippet) | OpenAI announcement, Sept 2025: https://openai.com/index/vijaye-raji-to-become-cto-of-applications-with-acquisition-of-statsig/ ; Reuters via TradingView, 2025 | Sept 2025 (no contradicting newer results) |
+| Uday Ruddarraju | CTO, Compute (promoted July 2026; ex-xAI Head of Infrastructure Engineering) | https://www.linkedin.com/in/udaykumarraju/ (snippet title: "Uday Ruddarraju - OpenAI") | DataCenterDynamics: https://www.datacenterdynamics.com/en/news/uday-ruddarraju-named-openais-cto-of-compute/ ; American Bazaar, 2026-07-20: https://americanbazaaronline.com/2026/07/20/openal-elevates-uday-ruddaraju-to-cto-484824/ | July 2026 |
+
+**Confidence: High** on the structure (no single CTO) and on Pachocki and
+Ruddarraju; **Medium** on Raji's exact LinkedIn URL (inferred from posts slug).
+Also relevant: Mark Chen, Chief Research Officer (per MIT Tech Review
+2026-03-20); Greg Brockman, President/co-founder.
+# Top technical executives — Group 2 (Deepgram, Mux, Slack, Stripe)
+
+Researched via web search on 2026-08-03. LinkedIn URLs come from search-result
+snippets only (profiles are login-walled); every role claim carries a dated
+source. No email addresses were researched or guessed.
+
+## Deepgram (deepgram.com — speech-to-text)
+
+| Field | Value |
+|---|---|
+| Name | Adam Sypniewski |
+| Exact title | Co-founder & Chief Technology Officer, Deepgram |
+| LinkedIn | https://www.linkedin.com/in/adam-sypniewski-32a25982/ (snippet title: "Adam Sypniewski - CTO at Deepgram") |
+| Confirming source 1 | Deepgram's own X/Twitter account, 2025-08 ("Deepgram CTO, Adam Sypniewski, breaks down why sub-second latency…"): https://x.com/DeepgramAI/status/1957492842169090552 |
+| Confirming source 2 | Crunchbase person profile ("Adam Sypniewski - CTO @ Deepgram"): https://www.crunchbase.com/person/adam-sypniewski ; Deepgram author page: https://deepgram.com/authors/adam-sypniewski |
+| As of | Aug 2025 (most recent dated source found; no contradicting newer result) |
+
+**Confidence: High.** Technical co-founder (founded 2015 with CEO Scott
+Stephenson and Noah Shutty) who holds the CTO title; Deepgram's own channel
+called him CTO in Aug 2025 and nothing newer contradicts it. Minor flag: no
+2026-dated source was found — freshest confirmation is ~12 months old.
+
+## Mux (mux.com — video infrastructure)
+
+| Field | Value |
+|---|---|
+| Name | Adam Brown |
+| Exact title | Co-founder & CTO (Mux team page / The Org); Crunchbase lists it as "Co-founder, Head of Technology and Architecture" — see note |
+| LinkedIn | https://www.linkedin.com/in/adam-brown-7452b03a/ (snippet title: "Adam Brown - Mux"; snippet did not state a title) |
+| Confirming source 1 | Mux team page ("Blog posts by Adam Brown", listed as Co-Founder, CTO per search snippet): https://www.mux.com/team/adam-brown |
+| Confirming source 2 | The Org ("Adam Brown - Co-Founder & CTO at Mux"): https://theorg.com/org/mux/org-chart/adam-brown ; Crunchbase ("Co-founder, Head of Technology and Architecture @ Mux"): https://www.crunchbase.com/person/adam-brown-7 |
+| As of | 2026-08-03 search date; underlying sources are undated aggregator/company pages |
+
+**Confidence: Medium-High** that Adam Brown is the top technical executive
+(technical co-founder alongside CEO Jon Dahl). **Title uncertainty flagged:**
+sources split between "Co-Founder & CTO" (Mux site, The Org, RocketReach)
+and "Co-founder, Head of Technology and Architecture" (Crunchbase) — the
+latter may reflect a re-titling; none of the sources carry a 2025/2026 date.
+No departure or replacement was found in any search result. LinkedIn snippet
+itself did not confirm the title — do not cite LinkedIn alone for Mux.
+
+## Slack (slack.com — Salesforce subsidiary)
+
+| Field | Value |
+|---|---|
+| Name | Parker Harris |
+| Exact title | Chief Technology Officer, Slack (also Co-founder of Salesforce; Salesforce board member) |
+| LinkedIn | https://www.linkedin.com/in/parker-harris-451040211/ (snippet title: "Parker Harris - CTO Salesforce" — snippet wording lags his Slack move; see note) |
+| Confirming source 1 | Salesforce official bio ("Parker Harris, Co-Founder, Salesforce & Chief Technology Officer, Slack"): https://www.salesforce.com/company/parker-harris-bio/ (headshot/news page: https://www.salesforce.com/news/parker-harris-headshot-2017/) |
+| Confirming source 2 | diginomica, 2026 (post-TDX 2026, ~Apr 2026): "Slack CTO Parker Harris gets personal about a game-changing overhaul": https://diginomica.com/slackbot-re-born-agentic-enterprise-slack-cto-parker-harris-gets-personal-about-game-changing ; TDX 2026 coverage: https://salesforcetrail.com/tdx-2026-slack-front-door-agentic-enterprise/ |
+| As of | ~April 2026 (TDX 2026 press coverage) |
+
+**Confidence: High.** Harris (Salesforce co-founder) took over as Slack's
+technology chief in Jan/Feb 2024 after co-founder Cal Henderson stepped down
+(Yahoo Finance/Fortune exclusive: https://finance.yahoo.com/news/exclusive-slack-cto-cal-henderson-170000293.html).
+Do **not** contact Cal Henderson — he departed in 2024. Flags: (a) the original
+Jan 2024 announcement used "Slack Chief Engineering Officer"
+(https://www.salesforceben.com/parker-harris-to-become-slack-chief-engineering-officer-after-co-founder-leaves/),
+but 2026 sources consistently say "CTO, Slack"; (b) his LinkedIn snippet still
+reads "CTO Salesforce" — prefer the Salesforce bio + 2026 press for the title.
+
+## Stripe (stripe.com — payments)
+
+| Field | Value |
+|---|---|
+| Name | **Role vacant / successor not publicly announced** — do not list a current CTO |
+| Exact title | n/a (last holder: Rahul Patil, CTO Aug 2024 – Oct 2025, departed) |
+| LinkedIn | n/a |
+| Confirming source 1 | Anthropic newsroom, 2025-10: "Rahul Patil joins Anthropic as Chief Technology Officer" (he "most recently served as CTO of Stripe"): https://www.anthropic.com/news/rahul-patil-joins-anthropic |
+| Confirming source 2 | TechCrunch, 2025-10-02: https://techcrunch.com/2025/10/02/anthropic-hires-new-cto-with-focus-on-ai-infrastructure/ ; prior succession context (Singleton → Patil, Sep 2024): https://www.financemagnates.com/executives/stripe-promotes-rahul-patil-to-chief-technology-officer-david-singleton-departs/ |
+| As of | 2026-08-03 (searches covering Oct 2025 – Aug 2026 found no successor announcement) |
+
+**Confidence: High that the seat is publicly unfilled; low visibility on who
+runs engineering day-to-day.** Timeline: David Singleton (CTO 7 yrs) stepped
+down Aug/Sep 2024 → Rahul Patil promoted from Deputy CTO → Patil left for
+Anthropic Oct 2025. Multiple searches ("Stripe new CTO", newsroom queries,
+Nov 2025–2026 windows) surfaced **no** announced replacement; Stripe's 2026
+newsroom items cover other roles (Eileen O'Mara vice chair, Tyler Bryson CRO:
+https://stripe.com/newsroom/news/eileen-omara-named-vice-chair-of-stripe-tyler-bryson-appointed-chief-revenue-officer).
+Note: Rajeev Rajan (ex-Atlassian CTO) joined Stripe in Apr 2026 but as
+"Business Lead, Revenue and Financial Automation" — **not** CTO
+(https://hrtoday.in/rajeev-rajan-joins-stripe-as-business-lead-for-revenue-and-financial-automation-rfa-division/).
+For outreach, no individual can be named as Stripe's current top engineering
+executive from public sources; engineering leads found are regional/divisional
+only (e.g., Felix Fung, Head of Engineering, Business Network — Stripe
+Sessions 2026: https://stripe.com/sessions/2026/opening-remarks-and-product).
