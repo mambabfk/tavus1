@@ -34,18 +34,18 @@
    "notes": "VERIFIER CONFIRMED 2026-07-31: quoted passage found verbatim on the fetched SOC 2 compliance page. INDEPENDENT BLOCKER (unchanged from researcher's own caveat): scope.yaml has soc2_on_file_in_vanta: null for GCP \u2014 per the field playbook (row 14, Bucket A+B) do NOT write 'SOC 2' into the workbook until Google Cloud's SOC 2 report is confirmed on file in Vanta (obtain via Compliance Reports Manager). Logged in review_queue.md; the page-level fact is verified, the Tavus-side evidence gate is not. | Corroborated by Google Cloud Platform SOC 2 Type II Winter 2026 (Mar 2025 - Feb 2026, EY), p.1: \"SOC 2 Type II report on file with Tavus (Vanta)\""
   },
   "3.1.1": {
-   "value": "Others - pls indicate below",
+   "value": "TLS 1.2",
    "source_url": "https://cloud.google.com/privacy/gdpr",
    "locator": "GDPR resource center, encryption-in-transit passage: 'applied by default on Google Cloud to encrypt requests before transmission and to protect the raw data using the Transport Layer Security (TLS) protocol'",
-   "confidence": "high",
-   "notes": "VERIFIER CONFIRMED 2026-07-31: quote found verbatim on the fetched GDPR page. Independently re-checked for version numbers: zero matches for any 'TLS 1.x' string across the full fetched text of the GDPR page, the Cloud DPA, and the Service Terms \u2014 so the versioned dropdown options (TLS 1.2/1.3) genuinely cannot be selected from these sources, and 'Others - pls indicate below' (real standard: TLS, version unstated) is the correct conservative choice. The 'Encryption in transit' whitepaper that documents versions lives on docs.cloud.google.com, which is policy-blocked by this sandbox's gateway (403 CONNECT, re-confirmed this session). A human with normal network access should confirm the TLS version from https://docs.cloud.google.com/docs/security/encryption-in-transit before submission and upgrade this cell to TLS 1.2 or 1.3 if stated. Free-text indication to accompany the dropdown: 'TLS (Transport Layer Security), applied by default; version not stated in Google's DPA/GDPR pages.' | Corroborated by Google Cloud Platform SOC 2 Type II Winter 2026 (Mar 2025 - Feb 2026, EY), p.53: \"This service also offers transport encryption to enhance data confidentiality in transit. Google uses encryption to secure user data in transit between Google production facilities.\""
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io 2026-08-03: vendor's SOC 2/documentation confirms encryption for this control without naming the standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained below. | VERIFIER CONFIRMED 2026-07-31: quote found verbatim on the fetched GDPR page. Independently re-checked for version numbers: zero matches for any 'TLS 1.x' string across the full fetched text of the GDPR page, the Cloud DPA, and the Service Terms \u2014 so the versioned dropdown options (TLS 1.2/1.3) genuinely cannot be selected from these sources, and 'Others - pls indicate below' (real standard: TLS, version unstated) is the correct conservative choice. The 'Encryption in transit' whitepaper that documents versions lives on docs.cloud.google.com, which is policy-blocked by this sandbox's gateway (403 CONNECT, re-confirmed this session). A human with normal network access should confirm the TLS version from https://docs.cloud.google.com/docs/security/encryption-in-transit before submission and upgrade this cell to TLS 1.2 or 1.3 if stated. Free-text indication to accompany the dropdown: 'TLS (Transport Layer Security), applied by default; version not stated in Google's DPA/GDPR pages.' | Corroborated by Google Cloud Platform SOC 2 Type II Winter 2026 (Mar 2025 - Feb 2026, EY), p.53: \"This service also offers transport encryption to enhance data confidentiality in transit. Google uses encryption to secure user data in transit between Google production facilities.\""
   },
   "3.1.2": {
-   "value": "Others - pls indicate below",
+   "value": "AES-256",
    "source_url": "vanta://soc2/gcp#p116",
    "locator": "SOC 2 report on file, p.116",
-   "confidence": "high",
-   "notes": "Google Cloud Platform SOC 2 Type II Winter 2026 (Mar 2025 - Feb 2026, EY), p.116: \"51. Customer data that is uploaded or created is encrypted at rest. CC6.1 ... Inspected the encryption configuration for storage devices with customer data at rest and determined that encryption was enabled. No deviations noted.\""
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io 2026-08-03: vendor's SOC 2/documentation confirms encryption for this control without naming the standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained below. | Google Cloud Platform SOC 2 Type II Winter 2026 (Mar 2025 - Feb 2026, EY), p.116: \"51. Customer data that is uploaded or created is encrypted at rest. CC6.1 ... Inspected the encryption configuration for storage devices with customer data at rest and determined that encryption was enabled. No deviations noted.\""
   },
   "3.1.3": {
    "value": "AES-256",
@@ -257,8 +257,8 @@
    "1.1.1": "confirmed",
    "1.1.2": "confirmed",
    "1.4.2": "soc2_on_file",
-   "3.1.1": "soc2_on_file",
-   "3.1.2": "soc2_on_file",
+   "3.1.1": "assumed_baseline",
+   "3.1.2": "assumed_baseline",
    "3.1.3": "suggested_unverified",
    "3.1.4": "soc2_on_file",
    "3.1.6": "confirmed",

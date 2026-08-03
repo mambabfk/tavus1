@@ -34,11 +34,11 @@
    "notes": "Certifications evidenced on Cerebrium's own pages this session: SOC 2 (security page says Type I; a cerebrium.ai search snippet dated 2026-07-15 says SOC 2 Type II has since been achieved \u2014 Type I vs Type II must be confirmed and the current report obtained) and ISO 27001 (announced as 'compliant' in a vendor blog \u2014 'compliant' is not the same as 'certified'; ask for the certificate and scope statement). HIPAA (BAA available) and GDPR are claimed but are not options in this dropdown. Dropdown takes one value; 'SOC 2' chosen as the audit evidence Tavus most likely relies on, 'ISO 27001' is the alternative. GATE: scope.yaml has soc2_on_file_in_vanta: null for Cerebrium \u2014 per the playbook, do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta. All snippet-sourced; direct fetches blocked (gateway 403). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | Corroborated by Cerebrium Inc. SOC 2 TYPE 1 (design only, as of Oct 16 2025, MJD Advisors), p.1: \"SOC 2 report on file with Tavus (Vanta) \u2014 TYPE 1 (design only)\""
   },
   "3.1.1": {
-   "value": "Others - pls indicate below",
+   "value": "TLS 1.2",
    "source_url": "https://docs.cerebrium.ai/security",
    "locator": "Security & Data Privacy page: 'Cerebrium enforces HTTPS for all services using TLS (SSL), covering both the Cerebrium Dashboard and Python package'; also 'Systems are only accessible via a Virtual Private Network where all communication is done via SSL encryption'",
-   "confidence": "high",
-   "notes": "TLS/HTTPS is enforced for all services, but NO TLS version is published anywhere retrieved this session, so none of the versioned dropdown options can be selected honestly. Real standard to indicate below: 'TLS (version not published by vendor \u2014 confirmation requested)'. Ask the vendor for the minimum negotiated TLS version on inference endpoints (1.2 floor? 1.3 supported?). Snippet-sourced; direct fetch blocked. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | Corroborated by Cerebrium Inc. SOC 2 TYPE 1 (design only, as of Oct 16 2025, MJD Advisors), p.24: \"Secure data transmission protocols are used to encrypt confidential and sensitive data when transmitted over public networks.\""
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io 2026-08-03: vendor's SOC 2/documentation confirms encryption for this control without naming the standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained below. | TLS/HTTPS is enforced for all services, but NO TLS version is published anywhere retrieved this session, so none of the versioned dropdown options can be selected honestly. Real standard to indicate below: 'TLS (version not published by vendor \u2014 confirmation requested)'. Ask the vendor for the minimum negotiated TLS version on inference endpoints (1.2 floor? 1.3 supported?). Snippet-sourced; direct fetch blocked. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | Corroborated by Cerebrium Inc. SOC 2 TYPE 1 (design only, as of Oct 16 2025, MJD Advisors), p.24: \"Secure data transmission protocols are used to encrypt confidential and sensitive data when transmitted over public networks.\""
   },
   "3.1.2": {
    "value": "AES-256",
@@ -257,7 +257,7 @@
    "1.1.1": "source_cited_not_refetched",
    "1.1.2": "source_cited_not_refetched",
    "1.4.2": "soc2_on_file",
-   "3.1.1": "soc2_on_file",
+   "3.1.1": "assumed_baseline",
    "3.1.2": "soc2_on_file",
    "3.1.3": "soc2_on_file",
    "3.1.4": "suggested_unverified",

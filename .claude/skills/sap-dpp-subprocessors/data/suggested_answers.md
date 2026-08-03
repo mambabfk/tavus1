@@ -72,3 +72,13 @@ They are marked `confidence: suggested` in data/verified/ and flagged in cell no
 - **cerebrium / 3.2.1** — Vendor's only region citation is eu-west-2 (London — UK is on SAP's 1.7 country list); email vendor for an EU-member region before answering Yes
 - **fal / 3.2.1** — GCP offers EU regions but fal publishes no region-pinning offering; email vendor
 - **mux / 3.2.1** — No public EU hosting statement found; email vendor
+
+## Assumed encryption baseline (2026-08-03, per tim@tavus.io)
+
+All cells that read "Others - pls indicate below" (encryption confirmed by the
+vendor's SOC 2/docs but standard unnamed) were upgraded to the modern enterprise
+baseline: **TLS 1.2** in transit, **AES-256** at rest/backups — 24 cells across
+15 vendors. Marked `confidence: assumed_baseline` in the data with the original
+evidence retained in each cell's notes. Where a vendor documents a specific
+standard it was kept as-is; deepgram/cerebras TLS 1.2 and AWS/Stripe AES-256
+remain fully sourced.

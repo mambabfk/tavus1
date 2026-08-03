@@ -34,11 +34,11 @@
    "notes": "Pylon Labs, Inc. SOC 2 Type 2 (Aug 2024 - Aug 2025, ConstellationGRC), p.1: \"SOC 2 Type II report on file with Tavus (Vanta)\""
   },
   "3.1.1": {
-   "value": "Others - pls indicate below",
+   "value": "TLS 1.2",
    "source_url": "vanta://soc2/pylon#p36",
    "locator": "SOC 2 report on file, p.36",
-   "confidence": "high",
-   "notes": "Pylon Labs, Inc. SOC 2 Type 2 (Aug 2024 - Aug 2025, ConstellationGRC), p.36: \"The company uses secure data transmission protocols to encrypt confidential and sensitive data when transmitted over public networks. Inspected the company's website and TLS certificate\""
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io 2026-08-03: vendor's SOC 2/documentation confirms encryption for this control without naming the standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained below. | Pylon Labs, Inc. SOC 2 Type 2 (Aug 2024 - Aug 2025, ConstellationGRC), p.36: \"The company uses secure data transmission protocols to encrypt confidential and sensitive data when transmitted over public networks. Inspected the company's website and TLS certificate\""
   },
   "3.1.2": {
    "value": "AES-256",
@@ -278,7 +278,7 @@
    "1.1.1": "suggested_unverified",
    "1.1.2": "suggested_unverified",
    "1.4.2": "soc2_on_file",
-   "3.1.1": "soc2_on_file",
+   "3.1.1": "assumed_baseline",
    "3.1.2": "suggested_unverified",
    "3.1.3": "suggested_unverified",
    "3.1.4": "suggested_unverified",

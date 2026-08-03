@@ -34,11 +34,11 @@
    "notes": "Cartesia's own pages consistently claim SOC 2 Type II, PCI-DSS (Level 1 service provider), HIPAA, and GDPR compliance. Of the form's dropdown options only 'SOC 2' matches. ISO 27001 was NOT confirmed on any vendor source this session (the only ISO 27001 mention was a third-party site \u2014 disregarded). GATE: scope.yaml has soc2_on_file_in_vanta: null for Cartesia \u2014 per the playbook, do not assert SOC 2 in the form until Cartesia's SOC 2 Type II report is actually on file in Vanta; request it via trust.cartesia.ai. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | Corroborated by Cartesia AI, Inc. SOC 2 Type II (Jun - Sep 2025, Johanson Group), p.1: \"SOC 2 Type II report on file with Tavus (Vanta)\""
   },
   "3.1.1": {
-   "value": "Others - pls indicate below",
+   "value": "TLS 1.2",
    "source_url": "vanta://soc2/cartesia#p31",
    "locator": "SOC 2 report on file, p.31",
-   "confidence": "high",
-   "notes": "Cartesia AI, Inc. SOC 2 Type II (Jun - Sep 2025, Johanson Group), p.31: \"The company uses secure data transmission protocols to encrypt confidential and sensitive data when transmitted over public networks. Inspected Cartesia AI, Inc.'s SSL/TLS enforced on the company website\""
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io 2026-08-03: vendor's SOC 2/documentation confirms encryption for this control without naming the standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained below. | Cartesia AI, Inc. SOC 2 Type II (Jun - Sep 2025, Johanson Group), p.31: \"The company uses secure data transmission protocols to encrypt confidential and sensitive data when transmitted over public networks. Inspected Cartesia AI, Inc.'s SSL/TLS enforced on the company website\""
   },
   "3.1.2": {
    "value": "AES-256",
@@ -264,7 +264,7 @@
    "1.1.1": "source_cited_not_refetched",
    "1.1.2": "source_cited_not_refetched",
    "1.4.2": "soc2_on_file",
-   "3.1.1": "soc2_on_file",
+   "3.1.1": "assumed_baseline",
    "3.1.2": "suggested_unverified",
    "3.1.3": "suggested_unverified",
    "3.1.4": "suggested_unverified",

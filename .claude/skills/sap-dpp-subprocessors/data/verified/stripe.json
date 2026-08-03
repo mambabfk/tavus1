@@ -34,11 +34,11 @@
    "notes": "Stripe, Inc. SOC 2 Type 2 (Apr 2025 - Mar 2026, Coalfire), p.1: \"SOC 2 Type II report on file with Tavus (Vanta)\""
   },
   "3.1.1": {
-   "value": "Others - pls indicate below",
+   "value": "TLS 1.2",
    "source_url": "vanta://soc2/stripe#p67",
    "locator": "SOC 2 report on file, p.67",
-   "confidence": "high",
-   "notes": "Stripe, Inc. SOC 2 Type 2 (Apr 2025 - Mar 2026, Coalfire), p.67: \"Sensitive customer data is encrypted via TLS in transit to ensure data security.\""
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io 2026-08-03: vendor's SOC 2/documentation confirms encryption for this control without naming the standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained below. | Stripe, Inc. SOC 2 Type 2 (Apr 2025 - Mar 2026, Coalfire), p.67: \"Sensitive customer data is encrypted via TLS in transit to ensure data security.\""
   },
   "3.1.2": {
    "value": "AES-256",
@@ -257,7 +257,7 @@
    "1.1.1": "source_cited_not_refetched",
    "1.1.2": "suggested_unverified",
    "1.4.2": "soc2_on_file",
-   "3.1.1": "soc2_on_file",
+   "3.1.1": "assumed_baseline",
    "3.1.2": "soc2_on_file",
    "3.1.3": "suggested_unverified",
    "3.1.4": "suggested_unverified",

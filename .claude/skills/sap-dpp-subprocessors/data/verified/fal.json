@@ -34,25 +34,25 @@
    "notes": "SOC 2 compliance is claimed on fal's own enterprise/homepage copy, but the Type (I vs II) and report period are NOT published anywhere retrieved this session \u2014 the trust portal (trust.fal.ai) that would state this could not be read (gateway 403 + no indexable content). A fal careers posting (Security Compliance Lead, https://fal.ai/careers/4019490009) references compliance programs 'including SOC 2, HIPAA, GDPR, and ISO 27001' \u2014 programs in progress are NOT certifications held; do not write ISO 27001 into the form on that basis. GATE: scope.yaml has soc2_on_file_in_vanta: null for Fal \u2014 per the playbook, do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta. All snippet-sourced; direct fetches blocked. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | Corroborated by fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.1: \"SOC 2 report on file with Tavus (Vanta)\""
   },
   "3.1.1": {
-   "value": "Others - pls indicate below",
+   "value": "TLS 1.2",
    "source_url": "https://docs.fal.ai/model-apis/model-endpoints",
    "locator": "API docs: all model endpoints are served over HTTPS (e.g. https://queue.fal.run); real-time docs recommend short-lived JWT tokens over WebSocket connections; no TLS version stated",
-   "confidence": "high",
-   "notes": "HTTPS/TLS is the documented transport for all fal API and model endpoints, but NO TLS version is published anywhere retrieved this session, so none of the versioned dropdown options can be selected honestly (and 3.1.1 has no 'Not known' option). Real standard to indicate below: 'HTTPS/TLS (version not published by vendor \u2014 confirmation requested)'. Ask the vendor for the minimum negotiated TLS version on API/inference endpoints (1.2 floor? 1.3 supported?). Snippet-sourced; direct fetch blocked (gateway 403). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | Corroborated by fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.28: \"Web servers use TLS encryption for web communication sessions. ... Encryption technologies such as VPN, TLS, and SFTP are used to protect communications and data during transmission.\""
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io 2026-08-03: vendor's SOC 2/documentation confirms encryption for this control without naming the standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained below. | HTTPS/TLS is the documented transport for all fal API and model endpoints, but NO TLS version is published anywhere retrieved this session, so none of the versioned dropdown options can be selected honestly (and 3.1.1 has no 'Not known' option). Real standard to indicate below: 'HTTPS/TLS (version not published by vendor \u2014 confirmation requested)'. Ask the vendor for the minimum negotiated TLS version on API/inference endpoints (1.2 floor? 1.3 supported?). Snippet-sourced; direct fetch blocked (gateway 403). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | Corroborated by fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.28: \"Web servers use TLS encryption for web communication sessions. ... Encryption technologies such as VPN, TLS, and SFTP are used to protect communications and data during transmission.\""
   },
   "3.1.2": {
-   "value": "Others - pls indicate below",
+   "value": "AES-256",
    "source_url": "vanta://soc2/fal#p11",
    "locator": "SOC 2 report on file, p.11",
-   "confidence": "high",
-   "notes": "fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.11: \"Use of encryption technologies to protect customer data both at rest and in transit\""
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io 2026-08-03: vendor's SOC 2/documentation confirms encryption for this control without naming the standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained below. | fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.11: \"Use of encryption technologies to protect customer data both at rest and in transit\""
   },
   "3.1.3": {
-   "value": "Others - pls indicate below",
+   "value": "AES-256",
    "source_url": "vanta://soc2/fal#p14",
    "locator": "SOC 2 report on file, p.14",
-   "confidence": "high",
-   "notes": "fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.14: \"Backup infrastructure is maintained in Google Cloud Platform, with physical access restricted according to the policies. Backups are encrypted, with access restricted to key personnel.\""
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io 2026-08-03: vendor's SOC 2/documentation confirms encryption for this control without naming the standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained below. | fal - Features & Labels, Inc. SOC 2 Type II (Feb 2025 - Feb 2026, Johanson Group), p.14: \"Backup infrastructure is maintained in Google Cloud Platform, with physical access restricted according to the policies. Backups are encrypted, with access restricted to key personnel.\""
   },
   "3.1.4": {
    "value": "Key generated by Subprocessor (not customer-specific)",
@@ -257,9 +257,9 @@
    "1.1.1": "source_cited_not_refetched",
    "1.1.2": "source_cited_not_refetched",
    "1.4.2": "soc2_on_file",
-   "3.1.1": "soc2_on_file",
-   "3.1.2": "soc2_on_file",
-   "3.1.3": "soc2_on_file",
+   "3.1.1": "assumed_baseline",
+   "3.1.2": "assumed_baseline",
+   "3.1.3": "assumed_baseline",
    "3.1.4": "suggested_unverified",
    "3.1.6": "source_cited_not_refetched",
    "3.1.7": "suggested_unverified",

@@ -34,11 +34,11 @@
    "notes": "Certifications evidenced on ElevenLabs' own pages this session: SOC 2 Type II, ISO 27001, ISO 27018, ISO 42001, PCI DSS Level 1, HIPAA attestation, GDPR audit, AIUC-1. Dropdown takes one value; 'SOC 2' chosen as the audit evidence Tavus most likely relies on \u2014 'ISO 27001' and 'ISO 27018' are also allowed dropdown options and are claimed by the vendor (note ISO 42001/PCI/HIPAA have no dropdown option; list in notes if needed). GATE: scope.yaml has soc2_on_file_in_vanta: null for ElevenLabs \u2014 per the playbook, do NOT assert SOC 2 in the form until the report is confirmed on file in Vanta. Also request current ISO certificate numbers and scope statements. All snippet-sourced; trust center itself (compliance.elevenlabs.io) could not be fetched (gateway 403), and its detailed controls list was not retrievable. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | Corroborated by Eleven Labs, Inc. SOC 2 Type 2 + HIPAA (Jan - Jun 2025, Insight Assurance), p.1: \"SOC 2 Type II report on file with Tavus (Vanta)\""
   },
   "3.1.1": {
-   "value": "Others - pls indicate below",
+   "value": "TLS 1.2",
    "source_url": "https://elevenlabs.io/docs/eleven-agents/phone-numbers/sip-trunking",
    "locator": "SIP trunking docs: ElevenLabs 'requires TLS 1.2 or higher' for SIP signaling, with 'SRTP media encryption' for voice content; enterprise/product pages: 'Data is encrypted in transit and at rest' and data to/from models protected by 'end-to-end encryption'",
-   "confidence": "high",
-   "notes": "TLS is used for all transport, and the SIP trunking docs explicitly require TLS 1.2 or higher \u2014 but that statement is scoped to SIP trunking, not to the general REST/WebSocket API Tavus uses for TTS. No page surfaced this session publishes the minimum TLS version for the main API, so none of the versioned dropdown options can be asserted honestly for the Tavus data flow. Real standard to indicate below: 'TLS (HTTPS enforced; TLS 1.2+ documented for SIP trunking; minimum version for the core API not published \u2014 confirmation requested)'. If the vendor confirms TLS 1.2 floor across all endpoints, switch to 'TLS 1.2'. Snippet-sourced; direct fetch blocked (gateway 403). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | Corroborated by Eleven Labs, Inc. SOC 2 Type 2 + HIPAA (Jan - Jun 2025, Insight Assurance), p.162: \"E-88 Data in transit is encrypted using strong cryptographic algorithms. Inspected the company's website and the Infrastructure as a Service provider's TLS certificate\""
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io 2026-08-03: vendor's SOC 2/documentation confirms encryption for this control without naming the standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained below. | TLS is used for all transport, and the SIP trunking docs explicitly require TLS 1.2 or higher \u2014 but that statement is scoped to SIP trunking, not to the general REST/WebSocket API Tavus uses for TTS. No page surfaced this session publishes the minimum TLS version for the main API, so none of the versioned dropdown options can be asserted honestly for the Tavus data flow. Real standard to indicate below: 'TLS (HTTPS enforced; TLS 1.2+ documented for SIP trunking; minimum version for the core API not published \u2014 confirmation requested)'. If the vendor confirms TLS 1.2 floor across all endpoints, switch to 'TLS 1.2'. Snippet-sourced; direct fetch blocked (gateway 403). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute. | Corroborated by Eleven Labs, Inc. SOC 2 Type 2 + HIPAA (Jan - Jun 2025, Insight Assurance), p.162: \"E-88 Data in transit is encrypted using strong cryptographic algorithms. Inspected the company's website and the Infrastructure as a Service provider's TLS certificate\""
   },
   "3.1.2": {
    "value": "AES-256",
@@ -264,7 +264,7 @@
    "1.1.1": "source_cited_not_refetched",
    "1.1.2": "source_cited_not_refetched",
    "1.4.2": "soc2_on_file",
-   "3.1.1": "soc2_on_file",
+   "3.1.1": "assumed_baseline",
    "3.1.2": "suggested_unverified",
    "3.1.3": "suggested_unverified",
    "3.1.4": "suggested_unverified",
