@@ -1,0 +1,54 @@
+{
+  "slug": "fal",
+  "report_meta": {
+    "legal_entity": "fal – Features & Labels, Inc.",
+    "entity_quote": "We have prepared the accompanying description of fal – Features & Labels, Inc.'s \"Description of the Fal.ai Platform\"",
+    "entity_page": 8,
+    "auditor": "Johanson Group LLP",
+    "auditor_quote": "Johanson Group LLP performed testing to determine if fal – Features & Labels, Inc.'s controls were",
+    "auditor_page": 21,
+    "soc2_type": "SOC 2 Type II",
+    "period": "February 06, 2025 to February 05, 2026",
+    "period_quote": "System and Organization Controls (SOC) 2 Type II Report ... For the Period February 06, 2025 to February 05, 2026",
+    "period_page": 1,
+    "trust_categories": ["Security"]
+  },
+  "findings": {
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "quote": "Web servers use TLS encryption for web communication sessions. ... Encryption technologies such as VPN, TLS, and SFTP are used to protect communications and data during transmission.",
+      "page": 28,
+      "note": "TLS confirmed but no version stated anywhere in the report, so no exact dropdown match."
+    },
+    "3.1.2": {
+      "value": "Others - pls indicate below",
+      "quote": "Use of encryption technologies to protect customer data both at rest and in transit",
+      "page": 11,
+      "note": "At-rest encryption affirmed as a service commitment; no cipher standard (AES etc.) named anywhere in the report."
+    },
+    "3.1.3": {
+      "value": "Others - pls indicate below",
+      "quote": "Backup infrastructure is maintained in Google Cloud Platform, with physical access restricted according to the policies. Backups are encrypted, with access restricted to key personnel.",
+      "page": 14,
+      "note": "Backups encrypted; standard not specified."
+    },
+    "3.1.8": {
+      "value": "Unique user accounts with enforced minimum password requirements or SSH public key authentication\nAnnual user access reviews approved by management\nCentrally managed anti-malware on client machines\nAnnual independent third-party penetration testing of network and Platform application\nNetwork vulnerability scans at least annually with timely remediation of critical findings\nPaaS firewall around all application containers; only ingress is HTTPS to designated web frontends\nAccess de-provisioned within 3 days of termination",
+      "quote": "Annual penetration testing is conducted by an independent third party on the network and on the Platform application.",
+      "page": 28
+    },
+    "3.2.1": {
+      "value": "No geographic location or EU statement in the report. Production hosted on Google Cloud Platform (carve-out subservice organization) at unspecified 'multiple facilities'; Lambda Labs listed as a cloud hosting platform in the software inventory.",
+      "quote": "This report does not include the Cloud Hosting Services provided by GCP at multiple facilities. ... The Cloud Hosting Services provided by GCP support the physical infrastructure of the entities' services.",
+      "page": 18
+    }
+  },
+  "absent": [
+    "3.1.4 key provider — report never states who generates/provides encryption keys; no key-management control in the test matrix",
+    "3.1.6 anonymization — not addressed anywhere in report",
+    "3.1.7 pseudonymization — not addressed anywhere in report",
+    "3.2.1 EU Access / data residency — no country, region, or EU statement anywhere in report",
+    "TLS version — 'TLS' named but version never specified",
+    "At-rest and backup encryption cipher standard — never specified"
+  ]
+}
