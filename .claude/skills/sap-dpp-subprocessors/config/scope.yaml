@@ -10,6 +10,8 @@
 # SAP's deployment doesn't touch the corporate/business systems (Slack, Pylon,
 # Salesforce, Stripe, Orb), cutting those five gets the list to 15.
 #
+# 2026-08-03 tim@tavus.io: Replicate, Meta, and InWorld removed from scope —
+# not relevant to the SAP deployment (their research is preserved in data/excluded/).
 # confirmed: set to true only after a human has signed off on this list.
 # Signed off by tim@tavus.io on 2026-07-31 (Claude Code session): expand scope
 # to all 20 authorized sub-processors, overflow via second sheet.
@@ -47,13 +49,6 @@ subprocessors:
     in_data_path: true
     data_touched: "video/audio frames during inference"
     soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
-  - name: "Replicate"
-    slug: replicate
-    role: "Model inference hosting"
-    level: 1
-    in_data_path: true
-    data_touched: "video/audio frames during inference"
-    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
   - name: "Fal"
     slug: fal
     role: "GPU inference"
@@ -71,13 +66,6 @@ subprocessors:
   - name: "Cartesia"
     slug: cartesia
     role: "Text-to-speech"
-    level: 1
-    in_data_path: true
-    data_touched: "generated speech audio"
-    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
-  - name: "InWorld"
-    slug: inworld
-    role: "Voice AI / text-to-speech"
     level: 1
     in_data_path: true
     data_touched: "generated speech audio"
@@ -108,13 +96,6 @@ subprocessors:
   - name: "Cerebras"
     slug: cerebras
     role: "LLM inference hosting"
-    level: 1
-    in_data_path: true
-    data_touched: "conversation transcripts / prompt content"
-    soc2_on_file_in_vanta: true   # per tim@tavus.io 2026-07-31
-  - name: "Meta"
-    slug: meta
-    role: "LLM hosting (Llama API)"
     level: 1
     in_data_path: true
     data_touched: "conversation transcripts / prompt content"
