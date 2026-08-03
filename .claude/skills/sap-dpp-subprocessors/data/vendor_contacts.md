@@ -1,33 +1,32 @@
-# Vendor privacy/security contacts — SAP DPP outreach
+# Vendor contacts — SAP DPP outreach
 
-Compiled 2026-07-31, updated 2026-08-03 (CTO/engineering leaders added; Replicate,
-Meta, InWorld removed from scope). Sources: public LinkedIn search results, vendor
-privacy/trust pages, press. **For outreach only** — not form values. LinkedIn is
-login-walled, so names/titles come from search snippets and press with dates; items
-flagged uncertain in the detail sections deserve a quick check before contacting.
-No email addresses were guessed — published channels only.
+Compiled 2026-07-31, updated 2026-08-03: privacy/legal contacts, CTO/engineering
+leaders, and security leaders for all 17 in-scope vendors. Sources: public
+LinkedIn search results, vendor pages, dated press — full sourcing in the
+sections below the table. No email addresses guessed; all published verbatim
+by the vendors.
 
 ## Quick reference — 17 in-scope vendors
 
-| Vendor | Primary channel | Privacy/legal person | CTO / top engineering |
-|---|---|---|---|
-| Google Cloud | DPO form: support.google.com/cloud/contact/dpo | — (form only) | Will Grannis, VP & CTO Google Cloud (linkedin.com/in/wgrannis) |
-| AWS | aws-EU-privacy@amazon.com (EMEA DPO) + account team | — | Werner Vogels, VP & CTO Amazon (linkedin.com/in/wernervogels); Peter DeSantis leads AI/silicon org |
-| Cerebrium | security@cerebrium.ai (no DPO appointed) | Michael Louis, CEO | Jono Irwin, Co-founder & CTO (linkedin.com/in/jono-irwin) |
-| Fal | trust.fal.ai contact flow; support@fal.ai (unverified) | Burkay Gur (CEO) | Gorkem Yurtseven, co-founder (title unconfirmed) |
-| ElevenLabs | legal@elevenlabs.io (named DPO contact) | Alex Haskell (GC); Moussa Ismail (privacy-certified legal) | — |
-| Cartesia | security@cartesia.ai | Michael Le, GC (uncertain) | Karan Goel, CEO/co-founder (technical) |
-| Deepgram | security@deepgram.com → outsourced DPO | — (DPO unnamed) | Adam Sypniewski, Co-founder & CTO (linkedin.com/in/adam-sypniewski-32a25982) |
-| Daily | help@daily.co (GDPR/DPA contact) | Mark Backman, Data Privacy Manager | Kwindla Hultman Kramer, CEO (technical co-founder) |
-| Mux | privacy@mux.com; trust.mux.com | — | Adam Brown, Co-founder & CTO (title varies: "Head of Technology & Architecture" on Crunchbase) |
-| Cerebras | privacy@cerebras.net; trust.cerebras.ai | Naor Penso, CISO | Andrew Feldman, CEO/co-founder; CSO Andy Hock |
-| OpenAI | dpo@openai.com; trust.openai.com | — | No single CTO. Jakub Pachocki, Chief Scientist; Vijaye Raji, CTO of Applications; Uday Ruddarraju, CTO of Compute |
-| Groq | legal@groq.com; security@groq.com | Claire Hart, CLO (no verified LinkedIn) | — |
-| Slack | dpo@slack.com / privacy@slack.com | — | Parker Harris, CTO of Slack (Salesforce co-founder) |
-| Pylon | security@usepylon.com (no privacy email) | Aashish Kapur (security, uncertain) | Advith Chelikani / Robert Eng, technical co-founders |
-| Salesforce | privacy@salesforce.com + privacy-request form | Lindsey Finch, EVP Global Privacy | (Parker Harris is a Salesforce co-founder; corporate CTO structure not researched) |
-| Stripe | dpo@stripe.com | — | **CTO seat vacant** — Rahul Patil left Oct 2025, no announced successor as of Aug 2026 |
-| Orb | privacy@withorb.com / security@withorb.com | Alvaro Morales (CEO) | Kshitij Grover, Co-founder & CTO (linkedin.com/in/kshitij-grover-7754a456) |
+| Vendor | Primary channel | Privacy/legal | CTO / engineering | Security leader |
+|---|---|---|---|---|
+| Google Cloud | DPO form: support.google.com/cloud/contact/dpo | — (form only) | Will Grannis, VP & CTO Google Cloud | Chris Betz, CISO Google Cloud (ex-AWS CISO, named ~Jun 2026) |
+| AWS | aws-EU-privacy@amazon.com + account team | — | Werner Vogels, VP & CTO Amazon | Amy Herzog, VP & CISO AWS (since Jun 2025) |
+| Cerebrium | security@cerebrium.ai | Michael Louis, CEO | Jono Irwin, Co-founder & CTO | No security hire — security@cerebrium.ai; Vanta-monitored |
+| Fal | trust.fal.ai; support@fal.ai | Burkay Gur, CEO | Gorkem Yurtseven, co-founder | No infosec hire (Security Compliance Lead role open); Sean Bonawitz leads Trust & Safety (content, not infosec) |
+| ElevenLabs | legal@elevenlabs.io (DPO contact) | Alex Haskell, GC; Moussa Ismail, legal (privacy-certified) | — | No named CISO — security-assurance@elevenlabs.io |
+| Cartesia | security@cartesia.ai | Michael Le, GC (uncertain) | Karan Goel, CEO/co-founder | Divyang Desai, consulting CISO (LOW confidence — verify) |
+| Deepgram | security@deepgram.com → outsourced DPO | — | Adam Sypniewski, Co-founder & CTO | Ehab El-Ali, Director of Information Security |
+| Daily | help@daily.co | Mark Backman, Data Privacy Manager | Kwindla Hultman Kramer, CEO | No named security lead |
+| Mux | privacy@mux.com | — | Adam Brown, Co-founder & CTO | Jacqui Manzi, AppSec Lead / Sr Eng Manager |
+| Cerebras | privacy@cerebras.net | — | Andrew Feldman, CEO; Andy Hock, CSO (product) | Naor Penso, CISO (verified current Dec 2025) |
+| OpenAI | dpo@openai.com | — | Jakub Pachocki, Chief Scientist; Vijaye Raji, CTO Applications; Uday Ruddarraju, CTO Compute | Dane Stuckey, CISO |
+| Groq | legal@groq.com; security@groq.com | Claire Hart, CLO | — | Tony Watson, CISO (verify LinkedIn before outreach) |
+| Slack | dpo@slack.com | — | Parker Harris, CTO of Slack | No division CISO — escalate to Salesforce CSO Iain Mulholland |
+| Pylon | security@usepylon.com | — | Advith Chelikani / Robert Eng, technical co-founders | Aashish Kapur, Security (engineer; confirmed via Forbes Mar 2026) |
+| Salesforce | privacy@salesforce.com | Lindsey Finch, EVP Global Privacy | — | Iain Mulholland, Chief Security Officer (since Feb 2026; Brad Arkin departed Jan 2026) |
+| Stripe | dpo@stripe.com | — | CTO seat vacant (Rahul Patil left Oct 2025) | Matthew Kemelhar, Head of Security (Joe Camilleri holds a "CISO" title, possibly Europe-entity-scoped) |
+| Orb | privacy@withorb.com / security@withorb.com | Alvaro Morales, CEO | Kshitij Grover, Co-founder & CTO | No security hire — security@withorb.com; CTO is fallback |
 
 Out of scope (removed 2026-08-03, research retained below): Replicate, Meta, InWorld.
 
@@ -570,3 +569,199 @@ For outreach, no individual can be named as Stripe's current top engineering
 executive from public sources; engineering leads found are regional/divisional
 only (e.g., Felix Fung, Head of Engineering, Business Network — Stripe
 Sessions 2026: https://stripe.com/sessions/2026/opening-remarks-and-product).
+# CISO / Head of Security — Group 1
+
+Research date: 2026-08-03. Method: WebSearch (LinkedIn-targeted + press/newsroom queries). LinkedIn URLs are taken only from search-result snippets (profiles are login-walled); "not found in snippets" means no URL is asserted rather than guessed. No emails included.
+
+## Google Cloud
+
+| Field | Value |
+|---|---|
+| Name | Chris Betz |
+| Title | CISO, Google Cloud |
+| LinkedIn | https://www.linkedin.com/in/chris-betz-903b739b (search snippet title: "Chris Betz - CISO, Google Cloud") |
+| Sources | Infosecurity Magazine interview "Google Cloud's New CISO Chris Betz on Integrating AI in Cyber Defenses" — https://www.infosecurity-magazine.com/interviews/google-cloud-new-ciso-chris-betz/ ; Google Cloud blog "Cloud CISO Perspectives: The 4 lessons that guided AI Threat Defense" (byline Chris Betz, ~June 2026) — https://cloud.google.com/blog/products/identity-security/cloud-ciso-perspectives-the-4-lessons-that-guided-ai-threat-defense ; Cloud Security Podcast by Google EP283 "How Google Cloud CISO Chris Betz…" — https://open.spotify.com/episode/1Z72zJ8wHmIEpJw624alQp |
+| As of | June 2026 (named Google Cloud CISO; per search results he joined Google in 2025 as VP infrastructure security and was formally titled CISO ~June 2026) |
+
+Confidence: **High** — multiple mid-2026 sources; note this is the same Chris Betz who was AWS CISO until mid-2025. Prior holder Phil Venables stepped down March 2025 (announced on X/LinkedIn, March 2025; now strategic security advisor + Ballistic Ventures venture partner — https://www.securityweek.com/former-google-cloud-ciso-phil-venables-joins-ballistic-ventures/). Do NOT contact Venables as Google Cloud CISO.
+
+## Amazon Web Services (AWS)
+
+| Field | Value |
+|---|---|
+| Name | Amy Herzog |
+| Title | Vice President and Chief Information Security Officer (CISO), AWS |
+| LinkedIn | https://www.linkedin.com/in/amy-herzog-98bb6 (slug derived from her LinkedIn post URL linkedin.com/posts/amy-herzog-98bb6_… in search snippets) |
+| Sources | The Stack, "Amy Herzog replaces Chris Betz as new AWS CISO" (June 2025) — https://www.thestack.technology/amy-herzog-new-aws-ciso/ ; Help Net Security interview describing her as AWS VP & CISO (2025-08-13) — https://www.helpnetsecurity.com/2025/08/13/amy-herzog-aws-scale-cloud-native-security/ |
+| As of | August 2025 (appointed June 2025; no later contradicting result found as of Aug 2026) |
+
+Confidence: **High** — clear June 2025 appointment coverage; predecessor Chris Betz's move to Google Cloud independently corroborates the change. Corporate note: Amazon-wide CSO remains Steve Schmidt per long-standing structure (not re-verified here; AWS-division contact is Herzog).
+
+## OpenAI
+
+| Field | Value |
+|---|---|
+| Name | Dane Stuckey |
+| Title | Chief Information Security Officer (was co-CISO alongside Matt Knight until Knight's Jan 2026 resignation) |
+| LinkedIn | Not found in search snippets — do not guess. (Bloomberg exec profile: https://www.bloomberg.com/profile/person/24250712) |
+| Sources | SecurityWeek "Dane Stuckey Joins OpenAI as CISO" (Oct 2024) — https://www.securityweek.com/dane-stuckey-joins-openai-as-ciso/ ; Simon Willison, "Dane Stuckey (OpenAI CISO) on prompt injection risks for ChatGPT Atlas" (2025-10-22) — https://simonwillison.net/2025/Oct/22/openai-ciso-on-atlas/ ; Matt Knight resignation coverage (Jan 2026), incl. LinkedIn snippet "Matthew Knight - Former CISO and VP at OpenAI" — https://www.linkedin.com/in/matthewfknight |
+| As of | October 2025 explicitly titled "OpenAI CISO"; still referenced in 2026 security commentary. |
+
+Confidence: **Medium-high** — Stuckey clearly CISO through late 2025; co-CISO Matt Knight resigned Jan 2026 (flag: post-departure OpenAI security org may have been restructured; no announcement found naming anyone other than Stuckey). Do NOT contact Matt Knight — departed.
+
+## Groq
+
+| Field | Value |
+|---|---|
+| Name | Paul "Tony" Watson |
+| Title | Chief Information Security Officer (CISO), Groq |
+| LinkedIn | Not confidently identified in snippets — a "Paul Watson" profile (linkedin.com/in/pawatson) appeared but could not be verified as the same person; do not use without checking. RocketReach corroborating listing: https://rocketreach.co/paul-tony-watson-email_37268891 |
+| Sources | Black Hat MEA speaker page "Tony Watson" (bio: joined Groq as CISO in 2020 after 17 years at Google; listed for Black Hat MEA 2025) — https://blackhatmea.com/speaker/tony-watson ; Black Hat MEA video "Meet Tony Watson, Chief Information Security Officer at Groq" — https://www.facebook.com/Blackhatmea/videos/945567027623215/ |
+| As of | Black Hat MEA 2025 speaker listing (conference bio) |
+
+Confidence: **Medium** — no press-release trail (Groq has never announced the role in its newsroom); identity rests on conference bios. Verify LinkedIn manually before outreach. No evidence of departure found.
+
+## Cerebras Systems
+
+| Field | Value |
+|---|---|
+| Name | Naor Penso |
+| Title | Chief Information Security Officer (CISO) |
+| LinkedIn | https://www.linkedin.com/in/naorpenso/ (search snippet: "Naor Penso - Cerebras Systems") |
+| Sources | Business Wire / Cerebras press release, appointment announced 2025-03-05 — https://www.cerebras.ai/press-release/cerebras-bolsters-leadership-team-with-appointment-of-new-ciso-evp-of-worldwide-sales-and-svp-of-ai-cloud-and-inference ; Help Net Security interview identifying him as "CISO at Cerebras Systems" (2025-12-19) — https://www.helpnetsecurity.com/2025/12/19/naor-penso-cerebras-systems-threat-modeling-al-optimized-infrastructure/ |
+| As of | December 2025 (verified still current; no contradicting 2026 result) |
+
+Confidence: **High** — prior belief VERIFIED. Appointed March 2025 (ex-FICO VP & Head of Product Security), independently confirmed in role Dec 2025.
+
+## Slack (Salesforce)
+
+| Field | Value |
+|---|---|
+| Name | Brad Arkin (Salesforce-level; no current Slack-division security chief publicly named) |
+| Title | EVP, Chief Trust Officer, Salesforce |
+| LinkedIn | Not found in search snippets. Org-chart listing: https://theorg.com/org/salesforce/org-chart/brad-arkin |
+| Sources | SecurityWeek "Brad Arkin is New Chief Trust Officer at Salesforce" (Jan/Feb 2024 appointment) — https://www.securityweek.com/brad-arkin-is-new-chief-trust-officer-at-salesforce/ ; Salesforce announcement — https://www.salesforce.com/news/stories/chief-trust-officer/ ; active Salesforce blog author page with 2025/2026 content — https://www.salesforce.com/blog/author/brad-arkin/ |
+| As of | 2025/2026 (still publishing as Salesforce Chief Trust Officer) |
+
+Confidence: **Medium-high** on Arkin; **explicit gap** on Slack division level. Slack's last announced CSO, Sean Catlett (appointed Oct 2020 — https://slack.com/blog/transformation/new-chief-security-officer-slack), **departed** and is now Chief Information & Trust Officer at Bumble (Bumble/conference bios, e.g. https://aifortherestofus.live/london-2025/speakers/sean-catlett) — do NOT use him for Slack. No dated 2025/2026 source names a successor Slack CSO/CISO; searches surfaced only pre-2021 material (e.g. Larkin Ryder "interim CISO" is a 2020 artifact, not current). Recommend targeting Arkin's Salesforce Trust org, or manually confirming a Slack security lead on LinkedIn before outreach.
+# CISO / Head of Security — Group 2
+
+Research date: 2026-08-03. Method: WebSearch (LinkedIn-targeted `site:linkedin.com/in` + press/team-page/trust-center queries). LinkedIn URLs are taken only from search-result snippets (profiles are login-walled); "not found in snippets" means no URL is asserted rather than guessed. No emails guessed — any email listed is verbatim from the company's own published page.
+
+## ElevenLabs (elevenlabs.io)
+
+| Field | Value |
+|---|---|
+| Name | **No publicly named CISO / Head of Security found** |
+| Title | n/a — security team exists (job postings reference "the ElevenLabs Security team") but no security-titled leader surfaced in any snippet |
+| LinkedIn | n/a |
+| Sources | Careers: "Infrastructure Security Engineer" posting referencing the ElevenLabs Security team — https://elevenlabs.io/careers/687394d7-fbf8-49ed-822e-c0690191330c/infrastructure-security-engineer (open as of Aug 2026 searches); Trust Center — https://compliance.elevenlabs.io/ (SOC 2 Type II, ISO 27001, PCI DSS L1); DPA page publishes security contact `security-assurance@elevenlabs.io` (stated on https://elevenlabs.io/dpa, retrieved via search 2026-08-03) |
+| As of | 2026-08-03 (searches) |
+
+Confidence: **Medium** (on the negative finding). Multiple query shapes (CISO / Head of Security / VP Security / Director of Security, LinkedIn-scoped and press-scoped) returned no named security leader; exec sources (CB Insights, websets exa directory) list only CEO Mati Staniszewski and CTO Piotr Dąbkowski among named executives. False lead to avoid: search-engine summaries repeatedly suggested David Hannigan "joined ElevenLabs" — follow-up shows Hannigan is Field CISO at **Halcyon** (Aphinia CISO Wire appointment note; LinkedIn headline "Strategic Advisor @ Halcyon" — https://www.linkedin.com/in/david-hannigan-8ab2a1/); no source ties him to ElevenLabs. Do not use. Closest named adjacent role: Aleksandra Pedraszewska leads **AI Safety** (not infosec) per TechCrunch author bio — https://techcrunch.com/author/aleksandra-pedraszewska. Practical route: `security-assurance@elevenlabs.io` (published) or CTO Piotr Dąbkowski (https://www.linkedin.com/in/piotr-dabkowski-50222bba/) as senior technical owner — the latter is inference from org shape, not a sourced security-ownership claim.
+
+## Cartesia (cartesia.ai)
+
+| Field | Value |
+|---|---|
+| Name | Divyang Desai — **unverified, low confidence** (see note) |
+| Title | "Consulting CISO and Data Protection" at Cartesia (per RocketReach listing title; LinkedIn snippet confirms current company "Cartesia") |
+| LinkedIn | https://www.linkedin.com/in/divyangkdesai/ (snippet title: "Divyang Desai - Cartesia \| LinkedIn") |
+| Sources | RocketReach profile "Divyang Desai … Cartesia Consuting CISO and Data Ptotection" — https://rocketreach.co/divyang-desai-email_5495454 (undated aggregator; typos in listing verbatim); LinkedIn snippet via search 2026-08-03; background per snippets: KlearNow, eBay, View Inc., PayPal; based in California |
+| As of | 2026-08-03 (aggregator snippets only — no dated primary source) |
+
+Confidence: **Low**. Two unresolved risks: (1) ambiguity whether his "Cartesia" is the voice-AI company (cartesia.ai, SF) or an unrelated firm — his California/SF location fits, but no snippet says "cartesia.ai" or "voice"; (2) RocketReach data is frequently stale, and a *consulting* (fractional) CISO may have ended. Cartesia's own org listings (The Org — https://theorg.com/org/cartesia) show **no security-titled employee**: leadership is Karan Goel (Founder/CEO), co-founders Brandon Yang and Arjun Desai, Israel Shalom (Head of Product). Compliance posture is real (SOC 2 Type II, HIPAA, PCI-DSS, GDPR announced Sept 2025 — https://www.cartesia.ai/blog/gdpr-compliance; safety page https://www.cartesia.ai/legal/safety/) but no page names a security owner. Treat as: no confirmed dedicated security hire; verify Desai on LinkedIn before any outreach; fallback is the founding team (CEO Karan Goel).
+
+## Deepgram (deepgram.com)
+
+| Field | Value |
+|---|---|
+| Name | Ehab El-Ali |
+| Title | Director of Information Security |
+| LinkedIn | https://www.linkedin.com/in/ehab-el-ali-7868643/ (snippet title: "Ehab El-Ali - Deepgram \| LinkedIn") |
+| Sources | Deepgram's own author page — https://deepgram.com/authors/ehab-el-ali (bio: 15+ yrs InfoSec/SysEng; ran HIPAA, HITRUST, SOC-2, GDPR, CCPA, PCI DSS programs; previously Information Security Principal & Compliance Engineer at Verato); The Org, Deepgram IT team: "Ehab El-Ali as Director Of Information Security" — https://theorg.com/org/deepgram/teams/information-technology-team; ZoomInfo: "Director, Information Security at Deepgram" — https://www.zoominfo.com/p/Ehab-El-ali/1855560858 |
+| As of | 2026-08-03 (searches; still listed by Deepgram's own site + two aggregators; no departure signal found) |
+
+Confidence: **High** for name+title (company's own author page corroborated by two independent aggregators). Caveats: no 2025/2026-dated announcement pinning tenure start; Deepgram's security docs also mention "a security advisor for Information Security, Risk Management, and Compliance" (https://developers.deepgram.com/trust-security/information-security-privacy) — likely the same function, possibly stale boilerplate. Org context: CTO Adam Sypniewski; Nik King, Head of Infrastructure & SRE (both per The Org IT-team page). El-Ali is the correct security contact.
+
+## Daily (daily.co)
+
+| Field | Value |
+|---|---|
+| Name | **No publicly named security lead found — no evidence of a dedicated security hire** |
+| Title | n/a |
+| LinkedIn | n/a |
+| Sources | Security & compliance page (SOC 2 Type II — Security & Confidentiality TSC; EU-US/Swiss-US Data Privacy Framework; AWS SOC1/SOC2/ISO 27001 data centers) — https://www.daily.co/products/security-at-daily/ (retrieved via search 2026-08-03) — page describes controls, names no person; leadership searches surface only Kwindla Hultman Kramer, Co-founder & CEO — https://www.linkedin.com/in/kwkramer/ , https://theorg.com/org/daily-co/org-chart/kwindla-hultman-kramer |
+| As of | 2026-08-03 (searches) |
+
+Confidence: **Medium** (negative finding). LinkedIn-scoped searches for Daily + security titles returned only false positives from **DailyPay** (John Abel, CISO at DailyPay — different company, do not use). No source names who owns security at Daily, so per rules no owner is asserted; the only sourced senior contact is CEO/co-founder Kwindla Hultman Kramer. Note for the Tavus context: Daily is Tavus's WebRTC substrate, so an existing commercial channel likely beats cold security outreach here.
+
+## Mux (mux.com)
+
+| Field | Value |
+|---|---|
+| Name | Jacqueline "Jacqui" Manzi |
+| Title | Senior Engineering Manager & Application Security Lead (Mux's team page wording) |
+| LinkedIn | https://www.linkedin.com/in/jacquelinemanzi/ (snippet title: "Jacqueline Manzi - Mux \| LinkedIn") |
+| Sources | Mux team page (title "Senior Engineering Manager & Application Security Lead" appears in mux.com/team search snippet, 2026-08-03) — https://www.mux.com/team and https://www.mux.com/team/jacqui-manzi ; The Org: "Jacqueline Manzi - Senior Engineering Manager & Application Security Lead at Mux" — https://theorg.com/org/mux/org-chart/jacqueline-manzi ; Bloomberg exec profile — https://www.bloomberg.com/profile/person/23237454 |
+| As of | 2026-08-03 (title from Mux's own live team page via search snippet) |
+
+Confidence: **Medium-high**. She is the highest security-titled person findable at Mux — no CISO / Head of Security / VP Security surfaced in any query. Title conflict to flag: her LinkedIn snippet headline reads "Senior Manager: Engineering" (managing Platform Experience: security, APIs, notifications, billing, web-client) — i.e., security is part of a broader platform-eng remit, not a dedicated security org. Treat outreach as "security-titled engineering leader," not CISO.
+
+## Cerebrium (cerebrium.ai)
+
+| Field | Value |
+|---|---|
+| Name | **No dedicated security hire — none found** |
+| Title | n/a — security/compliance run by the founding eng team ("Compliance is continually monitored through Vanta and a dedicated team" per their docs; no person named) |
+| LinkedIn | n/a for security; co-founder & CTO: Jono Irwin — https://www.linkedin.com/in/jono-irwin/ (snippet: "Jono Irwin - Co-founder & CTO @ Cerebrium (YC W22)") |
+| Sources | Security & Data Privacy docs (SOC 2, HIPAA, GDPR; publishes contact `security@cerebrium.ai`) — https://cerebrium.ai/docs/security (retrieved via search 2026-08-03); SOC 2 Type II announcement, dated 2026-07-15 per search result — https://cerebrium.ai/blog/cerebrium-achieves-soc-2-type-ii-compliance-for-secure-production-ai-infrastructure ; founder Michael Louis — https://www.linkedin.com/in/michael-louis-94104a113/ |
+| As of | 2026-08-03 (searches; SOC 2 Type II post dated 2026-07-15) |
+
+Confidence: **Medium-high** (negative finding — very small YC W22 startup; no security-titled person in any LinkedIn or press snippet). Security ownership is not explicitly attributed by any source; the sourced senior technical leader is co-founder/CTO Jono Irwin, and the company's own published security contact is `security@cerebrium.ai` (verbatim from their docs page, not guessed). Fresh signal: SOC 2 Type II completed July 2026, so compliance function is active.
+# CISO / Head of Security — Group 3
+
+Researched via WebSearch (LinkedIn snippets + press). All "as of" dates = date the confirming snippet was retrieved (2026-08-03) unless a source carries its own date. No emails guessed.
+
+## Salesforce (corporate CSO/CISO)
+
+| Name | Title | LinkedIn | Source | As of |
+|---|---|---|---|---|
+| Iain Mulholland | Chief Security Officer (The Org lists "EVP, CISO") | https://www.linkedin.com/in/iainmulholland/ | CIO.com, "Salesforce lays off staffers as executive leadership churn continues" — https://www.cio.com/article/4130028/salesforce-lays-off-staffers-as-executive-leadership-churn-continues.html (2026); The Org — https://theorg.com/org/salesforce/org-chart/iain-mulholland ; The Org LinkedIn post "Salesforce Names Iain Mulholland Chief Security Officer" (Feb 2026) — https://www.linkedin.com/posts/theorg_executive-moves-you-should-know-about-february-activity-7430254300301500417-tYW7 | 2026-08-03 |
+
+**Confidence: High.** Mulholland joined from Google (was Deputy CISO, Google Cloud & Technical Infrastructure) in Feb 2026, replacing Brad Arkin. **Departure noted:** Brad Arkin (Chief Trust Officer since Feb 2024) left Salesforce on 2026-01-30 (per Salesforce Ben, https://www.salesforceben.com/3-senior-salesforce-executives-leave-within-3-months/) — do NOT contact Arkin as current. Minor title variance: press says "Chief Security Officer", The Org says "EVP, CISO".
+
+## Stripe (stripe.com)
+
+| Name | Title | LinkedIn | Source | As of |
+|---|---|---|---|---|
+| Matthew Kemelhar | Head of Security | https://www.linkedin.com/in/matthew-kemelhar-69058723 | LinkedIn headline "Head of Security at Stripe" (search snippet); ZoomInfo concurs — https://www.zoominfo.com/p/Matthew-Kemelhar/2465708474 | 2026-08-03 |
+| Joe Camilleri | CISO (title per LinkedIn headline) | https://www.linkedin.com/in/joe-camilleri-4392a24/ | LinkedIn headline "CISO at Stripe" (search snippet); Crunchbase — https://www.crunchbase.com/person/joe-camilleri (CISO since Dec 2021); several aggregators also list him as Non-Executive Director, Stripe Technology Europe (board, since Mar 2023) — https://muraena.ai/profile/joe_camilleri_306d682c | 2026-08-03 |
+
+**Confidence: Medium — conflicting titles, flagged.** Two people carry current top-security-sounding LinkedIn headlines: Kemelhar ("Head of Security", 6+ yrs at Stripe, ex-Microsoft IR / ex-NSA; snippet says he oversees security infrastructure, regulatory compliance, detection and privacy engineering) and Camilleri ("CISO", GRC background ex-Twitter/Morgan Stanley, plus a board seat at Stripe's regulated Irish entity — his CISO title may be entity/GRC-scoped). Recommend Kemelhar as primary outreach, Camilleri as alternate. **Conflicts/departures:** (1) Jonathan Kaltwasser is listed as "CISO at Stripe" only by Comparably (https://www.comparably.com/companies/stripe/jonathan-kaltwasser — undated aggregator); RocketReach (https://rocketreach.co/jonathan-kaltwasser-email_13051504) shows Stripe as a PAST role, current "SVP at Stealth Startup" — treat Kaltwasser as departed, not current. (2) Niels Provos, Head of Security 2018–2022, long gone (LinkedIn headline "ex-Google/Stripe", https://www.linkedin.com/in/nielsprovos/) — stale, do not use.
+
+## Pylon (usepylon.com)
+
+| Name | Title | LinkedIn | Source | As of |
+|---|---|---|---|---|
+| Aashish Kapur | Security @ Pylon (LinkedIn headline); security engineer — no CISO title | https://www.linkedin.com/in/aashishkapur/ | LinkedIn headline "Security @ Pylon" (search snippet); Forbes, 2026-03-18, quotes "Aashish Kapur, an engineer at Pylon" on Pylon's security tooling — https://www.forbes.com/sites/thomasbrewster/2026/03/18/corridor-200-million-ai-cyber-startup/ | 2026-08-03 (Forbes 2026-03-18) |
+
+**Confidence: Medium-high — lead resolved.** The ZoomInfo "Software Engineer" (https://www.zoominfo.com/p/Aashish-Kapur/-1976491604) vs LinkedIn "Security @ Pylon" conflict is consistent, not contradictory: Kapur is a security-focused software engineer (prior: Senior SWE in security software at Opal; Samsara; AWS — per LinkedIn/aggregator snippets), and Pylon posts a "Software Engineer, Security" role (https://jobs.ashbyhq.com/pylon-labs/8763ee7a-3f07-4a88-8b75-76700bf02511). He is Pylon's security-titled person and the right outreach contact; he is NOT a founder. No public CISO name: Pylon's security page (https://www.usepylon.com/security) says to contact them "to get in touch with their CISO" without naming one; trust center https://trust.usepylon.com/ (SOC 2 Type II, ISO 27001:2022, ISO 42001).
+
+## Orb (withorb.com)
+
+| Name | Title | LinkedIn | Source | As of |
+|---|---|---|---|---|
+| — no dedicated security hire found — | — | — | Trust center https://security.withorb.com/ (SafeBase); security page https://www.withorb.com/security lists security@withorb.com as the security contact; no security-titled person surfaced in any LinkedIn/press search | 2026-08-03 |
+| Kshitij Grover (fallback owner) | Co-Founder & CTO — leads technical strategy and the engineering org | https://www.linkedin.com/in/kshithappens/ | Crunchbase https://www.crunchbase.com/person/kshitij-grover ; The Org https://theorg.com/org/withorb/org-chart/kshitij-grover | 2026-08-03 |
+
+**Confidence: Medium.** Explicit negative: searches for Orb + CISO / head of security / security engineer returned no named person. Orb is SOC 1 / SOC 2 Type II certified with a SafeBase trust center, so security is program-run but engineering-owned; no source explicitly states Grover "owns security" — he is cited only as Co-Founder/CTO leading engineering, so use security@withorb.com or Grover as best-available contact, clearly labeled as inference.
+
+## fal (fal.ai)
+
+| Name | Title | LinkedIn | Source | As of |
+|---|---|---|---|---|
+| — no CISO / Head of (info)Security found — | — | — | fal was publicly hiring a "Security Compliance Lead" (LinkedIn job https://www.linkedin.com/jobs/view/security-compliance-lead-at-fal-4303107795 ; fal careers https://fal.ai/careers/4019490009) — implies no incumbent at posting time. Trust center: https://trust.fal.ai/ (SOC 2, pursuing HIPAA/GDPR/ISO 27001) | 2026-08-03 |
+| Sean Bonawitz (adjacent, NOT infosec) | Head of Trust & Safety (fal's first; ex-YouTube/TikTok/Patreon/TextNow) | https://www.linkedin.com/in/seanbonawitz/ (note: search-index headline still showed "TextNow" — possibly stale index; fal role confirmed by fal's own blog) | fal blog "Building long-term trust in a world where creation moves at the speed of thought" — https://blog.fal.ai/building-long-term-trust-in-a-world-where-creation-moves-at-the-speed-of-thought/ ; https://fal.ai/legal/trust-and-safety (contact safety@fal.ai) | 2026-08-03 |
+
+**Confidence: Medium.** Explicit negative on a security hire: no CISO/Head of Security surfaced, and the open Security Compliance Lead req suggests the function is being built. Bonawitz's remit is content trust & safety, not information security — closest named leader, flagged as such. No source names who owns infosec; founders are Burkay Gur (CEO) and Gorkem Yurtseven (CTO) (per Grokipedia/company profiles, https://grokipedia.com/page/Falai), but that ownership is unconfirmed inference.
