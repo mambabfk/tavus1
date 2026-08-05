@@ -327,6 +327,25 @@ const BUILDER_CSS = `
         .jr-btns { margin-left:auto; display:flex; gap:2px; }
         .jr-card input, .jr-card textarea { margin-bottom:6px; }
         .jr-opt { border:1px dashed var(--border); border-radius:var(--r-sm); padding:9px 9px 3px; margin-bottom:8px; }
+        /* scripted cards (deterministic canvas) */
+        .sc-card { width:calc(var(--canvas-panel-w, 340px) - 48px); max-width:100%; background:var(--surface,#fff); border:1px solid var(--border,#E6E4DF); border-radius:16px; padding:18px; box-shadow:0 22px 48px -20px rgba(20,20,20,.30); display:flex; flex-direction:column; gap:12px; }
+        .canvas-panel .sc-card { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
+        .sc-title { font-weight:700; font-size:15px; letter-spacing:-.2px; }
+        .sc-note p { margin:0 0 8px; font-size:13.5px; line-height:1.55; }
+        .sc-note p:last-child { margin-bottom:0; }
+        .sc-chart { display:flex; flex-direction:column; gap:8px; }
+        .sc-bar-row { display:grid; grid-template-columns:minmax(56px,38%) 1fr auto; align-items:center; gap:8px; font-size:12px; }
+        .sc-bar-label { color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .sc-bar-track { background:var(--surface-2,#F0EEE9); border-radius:5px; height:12px; overflow:hidden; }
+        .sc-bar { display:block; height:100%; background:var(--accent,#F05A3C); border-radius:5px; }
+        .sc-bar-val { font-weight:600; }
+        .sc-stat { text-align:center; padding:6px 0; }
+        .sc-stat-value { display:block; font-size:36px; font-weight:700; letter-spacing:-1.2px; line-height:1.1; }
+        .sc-stat-label { color:var(--muted); font-size:13px; }
+        .sc-img { width:100%; border-radius:10px; object-fit:cover; }
+        .sc-preview { flex:0 0 260px; background:var(--canvas); border:1px dashed var(--border); border-radius:var(--r-md); padding:14px; display:flex; align-items:center; justify-content:center; }
+        .sc-preview .sc-card { position:static; transform:none; width:100%; box-shadow:0 10px 30px -14px rgba(20,20,20,.25); }
+        .sc-preview-empty { color:var(--muted); font-size:12px; text-align:center; line-height:1.6; }
         .placement-viz { display:flex; gap:4px; height:42px; margin-bottom:8px; }
         .pv-video { flex:1; background:var(--border); border-radius:6px; }
         .pv-rail { width:15px; background:var(--accent); border-radius:6px; }
@@ -656,8 +675,61 @@ function VisitorDemo({ slug }) {
 /* ── In-call extras: timers, wake reminders, interrupt button, guardrail echo.
       Lives INSIDE CVIProvider so it can use the Daily call object; these
       features need the custom call UI (they're inert in the iframe fallback). */
-function CallExtras({ controls, conversationId, onForceLeave, visitor = false }) {
+function CallExtras({ controls, conversationId, onForceLeave, visitor = false, onScriptedCard = null }) {
   const daily = useDaily();
+
+  // Scripted cards — deterministic, SE-authored canvas content. Triggers are
+  // hard rules (spoken keyword, elapsed time, call start); the model is never
+  // consulted. Each card fires once; a new card replaces the current one.
+  useEffect(() => {
+    const cards = Array.isArray(controls.scriptedCards) ? controls.scriptedCards : [];
+    if (!daily || !cards.length || !onScriptedCard) return;
+    const fired = new Set();
+    const timers = [];
+    let current = -1;
+    let armed = false;
+    const showCard = (i) => {
+      if (fired.has(i)) return;
+      fired.add(i);
+      current = i;
+      onScriptedCard(cards[i]);
+      const hide = Number(cards[i].hideAfter) || 0;
+      if (hide > 0) timers.push(setTimeout(() => { if (current === i) { current = -1; onScriptedCard(null); } }, hide * 1000));
+    };
+    const arm = () => {
+      if (armed) return;
+      armed = true;
+      cards.forEach((c, i) => {
+        if (c.trigger === "start") showCard(i);
+        else if (c.trigger === "time" && Number(c.atSeconds) > 0) timers.push(setTimeout(() => showCard(i), Number(c.atSeconds) * 1000));
+      });
+    };
+    // Keyword cards match what's actually SAID (either side) — Tavus streams
+    // utterance events as app-messages, so cards land in sync with the talk track.
+    const onMsg = (e) => {
+      const d = e?.data;
+      if (!d?.event_type || !/utterance/i.test(d.event_type)) return;
+      const speech = String(d.properties?.speech ?? d.properties?.text ?? "").toLowerCase();
+      if (!speech) return;
+      for (let i = 0; i < cards.length; i++) {
+        const c = cards[i];
+        if (c.trigger !== "keyword" || fired.has(i)) continue;
+        const kws = String(c.keywords || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+        if (kws.some((k) => speech.includes(k))) { showCard(i); break; }
+      }
+    };
+    const onJoined = () => arm();
+    daily.on("app-message", onMsg);
+    daily.on("joined-meeting", onJoined);
+    if (daily.meetingState() === "joined-meeting") arm();
+    return () => {
+      timers.forEach(clearTimeout);
+      daily.off("app-message", onMsg);
+      daily.off("joined-meeting", onJoined);
+      onScriptedCard(null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daily, controls.scriptedCards]);
   // "Full stage" recording is builder-only (visitors must never see a share
   // prompt) — visitor calls with a stage snapshot fall back to the grid.
   const stageMode = controls.recordingLayout === "stage" && !visitor;
@@ -884,6 +956,48 @@ function Toggle({ on, onChange }) {
   );
 }
 
+/* ── Scripted card renderer: SE-authored content, rendered verbatim.
+      Styles: note (text), chart (one "Label: value" bar per line),
+      stat (big value + label), image (URL). No model involved. ── */
+function ScriptedCard({ card }) {
+  const lines = String(card.body || "").split("\n").map((l) => l.trim()).filter(Boolean);
+  let inner;
+  if (card.style === "chart") {
+    const rows = lines
+      .map((l) => { const m = l.match(/^(.*?)[:|=]\s*([\d.,]+)\s*(.*)$/); return m ? { label: m[1].trim(), value: parseFloat(m[2].replace(/,/g, "")) || 0, suffix: m[3].trim() } : null; })
+      .filter(Boolean);
+    const max = Math.max(1, ...rows.map((r) => r.value));
+    inner = (
+      <div className="sc-chart">
+        {rows.map((r, i) => (
+          <div key={i} className="sc-bar-row">
+            <span className="sc-bar-label" title={r.label}>{r.label}</span>
+            <span className="sc-bar-track"><span className="sc-bar" style={{ width: `${(r.value / max) * 100}%` }} /></span>
+            <span className="sc-bar-val">{r.value.toLocaleString()}{r.suffix ? ` ${r.suffix}` : ""}</span>
+          </div>
+        ))}
+      </div>
+    );
+  } else if (card.style === "stat") {
+    inner = (
+      <div className="sc-stat">
+        <span className="sc-stat-value">{lines[0] || ""}</span>
+        {lines.length > 1 && <span className="sc-stat-label">{lines.slice(1).join(" ")}</span>}
+      </div>
+    );
+  } else if (card.style === "image") {
+    inner = <img className="sc-img" src={card.url || ""} alt={card.title || ""} />;
+  } else {
+    inner = <div className="sc-note">{lines.map((l, i) => <p key={i}>{l}</p>)}</div>;
+  }
+  return (
+    <div className="sc-card">
+      {card.title && <div className="sc-title">{card.title}</div>}
+      {inner}
+    </div>
+  );
+}
+
 /* ── Demo page: minimal Alto shell around the conversation ──── */
 
 function DemoSite({ site, conversationUrl, conversationId, controls, onStart, onExit, busy, visitor = false, experience = null, slug = null, onCallEnd = null }) {
@@ -968,6 +1082,9 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
   // video pane + a dedicated canvas panel (the card never overlays the video).
   // The side is kept after deactivation so the exit slide goes back the same way.
   const [canvasPanel, setCanvasPanel] = useState({ active: false, side: "right" });
+  // Scripted card currently on screen (deterministic canvas — see CallExtras).
+  const [scCard, setScCard] = useState(null);
+  useEffect(() => { if (!conversationUrl) setScCard(null); }, [conversationUrl]);
   const onCanvasLayout = useCallback((l) => {
     setCanvasPanel((prev) => ({ active: Boolean(l?.active), side: (l?.active && l.side) || prev.side }));
   }, []);
@@ -1138,8 +1255,10 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
       const { CVIProvider, Conversation, MagicCanvas } = cvi;
       // Only wide stages split for canvas cards — the phone screen, the framed
       // kiosk, and the hologram panel are too narrow (or too stylized), so
-      // cards keep the overlay behavior there.
-      const split = canvasPanel.active && (format === "desktop" || (format === "kiosk" && kioskLive));
+      // cards keep the overlay behavior there. Scripted cards use the same
+      // panel; an interactive Magic Canvas card wins when both are active.
+      const wide = format === "desktop" || (format === "kiosk" && kioskLive);
+      const split = (canvasPanel.active || !!scCard) && wide;
       return (
         <CVIProvider>
           <div className={"cvi-wrap" + (split ? ` canvas-split canvas-split-${canvasPanel.side}` : "")}>
@@ -1149,10 +1268,12 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
             <div className="cvi-video-pane">
               <Conversation conversationUrl={conversationUrl} onLeave={handleLeave} />
             </div>
-            <div className={`canvas-panel canvas-panel-${canvasPanel.side}`} aria-hidden="true" />
+            <div className={`canvas-panel canvas-panel-${canvasPanel.side}`} aria-hidden={scCard && !canvasPanel.active ? undefined : "true"}>
+              {scCard && !canvasPanel.active && wide && <ScriptedCard card={scCard} />}
+            </div>
             {/* Contained inside the stage instead of a full-viewport overlay */}
             <MagicCanvas className="canvas-contained" onError={(e) => console.error("canvas error", e)} onLayoutEffectChange={onCanvasLayout} />
-            <CallExtras controls={controls} conversationId={conversationId} onForceLeave={handleLeave} visitor={visitor} />
+            <CallExtras controls={controls} conversationId={conversationId} onForceLeave={handleLeave} visitor={visitor} onScriptedCard={setScCard} />
           </div>
         </CVIProvider>
       );
@@ -1614,6 +1735,9 @@ export default function TavusExperienceBuilder() {
     Object.fromEntries(CANVAS_COMPONENTS.map((c) => [c.key, ""]))
   );
   const [canvasPlaybook, setCanvasPlaybook] = useState("");
+  // Scripted cards — deterministic canvas content (editor shape; compiled
+  // into controlsConfig.scriptedCards so it rides shared links).
+  const [scCards, setScCards] = useState([]);
 
   // Demo page
   const [site, setSite] = useState({
@@ -1719,6 +1843,7 @@ export default function TavusExperienceBuilder() {
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt, talkTrack,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
+    scCards,
     palLlm, knowledgeIdsRaw,
     site,
     expJourney,
@@ -1774,6 +1899,7 @@ export default function TavusExperienceBuilder() {
     setPalLlm(c.palLlm ?? "tavus-glm-4.7");
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
+    setScCards(Array.isArray(c.scCards) ? c.scCards : []);
     setExpJourney(Array.isArray(c.expJourney) ? c.expJourney : []);
     // Email capture is table stakes — scenarios saved before the field
     // existed default ON; only an explicit false keeps it off.
@@ -2110,7 +2236,30 @@ export default function TavusExperienceBuilder() {
       };
     }), [toolRows]);
 
+  /* Editor shape → the scripted cards that ship. Incomplete cards drop out
+     silently (missing content or an unusable trigger). */
+  const compiledScriptedCards = useMemo(() => scCards.map((c) => {
+    const t = (v) => String(v ?? "").trim();
+    const style = ["note", "chart", "stat", "image"].includes(c.style) ? c.style : "note";
+    const trigger = ["keyword", "time", "start"].includes(c.trigger) ? c.trigger : "keyword";
+    const card = {
+      style,
+      trigger,
+      title: t(c.title),
+      body: t(c.body),
+      url: t(c.url),
+      keywords: t(c.keywords),
+      atSeconds: Math.max(0, Math.round((parseFloat(c.atMinutes) || 0) * 60)),
+      hideAfter: Math.max(0, parseInt(c.hideAfter, 10) || 0),
+    };
+    if (style === "image" ? !card.url : !card.body) return null;
+    if (trigger === "keyword" && !card.keywords) return null;
+    if (trigger === "time" && !card.atSeconds) return null;
+    return card;
+  }).filter(Boolean).slice(0, 12), [scCards]);
+
   const controlsConfig = useMemo(() => ({
+    scriptedCards: compiledScriptedCards,
     maxSeconds: parseInt(maxMinutes, 10) > 0 ? parseInt(maxMinutes, 10) * 60 : 0,
     timeWarning: timeWarning.trim(),
     inactivitySeconds: parseInt(inactivitySeconds, 10) > 0 ? parseInt(inactivitySeconds, 10) : 0,
@@ -2123,7 +2272,7 @@ export default function TavusExperienceBuilder() {
     // daily.startRecording() once joined. CallExtras does that when this is set.
     recording: recordingEnabled && !!(recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim()),
     recordingLayout: recLayout,
-  }), [maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout]);
+  }), [compiledScriptedCards, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout]);
 
   /* Journey editor helpers — steps the builder composes for the guided
      pre-call flow (waiver questions, persona pickers, videos, …). */
@@ -4372,6 +4521,88 @@ export default function TavusExperienceBuilder() {
               <p className="field-hint" style={{ marginTop: 14, maxWidth: 560 }}>
                 Canvas only fires on video conversations. One card on screen at a time; a new card replaces the current one. Interactions land at your callback URL as canvas.interaction events.
               </p>
+
+              <div className="subhead" style={{ marginTop: 30 }}>Scripted cards — 100% deterministic</div>
+              <p className="lede" style={{ marginBottom: 10 }}>
+                Magic Canvas cards above are chosen by the AI. Scripted cards are <b>yours</b>: you author the exact
+                content, and it appears when your rule fires — when a word is spoken (by either side, so it tracks
+                your talk track), at a set time, or at call start. The AI is never consulted. Shows on desktop and
+                live-kiosk pages; an interactive Magic Canvas card takes the panel over while it needs input.
+              </p>
+              {scCards.length > 0 && (
+                <div className="jr-list">
+                  {scCards.map((c, i) => (
+                    <div key={i} className="jr-card">
+                      <div className="jr-head">
+                        <span className="jr-num">{i + 1}</span>
+                        <select style={{ width: "auto", padding: "4px 10px", fontSize: 12 }} value={c.style || "note"}
+                          onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, style: e.target.value } : x)))}>
+                          <option value="note">📄 Note</option>
+                          <option value="chart">📊 Chart</option>
+                          <option value="stat">🔢 Big stat</option>
+                          <option value="image">🖼 Image</option>
+                        </select>
+                        <select style={{ width: "auto", padding: "4px 10px", fontSize: 12 }} value={c.trigger || "keyword"}
+                          onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, trigger: e.target.value } : x)))}>
+                          <option value="keyword">when a word is said</option>
+                          <option value="time">at a set time</option>
+                          <option value="start">at call start</option>
+                        </select>
+                        <span className="jr-btns">
+                          <button className="kb-move" onClick={() => setScCards((cs) => { if (!cs[i - 1]) return cs; const n = [...cs]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; return n; })} disabled={i === 0} title="Move up">↑</button>
+                          <button className="kb-move" onClick={() => setScCards((cs) => { if (!cs[i + 1]) return cs; const n = [...cs]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; return n; })} disabled={i === scCards.length - 1} title="Move down">↓</button>
+                          <button className="kb-del" onClick={() => setScCards((cs) => cs.filter((_, j) => j !== i))} title="Remove card">✕</button>
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                        <div style={{ flex: "1 1 280px", minWidth: 240 }}>
+                          {(c.trigger || "keyword") === "keyword" && (
+                            <input value={c.keywords || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, keywords: e.target.value } : x)))}
+                              placeholder='Trigger words, comma-separated — e.g. pricing, cost, tiers' />
+                          )}
+                          {c.trigger === "time" && (
+                            <input type="number" min="0.5" step="0.5" value={c.atMinutes ?? ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, atMinutes: e.target.value } : x)))}
+                              placeholder="Minutes into the call — e.g. 2" />
+                          )}
+                          <input value={c.title || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} placeholder="Card title (optional)" />
+                          {c.style === "image" ? (
+                            <input className="mono" value={c.url || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} placeholder="Image URL" />
+                          ) : (
+                            <textarea value={c.body || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))}
+                              placeholder={c.style === "chart" ? "One bar per line — Label: number (e.g. Tier 1: 4900)" : c.style === "stat" ? "Big value on the first line, label on the second — e.g.\n87%\nless manual work" : "The exact text to show, one paragraph per line."}
+                              style={{ minHeight: 68 }} />
+                          )}
+                          <input type="number" min="0" value={c.hideAfter ?? ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, hideAfter: e.target.value } : x)))}
+                            placeholder="Auto-hide after N seconds (blank = stays until the next card)" />
+                        </div>
+                        {(() => {
+                          const preview = compiledScriptedCards.find((_, k) => {
+                            // map editor index → compiled index (incomplete cards drop out)
+                            let n = -1;
+                            for (let j = 0; j <= i; j++) {
+                              const cj = scCards[j];
+                              const style = ["note", "chart", "stat", "image"].includes(cj.style) ? cj.style : "note";
+                              const hasContent = style === "image" ? (cj.url || "").trim() : (cj.body || "").trim();
+                              const trig = cj.trigger || "keyword";
+                              const trigOk = trig === "start" || (trig === "keyword" ? (cj.keywords || "").trim() : parseFloat(cj.atMinutes) > 0);
+                              if (hasContent && trigOk) n++;
+                            }
+                            return k === n && n >= 0;
+                          });
+                          return preview ? (
+                            <div className="sc-preview" title="Live preview — exactly what the visitor sees">
+                              <ScriptedCard card={preview} />
+                            </div>
+                          ) : (
+                            <div className="sc-preview sc-preview-empty">fill in the content + trigger<br />to see the live preview</div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button className="pill-btn" onClick={() => setScCards((cs) => (cs.length >= 12 ? cs : [...cs, { style: "note", trigger: "keyword" }]))}>+ Scripted card</button>
             </>
           )}
 
