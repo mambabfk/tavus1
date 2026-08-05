@@ -107,6 +107,24 @@ Write 4-8 short visitor lines, in speaking order:
 
 Return ONLY the lines, one per line. No numbering, no quotes, no commentary.`;
 
+const CARDS_SYSTEM = `You design "scripted cards" for a Tavus demo — deterministic visual cards that appear beside an AI human on camera when hard triggers fire (a spoken keyword, a time mark, or call start). Write them from the demo's configuration and the operator's ask.
+
+Return ONLY a valid JSON array (no code fences, no commentary), 2-5 cards:
+[{
+  "style": "note" | "chart" | "stat" | "image" | "question",
+  "title": "Card heading — for question style this IS the question",
+  "body": "note: 1-3 short lines, one per line. chart: one 'Label: number' per line (2-5 bars). stat: big value on line 1, short label on line 2. question: one choice per line (2-4). image: empty string",
+  "trigger": "keyword" | "time" | "start",
+  "keywords": "2-4 comma-separated words someone would naturally SAY (keyword trigger only, else empty string)",
+  "atMinutes": 0,
+  "hideAfter": 0
+}]
+
+Rules:
+- Content must be specific to THIS demo (its real tiers, value props, flow) — but never invent precise real-world facts the config doesn't contain; for real brands keep numbers clearly illustrative.
+- Prefer keyword triggers with words that naturally come up in the conversation; vary the styles across the set; at most one question card.
+- "atMinutes" only for time triggers (e.g. 1.5); "hideAfter" seconds or 0 to stay until the next card. No markdown anywhere.`;
+
 const TALKTRACK_SYSTEM = `You write slide-by-slide talk tracks for an AI human presenting a deck on a live video call.
 
 Given the demo's use case (and optionally what's on the slides), write speaker notes for each slide: what to SAY and what to ask. Spoken style — short sentences, contractions, no markdown. Each slide gets 1-3 sentences plus, where natural, one engaging question to keep it a conversation rather than a lecture.
@@ -240,6 +258,18 @@ export default async function handler(req, res) {
     }
     if (c.scheduling) parts.push("A booking link is configured — a good closing line accepts a follow-up meeting.");
     if (String(vibe).trim()) parts.push(`Operator's direction for this script: ${String(vibe).trim().slice(0, 1000)}`);
+    userPrompt = parts.join("\n\n");
+  } else if (kind === "cards") {
+    system = CARDS_SYSTEM;
+    const c = context || {};
+    const parts = [`Design scripted cards for this demo. Operator's ask: ${String(vibe).trim().slice(0, 1000) || "cards that showcase this demo's strongest points"}`];
+    if (c.product) parts.push(`Product being demoed: ${String(c.product).slice(0, 500)}`);
+    if (c.brand) parts.push(`Brand: ${c.brand}`);
+    if (c.personaSummary) parts.push(`The AI human's persona (summary):\n${String(c.personaSummary).slice(0, 1500)}`);
+    if (c.objectives) parts.push(`Conversation objectives, in order:\n${String(c.objectives).slice(0, 1500)}`);
+    if (c.canvasPlaybook) parts.push(`Magic Canvas playbook (avoid duplicating what the AI already shows):\n${String(c.canvasPlaybook).slice(0, 1000)}`);
+    const presLines = presentationContextLines(c.presentation);
+    if (presLines.length) parts.push(...presLines);
     userPrompt = parts.join("\n\n");
   } else if (kind === "talktrack") {
     if (!String(vibe).trim()) {

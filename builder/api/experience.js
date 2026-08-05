@@ -85,12 +85,13 @@ export default async function handler(req, res) {
     if (slugStr) rec.slug = slugStr;
     const cleanEmail = String(email ?? "").trim().slice(0, 200);
     if (cleanEmail && (kind === "attend" || !rec.email)) rec.email = cleanEmail;
-    // Guided-journey answers ({q, a} pairs) — shown on the Results step.
+    // Journey + card answers ({q, a} pairs) — appended, since card picks
+    // arrive mid-call after the journey answers landed. Shown in Results.
     if (Array.isArray(answers)) {
       const clean = answers.slice(0, 12)
         .map((x) => ({ q: String(x?.q ?? "").trim().slice(0, 300), a: String(x?.a ?? "").trim().slice(0, 300) }))
         .filter((x) => x.q && x.a);
-      if (clean.length) rec.answers = clean;
+      if (clean.length) rec.answers = [...(Array.isArray(prev.answers) ? prev.answers : []), ...clean].slice(0, 24);
     }
     if (kind === "attend") {
       rec.attendAt = prev.attendAt || new Date().toISOString();

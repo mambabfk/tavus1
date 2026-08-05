@@ -395,6 +395,16 @@ const BUILDER_CSS = `
         .sc-preview { flex:0 0 260px; background:var(--canvas); border:1px dashed var(--border); border-radius:var(--r-md); padding:14px; display:flex; align-items:center; justify-content:center; }
         .sc-preview .sc-card { position:static; transform:none; width:100%; box-shadow:0 10px 30px -14px rgba(20,20,20,.25); }
         .sc-preview-empty { color:var(--muted); font-size:12px; text-align:center; line-height:1.6; }
+        .sc-options { display:flex; flex-direction:column; gap:7px; }
+        .sc-opt { border:1px solid var(--border,#E6E4DF); background:var(--surface,#fff); border-radius:11px; padding:10px 13px; cursor:pointer; font:inherit; font-size:13px; font-weight:600; text-align:left; color:var(--text,#17181A); }
+        .sc-opt:hover:not(:disabled) { border-color:var(--text,#17181A); }
+        .sc-opt.on { border-color:var(--accent,#F05A3C); background:var(--accent-soft,#FDEEE9); }
+        .sc-opt:disabled:not(.on) { opacity:.45; cursor:default; }
+        .sc-answered { color:var(--ok,#3E9B5F); font-size:12px; font-weight:600; }
+        .canvas-panel .sc-card { pointer-events:auto; }
+        .duet-card { position:absolute; left:50%; bottom:72px; transform:translateX(-50%); z-index:5; animation:duetcard .45s ease; }
+        .duet-card .sc-card { position:static; transform:none; width:340px; box-shadow:0 30px 70px -18px rgba(0,0,0,.65); }
+        @keyframes duetcard { from { opacity:0; transform:translateX(-50%) translateY(16px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
         .placement-viz { display:flex; gap:4px; height:42px; margin-bottom:8px; }
         .pv-video { flex:1; background:var(--border); border-radius:6px; }
         .pv-rail { width:15px; background:var(--accent); border-radius:6px; }
@@ -843,7 +853,7 @@ function DuetJoiner({ url, id, side }) {
 /* The duet stage the builder sees: branded chrome, two rooms side by side,
    REC indicator, turn counter, End button. Records the captured tab locally
    (MediaRecorder) and downloads the file when the duet ends. */
-function DuetStage({ run, brand, maxTurns, onExit }) {
+function DuetStage({ run, brand, maxTurns, cards = [], onExit }) {
   const frameA = useRef(null);
   const frameB = useRef(null);
   const recorderRef = useRef(null);
@@ -852,6 +862,24 @@ function DuetStage({ run, brand, maxTurns, onExit }) {
   const [turns, setTurns] = useState(0);
   const [note, setNote] = useState("Your AI human is connecting…");
   const endedRef = useRef(false);
+  // Scripted cards in duets: the parent sees every relayed turn as text, so
+  // keyword cards fire off what EITHER AI actually says; start/time cards
+  // arm when side A connects. Rendered as an overlay — it's in the recording.
+  const [duetCard, setDuetCard] = useState(null);
+  const cardFiredRef = useRef(new Set());
+  const cardTimersRef = useRef([]);
+  const cardCurrentRef = useRef(-1);
+  const cardsArmedRef = useRef(false);
+  const showDuetCard = (i) => {
+    if (cardFiredRef.current.has(i)) return;
+    cardFiredRef.current.add(i);
+    cardCurrentRef.current = i;
+    setDuetCard(cards[i]);
+    const hide = Number(cards[i].hideAfter) || 0;
+    if (hide > 0) cardTimersRef.current.push(setTimeout(() => {
+      if (cardCurrentRef.current === i) { cardCurrentRef.current = -1; setDuetCard(null); }
+    }, hide * 1000));
+  };
   // Side A (the demo's AI human) mounts and speaks first; side B (the
   // partner) only joins once A's opener has landed — deterministic order,
   // no colliding greetings. Messages for a not-yet-ready room queue up.
@@ -903,7 +931,16 @@ function DuetStage({ run, brand, maxTurns, onExit }) {
         const frame = d.from === "a" ? frameA : frameB;
         pendingRef.current[d.from].splice(0).forEach((text) =>
           frame.current?.contentWindow?.postMessage({ __duet: true, type: "respond", text }, origin));
-        if (d.from === "a") setNote("Live — waiting for your AI human's opener…");
+        if (d.from === "a") {
+          setNote("Live — waiting for your AI human's opener…");
+          if (!cardsArmedRef.current) {
+            cardsArmedRef.current = true;
+            cards.forEach((c, i) => {
+              if (c.trigger === "start") showDuetCard(i);
+              else if (c.trigger === "time" && Number(c.atSeconds) > 0) cardTimersRef.current.push(setTimeout(() => showDuetCard(i), c.atSeconds * 1000));
+            });
+          }
+        }
       }
       if (d.type === "fatal") setNote(`Room ${String(d.from).toUpperCase()} failed: ${d.error}`);
       if (d.type === "autoplay-blocked") setNote("Audio blocked by the browser — click anywhere on this page once.");
@@ -914,6 +951,14 @@ function DuetStage({ run, brand, maxTurns, onExit }) {
         if (turnsRef.current >= maxTurns * 2) { endDuet(); return; }
         if (d.from === "a") setMountB(true); // the opener landed — bring in the partner
         deliver(d.from === "a" ? "b" : "a", d.text);
+        // Keyword cards fire off what either AI actually says.
+        const lower = String(d.text).toLowerCase();
+        for (let i = 0; i < cards.length; i++) {
+          const c = cards[i];
+          if (c.trigger !== "keyword" || cardFiredRef.current.has(i)) continue;
+          const kws = String(c.keywords || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+          if (kws.some((k) => lower.includes(k))) { showDuetCard(i); break; }
+        }
       }
     };
     window.addEventListener("message", onMsg);
@@ -933,7 +978,12 @@ function DuetStage({ run, brand, maxTurns, onExit }) {
     }
 
     const hardStop = setTimeout(endDuet, 5 * 60_000); // absolute cap
-    return () => { clearTimeout(hardStop); clearTimeout(mountFallback); window.removeEventListener("message", onMsg); };
+    return () => {
+      clearTimeout(hardStop);
+      clearTimeout(mountFallback);
+      cardTimersRef.current.forEach(clearTimeout);
+      window.removeEventListener("message", onMsg);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -953,6 +1003,11 @@ function DuetStage({ run, brand, maxTurns, onExit }) {
           ? <iframe ref={frameB} title="Duet B" className="duet-frame" allow="autoplay" src={src(run.b, "b")} />
           : <div className="duet-frame duet-wait">joining…</div>}
       </div>
+      {duetCard && (
+        <div className="duet-card">
+          <ScriptedCard card={duetCard} />
+        </div>
+      )}
       <footer className="duet-note">{note}</footer>
     </div>
   );
@@ -985,7 +1040,21 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
       if (fired.has(i)) return;
       fired.add(i);
       current = i;
-      onScriptedCard(cards[i]);
+      onScriptedCard({
+        card: cards[i],
+        seq: i,
+        // Question cards: the visitor's pick goes to the LLM as if spoken.
+        answer: (text) => {
+          try {
+            daily.sendAppMessage({
+              message_type: "conversation",
+              event_type: "conversation.respond",
+              conversation_id: conversationId,
+              properties: { text: String(text).slice(0, 500) },
+            }, "*");
+          } catch { /* room gone */ }
+        },
+      });
       const hide = Number(cards[i].hideAfter) || 0;
       if (hide > 0) timers.push(setTimeout(() => { if (current === i) { current = -1; onScriptedCard(null); } }, hide * 1000));
     };
@@ -1339,10 +1408,29 @@ function Toggle({ on, onChange }) {
 /* ── Scripted card renderer: SE-authored content, rendered verbatim.
       Styles: note (text), chart (one "Label: value" bar per line),
       stat (big value + label), image (URL). No model involved. ── */
-function ScriptedCard({ card }) {
+function ScriptedCard({ card, onAnswer }) {
+  const [picked, setPicked] = useState(null); // question style: chosen option index
+  useEffect(() => { setPicked(null); }, [card]);
   const lines = String(card.body || "").split("\n").map((l) => l.trim()).filter(Boolean);
   let inner;
-  if (card.style === "chart") {
+  if (card.style === "question") {
+    inner = (
+      <div className="sc-options">
+        {lines.slice(0, 4).map((opt, i) => (
+          <button
+            key={i}
+            type="button"
+            className={"sc-opt" + (picked === i ? " on" : "")}
+            disabled={picked !== null}
+            onClick={() => { setPicked(i); onAnswer?.(opt); }}
+          >
+            {opt}
+          </button>
+        ))}
+        {picked !== null && <span className="sc-answered">✓ {onAnswer ? "sent to the conversation" : "answered"}</span>}
+      </div>
+    );
+  } else if (card.style === "chart") {
     const rows = lines
       .map((l) => { const m = l.match(/^(.*?)[:|=]\s*([\d.,]+)\s*(.*)$/); return m ? { label: m[1].trim(), value: parseFloat(m[2].replace(/,/g, "")) || 0, suffix: m[3].trim() } : null; })
       .filter(Boolean);
@@ -1649,7 +1737,28 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
               <Conversation conversationUrl={conversationUrl} onLeave={handleLeave} />
             </div>
             <div className={`canvas-panel canvas-panel-${canvasPanel.side}`} aria-hidden={scCard && !canvasPanel.active ? undefined : "true"}>
-              {scCard && !canvasPanel.active && wide && <ScriptedCard card={scCard} />}
+              {scCard && !canvasPanel.active && wide && (
+                <ScriptedCard
+                  key={scCard.seq}
+                  card={scCard.card}
+                  onAnswer={(opt) => {
+                    scCard.answer?.(opt);
+                    // The pick lands with the call record (Results / webhook).
+                    if (conversationId) {
+                      fetch("/api/experience", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          kind: "attend",
+                          conversation_id: conversationId,
+                          ...(slug ? { slug } : {}),
+                          answers: [{ q: scCard.card.title || "Card question", a: opt }],
+                        }),
+                      }).catch(() => {});
+                    }
+                  }}
+                />
+              )}
             </div>
             {/* Contained inside the stage instead of a full-viewport overlay */}
             <MagicCanvas className="canvas-contained" onError={(e) => console.error("canvas error", e)} onLayoutEffectChange={onCanvasLayout} />
@@ -2147,6 +2256,8 @@ export default function TavusExperienceBuilder() {
   const [duetRun, setDuetRun] = useState(null); // {a, b, stream} while a duet is live
   const [scriptBusy, setScriptBusy] = useState(false);
   const [scriptFocus, setScriptFocus] = useState("");
+  const [cardsBusy, setCardsBusy] = useState(false);
+  const [cardsPrompt, setCardsPrompt] = useState("");
 
   // Demo page
   const [site, setSite] = useState({
@@ -2663,7 +2774,7 @@ export default function TavusExperienceBuilder() {
      silently (missing content or an unusable trigger). */
   const compiledScriptedCards = useMemo(() => scCards.map((c) => {
     const t = (v) => String(v ?? "").trim();
-    const style = ["note", "chart", "stat", "image"].includes(c.style) ? c.style : "note";
+    const style = ["note", "chart", "stat", "image", "question"].includes(c.style) ? c.style : "note";
     const trigger = ["keyword", "time", "start"].includes(c.trigger) ? c.trigger : "keyword";
     const card = {
       style,
@@ -3651,7 +3762,7 @@ export default function TavusExperienceBuilder() {
     const lines = studioLines.map((l) => String(l.text || "").toLowerCase());
     const rows = [];
     compiledScriptedCards.forEach((c) => {
-      const icon = c.style === "chart" ? "📊" : c.style === "stat" ? "🔢" : c.style === "image" ? "🖼" : "📄";
+      const icon = c.style === "chart" ? "📊" : c.style === "stat" ? "🔢" : c.style === "image" ? "🖼" : c.style === "question" ? "❓" : "📄";
       const label = `${icon} ${c.title || `${c.style} card`}`;
       if (c.trigger === "start") {
         rows.push({ k: "ok", label, detail: "appears at call start — guaranteed." });
@@ -3685,6 +3796,56 @@ export default function TavusExperienceBuilder() {
     if (!rows.length) rows.push({ k: "warn", label: "Nothing visual configured", detail: "This take records the AI human only — no cards or deck are set up to appear." });
     return rows;
   }, [studioLines, compiledScriptedCards, presentationEnabled, docIds, slidesTrigger, canvasEnabled, components]);
+
+  /* Claude drafts the scripted cards themselves from a plain-English ask
+     ("a pricing chart and a which-package question") + the demo's config. */
+  const generateScriptedCards = async () => {
+    setCardsBusy(true);
+    try {
+      addLog("info", "Designing scripted cards for this demo…");
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "cards",
+          vibe: cardsPrompt,
+          context: {
+            product: personaBrief.product,
+            brand: site.brand,
+            personaSummary: personaDraft.slice(0, 1500),
+            objectives: objectivesEnabled ? objectivesText.trim() : "",
+            canvasPlaybook: canvasEnabled ? canvasPlaybook.trim() : "",
+            presentation: presentationContext(),
+          },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: generation failed`);
+      }
+      const jsonText = text.slice(text.indexOf("["), text.lastIndexOf("]") + 1);
+      const drafted = JSON.parse(jsonText);
+      if (!Array.isArray(drafted) || !drafted.length) throw new Error("Claude returned no cards — try a more specific ask.");
+      setScCards(drafted.slice(0, 5).map((c) => ({
+        style: ["note", "chart", "stat", "image", "question"].includes(c.style) ? c.style : "note",
+        trigger: ["keyword", "time", "start"].includes(c.trigger) ? c.trigger : "keyword",
+        title: String(c.title ?? "").slice(0, 200),
+        body: String(c.body ?? "").slice(0, 2000),
+        url: String(c.url ?? "").slice(0, 500),
+        keywords: String(c.keywords ?? "").slice(0, 200),
+        atMinutes: c.atMinutes ? String(c.atMinutes) : "",
+        hideAfter: c.hideAfter ? String(c.hideAfter) : "",
+      })));
+      addLog("ok", `${Math.min(drafted.length, 5)} scripted cards drafted — review them on the Magic Canvas step (live previews there); the forecast below already reflects them.`);
+    } catch (e) {
+      addLog("err", `Cards: ${e.message}`);
+    } finally {
+      setCardsBusy(false);
+    }
+  };
 
   /* Claude writes the visitor script from the demo's own config — lines
      engineered to make scripted cards, canvas, the deck, and the objectives
@@ -4368,6 +4529,7 @@ Open with your first question. Spend the conversation exploring their answers. A
           run={duetRun}
           brand={site.brand}
           maxTurns={Math.max(2, parseInt(duetTurns, 10) || 6)}
+          cards={compiledScriptedCards}
           onExit={() => { setDuetRun(null); setStudioStatus("Duet saved — the .webm downloaded to this machine."); }}
         />
       )}
@@ -5234,6 +5396,7 @@ Open with your first question. Spend the conversation exploring their answers. A
                           <option value="chart">📊 Chart</option>
                           <option value="stat">🔢 Big stat</option>
                           <option value="image">🖼 Image</option>
+                          <option value="question">❓ Multiple choice</option>
                         </select>
                         <select style={{ width: "auto", padding: "4px 10px", fontSize: 12 }} value={c.trigger || "keyword"}
                           onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, trigger: e.target.value } : x)))}>
@@ -5257,12 +5420,13 @@ Open with your first question. Spend the conversation exploring their answers. A
                             <input type="number" min="0.5" step="0.5" value={c.atMinutes ?? ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, atMinutes: e.target.value } : x)))}
                               placeholder="Minutes into the call — e.g. 2" />
                           )}
-                          <input value={c.title || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} placeholder="Card title (optional)" />
+                          <input value={c.title || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
+                            placeholder={c.style === "question" ? "The question — e.g. Which package fits you best?" : "Card title (optional)"} />
                           {c.style === "image" ? (
                             <input className="mono" value={c.url || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} placeholder="Image URL" />
                           ) : (
                             <textarea value={c.body || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))}
-                              placeholder={c.style === "chart" ? "One bar per line — Label: number (e.g. Tier 1: 4900)" : c.style === "stat" ? "Big value on the first line, label on the second — e.g.\n87%\nless manual work" : "The exact text to show, one paragraph per line."}
+                              placeholder={c.style === "chart" ? "One bar per line — Label: number (e.g. Tier 1: 4900)" : c.style === "stat" ? "Big value on the first line, label on the second — e.g.\n87%\nless manual work" : c.style === "question" ? "One choice per line (2–4):\nClassic Santa\nBetter Santa" : "The exact text to show, one paragraph per line."}
                               style={{ minHeight: 68 }} />
                           )}
                           <input type="number" min="0" value={c.hideAfter ?? ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, hideAfter: e.target.value } : x)))}
@@ -6099,6 +6263,20 @@ Open with your first question. Spend the conversation exploring their answers. A
                 <button className="pill-btn" onClick={() => setStudioLines((ls) => (ls.length >= 12 ? ls : [...ls, { text: "" }]))}>+ Line</button>
               </div>
 
+              <div className="subhead">Scripted cards for this take</div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 8 }}>
+                Describe the cards you want and Claude designs them from this demo's config — chart, stat, note, image,
+                or a clickable multiple-choice question. They land on the Magic Canvas step (editable, with live previews)
+                and the forecast below updates instantly.
+              </p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16, maxWidth: 640 }}>
+                <input style={{ flex: "1 1 280px" }} value={cardsPrompt} onChange={(e) => setCardsPrompt(e.target.value)}
+                  placeholder='e.g. "a pricing chart when tiers come up, and a which-package question at the end"' />
+                <button className="pill-btn primary" onClick={generateScriptedCards} disabled={cardsBusy}>
+                  {cardsBusy ? "Designing…" : "✨ Generate cards"}
+                </button>
+              </div>
+
               <div className="subhead">What will be on camera</div>
               <p className="field-hint" style={{ maxWidth: 560, marginBottom: 8 }}>
                 Recomputed live from this demo's config and the script above — fix every ⚠️ before recording, or the take won't show it.
@@ -6174,11 +6352,29 @@ Open with your first question. Spend the conversation exploring their answers. A
                       : "no deck attached (Presentation step) — this duet records faces and voices only."}
                   </span>
                 </div>
+                {compiledScriptedCards.map((c, i) => {
+                  const icon = c.style === "chart" ? "📊" : c.style === "stat" ? "🔢" : c.style === "image" ? "🖼" : c.style === "question" ? "❓" : "📄";
+                  const seeded = `${duetOpener} ${duetTopic}`.toLowerCase();
+                  const kws = c.keywords.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+                  const seededHit = kws.find((k) => seeded.includes(k));
+                  const [mark, detail] =
+                    c.trigger === "start" ? ["✅", "appears when the duet starts — guaranteed."]
+                    : c.trigger === "time" ? ["✅", `appears ${Math.floor(c.atSeconds / 60)}:${String(c.atSeconds % 60).padStart(2, "0")} in — guaranteed.`]
+                    : seededHit ? ["✅", `your opening line/topic says “${seededHit}” — fires as soon as it's spoken.`]
+                    : ["🎲", `fires when either AI says ${kws.map((k) => `“${k}”`).join(" / ")} — put a trigger word in the opening line or topic seed to make it certain.`];
+                  return (
+                    <div key={i} className="kb-row" style={{ alignItems: "flex-start" }}>
+                      <span style={{ flexShrink: 0 }}>{mark}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0, minWidth: 150 }}>{icon} {c.title || `${c.style} card`}</span>
+                      <span style={{ fontSize: 12.5, color: "var(--muted)", flex: 1, lineHeight: 1.5 }}>{detail}</span>
+                    </div>
+                  );
+                })}
                 <div className="kb-row" style={{ alignItems: "flex-start" }}>
                   <span style={{ flexShrink: 0 }}>⚠️</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0, minWidth: 150 }}>🪄 Canvas &amp; scripted cards</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0, minWidth: 150 }}>🪄 Magic Canvas</span>
                   <span style={{ fontSize: 12.5, color: "var(--muted)", flex: 1, lineHeight: 1.5 }}>
-                    never render in duets (the duet stage is bare video tiles) — record a solo take for card visuals.
+                    Tavus-rendered canvas cards never appear in duets — scripted cards (above) do, overlaid center-stage.
                   </span>
                 </div>
               </div>
