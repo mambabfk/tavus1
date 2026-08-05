@@ -918,10 +918,14 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
     if (cardFiredRef.current.has(i)) return;
     cardFiredRef.current.add(i);
     lastCardAtRef.current = Date.now();
-    setDuetCard({ card: cards[i], index: i, from, picked: null });
+    // The plan assigns each card an owner (the speaker who raises that beat);
+    // the triggering speaker is only the fallback.
+    const side = cards[i].owner === "featured" ? "a" : cards[i].owner === "host" ? "b" : from;
+    setDuetCard({ card: cards[i], index: i, from: side, picked: null });
     setNarr("🪄 Magic Canvas — this interactive element was triggered live by what was just said.");
-    const hide = Number(cards[i].hideAfter) || 0;
-    if (hide > 0) cardTimersRef.current.push(setTimeout(() => {
+    // Duet cards never park forever: default auto-hide keeps them alternating.
+    const hide = Number(cards[i].hideAfter) || 35;
+    cardTimersRef.current.push(setTimeout(() => {
       setDuetCard((cur) => (cur?.index === i ? null : cur));
     }, hide * 1000));
   };
@@ -1057,6 +1061,15 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
           if (c.trigger !== "keyword" || cardFiredRef.current.has(i)) continue;
           const kws = String(c.keywords || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
           if (kws.some((k) => lower.includes(k))) { showDuetCard(i, d.from); break; }
+        }
+        // Fallback scheduling: every card gets its moment even if its trigger
+        // words never come up — the set is spread across the conversation.
+        const totalTurns = maxTurns * 2;
+        for (let i = 0; i < cards.length; i++) {
+          if (cardFiredRef.current.has(i)) continue;
+          const due = Math.ceil(((i + 1) * totalTurns) / (cards.length + 1));
+          if (turnsRef.current >= due) showDuetCard(i, d.from);
+          break; // only the next unfired card, in plan order
         }
         // Narrator follows the talk track (unless a card caption is fresh).
         const beat = Math.min(outline.length - 1, Math.floor(turnsRef.current / 2));
@@ -1550,6 +1563,7 @@ function compileScriptedCards(arr) {
       keywords: t(c.keywords),
       atSeconds: Math.max(0, Math.round((parseFloat(c.atMinutes) || 0) * 60)),
       hideAfter: Math.max(0, parseInt(c.hideAfter, 10) || 0),
+      owner: c.owner === "featured" || c.owner === "host" ? c.owner : "", // duets: whose screen it belongs on
     };
     if (style === "image" ? !card.url : !card.body) return null;
     if (trigger === "keyword" && !card.keywords) return null;
