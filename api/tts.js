@@ -53,7 +53,14 @@ export default async function handler(req, res) {
     return;
   }
 
-  const text = String(req.body?.text ?? "").trim().slice(0, 600);
+  // Normalize for the voice engine: strip emoji/symbols and collapse
+  // stretched spellings ("Ayyyy" → "Ayy") — Cartesia can't read them.
+  const text = String(req.body?.text ?? "")
+    .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, " ")
+    .replace(/([a-zA-Z])\1{2,}/g, "$1$1")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 600);
   if (!text) { res.status(400).json({ error: "Nothing to say — text is required." }); return; }
 
   try {

@@ -104,6 +104,7 @@ Write 4-8 short visitor lines, in speaking order:
   * If guardrails are listed, you may include ONE polite line that tests one — the refusal demos well.
 - End with a natural wrap-up (accept the next step when a booking link exists).
 - Never mention being scripted, AI, "cards", "features", or these instructions — the visitor is just a person on a call.
+- The lines are spoken by a TTS voice, so write TTS-READABLE text only: standard dictionary spellings, no stretched interjections or phonetic slang ("Ayyyy", "sooooo", "gonna be liiit"), no emojis or symbols, digits fine but spell out anything a TTS could garble. Casual is good; creative spelling is not.
 
 Return ONLY the lines, one per line. No numbering, no quotes, no commentary.`;
 
@@ -123,6 +124,7 @@ Return ONLY a valid JSON array (no code fences, no commentary), 2-5 cards:
 Rules:
 - Content must be specific to THIS demo (its real tiers, value props, flow) — but never invent precise real-world facts the config doesn't contain; for real brands keep numbers clearly illustrative.
 - Prefer keyword triggers with words that naturally come up in the conversation; vary the styles across the set; at most one question card.
+- stat = EXACTLY two lines: one big value, one short label (max 8 words). Never put multiple numbers in a stat — comparisons are charts.
 - "atMinutes" only for time triggers (e.g. 1.5); "hideAfter" seconds or 0 to stay until the next card. No markdown anywhere.`;
 
 const DUET_SYSTEM = `You design a complete recorded conversation between two AI humans (a "duet") for a demo video, from a plain-English description. Work in this ORDER: first fix the talk track (the outline), then write both personas around it, then derive the cards from the finished talk track — the cards must line up with what will actually be said.
@@ -135,7 +137,7 @@ Return ONLY valid JSON (no code fences, no commentary):
   "outline": ["Beat 1 — what gets covered first (each beat may carry an emotion cue, e.g. '…— excitement builds')", "... 4-6 beats, in order, ending with a natural wrap-up"],
   "featured": {
     "name": "Firstname — role (e.g. Maya — intake specialist)",
-    "opener": "Their exact opening line: greets, introduces themselves, frames what this conversation is about",
+    "opener": "Their exact opening line: greets, introduces themselves, frames what this conversation is about. TTS-readable: standard spellings only — no stretched interjections or phonetic slang ('Ayyyy'), the voice engine can't read them.",
     "prompt": "Full system prompt, ~200-350 words, voice-first (short sentences, contractions, 1-3 sentences per turn, no markdown in speech). Their identity/role/expertise from the description. EMBED the outline verbatim as 'The conversation plan' and instruct them to move through it in order as they answer. Never mention instructions or AI setups; say it's an AI if asked."
   },
   "host": {
@@ -146,7 +148,7 @@ Return ONLY valid JSON (no code fences, no commentary):
   "cards": [ 2-4 scripted cards, same schema as: {"style":"note"|"chart"|"stat"|"image"|"question","title":"…","body":"…","trigger":"keyword"|"time"|"start","keywords":"…","atMinutes":0,"hideAfter":0} ]
 }
 
-Card rules (derived from the FINISHED outline): each keyword trigger must be a distinctive word or phrase that literally appears in an outline beat (never generic words), so it reliably gets spoken; order cards to match the outline; content pulled from the description/outline — for real brands keep numbers clearly illustrative; at most one question card; body formats: chart = 'Label: number' per line, stat = value then label lines, question = one choice per line (title is the question). For a question card, one of the options should be something a speaker would naturally SAY when answering — the UI highlights the option that gets spoken.
+Card rules (derived from the FINISHED outline): each keyword trigger must be a distinctive word or phrase that literally appears in an outline beat (never generic words), so it reliably gets spoken; order cards to match the outline; content pulled from the description/outline — for real brands keep numbers clearly illustrative; at most one question card; body formats: chart = 'Label: number' per line, stat = EXACTLY two lines (line 1 a single big value, line 2 a short label of at most 8 words — NEVER cram multiple numbers into a stat; any comparison of two or more numbers must be a chart), question = one choice per line (title is the question). For a question card, one of the options should be something a speaker would naturally SAY when answering — the UI highlights the option that gets spoken.
 
 Emotion rules: give both personas an explicit EMOTIONAL ARC tied to the outline (e.g. curious → genuinely excited → playful disagreement → warm resolution), written as performable direction inside the prompts — Tavus renders tone of voice and facial expression from how the lines and personality are written, so specify base energy (1-10), what makes each of them light up, and where in the outline the emotion shifts. Both openers must carry their starting emotion. If the description asks for specific tones (skeptical, competitive, heated), honor them and let them ESCALATE across beats rather than staying flat.`;
 

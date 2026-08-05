@@ -389,7 +389,7 @@ const BUILDER_CSS = `
         .sc-bar-val { font-weight:600; }
         .sc-stat { text-align:center; padding:6px 0; }
         .sc-stat-value { display:block; font-size:36px; font-weight:700; letter-spacing:-1.2px; line-height:1.1; }
-        .sc-stat-label { color:var(--muted); font-size:13px; }
+        .sc-stat-label { display:block; color:var(--muted); font-size:13px; line-height:1.5; margin-top:3px; }
         .sc-img { width:100%; border-radius:10px; object-fit:cover; }
         .sc-preview { flex:0 0 260px; background:var(--canvas); border:1px dashed var(--border); border-radius:var(--r-md); padding:14px; display:flex; align-items:center; justify-content:center; }
         .sc-preview .sc-card { position:static; transform:none; width:100%; box-shadow:0 10px 30px -14px rgba(20,20,20,.25); }
@@ -827,10 +827,13 @@ function DuetJoiner({ url, id, side, hold = false }) {
             if (t) buf.push(t);
           }
           // End of the replica's turn → hand its words to the other room.
+          // Post even with an empty transcript: scripted speech (greetings,
+          // echoes) may emit no utterance events, and the parent knows those
+          // texts — an empty turn is still the "I finished speaking" signal.
           if (/stopped_speaking/i.test(d.event_type)) {
             const text = buf.join(" ").trim();
             buf = [];
-            if (text) setTimeout(() => post({ type: "turn", text }), 700);
+            setTimeout(() => post({ type: "turn", text }), 700);
           }
         });
         call.on("left-meeting", () => post({ type: "left" }));
@@ -879,7 +882,10 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
   // when A's opener lands, we release B with the scripted reply via echo.
   // A's opener is not relayed — B's scripted reply already answers it.
   const aFirstRef = useRef(true);
+  const bFirstRef = useRef(true);
   const releasedRef = useRef(false);
+  const lastTurnAtRef = useRef(Date.now());
+  const lastFromRef = useRef("");
   const frameA = useRef(null);
   const frameB = useRef(null);
   const recorderRef = useRef(null);
@@ -970,10 +976,21 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
       }
       if (d.type === "fatal") setNote(`Room ${String(d.from).toUpperCase()} failed: ${d.error}`);
       if (d.type === "autoplay-blocked") setNote("Audio blocked by the browser — click anywhere on this page once.");
-      if (d.type === "turn" && d.text) {
+      if (d.type === "turn") {
+        // Scripted speech (custom greetings, echoes) can finish with NO
+        // transcript — an empty turn still means "I'm done speaking". We know
+        // the scripted texts, so substitute them where the transcript is blank.
+        let text = String(d.text || "").trim();
+        const isOpener = d.from === "a" && aFirstRef.current;
+        if (d.from === "a") aFirstRef.current = false;
+        const isEchoReply = d.from === "b" && bFirstRef.current && releasedRef.current;
+        if (d.from === "b") bFirstRef.current = false;
+        if (!text && isEchoReply) text = openerB; // B's echo — we wrote that line
         turnsRef.current += 1;
         setTurns(turnsRef.current);
-        setNote(`${labels?.[d.from] || String(d.from).toUpperCase()}: “${String(d.text).slice(0, 110)}${d.text.length > 110 ? "…" : ""}”`);
+        lastTurnAtRef.current = Date.now();
+        lastFromRef.current = d.from;
+        if (text) setNote(`${labels?.[d.from] || String(d.from).toUpperCase()}: “${text.slice(0, 110)}${text.length > 110 ? "…" : ""}”`);
         if (turnsRef.current >= maxTurns * 2) { endDuet(); return; }
         // Once the opening exchange has played, tell the viewer which Tavus
         // features to watch for (holds until the next beat/card caption).
@@ -982,15 +999,14 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
           lastCardAtRef.current = Date.now();
         }
         // A's opener landed → release B: unmute + speak the scripted reply.
-        const isOpener = d.from === "a" && aFirstRef.current;
-        if (d.from === "a") aFirstRef.current = false;
         if (isOpener && !releasedRef.current) {
           releasedRef.current = true;
           frameB.current?.contentWindow?.postMessage({ __duet: true, type: "release", echo: openerB }, origin);
         }
         // The scripted reply already answers the opener — don't relay it too.
-        if (!(isOpener && openerB)) deliver(d.from === "a" ? "b" : "a", d.text);
-        const lower = String(d.text).toLowerCase();
+        const skipRelay = isOpener && !!openerB;
+        if (!skipRelay && text) deliver(d.from === "a" ? "b" : "a", text);
+        const lower = text.toLowerCase();
         // A spoken answer visibly selects the matching option on a live
         // question card — that's what makes it read as two-way, not a video.
         setDuetCard((cur) => {
@@ -1022,6 +1038,20 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
         frameB.current?.contentWindow?.postMessage({ __duet: true, type: "release", echo: openerB }, origin);
       }
     }, 18_000);
+    // Anti-stall watchdog: if nobody has finished a turn in 25s, nudge the
+    // side whose turn it is — a duet must never sit in silence.
+    const watchdog = setInterval(() => {
+      if (endedRef.current || turnsRef.current >= maxTurns * 2) return;
+      if (Date.now() - lastTurnAtRef.current < 25_000) return;
+      lastTurnAtRef.current = Date.now();
+      if (!releasedRef.current) {
+        releasedRef.current = true;
+        frameB.current?.contentWindow?.postMessage({ __duet: true, type: "release", echo: openerB }, origin);
+        return;
+      }
+      const target = lastFromRef.current === "b" ? "a" : "b";
+      deliver(target, "Please continue the conversation — respond briefly and naturally to what was just said, then keep going with the plan.");
+    }, 5000);
 
     // Local recording of the captured tab — both faces, both voices.
     if (run.stream) {
@@ -1039,6 +1069,7 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
     return () => {
       clearTimeout(hardStop);
       clearTimeout(releaseFallback);
+      clearInterval(watchdog);
       cardTimersRef.current.forEach(clearTimeout);
       window.removeEventListener("message", onMsg);
     };
@@ -1547,7 +1578,7 @@ function ScriptedCard({ card, onAnswer, forcePicked = null }) {
     inner = (
       <div className="sc-stat">
         <span className="sc-stat-value">{lines[0] || ""}</span>
-        {lines.length > 1 && <span className="sc-stat-label">{lines.slice(1).join(" ")}</span>}
+        {lines.slice(1, 4).map((l, i) => <span key={i} className="sc-stat-label">{l}</span>)}
       </div>
     );
   } else if (card.style === "image") {
