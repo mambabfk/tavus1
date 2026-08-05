@@ -130,7 +130,8 @@ const DUET_SYSTEM = `You design a complete recorded conversation between two AI 
 Return ONLY valid JSON (no code fences, no commentary):
 {
   "title": "Short label for this duet",
-  "summary": "1-2 on-screen sentences telling the VIEWER what they're watching: a simulated conversation between two AI humans running on Tavus' full stack — every turn generated live, and you could talk to either one yourself — plus what to watch for in THIS conversation.",
+  "summary": "1-2 on-screen sentences SUMMARIZING THE INTERACTION for the viewer: who is talking to whom about what — and that this is a simulated conversation between two AI humans running live on Tavus' full stack (you could talk to either one yourself).",
+  "features": "1-2 on-screen sentences SUMMARIZING THE TAVUS FEATURES this video demonstrates, tied concretely to THIS plan — e.g. real-time generated turns, Magic Canvas elements triggered live by the dialogue (name what the cards show), and the emotional arc to watch for.",
   "outline": ["Beat 1 — what gets covered first (each beat may carry an emotion cue, e.g. '…— excitement builds')", "... 4-6 beats, in order, ending with a natural wrap-up"],
   "featured": {
     "name": "Firstname — role (e.g. Maya — intake specialist)",

@@ -873,7 +873,7 @@ function DuetJoiner({ url, id, side, hold = false }) {
 /* The duet stage the builder sees: branded chrome, two rooms side by side,
    REC indicator, turn counter, End button. Records the captured tab locally
    (MediaRecorder) and downloads the file when the duet ends. */
-function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = "", summary = "", outline = [], onExit }) {
+function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = "", summary = "", features = "", outline = [], onExit }) {
   // Opening choreography: BOTH rooms join at t=0 (both faces on screen
   // together — no black tile). Side B starts HELD (muted, auto-interrupted);
   // when A's opener lands, we release B with the scripted reply via echo.
@@ -975,6 +975,12 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
         setTurns(turnsRef.current);
         setNote(`${labels?.[d.from] || String(d.from).toUpperCase()}: “${String(d.text).slice(0, 110)}${d.text.length > 110 ? "…" : ""}”`);
         if (turnsRef.current >= maxTurns * 2) { endDuet(); return; }
+        // Once the opening exchange has played, tell the viewer which Tavus
+        // features to watch for (holds until the next beat/card caption).
+        if (turnsRef.current === 2 && features) {
+          setNarr(features);
+          lastCardAtRef.current = Date.now();
+        }
         // A's opener landed → release B: unmute + speak the scripted reply.
         const isOpener = d.from === "a" && aFirstRef.current;
         if (d.from === "a") aFirstRef.current = false;
@@ -2343,6 +2349,9 @@ export default function TavusExperienceBuilder() {
   const [duetFaceB, setDuetFaceB] = useState(""); // host's face
   const [duetOpener, setDuetOpener] = useState(""); // featured opener — seeded from the plan, editable
   const [duetOpenerB, setDuetOpenerB] = useState(""); // host's scripted reply — plays instantly, hides LLM latency
+  // On-video narrator lines — seeded from the plan, editable before recording.
+  const [duetNarrIntro, setDuetNarrIntro] = useState(""); // summarizes the interaction
+  const [duetNarrFeatures, setDuetNarrFeatures] = useState(""); // summarizes the Tavus features shown
   const [duetTurns, setDuetTurns] = useState("6");
   // Two reusable Studio PALs — their prompts get PATCHed per plan, so duets
   // never pile up new PALs on the account.
@@ -2469,7 +2478,7 @@ export default function TavusExperienceBuilder() {
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
     scCards, studioLines,
-    duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetTurns, studioPalA, studioPalB,
+    duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, studioPalA, studioPalB,
     palLlm, knowledgeIdsRaw,
     site,
     expJourney,
@@ -2531,6 +2540,7 @@ export default function TavusExperienceBuilder() {
     setDuetPlan(c.duetPlan && typeof c.duetPlan === "object" ? c.duetPlan : null);
     setDuetFaceA(c.duetFaceA ?? ""); setDuetFaceB(c.duetFaceB ?? "");
     setDuetOpener(c.duetOpener ?? ""); setDuetOpenerB(c.duetOpenerB ?? "");
+    setDuetNarrIntro(c.duetNarrIntro ?? ""); setDuetNarrFeatures(c.duetNarrFeatures ?? "");
     setDuetTurns(c.duetTurns ?? "6");
     setStudioPalA(c.studioPalA ?? ""); setStudioPalB(c.studioPalB ?? "");
     setExpJourney(Array.isArray(c.expJourney) ? c.expJourney : []);
@@ -4005,6 +4015,8 @@ export default function TavusExperienceBuilder() {
       setDuetPlan(plan);
       setDuetOpener(String(plan.featured.opener || ""));
       setDuetOpenerB(String(plan.host?.opener || ""));
+      setDuetNarrIntro(String(plan.summary || ""));
+      setDuetNarrFeatures(String(plan.features || ""));
       addLog("ok", `Duet planned: “${plan.title || "untitled"}” — ${plan.outline.length} talk-track beats, ${Array.isArray(plan.cards) ? plan.cards.length : 0} cards derived from them. Pick two faces and record.`);
     } catch (e) {
       addLog("err", `Duet plan: ${e.message}`);
@@ -4626,7 +4638,8 @@ export default function TavusExperienceBuilder() {
           cards={duetPlan ? compileScriptedCards(duetPlan.cards) : compiledScriptedCards}
           labels={duetPlan ? { a: duetPlan.featured?.name || "", b: duetPlan.host?.name || "" } : null}
           openerB={duetOpenerB.trim()}
-          summary={String(duetPlan?.summary || "")}
+          summary={duetNarrIntro.trim()}
+          features={duetNarrFeatures.trim()}
           outline={Array.isArray(duetPlan?.outline) ? duetPlan.outline : []}
           onExit={() => { setDuetRun(null); setStudioStatus("Duet saved — the .webm downloaded to this machine."); }}
         />
@@ -6476,6 +6489,14 @@ export default function TavusExperienceBuilder() {
                   </Field>
                   <Field label={`Scripted reply — ${duetPlan.host?.name || "host"}`} hint="Also instant: plays the moment the host joins, while the real turns generate — this is what makes the dialogue feel speedy.">
                     <input value={duetOpenerB} onChange={(e) => setDuetOpenerB(e.target.value)} />
+                  </Field>
+                  <Field label="On-video context — the interaction" hint="Shown on screen at the start: what the viewer is watching. Edit freely.">
+                    <textarea style={{ minHeight: 54 }} value={duetNarrIntro} onChange={(e) => setDuetNarrIntro(e.target.value)}
+                      placeholder="A simulated conversation between two AI humans on Tavus' full stack — every turn generated live. You could talk to either one yourself." />
+                  </Field>
+                  <Field label="On-video context — Tavus features shown" hint="Shown after the opening exchange: which capabilities to watch for (canvas elements, emotions escalating…). Edit freely.">
+                    <textarea style={{ minHeight: 54 }} value={duetNarrFeatures} onChange={(e) => setDuetNarrFeatures(e.target.value)}
+                      placeholder="Watch for Magic Canvas elements triggered live by the dialogue, and the emotion building as the debate heats up." />
                   </Field>
                   <Field label="Exchanges" hint="How many back-and-forths before it wraps and saves (hard cap 5 minutes).">
                     <input type="number" min="2" max="20" style={{ maxWidth: 120 }} value={duetTurns} onChange={(e) => setDuetTurns(e.target.value)} />
