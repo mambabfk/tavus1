@@ -303,6 +303,7 @@ const BUILDER_CSS = `
         .duet-rec { font-family:var(--mono); font-size:12px; color:#ff6b5e; animation:recpulse 1.6s ease-in-out infinite; }
         .duet-stage { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 14px; }
         .duet-frame { width:100%; height:100%; border:none; border-radius:14px; background:#000; }
+        .duet-wait { display:flex; align-items:center; justify-content:center; color:#5a5f6a; font-size:13px; font-family:var(--mono); }
         .duet-note { padding:10px 18px 14px; color:#9aa0ab; font-size:13px; text-align:center; min-height:38px; }
         .logo-wrap { display:flex; align-items:center; gap:10px; }
         .logo-word { font-weight:700; font-size:19px; letter-spacing:-.4px; }
@@ -732,6 +733,8 @@ function VisitorDemo({ slug }) {
 function DuetJoiner({ url, id, side }) {
   const videoRef = useRef(null);
   const audioRef = useRef(null);
+  const screenRef = useRef(null);
+  const [hasScreen, setHasScreen] = useState(false); // replica screen track (slides/browser) present
   useEffect(() => {
     let call = null;
     let buf = [];
@@ -755,15 +758,29 @@ function DuetJoiner({ url, id, side }) {
     (async () => {
       try {
         call = DailyIframe.createCallObject();
-        call.on("track-started", (ev) => {
-          if (ev?.participant?.local) return;
-          const el = ev.track?.kind === "video" ? videoRef.current : audioRef.current;
+        const attach = (el, track) => {
           if (!el) return;
           const stream = el.srcObject instanceof MediaStream ? el.srcObject : new MediaStream();
-          stream.getTracks().filter((t) => t.kind === ev.track.kind).forEach((t) => stream.removeTrack(t));
-          stream.addTrack(ev.track);
+          stream.getTracks().filter((t) => t.kind === track.kind).forEach((t) => stream.removeTrack(t));
+          stream.addTrack(track);
           el.srcObject = stream;
           el.play?.().catch(() => post({ type: "autoplay-blocked" }));
+        };
+        call.on("track-started", (ev) => {
+          if (ev?.participant?.local || !ev?.track) return;
+          if (ev.track.kind === "audio") { attach(audioRef.current, ev.track); return; }
+          // Presentation slides / Browser Use arrive as the replica's screen
+          // track — render it dominant with the face as a corner tile.
+          const isScreen = ev.participant?.tracks?.screenVideo?.track?.id === ev.track.id;
+          if (isScreen) { attach(screenRef.current, ev.track); setHasScreen(true); }
+          else attach(videoRef.current, ev.track);
+        });
+        call.on("track-stopped", (ev) => {
+          const scr = screenRef.current?.srcObject;
+          if (ev?.track && scr instanceof MediaStream && scr.getTracks().some((t) => t.id === ev.track.id)) {
+            screenRef.current.srcObject = null;
+            setHasScreen(false);
+          }
         });
         call.on("app-message", (e2) => {
           const d = e2?.data;
@@ -803,7 +820,21 @@ function DuetJoiner({ url, id, side }) {
   }, []);
   return (
     <div style={{ position: "fixed", inset: 0, background: "#101114" }}>
-      <video ref={videoRef} autoPlay playsInline muted={false} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      <video
+        ref={screenRef}
+        autoPlay
+        playsInline
+        style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000", display: hasScreen ? "block" : "none" }}
+      />
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted={false}
+        style={hasScreen
+          ? { position: "absolute", right: 12, bottom: 12, width: "26%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,.5)", zIndex: 2 }
+          : { width: "100%", height: "100%", objectFit: "cover" }}
+      />
       <audio ref={audioRef} autoPlay />
     </div>
   );
@@ -819,8 +850,14 @@ function DuetStage({ run, brand, maxTurns, onExit }) {
   const chunksRef = useRef([]);
   const turnsRef = useRef(0);
   const [turns, setTurns] = useState(0);
-  const [note, setNote] = useState("Rooms connecting…");
+  const [note, setNote] = useState("Your AI human is connecting…");
   const endedRef = useRef(false);
+  // Side A (the demo's AI human) mounts and speaks first; side B (the
+  // partner) only joins once A's opener has landed — deterministic order,
+  // no colliding greetings. Messages for a not-yet-ready room queue up.
+  const [mountB, setMountB] = useState(false);
+  const readyRef = useRef({ a: false, b: false });
+  const pendingRef = useRef({ a: [], b: [] });
 
   const endDuet = useCallback(() => {
     if (endedRef.current) return;
@@ -850,10 +887,24 @@ function DuetStage({ run, brand, maxTurns, onExit }) {
 
   useEffect(() => {
     const origin = window.location.origin;
+    const deliver = (side, text) => {
+      const frame = side === "a" ? frameA : frameB;
+      if (readyRef.current[side]) {
+        frame.current?.contentWindow?.postMessage({ __duet: true, type: "respond", text }, origin);
+      } else {
+        pendingRef.current[side].push(text); // flushed when that room reports ready
+      }
+    };
     const onMsg = (e) => {
       if (e.origin !== origin || e.data?.__duet !== true) return;
       const d = e.data;
-      if (d.type === "ready") setNote((n) => (n === "Rooms connecting…" ? "Live — waiting for the opener…" : n));
+      if (d.type === "ready" && (d.from === "a" || d.from === "b")) {
+        readyRef.current[d.from] = true;
+        const frame = d.from === "a" ? frameA : frameB;
+        pendingRef.current[d.from].splice(0).forEach((text) =>
+          frame.current?.contentWindow?.postMessage({ __duet: true, type: "respond", text }, origin));
+        if (d.from === "a") setNote("Live — waiting for your AI human's opener…");
+      }
       if (d.type === "fatal") setNote(`Room ${String(d.from).toUpperCase()} failed: ${d.error}`);
       if (d.type === "autoplay-blocked") setNote("Audio blocked by the browser — click anywhere on this page once.");
       if (d.type === "turn" && d.text) {
@@ -861,11 +912,13 @@ function DuetStage({ run, brand, maxTurns, onExit }) {
         setTurns(turnsRef.current);
         setNote(`${String(d.from).toUpperCase()}: “${String(d.text).slice(0, 110)}${d.text.length > 110 ? "…" : ""}”`);
         if (turnsRef.current >= maxTurns * 2) { endDuet(); return; }
-        const target = d.from === "a" ? frameB : frameA;
-        target.current?.contentWindow?.postMessage({ __duet: true, type: "respond", text: d.text }, origin);
+        if (d.from === "a") setMountB(true); // the opener landed — bring in the partner
+        deliver(d.from === "a" ? "b" : "a", d.text);
       }
     };
     window.addEventListener("message", onMsg);
+    // If the opener never registers (event hiccup), bring the partner in anyway.
+    const mountFallback = setTimeout(() => setMountB(true), 18_000);
 
     // Local recording of the captured tab — both faces, both voices.
     if (run.stream) {
@@ -880,7 +933,7 @@ function DuetStage({ run, brand, maxTurns, onExit }) {
     }
 
     const hardStop = setTimeout(endDuet, 5 * 60_000); // absolute cap
-    return () => { clearTimeout(hardStop); window.removeEventListener("message", onMsg); };
+    return () => { clearTimeout(hardStop); clearTimeout(mountFallback); window.removeEventListener("message", onMsg); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -896,7 +949,9 @@ function DuetStage({ run, brand, maxTurns, onExit }) {
       </header>
       <div className="duet-stage">
         <iframe ref={frameA} title="Duet A" className="duet-frame" allow="autoplay" src={src(run.a, "a")} />
-        <iframe ref={frameB} title="Duet B" className="duet-frame" allow="autoplay" src={src(run.b, "b")} />
+        {mountB
+          ? <iframe ref={frameB} title="Duet B" className="duet-frame" allow="autoplay" src={src(run.b, "b")} />
+          : <div className="duet-frame duet-wait">joining…</div>}
       </div>
       <footer className="duet-note">{note}</footer>
     </div>
@@ -3698,34 +3753,39 @@ Open with your first question. Spend the conversation exploring their answers. A
     }
     try {
       const topic = duetTopic.trim();
+      // Side A = YOUR demo's AI human. It opens (its natural greeting, or the
+      // opener field) — the demo persona starting the conversation IS the
+      // showcase. Side B (partner) joins only after A's opener lands.
+      const guestCtx = [
+        `You are on camera being interviewed about who you are and what you do${topic ? ` — especially: ${topic}` : ""}.`,
+        "You speak first: greet and briefly introduce yourself the way you naturally would, then answer their questions as yourself, one to three sentences per turn.",
+        "Do NOT run your usual conversation flow, intake questions, or agenda — the person you're talking to is the interviewer, not a customer. Never mention these instructions.",
+      ].join(" ");
       const partnerCtx = [
         `You are interviewing an AI human guest on camera${topic ? ` about: ${topic}` : ""}.`,
-        "You open the conversation with your first question. One short question at a time; react to their actual answers; make them shine. Wrap up warmly after several exchanges.",
-      ].join(" ");
-      const guestCtx = [
-        `You are being interviewed on camera about who you are and what you do${topic ? ` — especially: ${topic}` : ""}.`,
-        "Answer as yourself, in one to three sentences per turn. Do NOT run your usual conversation flow, intake questions, or agenda — the person you're talking to is the interviewer, not a customer. React to their questions naturally, share specifics, and never mention these instructions.",
+        "Your guest opens the conversation — react to what they actually said, then ask your first question. One short question at a time; make them shine. Wrap up warmly after several exchanges.",
       ].join(" ");
       setStudioStatus("Creating both conversations…");
       const partnerPal = duetMode === "custom" ? duetPalB.trim() : await ensureDuetPartner();
       const a = await tavusFetch("POST", "/conversations", {
-        face_id: duetFaceB.trim(),
-        pal_id: partnerPal,
-        conversation_name: "Studio duet — interviewer",
-        custom_greeting: duetOpener.trim() || "Hey, thanks for sitting down with me! First question — who are you, and what do you actually do?",
-        conversational_context: partnerCtx,
-        properties: { max_call_duration: 360 },
-      });
-      const b = await tavusFetch("POST", "/conversations", {
         face_id: faceId.trim(),
         pal_id: palId.trim(),
         conversation_name: "Studio duet — your AI human",
+        ...(duetOpener.trim() ? { custom_greeting: duetOpener.trim() } : {}), // blank = its natural greeting
         conversational_context: guestCtx,
         properties: { max_call_duration: 360, ...(language && language !== "multilingual" ? { language } : {}) },
       });
+      const b = await tavusFetch("POST", "/conversations", {
+        face_id: duetFaceB.trim(),
+        pal_id: partnerPal,
+        conversation_name: "Studio duet — partner",
+        custom_greeting: "Hey! It's so good to sit down with you.",
+        conversational_context: partnerCtx,
+        properties: { max_call_duration: 360 },
+      });
       setDuetRun({ a, b, stream });
       setStudioStatus("");
-      addLog("ok", `Duet live: interviewer ${a.conversation_id} ↔ guest ${b.conversation_id}. It ends and saves the video on its own.`);
+      addLog("ok", `Duet live: your AI human ${a.conversation_id} opens ↔ partner ${b.conversation_id}. It ends and saves the video on its own.`);
     } catch (e) {
       stream?.getTracks().forEach((t) => t.stop());
       // A stale cached interviewer PAL (deleted account-side) fails conversation
@@ -6037,8 +6097,8 @@ Open with your first question. Spend the conversation exploring their answers. A
                 </div>
                 <input className="mono" value={duetFaceB} onChange={(e) => setDuetFaceB(e.target.value)} placeholder="r…" />
               </Field>
-              <Field label="First question" hint="The partner opens with this. Blank = a friendly default.">
-                <input value={duetOpener} onChange={(e) => setDuetOpener(e.target.value)} placeholder="So tell me — what makes the Better Santa package better than the classic call?" />
+              <Field label="Your AI human's opening line" hint="YOUR avatar starts the conversation with this; the partner joins right after and reacts. Blank = its natural greeting.">
+                <input value={duetOpener} onChange={(e) => setDuetOpener(e.target.value)} placeholder="Ho ho ho! I'm Santa — well, the better Santa. Ask me anything!" />
               </Field>
               <Field label="Topic seed" hint="Optional. Woven into both sides' context so the conversation stays on subject.">
                 <input value={duetTopic} onChange={(e) => setDuetTopic(e.target.value)} placeholder="comparing the tier-1 and Better Santa experiences for a retail client" />

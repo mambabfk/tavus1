@@ -309,13 +309,17 @@ non-technical users; ids unchanged):
    "auto"`; `INTERVIEWER_PROMPT`; created once via POST /pals, id cached in
    `duetPartnerId` and saved with the demo, cleared+recreated if a
    conversation-create fails on it) whose whole prompt is "make the guest
-   shine". The partner OPENS with `duetOpener` (its custom_greeting); the
-   demo PAL answers as itself with a being-interviewed context that
-   suppresses its usual intake flow. `duetMode: "custom"` accepts any PAL
-   as the partner instead. Two
-   conversations are created; each joins in a same-origin iframe
+   shine". **The DEMO's AI human opens** (side A: `duetOpener` as its
+   custom_greeting, blank = natural greeting — per explicit user
+   direction); the partner room (side B) only MOUNTS after A's first turn
+   arrives (18s fallback), with per-side ready flags + queued respond
+   messages in `DuetStage` — deterministic opening order, no colliding
+   greetings. `duetMode: "custom"` accepts any PAL as the partner instead.
+   Two conversations are created; each joins in a same-origin iframe
    (`?duet=join&url=…&side=a|b` → `DuetJoiner`; dodges Daily's
-   one-call-object-per-page limit). The parent `DuetStage` is a pure TEXT
+   one-call-object-per-page limit). The joiner renders the replica's
+   screen track (presentation slides / Browser Use) dominant with the face
+   as a corner tile when present, so decks show up in duet recordings. The parent `DuetStage` is a pure TEXT
    switchboard: a replica's finished turn (buffered `conversation.utterance`
    speech, flushed on `stopped_speaking`; role from properties OR embedded
    in the event type, user role skipped, streaming-utterance events
