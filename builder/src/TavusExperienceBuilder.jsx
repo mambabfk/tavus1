@@ -5588,7 +5588,7 @@ export default function TavusExperienceBuilder() {
                 <div className="kb-row">
                   <span style={{ flex: 1, fontSize: 13 }}>TTS visitor voice</span>
                   <span className={"kb-status " + (ttsAvail?.available ? "kb-ready" : ttsAvail === null ? "" : "kb-error")}>
-                    {ttsAvail === null ? "checking…" : ttsAvail?.available ? `ready (${ttsAvail.voice})` : "add OPENAI_API_KEY on Vercel"}
+                    {ttsAvail === null ? "checking…" : ttsAvail?.available ? `Cartesia ready (${ttsAvail.voice})` : "add CARTESIA_API_KEY on Vercel"}
                   </span>
                 </div>
               </div>

@@ -284,8 +284,11 @@ non-technical users; ids unchanged):
 5.8. **Studio** (`studio`) — records scripted takes as MP4 feature demos.
    `studioLines` (saved with scenarios) script the visitor; `startStudioTake()`
    captures the tab via getDisplayMedia **inside the click** (gesture rule),
-   renders lines via `POST /api/tts` (OpenAI TTS behind `OPENAI_API_KEY`;
-   GET probes availability for the step's ready-check), then `launch()`es
+   renders lines via `POST /api/tts` (**Cartesia** Sonic behind
+   `CARTESIA_API_KEY` — per explicit user direction, same voice stack as
+   Tavus; `CARTESIA_VOICE_ID`/`CARTESIA_MODEL`/`CARTESIA_VERSION` env
+   overrides, voice falls back to the account's first voice; GET probes
+   availability for the step's ready-check), then `launch()`es
    with `controls.studio: true` + `recordingLayout: "stage"`. The take
    engine in `CallExtras` (reads module-level `STUDIO_RUNTIME`) joins with
    the TTS MediaStream as mic (`setInputDevicesAsync`), camera off,
