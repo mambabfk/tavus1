@@ -753,6 +753,7 @@ function DuetJoiner({ url, id, side, hold = false }) {
   useEffect(() => {
     let call = null;
     let buf = [];
+    let pendingTurn = null; // debounce: a stop only ends the turn after real quiet
     // Hold mode (side B): join immediately so the face is on screen from the
     // start, but stay silent — audio muted, any spontaneous greeting
     // interrupted — until the parent releases us with the scripted reply.
@@ -818,6 +819,7 @@ function DuetJoiner({ url, id, side, hold = false }) {
           // While holding: kill any spontaneous greeting the moment it starts.
           if (holding) {
             if (/started_speaking/i.test(d.event_type)) send("conversation.interrupt");
+            clearTimeout(pendingTurn);
             buf = [];
             return;
           }
@@ -826,14 +828,20 @@ function DuetJoiner({ url, id, side, hold = false }) {
             const t = String(d.properties?.speech ?? d.properties?.text ?? "").trim();
             if (t) buf.push(t);
           }
-          // End of the replica's turn → hand its words to the other room.
-          // Post even with an empty transcript: scripted speech (greetings,
-          // echoes) may emit no utterance events, and the parent knows those
-          // texts — an empty turn is still the "I finished speaking" signal.
+          // stopped_speaking fires on PAUSES too — resuming within the quiet
+          // window cancels the pending turn, so only a real end-of-turn posts
+          // (premature posts caused talk-over). Empty transcripts still post:
+          // scripted speech (greetings/echoes) may emit no utterance events.
+          if (/started_speaking/i.test(d.event_type)) {
+            clearTimeout(pendingTurn);
+          }
           if (/stopped_speaking/i.test(d.event_type)) {
-            const text = buf.join(" ").trim();
-            buf = [];
-            setTimeout(() => post({ type: "turn", text }), 700);
+            clearTimeout(pendingTurn);
+            pendingTurn = setTimeout(() => {
+              const text = buf.join(" ").trim();
+              buf = [];
+              post({ type: "turn", text });
+            }, 1400);
           }
         });
         call.on("left-meeting", () => post({ type: "left" }));
@@ -882,8 +890,9 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
   // when A's opener lands, we release B with the scripted reply via echo.
   // A's opener is not relayed — B's scripted reply already answers it.
   const aFirstRef = useRef(true);
-  const bFirstRef = useRef(true);
   const releasedRef = useRef(false);
+  const echoRelayedRef = useRef(false); // B's scripted reply handed to A exactly once
+  const echoTimerRef = useRef(null);
   const lastTurnAtRef = useRef(Date.now());
   const lastFromRef = useRef("");
   const frameA = useRef(null);
@@ -955,6 +964,21 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
         pendingRef.current[side].push(text); // flushed when that room reports ready
       }
     };
+    const releaseB = () => {
+      if (releasedRef.current) return;
+      releasedRef.current = true;
+      frameB.current?.contentWindow?.postMessage({ __duet: true, type: "release", echo: openerB }, origin);
+      // Guarantee the echoed reply reaches A even if B's speech events never
+      // fire: relay it on a timer sized to the line's speaking duration.
+      if (openerB) {
+        const ms = 3000 + openerB.split(/\s+/).length * 450;
+        echoTimerRef.current = setTimeout(() => {
+          if (echoRelayedRef.current || endedRef.current) return;
+          echoRelayedRef.current = true;
+          deliver("a", openerB);
+        }, ms);
+      }
+    };
     const onMsg = (e) => {
       if (e.origin !== origin || e.data?.__duet !== true) return;
       const d = e.data;
@@ -980,17 +1004,12 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
         // Scripted speech (custom greetings, echoes) can finish with NO
         // transcript — an empty turn still means "I'm done speaking". We know
         // the scripted texts, so substitute them where the transcript is blank.
-        let text = String(d.text || "").trim();
-        const isOpener = d.from === "a" && aFirstRef.current;
-        if (d.from === "a") aFirstRef.current = false;
-        const isEchoReply = d.from === "b" && bFirstRef.current && releasedRef.current;
-        if (d.from === "b") bFirstRef.current = false;
-        if (!text && isEchoReply) text = openerB; // B's echo — we wrote that line
+        const rawText = String(d.text || "").trim();
+        let text = rawText;
         turnsRef.current += 1;
         setTurns(turnsRef.current);
         lastTurnAtRef.current = Date.now();
         lastFromRef.current = d.from;
-        if (text) setNote(`${labels?.[d.from] || String(d.from).toUpperCase()}: “${text.slice(0, 110)}${text.length > 110 ? "…" : ""}”`);
         if (turnsRef.current >= maxTurns * 2) { endDuet(); return; }
         // Once the opening exchange has played, tell the viewer which Tavus
         // features to watch for (holds until the next beat/card caption).
@@ -998,14 +1017,31 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
           setNarr(features);
           lastCardAtRef.current = Date.now();
         }
-        // A's opener landed → release B: unmute + speak the scripted reply.
-        if (isOpener && !releasedRef.current) {
-          releasedRef.current = true;
-          frameB.current?.contentWindow?.postMessage({ __duet: true, type: "release", echo: openerB }, origin);
+        if (d.from === "a") {
+          const isOpener = aFirstRef.current;
+          aFirstRef.current = false;
+          if (isOpener) {
+            releaseB(); // B unmutes + speaks the scripted reply
+            if (!text) text = "";
+            // Scripted reply already answers the opener — never relay it too.
+            if (!openerB && text) deliver("b", text);
+          } else if (text) {
+            deliver("b", text);
+          }
+        } else {
+          // B's first audible turn after release is the echoed reply — relay
+          // it to A exactly once, using the authored line when the transcript
+          // is blank. Later turns relay their real text.
+          if (releasedRef.current && !echoRelayedRef.current) {
+            echoRelayedRef.current = true;
+            clearTimeout(echoTimerRef.current);
+            if (!text) text = openerB;
+            if (text) deliver("a", text);
+          } else if (text) {
+            deliver("a", text);
+          }
         }
-        // The scripted reply already answers the opener — don't relay it too.
-        const skipRelay = isOpener && !!openerB;
-        if (!skipRelay && text) deliver(d.from === "a" ? "b" : "a", text);
+        if (text) setNote(`${labels?.[d.from] || String(d.from).toUpperCase()}: “${text.slice(0, 110)}${text.length > 110 ? "…" : ""}”`);
         const lower = text.toLowerCase();
         // A spoken answer visibly selects the matching option on a live
         // question card — that's what makes it read as two-way, not a video.
@@ -1032,23 +1068,14 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
     };
     window.addEventListener("message", onMsg);
     // If the opener never registers (event hiccup), release B anyway.
-    const releaseFallback = setTimeout(() => {
-      if (!releasedRef.current) {
-        releasedRef.current = true;
-        frameB.current?.contentWindow?.postMessage({ __duet: true, type: "release", echo: openerB }, origin);
-      }
-    }, 18_000);
+    const releaseFallback = setTimeout(releaseB, 18_000);
     // Anti-stall watchdog: if nobody has finished a turn in 25s, nudge the
     // side whose turn it is — a duet must never sit in silence.
     const watchdog = setInterval(() => {
       if (endedRef.current || turnsRef.current >= maxTurns * 2) return;
       if (Date.now() - lastTurnAtRef.current < 25_000) return;
       lastTurnAtRef.current = Date.now();
-      if (!releasedRef.current) {
-        releasedRef.current = true;
-        frameB.current?.contentWindow?.postMessage({ __duet: true, type: "release", echo: openerB }, origin);
-        return;
-      }
+      if (!releasedRef.current) { releaseB(); return; }
       const target = lastFromRef.current === "b" ? "a" : "b";
       deliver(target, "Please continue the conversation — respond briefly and naturally to what was just said, then keep going with the plan.");
     }, 5000);
@@ -1069,6 +1096,7 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
     return () => {
       clearTimeout(hardStop);
       clearTimeout(releaseFallback);
+      clearTimeout(echoTimerRef.current);
       clearInterval(watchdog);
       cardTimersRef.current.forEach(clearTimeout);
       window.removeEventListener("message", onMsg);
