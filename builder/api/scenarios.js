@@ -1,5 +1,5 @@
 import { isAuthed, sessionEmail } from "./_auth.js";
-import { kvAvailable, kvHset, kvHget, kvHdel, kvHkeys } from "./_kv.js";
+import { kvAvailable, kvHset, kvHget, kvHdel, kvHkeys, kvHgetall } from "./_kv.js";
 
 /* Cloud-synced builder scenarios — the durable copy behind the localStorage
    cache, so saved demos survive cleared browser storage, blocked storage
@@ -46,7 +46,12 @@ export default async function handler(req, res) {
         return;
       }
       const names = (await kvHkeys(key)) || [];
-      res.status(200).json({ names: names.sort() });
+      // Lightweight per-scenario metadata (updatedAt/savedBy) lives in a
+      // sibling hash so listing never has to pull full configs (logos make
+      // them big). Entries saved before the meta hash existed just have none.
+      let meta = {};
+      try { meta = await kvHgetall(`scenmeta:${owner}`); } catch { /* optional */ }
+      res.status(200).json({ names: names.sort(), meta });
       return;
     }
 
@@ -62,8 +67,10 @@ export default async function handler(req, res) {
         res.status(413).json({ error: "This scenario is too large to sync — try a smaller logo image." });
         return;
       }
-      await kvHset(key, name, { name, config, updatedAt: new Date().toISOString(), savedBy: owner });
-      res.status(200).json({ ok: true, name });
+      const updatedAt = new Date().toISOString();
+      await kvHset(key, name, { name, config, updatedAt, savedBy: owner });
+      try { await kvHset(`scenmeta:${owner}`, name, { updatedAt, savedBy: owner }); } catch { /* meta is best-effort */ }
+      res.status(200).json({ ok: true, name, updatedAt });
       return;
     }
 
@@ -71,6 +78,7 @@ export default async function handler(req, res) {
       const name = normName(req.query?.name);
       if (!name) { res.status(400).json({ error: "Which scenario? Pass ?name=…" }); return; }
       await kvHdel(key, name);
+      try { await kvHdel(`scenmeta:${owner}`, name); } catch { /* meta is best-effort */ }
       res.status(200).json({ ok: true });
       return;
     }

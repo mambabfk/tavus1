@@ -66,3 +66,11 @@ export async function kvHget(key, field) {
 }
 export const kvHdel = (key, field) => redis(["HDEL", key, field]);
 export const kvHkeys = (key) => redis(["HKEYS", key]);
+export async function kvHgetall(key) {
+  const arr = (await redis(["HGETALL", key])) || [];
+  const out = {};
+  for (let i = 0; i + 1 < arr.length; i += 2) {
+    try { out[arr[i]] = JSON.parse(arr[i + 1]); } catch { out[arr[i]] = arr[i + 1]; }
+  }
+  return out;
+}

@@ -363,7 +363,15 @@ real local Vite app.
 
 - **Scenarios** (`SCENARIOS_KEY = "tavus_builder_scenarios_v1"`) — named
   snapshots of the full builder config (everything except the API key),
-  including `personaBrief` and `personaDraft`.
+  including `personaBrief` and `personaDraft`. The top-bar UI is a
+  **Demo library** panel (`libOpen`), not a dropdown: search, per-row
+  load/delete, ☁ badges, last-saved dates (`SCENMETA_KEY` locally +
+  `scenmeta:{email}` hash via GET `/api/scenarios` → `{names, meta}`), and
+  automatic grouping by the `Client / Use case` naming convention. A
+  **save prompt** (`savePrompt`, bottom-right card) fires after a
+  successful launch (on return from the demo page) and after creating a
+  share link, whenever `isConfigDirty()` — keep `collectConfig` cheap, it
+  runs in the dirty check.
   `collectConfig()` / `applyConfig()` are the serialize/restore pair; keep them
   in sync when adding a new field. Save/Load/Delete plus **Export/Import** to a
   JSON file (the file path works even when localStorage is blocked).

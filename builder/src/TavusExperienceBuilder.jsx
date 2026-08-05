@@ -242,6 +242,20 @@ const BUILDER_CSS = `
         .topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 28px; flex-wrap:wrap; }
         .scenario-bar { display:flex; align-items:center; gap:8px; flex:1; justify-content:center; flex-wrap:wrap; }
         .scenario-bar select, .scenario-bar input { width:auto; padding:8px 12px; font-size:13px; border-radius:999px; }
+        /* demo library panel + post-launch save prompt */
+        .lib-overlay { position:fixed; inset:0; z-index:70; background:rgba(20,20,22,.35); display:flex; align-items:flex-start; justify-content:center; padding:70px 20px 20px; }
+        .lib-panel { width:min(640px, 100%); max-height:76vh; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:0 30px 80px -20px rgba(20,20,20,.4); display:flex; flex-direction:column; padding:18px 20px; }
+        .lib-head { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+        .lib-head .lib-hint { color:var(--muted); font-size:12px; flex:1; }
+        .lib-list { overflow-y:auto; margin-top:6px; }
+        .lib-group { font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding:14px 2px 5px; }
+        .lib-row { display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:var(--r-sm); }
+        .lib-row:hover { background:var(--surface-2); }
+        .lib-name { flex:1; min-width:0; text-align:left; background:none; border:none; font:inherit; font-size:13.5px; font-weight:500; color:var(--text); cursor:pointer; padding:2px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .lib-active { color:var(--ok); font-size:11px; font-weight:600; margin-left:8px; }
+        .lib-time { color:var(--muted); font-size:11.5px; flex-shrink:0; }
+        .saveprompt { position:fixed; right:20px; bottom:20px; z-index:60; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:0 20px 60px -18px rgba(20,20,20,.4); padding:16px 18px; display:flex; flex-direction:column; gap:9px; width:300px; }
+        .saveprompt-sub { color:var(--muted); font-size:12.5px; line-height:1.5; }
         .logo-wrap { display:flex; align-items:center; gap:10px; }
         .logo-word { font-weight:700; font-size:19px; letter-spacing:-.4px; }
         .logo-sub { font-family:var(--mono); font-size:11px; color:var(--muted); background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:4px 10px; }
@@ -845,6 +859,7 @@ const store = {
   },
 };
 const SCENARIOS_KEY = "tavus_builder_scenarios_v1";
+const SCENMETA_KEY = "tavus_builder_scenario_meta_v1"; // name → {updatedAt} for the library list
 const REC_KEY = "tavus_builder_recording_v1"; // S3 recording defaults (non-secret identifiers)
 const WEBHOOK_KEY = "tavus_builder_webhook_v1"; // callback URL — account plumbing, survives scenario loads
 const PROMPT_HISTORY_KEY = "tavus_builder_prompt_history_v1"; // per-PAL persona versions
@@ -1642,7 +1657,14 @@ export default function TavusExperienceBuilder() {
   const [scenarios, setScenarios] = useState(() => store.get(SCENARIOS_KEY, {}));
   const [cloudNames, setCloudNames] = useState([]); // scenario names synced to the account
   const [cloudSync, setCloudSync] = useState("unknown"); // "unknown" | "on" | "off"
+  const [scenMeta, setScenMeta] = useState(() => store.get(SCENMETA_KEY, {})); // name → {updatedAt, savedBy}
   const [scenarioName, setScenarioName] = useState("");
+  // Demo library panel (replaces the old flat dropdown) + post-launch save prompt.
+  const [libOpen, setLibOpen] = useState(false);
+  const [libQuery, setLibQuery] = useState("");
+  const [savePrompt, setSavePrompt] = useState(false);
+  const [savePromptName, setSavePromptName] = useState("");
+  const promptOnReturn = useRef(false); // set by a successful launch; checked when leaving the demo page
   const [savedFlash, setSavedFlash] = useState(false); // "Saved ✓" blink on the footer Save
   const [activeScenario, setActiveScenario] = useState("");
   const [rememberKey, setRememberKey] = useState(() => !!store.get(APIKEY_KEY, ""));
@@ -1668,7 +1690,12 @@ export default function TavusExperienceBuilder() {
     let alive = true;
     fetch("/api/scenarios")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d) => { if (alive) { setCloudNames(Array.isArray(d.names) ? d.names : []); setCloudSync("on"); } })
+      .then((d) => {
+        if (!alive) return;
+        setCloudNames(Array.isArray(d.names) ? d.names : []);
+        if (d.meta && typeof d.meta === "object") setScenMeta((m) => ({ ...m, ...d.meta })); // cloud timestamps win
+        setCloudSync("on");
+      })
       .catch(() => { if (alive) setCloudSync("off"); });
     return () => { alive = false; };
   }, [demoSlug, auth.checked, auth.required, auth.authed]);
@@ -1774,17 +1801,23 @@ export default function TavusExperienceBuilder() {
     setCloudNames((ns) => (ns.includes(name) ? ns : [...ns, name].sort()));
   };
 
-  const saveScenario = async () => {
+  const saveScenario = async (nameArg) => {
     // Falls back to a sensible name so the footer Save works on any step
-    // without first typing a name in the top bar.
-    const name = (scenarioName || activeScenario || site.brand || conversationName || "My demo").trim();
+    // without first typing a name in the top bar. nameArg is a string when
+    // called from the library panel / save prompt (onClick passes an event).
+    const override = typeof nameArg === "string" ? nameArg : "";
+    const name = (override || scenarioName || activeScenario || site.brand || conversationName || "My demo").trim();
     if (!name) return;
     const config = collectConfig();
     const next = { ...scenarios, [name]: config };
     setScenarios(next);
     const localOk = store.set(SCENARIOS_KEY, next);
+    const metaNext = { ...scenMeta, [name]: { ...(scenMeta[name] || {}), updatedAt: new Date().toISOString() } };
+    setScenMeta(metaNext);
+    store.set(SCENMETA_KEY, metaNext);
     setActiveScenario(name);
     setScenarioName("");
+    setSavePrompt(false);
     setSavedFlash(true);
     setTimeout(() => setSavedFlash(false), 1600);
     if (cloudSync !== "off") {
@@ -1835,20 +1868,38 @@ export default function TavusExperienceBuilder() {
     setActiveScenario("");
   };
 
-  const deleteScenario = () => {
-    if (!activeScenario) return;
-    const name = activeScenario;
+  const deleteScenario = (nameArg) => {
+    const name = typeof nameArg === "string" && nameArg ? nameArg : activeScenario;
+    if (!name) return;
     const next = { ...scenarios };
     delete next[name];
     setScenarios(next);
     store.set(SCENARIOS_KEY, next);
+    const metaNext = { ...scenMeta };
+    delete metaNext[name];
+    setScenMeta(metaNext);
+    store.set(SCENMETA_KEY, metaNext);
     if (cloudSync === "on" && cloudNames.includes(name)) {
       fetch(`/api/scenarios?name=${encodeURIComponent(name)}`, { method: "DELETE" })
         .then((r) => { if (!r.ok) throw new Error(); setCloudNames((ns) => ns.filter((n) => n !== name)); })
         .catch(() => addLog("err", `"${name}" was removed from this browser but its cloud copy may remain — load it and delete again to retry.`));
     }
-    addLog("info", `Scenario "${name}" deleted.`);
-    setActiveScenario("");
+    addLog("info", `Demo "${name}" deleted.`);
+    if (name === activeScenario) setActiveScenario("");
+  };
+
+  /* Unsaved-work detection: the current config differs from the loaded
+     demo's saved copy (or nothing is loaded at all). Drives the post-launch
+     save prompt. */
+  const isConfigDirty = () => {
+    const saved = activeScenario ? scenarios[activeScenario] : null;
+    if (!saved) return true;
+    try { return JSON.stringify(saved) !== JSON.stringify(collectConfig()); } catch { return true; }
+  };
+  const promptSaveIfDirty = () => {
+    if (!isConfigDirty()) return;
+    setSavePromptName(activeScenario || conversationName || site.brand || "");
+    setSavePrompt(true);
   };
 
   const exportScenario = () => {
@@ -2985,6 +3036,7 @@ export default function TavusExperienceBuilder() {
       const url = `${window.location.origin}/d/${j.slug}`;
       setShareUrl(url);
       addLog("ok", `Shareable link ready: ${url}`);
+      promptSaveIfDirty(); // a shared demo should exist as a saved demo too
     } catch (e) {
       addLog("err", `Share: ${e.message}`);
     } finally {
@@ -3363,6 +3415,9 @@ export default function TavusExperienceBuilder() {
       setConversation(data);
       addLog("ok", `Live: ${data.conversation_id || ""}`);
       setSiteMode(true);
+      // A launched demo is worth keeping — prompt to save when they come
+      // back from the demo page (the page covers the builder right now).
+      promptOnReturn.current = true;
     } catch (e) {
       addLog("err", e.message + " — if this is a network/CORS block, copy the curl from the preview panel and run it from a terminal or backend.");
     } finally {
@@ -3488,7 +3543,10 @@ export default function TavusExperienceBuilder() {
           controls={controlsConfig}
           experience={experienceConfig}
           onStart={launch}
-          onExit={() => setSiteMode(false)}
+          onExit={() => {
+            setSiteMode(false);
+            if (promptOnReturn.current) { promptOnReturn.current = false; promptSaveIfDirty(); }
+          }}
           onCallEnd={() => setConversation(null)}
           busy={busy}
         />
@@ -3504,30 +3562,25 @@ export default function TavusExperienceBuilder() {
           <span className="logo-sub">experience builder</span>
         </div>
         <div className="scenario-bar">
-          <select
-            value={activeScenario}
-            onChange={(e) => loadScenario(e.target.value)}
-            style={{ width: 180 }}
-            title={cloudSync === "on" ? "Load a saved scenario — ☁ means it's synced to your account and safe from cleared browser storage" : "Load a saved scenario (saved in this browser; cloud sync unavailable)"}
+          <button
+            className="pill-btn"
+            style={{ padding: "8px 16px", fontSize: 13, maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+            onClick={() => { setLibQuery(""); setLibOpen(true); }}
+            title="Open the demo library — search, load, and manage every saved demo. Name demos “Client / Use case” to group them."
           >
-            <option value="">— scenarios —</option>
-            {Array.from(new Set([...Object.keys(scenarios), ...cloudNames])).sort().map((n) => (
-              <option key={n} value={n}>{n}{cloudNames.includes(n) ? " ☁" : ""}</option>
-            ))}
-          </select>
+            📁 {activeScenario || "Demos"}{" "}
+            <span style={{ color: "var(--muted)" }}>({Array.from(new Set([...Object.keys(scenarios), ...cloudNames])).length})</span>
+          </button>
           <input
             style={{ width: 170 }}
             value={scenarioName}
             onChange={(e) => setScenarioName(e.target.value)}
-            placeholder={activeScenario ? `save as… (${activeScenario})` : "scenario name"}
+            placeholder={activeScenario ? `save as… (${activeScenario})` : "Client / demo name"}
             onKeyDown={(e) => e.key === "Enter" && saveScenario()}
           />
-          <button className="pill-btn" style={{ padding: "8px 14px", fontSize: 13 }} onClick={saveScenario} disabled={!scenarioName.trim() && !activeScenario}>Save</button>
-          <button className="pill-btn" style={{ padding: "8px 14px", fontSize: 13 }} onClick={exportScenario}>Export</button>
-          <button className="pill-btn" style={{ padding: "8px 14px", fontSize: 13 }} onClick={() => importRef.current?.click()}>Import</button>
-          {activeScenario && (
-            <button className="pill-btn" style={{ padding: "8px 14px", fontSize: 13, color: "var(--danger)" }} onClick={deleteScenario}>Delete</button>
-          )}
+          <button className="pill-btn" style={{ padding: "8px 14px", fontSize: 13 }} onClick={saveScenario} disabled={!scenarioName.trim() && !activeScenario}>
+            {savedFlash ? "Saved ✓" : "Save"}
+          </button>
           <input ref={importRef} type="file" accept=".json,application/json" style={{ display: "none" }}
             onChange={(e) => { const f = e.target.files?.[0]; if (f) importScenario(f); e.target.value = ""; }} />
         </div>
@@ -3605,7 +3658,7 @@ export default function TavusExperienceBuilder() {
               </div>
 
               <p className="field-hint" style={{ maxWidth: 560 }}>
-                Returning to a demo you saved? Load it from the <b>scenarios</b> menu in the top bar instead.
+                Returning to a demo you saved? Open <b>📁 Demos</b> in the top bar and load it from your library instead.
               </p>
             </>
           )}
@@ -5190,6 +5243,85 @@ export default function TavusExperienceBuilder() {
         <div className={`toast toast-${toast.kind}`} role="status">
           <span>{toast.msg}</span>
           <button onClick={() => setToast(null)} aria-label="Dismiss">×</button>
+        </div>
+      )}
+
+      {/* Demo library — searchable, grouped by "Client / name" convention,
+          sorted by last save. Replaces the old flat dropdown. */}
+      {libOpen && (
+        <div className="lib-overlay" onClick={() => setLibOpen(false)}>
+          <div className="lib-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="lib-head">
+              <span style={{ fontWeight: 700, fontSize: 16 }}>Demo library</span>
+              <span className="lib-hint">{cloudSync === "on" ? "☁ = synced to your account" : "saved in this browser (cloud sync unavailable)"}</span>
+              <button className="pill-btn" style={{ padding: "6px 12px", fontSize: 12 }} onClick={exportScenario}>Export</button>
+              <button className="pill-btn" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => importRef.current?.click()}>Import</button>
+              <button className="pill-btn" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => setLibOpen(false)}>✕</button>
+            </div>
+            <input className="lib-search" autoFocus placeholder="Search demos…" value={libQuery} onChange={(e) => setLibQuery(e.target.value)} />
+            <p className="field-hint" style={{ margin: "6px 2px 0" }}>
+              Tip: name demos <b>Client / Use case</b> (e.g. “Santa / Better Santa”) and they group under the client automatically.
+            </p>
+            <div className="lib-list">
+              {(() => {
+                const all = Array.from(new Set([...Object.keys(scenarios), ...cloudNames]));
+                const q = libQuery.trim().toLowerCase();
+                const filtered = q ? all.filter((n) => n.toLowerCase().includes(q)) : all;
+                if (!filtered.length) {
+                  return <p className="field-hint" style={{ padding: 12 }}>{all.length ? "Nothing matches that search." : "No saved demos yet — build one and hit Save (you'll also be prompted after a launch)."}</p>;
+                }
+                const groupOf = (n) => { const m = n.match(/^(.+?)\s*\/\s*.+$/); return m ? m[1].trim() : ""; };
+                const time = (n) => scenMeta[n]?.updatedAt || "";
+                const groups = {};
+                filtered.forEach((n) => { (groups[groupOf(n)] ||= []).push(n); });
+                const keys = Object.keys(groups).sort((a, b) => (a === "") - (b === "") || a.localeCompare(b));
+                return keys.map((g) => (
+                  <div key={g || "(ungrouped)"}>
+                    {(g || keys.length > 1) && <div className="lib-group">{g || "Ungrouped"}</div>}
+                    {groups[g].sort((a, b) => time(b).localeCompare(time(a)) || a.localeCompare(b)).map((n) => {
+                      const t = time(n);
+                      return (
+                        <div className="lib-row" key={n}>
+                          <button className="lib-name" onClick={() => { loadScenario(n); setLibOpen(false); }} title={`Load “${n}”`}>
+                            {g ? n.replace(/^.+?\s*\/\s*/, "") : n}
+                            {activeScenario === n && <span className="lib-active">loaded</span>}
+                          </button>
+                          {cloudNames.includes(n) && <span title="Synced to your account — survives cleared browser storage">☁</span>}
+                          {t && <span className="lib-time" title={t}>{new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>}
+                          <button className="kb-del" title={`Delete “${n}”`}
+                            onClick={() => { if (window.confirm(`Delete “${n}”? This removes the saved copy everywhere.`)) deleteScenario(n); }}>
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Post-launch / post-share save prompt — launched demos are worth keeping. */}
+      {savePrompt && !siteMode && (
+        <div className="saveprompt">
+          <span style={{ fontWeight: 700 }}>💾 Save this demo?</span>
+          <span className="saveprompt-sub">
+            {activeScenario
+              ? <>It has unsaved changes since <b>{activeScenario}</b> was last saved.</>
+              : <>Keep it in your library so you can reload, tweak, and share it later.</>}
+          </span>
+          <input
+            value={savePromptName}
+            onChange={(e) => setSavePromptName(e.target.value)}
+            placeholder="Client / demo name"
+            onKeyDown={(e) => e.key === "Enter" && saveScenario(savePromptName || undefined)}
+          />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="pill-btn primary" style={{ flex: 1 }} onClick={() => saveScenario(savePromptName || undefined)}>Save</button>
+            <button className="pill-btn ghost" onClick={() => setSavePrompt(false)}>Not now</button>
+          </div>
         </div>
       )}
     </div>
