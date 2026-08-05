@@ -96,7 +96,15 @@ Anthropic key.
 
 Left-rail steps, grouped into four phases rendered as rail headers
 (`Start` → `The AI human` → `The experience` → `Run it`; `group` field on
-each STEPS entry). Every step ends with a `flow-nav` footer (Back /
+each STEPS entry). Step labels use **Tavus-native terms** (Objectives &
+Guardrails, Perception, Knowledge Base, Presentation — per explicit user
+direction; don't "simplify" them back to generic words). The persona
+generator (`GENERATOR_SYSTEM`) emits the official Tavus Prompting Guide
+structure: `## Identity & Role`, `## Personality & Conversational Style`
+(base energy 1–10, SIGNATURE/NEVER-USE phrases), `## Core Behaviors`,
+`## Response Style Rules`, `## Perception`, `## Guardrails & Constraints`,
+`## Conversation Flow` — and receives perception/knowledge/tools context
+alongside objectives/guardrails/presentation/canvas. Every step ends with a `flow-nav` footer (Back /
 "Next: X →" / a 🚀 Launch shortcut gated on `canLaunch`). The default step
 is `start` — a hero step combining the prospect URL + use-case idea into
 one "Draft my demo" action (runs `draftDemo()` then `themeFromUrl()`,
@@ -145,9 +153,15 @@ non-technical users; ids unchanged):
    (the persona draft when present, else a generic default) → fills `palId`.
 2. **Objectives & Guardrails** (`guide`) — plain-English textareas, one item
    per line, parsed on launch (slug names are generated internally and never
-   shown in the UI — summaries use `shortLabel(objective_prompt)`):
-   - `parseObjectives` — each line → an objective; lines **chain** in order via
-     `next_required_objective`. `| var1, var2` suffix → `output_variables`.
+   shown in the UI — summaries use `shortLabel(objective_prompt)`; branch
+   nodes show as `↳`):
+   - `parseObjectives` — top-level lines → objectives **chaining** in order
+     via `next_required_objective`. **If/then branching**: an indented
+     `if <condition> -> <detour objective>` line under a step compiles to
+     `next_conditional_objectives` (mutually exclusive with next_required);
+     detours rejoin the main flow at the next top-level step and a catch-all
+     ("In any other case") is added automatically so uncovered answers never
+     stall. `| var1, var2` suffix → `output_variables`.
      `confirmationMode` (`auto`/`manual`) applies to all.
    - `parseGuardrails` — each line → a guardrail; `[visual]` anywhere in the
      line marks `modality: "visual"` (else `verbal`).

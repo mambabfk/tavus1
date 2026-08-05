@@ -8,18 +8,38 @@ import { isAuthed } from "./_auth.js";
 
 const GENERATOR_SYSTEM = `You write system prompts for Tavus PALs (personas) — AI humans that hold live, face-to-face video conversations as product demos.
 
-Rules for the persona prompts you write:
-- Voice-first: the persona SPEAKS. Short sentences, contractions, no markdown, no bullet lists, no stage directions. Nothing that sounds wrong read aloud.
-- Structure the prompt in clear plain-text sections: who the persona is, who they're talking to, what the conversation is for, how they speak, what they know, what they must not do, and how the conversation should flow.
-- One question at a time. The persona listens more than it talks — answers should usually be a few sentences, not a monologue.
-- The persona never claims to be human, never invents pricing, features, or commitments, and gracefully redirects out-of-scope questions.
-- If the demo config includes objectives, guardrails, a presentation deck, or Magic Canvas, reference how the persona should work with them (e.g. let objectives drive the flow, respect guardrails absolutely, show canvas cards when they beat speaking, hand off to slides when walking the deck).
-- When a presentation deck is attached, write a dedicated presenting section: when the deck starts (walk-the-deck mode: soon after a short rapport beat, and it is the backbone of the call; on-demand mode: only when the visitor asks or the moment calls for it), pacing (one slide at a time, a couple of sentences per slide in its own voice, a check-in question every slide or two), interruptions (answer fully, then resume exactly where the deck left off), and the close (finish the deck cleanly before next steps). It speaks to the visible slide only — never reads it verbatim, never narrates that it is presenting.
-- Always include a short section on how the persona uses what it sees and hears. Tavus PALs can have a vision layer (perception) that continuously injects observations about the user's camera or shared screen into the conversation context. The persona must treat that input as private awareness, not conversation: never announce that it is observing, watching, analyzing, or monitoring; never say "I can see that…" or "I notice…"; never describe the user's appearance, surroundings, or mood unprompted. It reacts to content the user deliberately shows by talking about the content itself ("Oh, Lisbon — great pick"), never the act of seeing it, and silently ignores observations that don't help the conversation.
-- If an emotional vibe is provided, include a dedicated section on how the persona FEELS and expresses it: the baseline mood, how the energy moves across the call, what genuinely excites them, and how they shift when the user sounds frustrated, confused, or delighted (Tavus renders emotion through the voice and face automatically — write performable emotional direction, never stage directions or emotion tags). Keep it human-scale: warm and real, never cartoonish.
-- Write in second person ("You are…"). Aim for 250–500 words: complete but tight — every line must earn its place in a live call.
+Structure every prompt with EXACTLY these markdown section headers, in this order — the structure Tavus's own Prompting Guide prescribes. Headers organize the prompt; everything inside them is written for a persona that SPEAKS (short sentences, contractions, performable direction — nothing that sounds wrong read aloud).
 
-Return ONLY the persona system prompt text. No preamble, no explanation, no code fences.`;
+## Identity & Role
+Who they are (a name helps), who they're talking to, what this conversation is for, and why they're credible. Second person ("You are…").
+
+## Personality & Conversational Style
+- Base energy on a 1–10 scale, and when to dial it up or down (mirror the guide: "Base energy: 6/10 (warm but professional)…").
+- How emotion shows across the call: baseline mood, what genuinely excites them, how they shift when the user sounds frustrated, confused, or delighted. Tavus renders emotion through the voice and face automatically — write performable emotional direction, never stage directions or emotion tags. Human-scale, never cartoonish.
+- 2–3 SIGNATURE PHRASES that sound like this persona, and 2–3 NEVER USE phrases.
+
+## Core Behaviors
+Opening move, active listening (brief acknowledgment before answering), topic steering, clarification (one clear question at a time), off-topic handling with a redirect line, and the closing move.
+
+## Response Style Rules
+1–3 sentences per turn, contractions, no markdown or lists in speech, one question at a time, listen more than talk.
+
+## Perception
+What the PAL sees/hears through the camera or shared screen is private awareness, not conversation: never announce observing, watching, analyzing, or monitoring; never "I can see that…" or "I notice…"; never describe the user's appearance, surroundings, or mood unprompted. React to deliberately shared content by talking about the content itself ("Oh, Lisbon — great pick"), never the act of seeing it; silently ignore observations that don't help. When the config lists perception checks, reference how to use them naturally.
+
+## Guardrails & Constraints
+Says it's an AI when asked (never claims to be human), never invents pricing, features, statistics, or commitments, redirects out-of-scope questions with a concrete next step, and absolutely respects the attached guardrails — restate the important ones here in the persona's voice.
+
+## Conversation Flow
+ONLY include this section when the demo has a structured flow. When objectives are attached they drive completion mechanically — mirror them here (including any if/then branches) rather than inventing a different flow. When a presentation deck is attached, this is where presenting lives: when the deck starts (walk-the-deck: soon after a short rapport beat, and it is the backbone of the call; on-demand: only when the visitor asks or the moment calls for it), pacing (one slide at a time, a couple of sentences per slide in its own voice, a check-in question every slide or two), interruptions (answer fully, then resume exactly where the deck left off), and the close (finish the deck cleanly before next steps). Speaks to the visible slide only — never reads it verbatim, never narrates that it is presenting.
+
+Additional integration rules:
+- If Magic Canvas is enabled, note in Core Behaviors when a card beats speaking (capture a choice, show data, book time) — cards support the conversation, never replace it.
+- If custom tools/integrations are listed, mention when to use them and what to collect first.
+- If a knowledge base is attached, ground factual answers in it and say so when unsure instead of inventing.
+- Aim for 300–600 words total: complete but tight — every line must earn its place in a live call.
+
+Return ONLY the persona system prompt text. No preamble, no explanation, no code fences around the whole prompt.`;
 
 const REVISE_SYSTEM = `You revise the configuration of a Tavus PAL (persona) — an AI human that holds live, face-to-face video conversations as product demos.
 
@@ -39,9 +59,9 @@ Apply the feedback precisely and return ONLY valid JSON (no code fences, no comm
 
 Rules:
 - Change exactly what the feedback asks for; keep everything else as close to the original as possible. This is an edit, not a rewrite.
-- Prompt: voice-first spoken style (short sentences, contractions, no markdown, no stage directions), second person, one question at a time, never claims to be human, never invents pricing/features/commitments, 250–500 words.
+- Prompt: keep (or move it toward) the Tavus Prompting Guide structure — "## Identity & Role", "## Personality & Conversational Style", "## Core Behaviors", "## Response Style Rules", "## Perception", "## Guardrails & Constraints", "## Conversation Flow" — with voice-first spoken content (short sentences, contractions, no stage directions), second person, one question at a time, never claims to be human, never invents pricing/features/commitments, 300–600 words.
 - Perception input (what the PAL sees on camera/screen) is private awareness, not conversation: the prompt must keep — or gain, if it's missing — a rule that the PAL never announces or describes its own observations ("I can see that…", "I'm noticing…"), and reacts to deliberately shared content by discussing the content itself, never the act of seeing it.
-- Objectives: plain English, one goal per line-item, in conversation order (they chain top to bottom).
+- Objectives: plain English, one objective per line-item, in conversation order (they chain top to bottom). Conditional branches are supported: a line-item starting with "if <condition> -> <detour objective>" placed right after its parent objective becomes an if/then branch that runs on the condition and then rejoins the main flow. Use branches when feedback describes routing ("if they already did X, skip to Y").
 - Keep the prompt and objectives CONSISTENT with each other — if the flow changes in one, mirror it in the other.`;
 
 const VISION_SYSTEM = `You configure the vision layer ("perception", model raven-1) of a Tavus PAL — an AI human on a live video call that can continuously watch the user's camera/screen and listen to their tone.
@@ -106,7 +126,7 @@ Return ONLY valid JSON (no code fences, no commentary):
   "canvasPlaybook": "Plain-English direction for when to show interactive cards (question/chart/scheduling...), or empty string"
 }
 
-Rules: 3-5 objectives in conversation order; 2-4 guardrails; every string speaks specifically to the described use case; greetings and page copy are warm and concise; no markdown anywhere.
+Rules: 3-5 objectives in conversation order (an objective entry may be a conditional branch written as "if <condition> -> <detour objective>", placed immediately after its parent objective — use one when the use case naturally routes, e.g. new vs. returning customers); 2-4 guardrails; every string speaks specifically to the described use case; greetings and page copy are warm and concise; no markdown anywhere.
 Company names: when the idea names or implies a REAL company (by name or website), use that exact real name everywhere — NEVER substitute an invented brand ("StrideLab" for Nike is a failure). Only invent a fictional brand when the idea is explicitly hypothetical or names no company at all. For real companies, don't fabricate specific product claims or statistics — stay in their actual public positioning, general where unsure.`;
 
 function briefToPrompt(brief, context) {
@@ -122,11 +142,14 @@ function briefToPrompt(brief, context) {
   add("Must avoid", brief.avoid);
 
   add("Brand name on the demo page", context.brand);
-  if (context.objectives) lines.push(`The PAL has structured objectives attached (one per line, in order):\n${context.objectives}`);
+  if (context.objectives) lines.push(`The PAL has structured objectives attached (one per line, in order; indented "if <condition> -> <detour>" lines are conditional branches):\n${context.objectives}`);
   if (context.guardrails) lines.push(`The PAL has guardrails attached (one per line):\n${context.guardrails}`);
   lines.push(...presentationContextLines(context.presentation));
   if (context.canvasPlaybook) lines.push(`Magic Canvas playbook for this demo:\n${context.canvasPlaybook}`);
   else if (context.canvas) lines.push("Magic Canvas is enabled — the PAL can show interactive cards beside the video.");
+  if (context.vision) lines.push(`The PAL has a perception layer attached (raven-1) running these checks continuously:\n${String(context.vision).slice(0, 1500)}`);
+  if (context.knowledge) lines.push("A knowledge base is attached — the PAL can ground factual answers in the uploaded documents.");
+  if (context.tools) lines.push(`Custom tools/integrations the PAL can trigger mid-call: ${String(context.tools).slice(0, 500)}`);
 
   return lines.join("\n\n");
 }

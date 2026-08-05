@@ -32,10 +32,10 @@ const STEPS = [
   { id: "start", label: "New Demo", group: "Start" },
   { id: "setup", label: "Account", group: "Start" },
   { id: "persona", label: "Persona", group: "The AI human" },
-  { id: "guide", label: "Goals & Rules", group: "The AI human" },
-  { id: "vision", label: "Vision", group: "The AI human" },
-  { id: "kb", label: "Knowledge", group: "The AI human" },
-  { id: "presentation", label: "Slides", group: "The experience" },
+  { id: "guide", label: "Objectives & Guardrails", group: "The AI human" },
+  { id: "vision", label: "Perception", group: "The AI human" },
+  { id: "kb", label: "Knowledge Base", group: "The AI human" },
+  { id: "presentation", label: "Presentation", group: "The experience" },
   { id: "canvas", label: "Magic Canvas", group: "The experience" },
   { id: "speech", label: "Voice", group: "The experience" },
   { id: "site", label: "Page & Brand", group: "The experience" },
@@ -130,26 +130,64 @@ const slugName = (text, prefix, i) => {
   return `${prefix}_${i + 1}_${s || "item"}`;
 };
 
-/* One objective per line; lines chain in order via next_required_objective.
-   Legacy: a "| var1, var2" suffix still extracts output_variables (kept for
-   old saved scenarios) but the syntax is no longer surfaced in the UI. */
+/* Objectives DSL → Tavus objective graph.
+   - Top-level lines are the main flow, chaining in order (next_required_objective).
+   - Indented "if <condition> -> <objective>" lines under a step become
+     next_conditional_objectives branches (Tavus if/then routing). Branch
+     detours rejoin the main flow at the next top-level step, and a catch-all
+     to that step is added automatically so an uncovered answer never stalls
+     the conversation (docs recommend always having a catch-all path).
+   - Legacy: a "| var1, var2" suffix still extracts output_variables (kept for
+     old saved scenarios) but the syntax is no longer surfaced in the UI. */
 const parseObjectives = (text, confirmationMode) => {
-  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-  const items = lines.map((line, i) => {
-    const [promptPart, varsPart] = line.split("|").map((s) => s.trim());
-    const item = {
-      objective_name: slugName(promptPart, "obj", i),
-      objective_prompt: promptPart,
-      confirmation_mode: confirmationMode,
-    };
-    if (varsPart) {
-      const vars = varsPart.split(",").map((v) => v.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_")).filter(Boolean);
-      if (vars.length) item.output_variables = vars;
+  const applyVars = (item, varsPart) => {
+    if (!varsPart) return;
+    const vars = varsPart.split(",").map((v) => v.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_")).filter(Boolean);
+    if (vars.length) item.output_variables = vars;
+  };
+  const slugCore = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 32) || "item";
+
+  // Pass 1: group lines into main steps + their branches.
+  const mains = [];
+  for (const raw of text.split("\n")) {
+    if (!raw.trim()) continue;
+    const indented = /^\s/.test(raw);
+    const line = raw.trim().replace(/^(?:->|→)\s*/, "");
+    const branch = line.match(/^if\s+(.+?)\s*(?:->|→|:)\s*(.+)$/i);
+    if (branch && (indented || mains.length) && mains.length) {
+      const [p, v] = branch[2].split("|").map((s) => s.trim());
+      if (p) mains[mains.length - 1].branches.push({ condition: branch[1].trim(), prompt: p.slice(0, 1000), vars: v });
+      continue;
     }
-    return item;
-  });
-  items.forEach((item, i) => {
-    if (i < items.length - 1) item.next_required_objective = items[i + 1].objective_name;
+    const [p, v] = line.split("|").map((s) => s.trim());
+    if (p) mains.push({ prompt: p.slice(0, 1000), vars: v, branches: [] });
+  }
+
+  // Pass 2: emit the graph — branches sit right after their parent step.
+  mains.forEach((m, i) => { m.name = slugName(m.prompt, "obj", i); });
+  const items = [];
+  mains.forEach((m, i) => {
+    const nextMain = mains[i + 1] || null;
+    const item = { objective_name: m.name, objective_prompt: m.prompt, confirmation_mode: confirmationMode };
+    applyVars(item, m.vars);
+    if (m.branches.length) {
+      const cond = {};
+      m.branches.forEach((b, k) => {
+        b.name = `obj_${i + 1}_if${k + 1}_${slugCore(b.prompt)}`;
+        cond[b.name] = `If ${b.condition}`;
+      });
+      if (nextMain) cond[nextMain.name] = "In any other case";
+      item.next_conditional_objectives = cond; // mutually exclusive with next_required
+    } else if (nextMain) {
+      item.next_required_objective = nextMain.name;
+    }
+    items.push(item);
+    m.branches.forEach((b) => {
+      const bItem = { objective_name: b.name, objective_prompt: b.prompt, confirmation_mode: confirmationMode };
+      applyVars(bItem, b.vars);
+      if (nextMain) bItem.next_required_objective = nextMain.name; // detour rejoins the flow
+      items.push(bItem);
+    });
   });
   return items;
 };
@@ -2473,6 +2511,10 @@ export default function TavusExperienceBuilder() {
             presentation: presentationContext(),
             canvas: canvasEnabled,
             canvasPlaybook: canvasEnabled ? canvasPlaybook.trim() : "",
+            // The prompt should know every attached capability, not just flow:
+            vision: visionEnabled ? [visualQueriesText, audioQueriesText].map((t) => t.trim()).filter(Boolean).join("\n") : "",
+            knowledge: knowledgeIds.length > 0,
+            tools: toolsEnabled ? toolRows.map((r) => r.name).filter((n) => n.trim()).join(", ") : "",
           },
         }),
       });
@@ -2595,16 +2637,16 @@ export default function TavusExperienceBuilder() {
       if (Array.isArray(rev.objectives)) {
         setObjectivesText(rev.objectives.join("\n"));
         setObjectivesEnabled(true);
-        changed.push("goals");
+        changed.push("objectives");
       }
       if (Array.isArray(rev.guardrails)) {
         setGuardrailsText(rev.guardrails.join("\n"));
         setGuardrailsEnabled(true);
-        changed.push("rules");
+        changed.push("guardrails");
       }
       setPersonaFeedback("");
       if (rev.note) addLog("info", `Revision: ${rev.note}`);
-      addLog("ok", `Revised ${changed.join(" + ")}. Re-attach the prompt now; ${changed.includes("goals") ? "the updated goals re-attach on your next launch." : "goals were untouched."}`);
+      addLog("ok", `Revised ${changed.join(" + ")}. Re-attach the prompt now; ${changed.includes("objectives") ? "the updated objectives re-attach on your next launch." : "objectives were untouched."}`);
     } catch (e) {
       setPersonaDraft(previous); // never lose the draft to a failed revision
       addLog("err", `Persona revision: ${e.message}`);
@@ -3943,7 +3985,7 @@ export default function TavusExperienceBuilder() {
               </Field>
 
               {personaDraft.trim() && (
-                <Field label="Revise with feedback" hint='Watched a call and want it different? Say what to change — "less salesy", "stop looping on the email ask", "book the demo earlier" — and Claude edits the draft above AND the Goals & Rules step together (goals drive the conversation flow, so flow fixes land there, not just in the prompt). Re-attach the prompt afterwards; updated goals re-attach on your next launch.'>
+                <Field label="Revise with feedback" hint='Watched a call and want it different? Say what to change — "less salesy", "stop looping on the email ask", "book the demo earlier" — and Claude edits the draft above AND the Objectives & Guardrails step together (objectives drive the conversation flow, so flow fixes land there, not just in the prompt). Re-attach the prompt afterwards; updated objectives re-attach on your next launch.'>
                   <div style={{ display: "flex", gap: 8 }}>
                     <input value={personaFeedback} onChange={(e) => setPersonaFeedback(e.target.value)}
                       placeholder="e.g. Too formal — make it warmer, and stop asking two questions in a row"
@@ -4048,27 +4090,31 @@ export default function TavusExperienceBuilder() {
 
           {step === "guide" && (
             <>
-              <h1>Goals &amp; Rules</h1>
+              <h1>Objectives &amp; Guardrails</h1>
               <p className="lede">
-                What the conversation should achieve, and what's off-limits — in plain English, one per line. These stick with the AI human for every future conversation until you change them.
+                Tavus's flow engine: <b>Objectives</b> drive the conversation through your steps mechanically (with if/then branching),
+                and <b>Guardrails</b> keep it safe and on-brand. Both attach to the PAL and persist for every future conversation until you change them.
               </p>
 
               <div className="skill-head">
-                <div className="subhead" style={{ margin: 0 }}>Goals</div>
+                <div className="subhead" style={{ margin: 0 }}>Objectives</div>
                 <Toggle on={objectivesEnabled} onChange={setObjectivesEnabled} />
               </div>
-              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 8 }}>
-                One goal per line, in plain English — top to bottom is the order the conversation follows. If the PAL should collect something, just say so in the goal ("Ask for their name and email").
+              <p className="field-hint" style={{ maxWidth: 600, marginBottom: 8 }}>
+                One objective per line — top to bottom is the flow, and the PAL won't advance until a step completes.
+                <b> Branch with if/then</b>: indent a line as <span className="mono">if &lt;condition&gt; -&gt; &lt;detour objective&gt;</span> under
+                a step; the detour runs when the condition matches, then rejoins the main flow (a catch-all is added for you).
+                To collect data, just say so ("Ask for their name and email").
               </p>
               <Field label="" hint={objectivesEnabled && objectivesPayload.data.length
-                ? `Your ${objectivesPayload.data.length}-step flow: ${objectivesPayload.data.map((o, i) => `${i + 1}) ${shortLabel(o.objective_prompt)}`).join("   ")}`
+                ? (() => { let n = 0; return `Your flow: ${objectivesPayload.data.map((o) => `${/_if\d+_/.test(o.objective_name) ? "↳" : `${++n})`} ${shortLabel(o.objective_prompt)}`).join("   ")}`; })()
                 : "Best for templated flows (intake, interview, qualification). Free-flowing conversations usually don't need objectives."}>
                 <textarea
-                  style={{ minHeight: 110 }}
+                  style={{ minHeight: 130 }}
                   disabled={!objectivesEnabled}
                   value={objectivesText}
                   onChange={(e) => setObjectivesText(e.target.value)}
-                  placeholder={"Ask which product they're evaluating\nUnderstand their budget and timeline\nAsk who else is involved in the decision\nBook a follow-up meeting"}
+                  placeholder={"Ask which product they're evaluating\nUnderstand their budget and timeline\n  if budget is under $10k -> Suggest the starter tier and check it fits\n  if they have no timeline -> Explore what would make this urgent\nAsk who else is involved in the decision\nBook a follow-up meeting"}
                 />
               </Field>
               {objectivesEnabled && (
@@ -4082,11 +4128,11 @@ export default function TavusExperienceBuilder() {
               )}
 
               <div className="skill-head" style={{ marginTop: 18 }}>
-                <div className="subhead" style={{ margin: 0 }}>Rules (guardrails)</div>
+                <div className="subhead" style={{ margin: 0 }}>Guardrails</div>
                 <Toggle on={guardrailsEnabled} onChange={setGuardrailsEnabled} />
               </div>
               <p className="field-hint" style={{ maxWidth: 560, marginBottom: 8 }}>
-                One rule per line — what the PAL must never do, or what should be flagged. Add [visual] to a line for camera-enforced rules (e.g. "More than one person is visible [visual]"). Violations fire real-time events and hit your callback URL.
+                One guardrail per line — what the PAL must never do, or what should be flagged. Add [visual] to a line for camera-enforced rules (e.g. "More than one person is visible [visual]"). Violations fire real-time events and hit your callback URL.
               </p>
               <Field label="" hint={guardrailsEnabled && guardrailsParsed.length
                 ? `Will create ${guardrailsParsed.length} guardrail${guardrailsParsed.length > 1 ? "s" : ""} and merge with any already on the PAL.`
