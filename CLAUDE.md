@@ -329,6 +329,18 @@ non-technical users; ids unchanged):
    auto-download — S3/Daily recording never sees both rooms. Config fields
    `duetPalB/FaceB/Opener/Topic/Turns` persist with scenarios; hard caps:
    2×turns relays + 5-minute timer + `max_call_duration: 360` on both rooms.
+   **Scripted cards in duets**: `DuetStage` receives `compiledScriptedCards`
+   and runs its own trigger engine off the relayed turn texts (either
+   speaker's words), overlaying `ScriptedCard` bottom-center (`duet-card`) —
+   Magic Canvas still never renders in duets.
+   **Scripted-card extras**: style `question` = clickable multiple choice
+   (title is the question, body lines are the options); the pick goes to the
+   LLM as `conversation.respond` (answer fn threaded through
+   `onScriptedCard({card, seq, answer})`) and appends to the exp record's
+   answers via kind:"attend" (server APPENDS answers now, cap 24). Claude
+   can draft the whole card set: `kind: "cards"` on generate-persona
+   (JSON array), wired to "✨ Generate cards" on the Studio step (lands in
+   `scCards`, editable on the Magic Canvas step).
 6. **Launch** — runs the whole attach-then-create sequence, logs each step.
    Also **Preflight check** (`preflight()`): `POST /objectives/validate`
    (shape/chain check, nothing saved) + `POST /conversations` with
