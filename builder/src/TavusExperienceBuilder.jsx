@@ -3644,6 +3644,48 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* Pre-take forecast: what will actually be on camera, computed from the
+     config + the current script — so a take is never a surprise. Scripted
+     cards and the deck are decidable; Magic Canvas is honestly a dice roll. */
+  const takeForecast = useMemo(() => {
+    const lines = studioLines.map((l) => String(l.text || "").toLowerCase());
+    const rows = [];
+    compiledScriptedCards.forEach((c) => {
+      const icon = c.style === "chart" ? "📊" : c.style === "stat" ? "🔢" : c.style === "image" ? "🖼" : "📄";
+      const label = `${icon} ${c.title || `${c.style} card`}`;
+      if (c.trigger === "start") {
+        rows.push({ k: "ok", label, detail: "appears at call start — guaranteed." });
+      } else if (c.trigger === "time") {
+        const m = Math.floor(c.atSeconds / 60), s = String(c.atSeconds % 60).padStart(2, "0");
+        rows.push({ k: "ok", label, detail: `appears ${m}:${s} into the call — guaranteed if the take runs that long.` });
+      } else {
+        const kws = c.keywords.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+        const hit = lines.findIndex((t) => kws.some((k) => t.includes(k)));
+        if (hit >= 0) {
+          rows.push({ k: "ok", label, detail: `fires on line ${hit + 1} (“${kws.find((k) => lines[hit].includes(k))}”) — guaranteed.` });
+        } else {
+          rows.push({ k: "warn", label, detail: `will probably NOT appear — no script line says ${kws.map((k) => `“${k}”`).join(" / ")}. Add one, or ✨ regenerate the script.` });
+        }
+      }
+    });
+    if (presentationEnabled && docIds.length) {
+      if (slidesTrigger === "walk_the_deck") {
+        rows.push({ k: "ok", label: "🖥 Presentation deck", detail: "walk-the-deck mode — it presents on its own; slides will be on camera." });
+      } else {
+        const hit = lines.findIndex((t) => /deck|slide|present|walk me|show me/.test(t));
+        rows.push(hit >= 0
+          ? { k: "ok", label: "🖥 Presentation deck", detail: `on-demand — the script asks for it on line ${hit + 1}; slides will be on camera.` }
+          : { k: "warn", label: "🖥 Presentation deck", detail: "on-demand, and no script line asks for it — the deck won't appear. Add “can you walk me through the deck?” or switch to walk-the-deck (Presentation step)." });
+      }
+    }
+    if (canvasEnabled) {
+      const on = Object.values(components).filter(Boolean).length;
+      rows.push({ k: "maybe", label: "🪄 Magic Canvas", detail: `${on}/7 components enabled — the AI decides in the moment, so cards are possible but never guaranteed. Anything that MUST be in the video belongs in a scripted card above.` });
+    }
+    if (!rows.length) rows.push({ k: "warn", label: "Nothing visual configured", detail: "This take records the AI human only — no cards or deck are set up to appear." });
+    return rows;
+  }, [studioLines, compiledScriptedCards, presentationEnabled, docIds, slidesTrigger, canvasEnabled, components]);
+
   /* Claude writes the visitor script from the demo's own config — lines
      engineered to make scripted cards, canvas, the deck, and the objectives
      flow fire on camera during a Studio take. */
@@ -6057,6 +6099,20 @@ Open with your first question. Spend the conversation exploring their answers. A
                 <button className="pill-btn" onClick={() => setStudioLines((ls) => (ls.length >= 12 ? ls : [...ls, { text: "" }]))}>+ Line</button>
               </div>
 
+              <div className="subhead">What will be on camera</div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 8 }}>
+                Recomputed live from this demo's config and the script above — fix every ⚠️ before recording, or the take won't show it.
+              </p>
+              <div className="kb-list" style={{ marginBottom: 16, maxWidth: 660 }}>
+                {takeForecast.map((r, i) => (
+                  <div key={i} className="kb-row" style={{ alignItems: "flex-start" }}>
+                    <span style={{ flexShrink: 0 }}>{r.k === "ok" ? "✅" : r.k === "warn" ? "⚠️" : "🎲"}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0, minWidth: 150 }}>{r.label}</span>
+                    <span style={{ fontSize: 12.5, color: r.k === "warn" ? "var(--danger)" : "var(--muted)", flex: 1, lineHeight: 1.5 }}>{r.detail}</span>
+                  </div>
+                ))}
+              </div>
+
               <button className="pill-btn primary" onClick={startStudioTake} disabled={studioActive || !!duetRun}>
                 {studioActive ? "Take running…" : "🎬 Record take"}
               </button>
@@ -6106,6 +6162,26 @@ Open with your first question. Spend the conversation exploring their answers. A
               <Field label="Exchanges" hint="How many back-and-forths before it wraps and saves (hard cap 5 minutes).">
                 <input type="number" min="2" max="20" style={{ maxWidth: 120 }} value={duetTurns} onChange={(e) => setDuetTurns(e.target.value)} />
               </Field>
+              <div className="kb-list" style={{ margin: "4px 0 14px", maxWidth: 660 }}>
+                <div className="kb-row" style={{ alignItems: "flex-start" }}>
+                  <span style={{ flexShrink: 0 }}>{presentationEnabled && docIds.length ? (slidesTrigger === "walk_the_deck" ? "✅" : "🎲") : "⚠️"}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0, minWidth: 150 }}>🖥 Deck in this duet</span>
+                  <span style={{ fontSize: 12.5, color: "var(--muted)", flex: 1, lineHeight: 1.5 }}>
+                    {presentationEnabled && docIds.length
+                      ? slidesTrigger === "walk_the_deck"
+                        ? "walk-the-deck — your AI human will present, and slides render big with its face as a corner tile."
+                        : "on-demand — appears only if a speaker asks for it; put “ask them to walk through their deck” in the topic seed to steer the partner."
+                      : "no deck attached (Presentation step) — this duet records faces and voices only."}
+                  </span>
+                </div>
+                <div className="kb-row" style={{ alignItems: "flex-start" }}>
+                  <span style={{ flexShrink: 0 }}>⚠️</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0, minWidth: 150 }}>🪄 Canvas &amp; scripted cards</span>
+                  <span style={{ fontSize: 12.5, color: "var(--muted)", flex: 1, lineHeight: 1.5 }}>
+                    never render in duets (the duet stage is bare video tiles) — record a solo take for card visuals.
+                  </span>
+                </div>
+              </div>
               <button className="pill-btn primary" onClick={startDuet} disabled={!!duetRun || studioActive}>
                 {duetRun ? "Duet running…" : "🎭 Record duet"}
               </button>
