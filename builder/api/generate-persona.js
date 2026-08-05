@@ -130,7 +130,8 @@ const DUET_SYSTEM = `You design a complete recorded conversation between two AI 
 Return ONLY valid JSON (no code fences, no commentary):
 {
   "title": "Short label for this duet",
-  "outline": ["Beat 1 — what gets covered first", "... 4-6 beats, in order, ending with a natural wrap-up"],
+  "summary": "1-2 on-screen sentences telling the VIEWER what they're watching: a simulated conversation between two AI humans running on Tavus' full stack — every turn generated live, and you could talk to either one yourself — plus what to watch for in THIS conversation.",
+  "outline": ["Beat 1 — what gets covered first (each beat may carry an emotion cue, e.g. '…— excitement builds')", "... 4-6 beats, in order, ending with a natural wrap-up"],
   "featured": {
     "name": "Firstname — role (e.g. Maya — intake specialist)",
     "opener": "Their exact opening line: greets, introduces themselves, frames what this conversation is about",
@@ -144,7 +145,9 @@ Return ONLY valid JSON (no code fences, no commentary):
   "cards": [ 2-4 scripted cards, same schema as: {"style":"note"|"chart"|"stat"|"image"|"question","title":"…","body":"…","trigger":"keyword"|"time"|"start","keywords":"…","atMinutes":0,"hideAfter":0} ]
 }
 
-Card rules (derived from the FINISHED outline): each keyword trigger must be a distinctive word or phrase that literally appears in an outline beat (never generic words), so it reliably gets spoken; order cards to match the outline; content pulled from the description/outline — for real brands keep numbers clearly illustrative; at most one question card; body formats: chart = 'Label: number' per line, stat = value then label lines, question = one choice per line (title is the question).`;
+Card rules (derived from the FINISHED outline): each keyword trigger must be a distinctive word or phrase that literally appears in an outline beat (never generic words), so it reliably gets spoken; order cards to match the outline; content pulled from the description/outline — for real brands keep numbers clearly illustrative; at most one question card; body formats: chart = 'Label: number' per line, stat = value then label lines, question = one choice per line (title is the question). For a question card, one of the options should be something a speaker would naturally SAY when answering — the UI highlights the option that gets spoken.
+
+Emotion rules: give both personas an explicit EMOTIONAL ARC tied to the outline (e.g. curious → genuinely excited → playful disagreement → warm resolution), written as performable direction inside the prompts — Tavus renders tone of voice and facial expression from how the lines and personality are written, so specify base energy (1-10), what makes each of them light up, and where in the outline the emotion shifts. Both openers must carry their starting emotion. If the description asks for specific tones (skeptical, competitive, heated), honor them and let them ESCALATE across beats rather than staying flat.`;
 
 const TALKTRACK_SYSTEM = `You write slide-by-slide talk tracks for an AI human presenting a deck on a live video call.
 

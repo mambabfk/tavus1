@@ -316,10 +316,20 @@ non-technical users; ids unchanged):
    `duetOpenerB` = host's custom_greeting written by the plan as a reply to
    the featured opener) — the opening exchange plays instantly while real
    LLM turns generate, and `DuetStage` (`scriptedOpen`) skips relaying A's
-   first turn since B's greeting already answers it. The featured speaker
-   (side A) opens; the host room (side B) only MOUNTS after A's first turn
-   arrives (18s fallback), with per-side ready flags + queued respond
-   messages — deterministic opening order. Tiles carry `duet-name` chips
+   first turn since B's greeting already answers it. BOTH rooms join at
+   t=0 (both faces visible together — no black tile); side B joins with
+   `&hold=1` (`DuetJoiner` hold mode: audio muted + any spontaneous greeting
+   interrupted). When A's opener lands, the parent posts `release` and B
+   speaks the scripted reply via `conversation.echo` (18s fallback release);
+   per-side ready flags + queued respond messages keep ordering
+   deterministic. Cards render ON THE ASKER'S TILE (`duet-tile-card`,
+   from = triggering side); a live question card's option auto-selects when
+   the OTHER speaker's turn contains the option text (`forcePicked` on
+   `ScriptedCard`). A `duet-narrator` strip under the tiles explains what's
+   on screen: plan `summary` at start, a Magic Canvas caption when a card
+   fires, then outline beats as the talk track advances. `kind: "duet"`
+   also returns `summary` and writes an emotional arc into both prompts
+   (per explicit user direction — tone/expressions escalate across beats). Tiles carry `duet-name` chips
    (who is who); cards render in a dedicated `duet-cardbar` band BELOW the
    tiles (never over a face).
    Two conversations are created; each joins in a same-origin iframe
