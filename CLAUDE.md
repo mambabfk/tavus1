@@ -303,7 +303,16 @@ non-technical users; ids unchanged):
    is the only capture that includes Magic Canvas cards. Takes surface in
    Results as ordinary ⏺ recordings. **Live-call path untested in CI** —
    verify on deployed hardware before demoing.
-   **Duet mode** (same step): two AI humans in live conversation. Two
+   **Duet mode** (same step): two AI humans in live conversation. Because
+   two customer-facing personas just run their agendas at each other, the
+   partner defaults to an **auto-created interviewer PAL** (`duetMode:
+   "auto"`; `INTERVIEWER_PROMPT`; created once via POST /pals, id cached in
+   `duetPartnerId` and saved with the demo, cleared+recreated if a
+   conversation-create fails on it) whose whole prompt is "make the guest
+   shine". The partner OPENS with `duetOpener` (its custom_greeting); the
+   demo PAL answers as itself with a being-interviewed context that
+   suppresses its usual intake flow. `duetMode: "custom"` accepts any PAL
+   as the partner instead. Two
    conversations are created; each joins in a same-origin iframe
    (`?duet=join&url=…&side=a|b` → `DuetJoiner`; dodges Daily's
    one-call-object-per-page limit). The parent `DuetStage` is a pure TEXT

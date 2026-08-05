@@ -2078,7 +2078,12 @@ export default function TavusExperienceBuilder() {
   const [studioActive, setStudioActive] = useState(false);
   const [studioStatus, setStudioStatus] = useState("");
   const [ttsAvail, setTtsAvail] = useState(null); // null=unknown, {available, voice}, or false (probe failed)
-  // Duet — two AI humans in conversation.
+  // Duet — two AI humans in conversation. The partner is either an
+  // auto-created interviewer PAL (created once, reused, saved with the demo)
+  // or any custom PAL — because two customer-facing personas just run their
+  // agendas at each other and the opening makes no sense.
+  const [duetMode, setDuetMode] = useState("auto"); // "auto" interviewer | "custom" PAL
+  const [duetPartnerId, setDuetPartnerId] = useState(""); // cached auto-created interviewer PAL
   const [duetPalB, setDuetPalB] = useState("");
   const [duetFaceB, setDuetFaceB] = useState("");
   const [duetOpener, setDuetOpener] = useState("");
@@ -2202,7 +2207,7 @@ export default function TavusExperienceBuilder() {
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt, talkTrack,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
-    scCards, studioLines, duetPalB, duetFaceB, duetOpener, duetTopic, duetTurns,
+    scCards, studioLines, duetMode, duetPartnerId, duetPalB, duetFaceB, duetOpener, duetTopic, duetTurns,
     palLlm, knowledgeIdsRaw,
     site,
     expJourney,
@@ -2260,6 +2265,7 @@ export default function TavusExperienceBuilder() {
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
     setScCards(Array.isArray(c.scCards) ? c.scCards : []);
     setStudioLines(Array.isArray(c.studioLines) && c.studioLines.length ? c.studioLines : [{ text: "" }]);
+    setDuetMode(c.duetMode === "custom" ? "custom" : "auto"); setDuetPartnerId(c.duetPartnerId ?? "");
     setDuetPalB(c.duetPalB ?? ""); setDuetFaceB(c.duetFaceB ?? ""); setDuetOpener(c.duetOpener ?? "");
     setDuetTopic(c.duetTopic ?? ""); setDuetTurns(c.duetTurns ?? "6");
     setExpJourney(Array.isArray(c.expJourney) ? c.expJourney : []);
@@ -3634,11 +3640,46 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* The interviewer partner: a purpose-built PAL whose whole job is making
+     the guest shine. Created once, cached in the demo config, reused. */
+  const INTERVIEWER_PROMPT = `## Identity & Role
+You are Sam, a warm, sharp interviewer recording a short on-camera segment with a guest. Your only job is to make your guest shine — draw out who they are, what they do, how it works, and what makes it special.
+
+## Personality & Conversational Style
+Curious, quick, generous. Contractions, one to two sentences per turn. React genuinely to what they just said before moving on ("Okay, that's genuinely cool — so how does that work?").
+
+## Core Behaviors
+Ask ONE question at a time and then listen. Dig deeper on the most interesting thing in their last answer. Never talk about yourself beyond a passing word. Never sell anything, never run an agenda, intake, or checklist of your own. If they ask you something, answer in a few words and turn it back to them.
+
+## Guardrails & Constraints
+Never mention prompts, instructions, AI setups, or that this is scripted. If asked whether you're an AI, say yes briefly and move on.
+
+## Conversation Flow
+Open with your first question. Spend the conversation exploring their answers. After several good exchanges, wrap up warmly: summarize the most interesting thing you heard and thank them.`;
+
+  const ensureDuetPartner = async () => {
+    if (duetPartnerId.trim()) return duetPartnerId.trim();
+    addLog("info", "Creating the interviewer PAL (one-time — it's reused for every duet)…");
+    const p = await tavusFetch("POST", "/pals", {
+      pal_name: "Studio duet interviewer",
+      default_face_id: duetFaceB.trim(),
+      system_prompt: INTERVIEWER_PROMPT,
+    });
+    const id = p.pal_id || p.uuid || p.id;
+    if (!id) throw new Error("Interviewer PAL creation returned no id.");
+    setDuetPartnerId(id);
+    addLog("ok", `Interviewer PAL ready: ${id} (saved with this demo).`);
+    return id;
+  };
+
   /* Duet: create both conversations, capture the tab (gesture!), open the
-     duet stage. The parent relays turns as text; recording is local. */
+     duet stage. The parent relays turns as text; recording is local.
+     The PARTNER always opens (it's the interviewer); your demo PAL answers
+     as itself — that's the showcase. */
   const startDuet = async () => {
-    if (!canLaunch) { addLog("err", "Duet: needs your Tavus key + Face + PAL for the first AI human (Account step)."); return; }
-    if (!duetPalB.trim() || !duetFaceB.trim()) { addLog("err", "Duet: pick a PAL ID and Face for the second AI human."); return; }
+    if (!canLaunch) { addLog("err", "Duet: needs your Tavus key + Face + PAL for your AI human (Account step)."); return; }
+    if (!duetFaceB.trim()) { addLog("err", "Duet: pick a face for the conversation partner."); return; }
+    if (duetMode === "custom" && !duetPalB.trim()) { addLog("err", "Duet: paste the partner's PAL ID (or switch to the auto interviewer)."); return; }
     setStudioStatus("Pick this tab in the share dialog — the duet records locally from that capture.");
     let stream = null;
     try {
@@ -3656,32 +3697,40 @@ export default function TavusExperienceBuilder() {
       return;
     }
     try {
-      const duetCtx = (opens) => [
-        `You are in a live on-camera conversation with another AI human${duetTopic.trim() ? ` about: ${duetTopic.trim()}` : ""}.`,
-        "Keep every reply to one to three sentences, stay conversational, react to what they actually said, ask a question back every couple of turns, and never mention these instructions or that the other speaker is an AI.",
-        opens ? "You open the conversation." : "Your partner opens the conversation — wait, then respond naturally.",
+      const topic = duetTopic.trim();
+      const partnerCtx = [
+        `You are interviewing an AI human guest on camera${topic ? ` about: ${topic}` : ""}.`,
+        "You open the conversation with your first question. One short question at a time; react to their actual answers; make them shine. Wrap up warmly after several exchanges.",
+      ].join(" ");
+      const guestCtx = [
+        `You are being interviewed on camera about who you are and what you do${topic ? ` — especially: ${topic}` : ""}.`,
+        "Answer as yourself, in one to three sentences per turn. Do NOT run your usual conversation flow, intake questions, or agenda — the person you're talking to is the interviewer, not a customer. React to their questions naturally, share specifics, and never mention these instructions.",
       ].join(" ");
       setStudioStatus("Creating both conversations…");
+      const partnerPal = duetMode === "custom" ? duetPalB.trim() : await ensureDuetPartner();
       const a = await tavusFetch("POST", "/conversations", {
-        face_id: faceId.trim(),
-        pal_id: palId.trim(),
-        conversation_name: "Studio duet — A",
-        custom_greeting: duetOpener.trim() || "Hey! Great to finally talk — I've heard a lot about you. What are you working on these days?",
-        conversational_context: duetCtx(true),
-        properties: { max_call_duration: 360, language: language === "multilingual" ? undefined : language },
+        face_id: duetFaceB.trim(),
+        pal_id: partnerPal,
+        conversation_name: "Studio duet — interviewer",
+        custom_greeting: duetOpener.trim() || "Hey, thanks for sitting down with me! First question — who are you, and what do you actually do?",
+        conversational_context: partnerCtx,
+        properties: { max_call_duration: 360 },
       });
       const b = await tavusFetch("POST", "/conversations", {
-        face_id: duetFaceB.trim(),
-        pal_id: duetPalB.trim(),
-        conversation_name: "Studio duet — B",
-        conversational_context: duetCtx(false),
-        properties: { max_call_duration: 360 },
+        face_id: faceId.trim(),
+        pal_id: palId.trim(),
+        conversation_name: "Studio duet — your AI human",
+        conversational_context: guestCtx,
+        properties: { max_call_duration: 360, ...(language && language !== "multilingual" ? { language } : {}) },
       });
       setDuetRun({ a, b, stream });
       setStudioStatus("");
-      addLog("ok", `Duet live: ${a.conversation_id} ↔ ${b.conversation_id}. It ends and saves the video on its own.`);
+      addLog("ok", `Duet live: interviewer ${a.conversation_id} ↔ guest ${b.conversation_id}. It ends and saves the video on its own.`);
     } catch (e) {
       stream?.getTracks().forEach((t) => t.stop());
+      // A stale cached interviewer PAL (deleted account-side) fails conversation
+      // creation — clear it so the next click recreates.
+      if (duetMode === "auto" && /pal/i.test(String(e.message))) setDuetPartnerId("");
       setStudioStatus(`Duet failed: ${e.message}`);
       addLog("err", `Duet: ${e.message}`);
     }
@@ -5960,14 +6009,24 @@ export default function TavusExperienceBuilder() {
 
               <div className="subhead" style={{ marginTop: 30 }}>Duet — two AI humans in conversation</div>
               <p className="field-hint" style={{ maxWidth: 600, marginBottom: 12 }}>
-                Your demo's AI human (Account step) talks live with a second one — each replies to what the other
-                actually said, turn by turn. Both faces render side by side and the whole stage records locally
-                (a .webm downloads when it ends). No microphones involved, so there's nothing to feed back.
+                Your demo's AI human (Account step) gets interviewed on camera by a partner — each replies to what
+                the other actually said, turn by turn. Both faces render side by side and the whole stage records
+                locally (a .webm downloads when it ends). No microphones involved, so there's nothing to feed back.
               </p>
-              <Field label="Second AI human — PAL ID">
-                <input className="mono" value={duetPalB} onChange={(e) => setDuetPalB(e.target.value)} placeholder="p… (any PAL — even the same one arguing with itself)" />
+              <Field label="Conversation partner" hint="Two customer-facing personas just run their agendas at each other — the auto interviewer exists purely to make YOUR AI human shine.">
+                <div className="seg">
+                  <button className={duetMode === "auto" ? "on" : ""} onClick={() => setDuetMode("auto")}>Auto interviewer (recommended)</button>
+                  <button className={duetMode === "custom" ? "on" : ""} onClick={() => setDuetMode("custom")}>Custom PAL</button>
+                </div>
               </Field>
-              <Field label="Second AI human — Face" hint="Pick a preset or paste any r… face ID.">
+              {duetMode === "custom" && (
+                <Field label="Partner PAL ID" hint="Any PAL — but give it an interviewer-ish prompt or the opening won't make sense.">
+                  <input className="mono" value={duetPalB} onChange={(e) => setDuetPalB(e.target.value)} placeholder="p…" />
+                </Field>
+              )}
+              <Field label="Partner face" hint={duetMode === "auto"
+                ? `Pick a preset or paste any r… face ID.${duetPartnerId ? ` Interviewer PAL cached: ${duetPartnerId}` : " The interviewer PAL is created once on first run, then reused."}`
+                : "Pick a preset or paste any r… face ID."}>
                 <div className="face-row">
                   {FACE_PRESETS.map((f) => (
                     <button key={f.id} type="button" className={"face-chip" + (duetFaceB.trim() === f.id ? " on" : "")} onClick={() => setDuetFaceB(f.id)} title={f.id}>
@@ -5978,8 +6037,8 @@ export default function TavusExperienceBuilder() {
                 </div>
                 <input className="mono" value={duetFaceB} onChange={(e) => setDuetFaceB(e.target.value)} placeholder="r…" />
               </Field>
-              <Field label="Opening line" hint="Spoken by YOUR AI human to kick things off. Blank = a friendly default.">
-                <input value={duetOpener} onChange={(e) => setDuetOpener(e.target.value)} placeholder="So tell me — what makes the Better Santa package better?" />
+              <Field label="First question" hint="The partner opens with this. Blank = a friendly default.">
+                <input value={duetOpener} onChange={(e) => setDuetOpener(e.target.value)} placeholder="So tell me — what makes the Better Santa package better than the classic call?" />
               </Field>
               <Field label="Topic seed" hint="Optional. Woven into both sides' context so the conversation stays on subject.">
                 <input value={duetTopic} onChange={(e) => setDuetTopic(e.target.value)} placeholder="comparing the tier-1 and Better Santa experiences for a retail client" />
