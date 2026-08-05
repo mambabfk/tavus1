@@ -303,18 +303,25 @@ non-technical users; ids unchanged):
    is the only capture that includes Magic Canvas cards. Takes surface in
    Results as ordinary ⏺ recordings. **Live-call path untested in CI** —
    verify on deployed hardware before demoing.
-   **Duet mode** (same step): two AI humans in live conversation. Because
-   two customer-facing personas just run their agendas at each other, the
-   partner defaults to an **auto-created interviewer PAL** (`duetMode:
-   "auto"`; `INTERVIEWER_PROMPT`; created once via POST /pals, id cached in
-   `duetPartnerId` and saved with the demo, cleared+recreated if a
-   conversation-create fails on it) whose whole prompt is "make the guest
-   shine". **The DEMO's AI human opens** (side A: `duetOpener` as its
-   custom_greeting, blank = natural greeting — per explicit user
-   direction); the partner room (side B) only MOUNTS after A's first turn
+   **Duet mode** (same step) is SELF-CONTAINED (v2, per explicit user
+   direction — borrowing the demo PAL made cards misalign with the actual
+   conversation): describe the conversation → `kind: "duet"` on
+   generate-persona plans the TALK TRACK FIRST, then both personas (each
+   embeds the outline verbatim), then derives the scripted cards from the
+   finished outline (trigger words must appear in its beats) — alignment by
+   construction. Studio maintains exactly TWO reusable PALs (`studioPalA/B`,
+   `ensureStudioPal` PATCHes /system_prompt per plan, creates only when
+   missing/stale) so duets never pile up PALs. **Latency**: BOTH sides get
+   scripted openers (`duetOpener` = featured's custom_greeting,
+   `duetOpenerB` = host's custom_greeting written by the plan as a reply to
+   the featured opener) — the opening exchange plays instantly while real
+   LLM turns generate, and `DuetStage` (`scriptedOpen`) skips relaying A's
+   first turn since B's greeting already answers it. The featured speaker
+   (side A) opens; the host room (side B) only MOUNTS after A's first turn
    arrives (18s fallback), with per-side ready flags + queued respond
-   messages in `DuetStage` — deterministic opening order, no colliding
-   greetings. `duetMode: "custom"` accepts any PAL as the partner instead.
+   messages — deterministic opening order. Tiles carry `duet-name` chips
+   (who is who); cards render in a dedicated `duet-cardbar` band BELOW the
+   tiles (never over a face).
    Two conversations are created; each joins in a same-origin iframe
    (`?duet=join&url=…&side=a|b` → `DuetJoiner`; dodges Daily's
    one-call-object-per-page limit). The joiner renders the replica's

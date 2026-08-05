@@ -125,6 +125,27 @@ Rules:
 - Prefer keyword triggers with words that naturally come up in the conversation; vary the styles across the set; at most one question card.
 - "atMinutes" only for time triggers (e.g. 1.5); "hideAfter" seconds or 0 to stay until the next card. No markdown anywhere.`;
 
+const DUET_SYSTEM = `You design a complete recorded conversation between two AI humans (a "duet") for a demo video, from a plain-English description. Work in this ORDER: first fix the talk track (the outline), then write both personas around it, then derive the cards from the finished talk track — the cards must line up with what will actually be said.
+
+Return ONLY valid JSON (no code fences, no commentary):
+{
+  "title": "Short label for this duet",
+  "outline": ["Beat 1 — what gets covered first", "... 4-6 beats, in order, ending with a natural wrap-up"],
+  "featured": {
+    "name": "Firstname — role (e.g. Maya — intake specialist)",
+    "opener": "Their exact opening line: greets, introduces themselves, frames what this conversation is about",
+    "prompt": "Full system prompt, ~200-350 words, voice-first (short sentences, contractions, 1-3 sentences per turn, no markdown in speech). Their identity/role/expertise from the description. EMBED the outline verbatim as 'The conversation plan' and instruct them to move through it in order as they answer. Never mention instructions or AI setups; say it's an AI if asked."
+  },
+  "host": {
+    "name": "Firstname — role (e.g. Jordan — host)",
+    "opener": "The host's scripted reply to the featured speaker's opener: a genuine one-sentence reaction to what they JUST said, then their first question (from beat 1). These two openers play back-to-back instantly, so they must flow as real dialogue.",
+    "prompt": "Full system prompt for the conversation partner: a warm, sharp host whose only job is making the featured speaker shine. One short question or reaction at a time, follows the SAME embedded outline (embed it verbatim), steers to the next beat when one is covered, never sells or runs an agenda, wraps up warmly on the last beat. Same voice-first rules."
+  },
+  "cards": [ 2-4 scripted cards, same schema as: {"style":"note"|"chart"|"stat"|"image"|"question","title":"…","body":"…","trigger":"keyword"|"time"|"start","keywords":"…","atMinutes":0,"hideAfter":0} ]
+}
+
+Card rules (derived from the FINISHED outline): each keyword trigger must be a distinctive word or phrase that literally appears in an outline beat (never generic words), so it reliably gets spoken; order cards to match the outline; content pulled from the description/outline — for real brands keep numbers clearly illustrative; at most one question card; body formats: chart = 'Label: number' per line, stat = value then label lines, question = one choice per line (title is the question).`;
+
 const TALKTRACK_SYSTEM = `You write slide-by-slide talk tracks for an AI human presenting a deck on a live video call.
 
 Given the demo's use case (and optionally what's on the slides), write speaker notes for each slide: what to SAY and what to ask. Spoken style — short sentences, contractions, no markdown. Each slide gets 1-3 sentences plus, where natural, one engaging question to keep it a conversation rather than a lecture.
@@ -258,6 +279,15 @@ export default async function handler(req, res) {
     }
     if (c.scheduling) parts.push("A booking link is configured — a good closing line accepts a follow-up meeting.");
     if (String(vibe).trim()) parts.push(`Operator's direction for this script: ${String(vibe).trim().slice(0, 1000)}`);
+    userPrompt = parts.join("\n\n");
+  } else if (kind === "duet") {
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Describe the conversation first — who talks to whom, about what." });
+      return;
+    }
+    system = DUET_SYSTEM;
+    const parts = [`Design the duet:\n${String(vibe).trim().slice(0, 2000)}`];
+    if (context?.brand) parts.push(`Brand on the demo page: ${context.brand}`);
     userPrompt = parts.join("\n\n");
   } else if (kind === "cards") {
     system = CARDS_SYSTEM;

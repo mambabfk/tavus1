@@ -402,9 +402,15 @@ const BUILDER_CSS = `
         .sc-opt:disabled:not(.on) { opacity:.45; cursor:default; }
         .sc-answered { color:var(--ok,#3E9B5F); font-size:12px; font-weight:600; }
         .canvas-panel .sc-card { pointer-events:auto; }
-        .duet-card { position:absolute; left:50%; bottom:72px; transform:translateX(-50%); z-index:5; animation:duetcard .45s ease; }
-        .duet-card .sc-card { position:static; transform:none; width:340px; box-shadow:0 30px 70px -18px rgba(0,0,0,.65); }
-        @keyframes duetcard { from { opacity:0; transform:translateX(-50%) translateY(16px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+        .duet-tile { position:relative; min-height:0; }
+        .duet-tile .duet-frame { position:absolute; inset:0; }
+        .duet-name { position:absolute; top:12px; left:12px; z-index:3; background:rgba(12,13,16,.66); color:#f2f3f5; font-size:12.5px; font-weight:600; letter-spacing:.2px; padding:5px 12px; border-radius:999px; pointer-events:none; }
+        /* cards live in their own band below the tiles — never over a face */
+        .duet-cardbar { flex-shrink:0; display:flex; justify-content:center; padding:12px 14px 2px; animation:duetcard .45s ease; }
+        .duet-cardbar .sc-card { position:static; transform:none; width:min(520px, 92vw); flex-direction:row; align-items:center; gap:18px; box-shadow:0 18px 50px -18px rgba(0,0,0,.6); }
+        .duet-cardbar .sc-card > *:last-child { flex:1; min-width:0; }
+        .duet-cardbar .sc-title { flex-shrink:0; max-width:180px; }
+        @keyframes duetcard { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
         .placement-viz { display:flex; gap:4px; height:42px; margin-bottom:8px; }
         .pv-video { flex:1; background:var(--border); border-radius:6px; }
         .pv-rail { width:15px; background:var(--accent); border-radius:6px; }
@@ -853,7 +859,10 @@ function DuetJoiner({ url, id, side }) {
 /* The duet stage the builder sees: branded chrome, two rooms side by side,
    REC indicator, turn counter, End button. Records the captured tab locally
    (MediaRecorder) and downloads the file when the duet ends. */
-function DuetStage({ run, brand, maxTurns, cards = [], onExit }) {
+function DuetStage({ run, brand, maxTurns, cards = [], labels = null, scriptedOpen = false, onExit }) {
+  // With a scripted opening exchange, A's first turn must NOT be relayed —
+  // the host's custom greeting already IS the reply to it.
+  const aFirstRef = useRef(true);
   const frameA = useRef(null);
   const frameB = useRef(null);
   const recorderRef = useRef(null);
@@ -950,7 +959,9 @@ function DuetStage({ run, brand, maxTurns, cards = [], onExit }) {
         setNote(`${String(d.from).toUpperCase()}: “${String(d.text).slice(0, 110)}${d.text.length > 110 ? "…" : ""}”`);
         if (turnsRef.current >= maxTurns * 2) { endDuet(); return; }
         if (d.from === "a") setMountB(true); // the opener landed — bring in the partner
-        deliver(d.from === "a" ? "b" : "a", d.text);
+        const skipRelay = d.from === "a" && scriptedOpen && aFirstRef.current;
+        if (d.from === "a") aFirstRef.current = false;
+        if (!skipRelay) deliver(d.from === "a" ? "b" : "a", d.text);
         // Keyword cards fire off what either AI actually says.
         const lower = String(d.text).toLowerCase();
         for (let i = 0; i < cards.length; i++) {
@@ -998,13 +1009,20 @@ function DuetStage({ run, brand, maxTurns, cards = [], onExit }) {
         <button className="pill-btn" onClick={endDuet}>■ End &amp; save</button>
       </header>
       <div className="duet-stage">
-        <iframe ref={frameA} title="Duet A" className="duet-frame" allow="autoplay" src={src(run.a, "a")} />
-        {mountB
-          ? <iframe ref={frameB} title="Duet B" className="duet-frame" allow="autoplay" src={src(run.b, "b")} />
-          : <div className="duet-frame duet-wait">joining…</div>}
+        <div className="duet-tile">
+          <iframe ref={frameA} title="Duet A" className="duet-frame" allow="autoplay" src={src(run.a, "a")} />
+          {labels?.a && <span className="duet-name">{labels.a}</span>}
+        </div>
+        <div className="duet-tile">
+          {mountB
+            ? <iframe ref={frameB} title="Duet B" className="duet-frame" allow="autoplay" src={src(run.b, "b")} />
+            : <div className="duet-frame duet-wait">joining…</div>}
+          {labels?.b && mountB && <span className="duet-name">{labels.b}</span>}
+        </div>
       </div>
+      {/* Cards get their own band under the tiles — never over a face. */}
       {duetCard && (
-        <div className="duet-card">
+        <div className="duet-cardbar">
           <ScriptedCard card={duetCard} />
         </div>
       )}
@@ -1403,6 +1421,30 @@ function Toggle({ on, onChange }) {
       <span className="toggle-dot" />
     </button>
   );
+}
+
+/* Editor/plan shape → deliverable scripted cards. Incomplete cards drop out
+   silently (missing content or an unusable trigger). */
+function compileScriptedCards(arr) {
+  return (Array.isArray(arr) ? arr : []).map((c) => {
+    const t = (v) => String(v ?? "").trim();
+    const style = ["note", "chart", "stat", "image", "question"].includes(c.style) ? c.style : "note";
+    const trigger = ["keyword", "time", "start"].includes(c.trigger) ? c.trigger : "keyword";
+    const card = {
+      style,
+      trigger,
+      title: t(c.title),
+      body: t(c.body),
+      url: t(c.url),
+      keywords: t(c.keywords),
+      atSeconds: Math.max(0, Math.round((parseFloat(c.atMinutes) || 0) * 60)),
+      hideAfter: Math.max(0, parseInt(c.hideAfter, 10) || 0),
+    };
+    if (style === "image" ? !card.url : !card.body) return null;
+    if (trigger === "keyword" && !card.keywords) return null;
+    if (trigger === "time" && !card.atSeconds) return null;
+    return card;
+  }).filter(Boolean).slice(0, 12);
 }
 
 /* ── Scripted card renderer: SE-authored content, rendered verbatim.
@@ -2242,17 +2284,21 @@ export default function TavusExperienceBuilder() {
   const [studioActive, setStudioActive] = useState(false);
   const [studioStatus, setStudioStatus] = useState("");
   const [ttsAvail, setTtsAvail] = useState(null); // null=unknown, {available, voice}, or false (probe failed)
-  // Duet — two AI humans in conversation. The partner is either an
-  // auto-created interviewer PAL (created once, reused, saved with the demo)
-  // or any custom PAL — because two customer-facing personas just run their
-  // agendas at each other and the opening makes no sense.
-  const [duetMode, setDuetMode] = useState("auto"); // "auto" interviewer | "custom" PAL
-  const [duetPartnerId, setDuetPartnerId] = useState(""); // cached auto-created interviewer PAL
-  const [duetPalB, setDuetPalB] = useState("");
-  const [duetFaceB, setDuetFaceB] = useState("");
-  const [duetOpener, setDuetOpener] = useState("");
-  const [duetTopic, setDuetTopic] = useState("");
+  // Duet — self-contained: describe the conversation, Claude plans the talk
+  // track FIRST, both personas embed it, and the cards derive from it — so
+  // nothing bleeds and the cards line up with what actually gets said.
+  const [duetDesc, setDuetDesc] = useState("");
+  const [duetPlan, setDuetPlan] = useState(null); // {title, outline, featured, host, cards}
+  const [duetPlanBusy, setDuetPlanBusy] = useState(false);
+  const [duetFaceA, setDuetFaceA] = useState(""); // featured speaker's face
+  const [duetFaceB, setDuetFaceB] = useState(""); // host's face
+  const [duetOpener, setDuetOpener] = useState(""); // featured opener — seeded from the plan, editable
+  const [duetOpenerB, setDuetOpenerB] = useState(""); // host's scripted reply — plays instantly, hides LLM latency
   const [duetTurns, setDuetTurns] = useState("6");
+  // Two reusable Studio PALs — their prompts get PATCHed per plan, so duets
+  // never pile up new PALs on the account.
+  const [studioPalA, setStudioPalA] = useState("");
+  const [studioPalB, setStudioPalB] = useState("");
   const [duetRun, setDuetRun] = useState(null); // {a, b, stream} while a duet is live
   const [scriptBusy, setScriptBusy] = useState(false);
   const [scriptFocus, setScriptFocus] = useState("");
@@ -2373,7 +2419,8 @@ export default function TavusExperienceBuilder() {
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt, talkTrack,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
-    scCards, studioLines, duetMode, duetPartnerId, duetPalB, duetFaceB, duetOpener, duetTopic, duetTurns,
+    scCards, studioLines,
+    duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetTurns, studioPalA, studioPalB,
     palLlm, knowledgeIdsRaw,
     site,
     expJourney,
@@ -2431,9 +2478,12 @@ export default function TavusExperienceBuilder() {
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
     setScCards(Array.isArray(c.scCards) ? c.scCards : []);
     setStudioLines(Array.isArray(c.studioLines) && c.studioLines.length ? c.studioLines : [{ text: "" }]);
-    setDuetMode(c.duetMode === "custom" ? "custom" : "auto"); setDuetPartnerId(c.duetPartnerId ?? "");
-    setDuetPalB(c.duetPalB ?? ""); setDuetFaceB(c.duetFaceB ?? ""); setDuetOpener(c.duetOpener ?? "");
-    setDuetTopic(c.duetTopic ?? ""); setDuetTurns(c.duetTurns ?? "6");
+    setDuetDesc(c.duetDesc ?? "");
+    setDuetPlan(c.duetPlan && typeof c.duetPlan === "object" ? c.duetPlan : null);
+    setDuetFaceA(c.duetFaceA ?? ""); setDuetFaceB(c.duetFaceB ?? "");
+    setDuetOpener(c.duetOpener ?? ""); setDuetOpenerB(c.duetOpenerB ?? "");
+    setDuetTurns(c.duetTurns ?? "6");
+    setStudioPalA(c.studioPalA ?? ""); setStudioPalB(c.studioPalB ?? "");
     setExpJourney(Array.isArray(c.expJourney) ? c.expJourney : []);
     // Email capture is table stakes — scenarios saved before the field
     // existed default ON; only an explicit false keeps it off.
@@ -2772,25 +2822,7 @@ export default function TavusExperienceBuilder() {
 
   /* Editor shape → the scripted cards that ship. Incomplete cards drop out
      silently (missing content or an unusable trigger). */
-  const compiledScriptedCards = useMemo(() => scCards.map((c) => {
-    const t = (v) => String(v ?? "").trim();
-    const style = ["note", "chart", "stat", "image", "question"].includes(c.style) ? c.style : "note";
-    const trigger = ["keyword", "time", "start"].includes(c.trigger) ? c.trigger : "keyword";
-    const card = {
-      style,
-      trigger,
-      title: t(c.title),
-      body: t(c.body),
-      url: t(c.url),
-      keywords: t(c.keywords),
-      atSeconds: Math.max(0, Math.round((parseFloat(c.atMinutes) || 0) * 60)),
-      hideAfter: Math.max(0, parseInt(c.hideAfter, 10) || 0),
-    };
-    if (style === "image" ? !card.url : !card.body) return null;
-    if (trigger === "keyword" && !card.keywords) return null;
-    if (trigger === "time" && !card.atSeconds) return null;
-    return card;
-  }).filter(Boolean).slice(0, 12), [scCards]);
+  const compiledScriptedCards = useMemo(() => compileScriptedCards(scCards), [scCards]);
 
   const controlsConfig = useMemo(() => ({
     scriptedCards: compiledScriptedCards,
@@ -3898,46 +3930,64 @@ export default function TavusExperienceBuilder() {
     }
   };
 
-  /* The interviewer partner: a purpose-built PAL whose whole job is making
-     the guest shine. Created once, cached in the demo config, reused. */
-  const INTERVIEWER_PROMPT = `## Identity & Role
-You are Sam, a warm, sharp interviewer recording a short on-camera segment with a guest. Your only job is to make your guest shine — draw out who they are, what they do, how it works, and what makes it special.
+  /* Claude plans the whole duet from a description: talk track first, both
+     personas embedding it, cards derived from it afterwards. */
+  const planDuet = async () => {
+    if (!duetDesc.trim()) { addLog("err", "Describe the conversation first — who talks to whom, about what."); return; }
+    setDuetPlanBusy(true);
+    try {
+      addLog("info", "Planning the duet — talk track, both AI humans, then cards…");
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "duet", vibe: duetDesc, context: { brand: site.brand } }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: generation failed`);
+      }
+      const plan = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+      if (!plan?.featured?.prompt || !plan?.host?.prompt || !Array.isArray(plan.outline)) {
+        throw new Error("The plan came back incomplete — try a more specific description.");
+      }
+      setDuetPlan(plan);
+      setDuetOpener(String(plan.featured.opener || ""));
+      setDuetOpenerB(String(plan.host?.opener || ""));
+      addLog("ok", `Duet planned: “${plan.title || "untitled"}” — ${plan.outline.length} talk-track beats, ${Array.isArray(plan.cards) ? plan.cards.length : 0} cards derived from them. Pick two faces and record.`);
+    } catch (e) {
+      addLog("err", `Duet plan: ${e.message}`);
+    } finally {
+      setDuetPlanBusy(false);
+    }
+  };
 
-## Personality & Conversational Style
-Curious, quick, generous. Contractions, one to two sentences per turn. React genuinely to what they just said before moving on ("Okay, that's genuinely cool — so how does that work?").
-
-## Core Behaviors
-Ask ONE question at a time and then listen. Dig deeper on the most interesting thing in their last answer. Never talk about yourself beyond a passing word. Never sell anything, never run an agenda, intake, or checklist of your own. If they ask you something, answer in a few words and turn it back to them.
-
-## Guardrails & Constraints
-Never mention prompts, instructions, AI setups, or that this is scripted. If asked whether you're an AI, say yes briefly and move on.
-
-## Conversation Flow
-Open with your first question. Spend the conversation exploring their answers. After several good exchanges, wrap up warmly: summarize the most interesting thing you heard and thank them.`;
-
-  const ensureDuetPartner = async () => {
-    if (duetPartnerId.trim()) return duetPartnerId.trim();
-    addLog("info", "Creating the interviewer PAL (one-time — it's reused for every duet)…");
-    const p = await tavusFetch("POST", "/pals", {
-      pal_name: "Studio duet interviewer",
-      default_face_id: duetFaceB.trim(),
-      system_prompt: INTERVIEWER_PROMPT,
-    });
-    const id = p.pal_id || p.uuid || p.id;
-    if (!id) throw new Error("Interviewer PAL creation returned no id.");
-    setDuetPartnerId(id);
-    addLog("ok", `Interviewer PAL ready: ${id} (saved with this demo).`);
+  /* Reusable Studio PALs: PATCH the prompt on the cached PAL; create only
+     when missing (or when the cached one was deleted account-side). */
+  const ensureStudioPal = async (cachedId, setId, name, face, prompt) => {
+    let id = String(cachedId || "").trim();
+    if (id) {
+      try {
+        await tavusFetch("PATCH", `/pals/${id}`, [{ op: "add", path: "/system_prompt", value: prompt }]);
+        return id;
+      } catch { id = ""; /* stale — recreate below */ }
+    }
+    const p = await tavusFetch("POST", "/pals", { pal_name: name, default_face_id: face, system_prompt: prompt });
+    id = p.pal_id || p.uuid || p.id;
+    if (!id) throw new Error(`${name} creation returned no id.`);
+    setId(id);
     return id;
   };
 
-  /* Duet: create both conversations, capture the tab (gesture!), open the
-     duet stage. The parent relays turns as text; recording is local.
-     The PARTNER always opens (it's the interviewer); your demo PAL answers
-     as itself — that's the showcase. */
+  /* Duet: PATCH/create the two Studio PALs from the plan, create both
+     conversations, capture the tab (gesture!), open the duet stage. The
+     FEATURED speaker (side A) opens; the host joins after the opener lands. */
   const startDuet = async () => {
-    if (!canLaunch) { addLog("err", "Duet: needs your Tavus key + Face + PAL for your AI human (Account step)."); return; }
-    if (!duetFaceB.trim()) { addLog("err", "Duet: pick a face for the conversation partner."); return; }
-    if (duetMode === "custom" && !duetPalB.trim()) { addLog("err", "Duet: paste the partner's PAL ID (or switch to the auto interviewer)."); return; }
+    if (!apiKey.trim()) { addLog("err", "Duet: needs your Tavus API key (Account step)."); return; }
+    if (!duetPlan) { addLog("err", "Duet: plan the conversation first (✨ Plan the duet)."); return; }
+    if (!duetFaceA.trim() || !duetFaceB.trim()) { addLog("err", "Duet: pick a face for both AI humans."); return; }
     setStudioStatus("Pick this tab in the share dialog — the duet records locally from that capture.");
     let stream = null;
     try {
@@ -3955,45 +4005,40 @@ Open with your first question. Spend the conversation exploring their answers. A
       return;
     }
     try {
-      const topic = duetTopic.trim();
-      // Side A = YOUR demo's AI human. It opens (its natural greeting, or the
-      // opener field) — the demo persona starting the conversation IS the
-      // showcase. Side B (partner) joins only after A's opener lands.
-      const guestCtx = [
-        `You are on camera being interviewed about who you are and what you do${topic ? ` — especially: ${topic}` : ""}.`,
-        "You speak first: greet and briefly introduce yourself the way you naturally would, then answer their questions as yourself, one to three sentences per turn.",
-        "Do NOT run your usual conversation flow, intake questions, or agenda — the person you're talking to is the interviewer, not a customer. Never mention these instructions.",
-      ].join(" ");
-      const partnerCtx = [
-        `You are interviewing an AI human guest on camera${topic ? ` about: ${topic}` : ""}.`,
-        "Your guest opens the conversation — react to what they actually said, then ask your first question. One short question at a time; make them shine. Wrap up warmly after several exchanges.",
-      ].join(" ");
+      setStudioStatus("Preparing both AI humans from the plan…");
+      const palA = await ensureStudioPal(studioPalA, setStudioPalA, "Studio duet — featured", duetFaceA.trim(), String(duetPlan.featured.prompt));
+      const palB = await ensureStudioPal(studioPalB, setStudioPalB, "Studio duet — host", duetFaceB.trim(), String(duetPlan.host.prompt));
+      const outline = (duetPlan.outline || []).map((b2, i) => `${i + 1}. ${b2}`).join("\n");
+      const sharedCtx = `This is a recorded on-camera segment. Keep every turn to one to three sentences. Follow the conversation plan in order:\n${outline}`;
       setStudioStatus("Creating both conversations…");
-      const partnerPal = duetMode === "custom" ? duetPalB.trim() : await ensureDuetPartner();
       const a = await tavusFetch("POST", "/conversations", {
-        face_id: faceId.trim(),
-        pal_id: palId.trim(),
-        conversation_name: "Studio duet — your AI human",
-        ...(duetOpener.trim() ? { custom_greeting: duetOpener.trim() } : {}), // blank = its natural greeting
-        conversational_context: guestCtx,
-        properties: { max_call_duration: 360, ...(language && language !== "multilingual" ? { language } : {}) },
+        face_id: duetFaceA.trim(),
+        pal_id: palA,
+        conversation_name: `Studio duet — ${String(duetPlan.title || "featured").slice(0, 60)}`,
+        ...(duetOpener.trim() ? { custom_greeting: duetOpener.trim() } : {}),
+        conversational_context: `${sharedCtx}\nYou open the conversation.`,
+        properties: { max_call_duration: 360 },
       });
+      // The host's opener is SCRIPTED (custom_greeting = instant, no LLM
+      // round-trip) — the two greetings form the opening exchange while the
+      // real turns warm up. Its context knows that exchange already happened.
       const b = await tavusFetch("POST", "/conversations", {
         face_id: duetFaceB.trim(),
-        pal_id: partnerPal,
-        conversation_name: "Studio duet — partner",
-        custom_greeting: "Hey! It's so good to sit down with you.",
-        conversational_context: partnerCtx,
+        pal_id: palB,
+        conversation_name: "Studio duet — host",
+        ...(duetOpenerB.trim() ? { custom_greeting: duetOpenerB.trim() } : {}),
+        conversational_context: [
+          sharedCtx,
+          `Your guest opened with: "${duetOpener.trim().slice(0, 300)}"`,
+          duetOpenerB.trim() ? `You already replied with: "${duetOpenerB.trim().slice(0, 300)}" — continue the conversation from there.` : "React to what they said, then ask your first question.",
+        ].join("\n"),
         properties: { max_call_duration: 360 },
       });
       setDuetRun({ a, b, stream });
       setStudioStatus("");
-      addLog("ok", `Duet live: your AI human ${a.conversation_id} opens ↔ partner ${b.conversation_id}. It ends and saves the video on its own.`);
+      addLog("ok", `Duet live: ${duetPlan.featured.name || "featured"} opens ↔ ${duetPlan.host.name || "host"}. It ends and saves the video on its own.`);
     } catch (e) {
       stream?.getTracks().forEach((t) => t.stop());
-      // A stale cached interviewer PAL (deleted account-side) fails conversation
-      // creation — clear it so the next click recreates.
-      if (duetMode === "auto" && /pal/i.test(String(e.message))) setDuetPartnerId("");
       setStudioStatus(`Duet failed: ${e.message}`);
       addLog("err", `Duet: ${e.message}`);
     }
@@ -4529,7 +4574,9 @@ Open with your first question. Spend the conversation exploring their answers. A
           run={duetRun}
           brand={site.brand}
           maxTurns={Math.max(2, parseInt(duetTurns, 10) || 6)}
-          cards={compiledScriptedCards}
+          cards={duetPlan ? compileScriptedCards(duetPlan.cards) : compiledScriptedCards}
+          labels={duetPlan ? { a: duetPlan.featured?.name || "", b: duetPlan.host?.name || "" } : null}
+          scriptedOpen={!!duetOpenerB.trim()}
           onExit={() => { setDuetRun(null); setStudioStatus("Duet saved — the .webm downloaded to this machine."); }}
         />
       )}
@@ -6303,84 +6350,90 @@ Open with your first question. Spend the conversation exploring their answers. A
 
               <div className="subhead" style={{ marginTop: 30 }}>Duet — two AI humans in conversation</div>
               <p className="field-hint" style={{ maxWidth: 600, marginBottom: 12 }}>
-                Your demo's AI human (Account step) gets interviewed on camera by a partner — each replies to what
-                the other actually said, turn by turn. Both faces render side by side and the whole stage records
-                locally (a .webm downloads when it ends). No microphones involved, so there's nothing to feed back.
+                Self-contained: describe the conversation and Claude plans the <b>talk track first</b>, builds both
+                AI humans around it, and derives the cards from it — so everything lines up. Pick two faces, record;
+                the stage captures locally (a .webm downloads when it ends). Studio reuses the same two PALs every
+                time (their prompts are updated per plan), so duets never pile up PALs on your account.
               </p>
-              <Field label="Conversation partner" hint="Two customer-facing personas just run their agendas at each other — the auto interviewer exists purely to make YOUR AI human shine.">
-                <div className="seg">
-                  <button className={duetMode === "auto" ? "on" : ""} onClick={() => setDuetMode("auto")}>Auto interviewer (recommended)</button>
-                  <button className={duetMode === "custom" ? "on" : ""} onClick={() => setDuetMode("custom")}>Custom PAL</button>
-                </div>
+              <Field label="Describe the conversation">
+                <textarea
+                  value={duetDesc}
+                  onChange={(e) => setDuetDesc(e.target.value)}
+                  style={{ minHeight: 74 }}
+                  placeholder={"e.g. A Kaiser Permanente intake specialist explains the new medication-reconciliation flow to a curious host — cover the meds & allergies checklist, the time-saved numbers, and end by asking which clinic should pilot it."}
+                />
               </Field>
-              {duetMode === "custom" && (
-                <Field label="Partner PAL ID" hint="Any PAL — but give it an interviewer-ish prompt or the opening won't make sense.">
-                  <input className="mono" value={duetPalB} onChange={(e) => setDuetPalB(e.target.value)} placeholder="p…" />
-                </Field>
-              )}
-              <Field label="Partner face" hint={duetMode === "auto"
-                ? `Pick a preset or paste any r… face ID.${duetPartnerId ? ` Interviewer PAL cached: ${duetPartnerId}` : " The interviewer PAL is created once on first run, then reused."}`
-                : "Pick a preset or paste any r… face ID."}>
-                <div className="face-row">
-                  {FACE_PRESETS.map((f) => (
-                    <button key={f.id} type="button" className={"face-chip" + (duetFaceB.trim() === f.id ? " on" : "")} onClick={() => setDuetFaceB(f.id)} title={f.id}>
-                      <span className="face-chip-name">{f.name}</span>
-                      <span className="face-chip-vibe">{f.vibe}</span>
-                    </button>
-                  ))}
-                </div>
-                <input className="mono" value={duetFaceB} onChange={(e) => setDuetFaceB(e.target.value)} placeholder="r…" />
-              </Field>
-              <Field label="Your AI human's opening line" hint="YOUR avatar starts the conversation with this; the partner joins right after and reacts. Blank = its natural greeting.">
-                <input value={duetOpener} onChange={(e) => setDuetOpener(e.target.value)} placeholder="Ho ho ho! I'm Santa — well, the better Santa. Ask me anything!" />
-              </Field>
-              <Field label="Topic seed" hint="Optional. Woven into both sides' context so the conversation stays on subject.">
-                <input value={duetTopic} onChange={(e) => setDuetTopic(e.target.value)} placeholder="comparing the tier-1 and Better Santa experiences for a retail client" />
-              </Field>
-              <Field label="Exchanges" hint="How many back-and-forths before it wraps and saves (hard cap 5 minutes).">
-                <input type="number" min="2" max="20" style={{ maxWidth: 120 }} value={duetTurns} onChange={(e) => setDuetTurns(e.target.value)} />
-              </Field>
-              <div className="kb-list" style={{ margin: "4px 0 14px", maxWidth: 660 }}>
-                <div className="kb-row" style={{ alignItems: "flex-start" }}>
-                  <span style={{ flexShrink: 0 }}>{presentationEnabled && docIds.length ? (slidesTrigger === "walk_the_deck" ? "✅" : "🎲") : "⚠️"}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0, minWidth: 150 }}>🖥 Deck in this duet</span>
-                  <span style={{ fontSize: 12.5, color: "var(--muted)", flex: 1, lineHeight: 1.5 }}>
-                    {presentationEnabled && docIds.length
-                      ? slidesTrigger === "walk_the_deck"
-                        ? "walk-the-deck — your AI human will present, and slides render big with its face as a corner tile."
-                        : "on-demand — appears only if a speaker asks for it; put “ask them to walk through their deck” in the topic seed to steer the partner."
-                      : "no deck attached (Presentation step) — this duet records faces and voices only."}
-                  </span>
-                </div>
-                {compiledScriptedCards.map((c, i) => {
-                  const icon = c.style === "chart" ? "📊" : c.style === "stat" ? "🔢" : c.style === "image" ? "🖼" : c.style === "question" ? "❓" : "📄";
-                  const seeded = `${duetOpener} ${duetTopic}`.toLowerCase();
-                  const kws = c.keywords.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
-                  const seededHit = kws.find((k) => seeded.includes(k));
-                  const [mark, detail] =
-                    c.trigger === "start" ? ["✅", "appears when the duet starts — guaranteed."]
-                    : c.trigger === "time" ? ["✅", `appears ${Math.floor(c.atSeconds / 60)}:${String(c.atSeconds % 60).padStart(2, "0")} in — guaranteed.`]
-                    : seededHit ? ["✅", `your opening line/topic says “${seededHit}” — fires as soon as it's spoken.`]
-                    : ["🎲", `fires when either AI says ${kws.map((k) => `“${k}”`).join(" / ")} — put a trigger word in the opening line or topic seed to make it certain.`];
-                  return (
-                    <div key={i} className="kb-row" style={{ alignItems: "flex-start" }}>
-                      <span style={{ flexShrink: 0 }}>{mark}</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0, minWidth: 150 }}>{icon} {c.title || `${c.style} card`}</span>
-                      <span style={{ fontSize: 12.5, color: "var(--muted)", flex: 1, lineHeight: 1.5 }}>{detail}</span>
-                    </div>
-                  );
-                })}
-                <div className="kb-row" style={{ alignItems: "flex-start" }}>
-                  <span style={{ flexShrink: 0 }}>⚠️</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, flexShrink: 0, minWidth: 150 }}>🪄 Magic Canvas</span>
-                  <span style={{ fontSize: 12.5, color: "var(--muted)", flex: 1, lineHeight: 1.5 }}>
-                    Tavus-rendered canvas cards never appear in duets — scripted cards (above) do, overlaid center-stage.
-                  </span>
-                </div>
-              </div>
-              <button className="pill-btn primary" onClick={startDuet} disabled={!!duetRun || studioActive}>
-                {duetRun ? "Duet running…" : "🎭 Record duet"}
+              <button className="pill-btn primary" style={{ marginBottom: 16 }} onClick={planDuet} disabled={duetPlanBusy}>
+                {duetPlanBusy ? "Planning…" : "✨ Plan the duet"}
               </button>
+
+              {duetPlan && (
+                <>
+                  <div className="jr-card" style={{ maxWidth: 640, marginBottom: 16 }}>
+                    <div className="jr-head">
+                      <span className="jr-type">🎭 {duetPlan.title || "duet plan"}</span>
+                      <span className="jr-btns">
+                        <button className="kb-del" onClick={() => { setDuetPlan(null); setDuetOpener(""); }} title="Discard this plan">✕</button>
+                      </span>
+                    </div>
+                    <p className="field-hint" style={{ margin: "0 0 6px" }}>
+                      <b style={{ color: "var(--text)" }}>{duetPlan.featured?.name || "Featured"}</b> opens ·{" "}
+                      <b style={{ color: "var(--text)" }}>{duetPlan.host?.name || "Host"}</b> hosts
+                    </p>
+                    <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.7 }}>
+                      {(duetPlan.outline || []).map((b2, i) => <div key={i}>{i + 1}. {b2}</div>)}
+                    </div>
+                    <div style={{ marginTop: 8 }}>
+                      {compileScriptedCards(duetPlan.cards).map((c, i) => {
+                        const icon = c.style === "chart" ? "📊" : c.style === "stat" ? "🔢" : c.style === "image" ? "🖼" : c.style === "question" ? "❓" : "📄";
+                        const kws = c.keywords.split(",").map((x) => x.trim()).filter(Boolean);
+                        return (
+                          <div key={i} style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.7 }}>
+                            ✅ {icon} <b style={{ color: "var(--text)" }}>{c.title || `${c.style} card`}</b>
+                            {c.trigger === "keyword" ? ` — appears on “${kws[0]}” (in the talk track)` : c.trigger === "time" ? ` — appears at ${Math.floor(c.atSeconds / 60)}:${String(c.atSeconds % 60).padStart(2, "0")}` : " — appears at start"}
+                          </div>
+                        );
+                      })}
+                      {!compileScriptedCards(duetPlan.cards).length && <span className="field-hint">No cards in this plan.</span>}
+                    </div>
+                  </div>
+
+                  <Field label={`${duetPlan.featured?.name || "Featured"} — face`}>
+                    <div className="face-row">
+                      {FACE_PRESETS.map((f) => (
+                        <button key={f.id} type="button" className={"face-chip" + (duetFaceA.trim() === f.id ? " on" : "")} onClick={() => setDuetFaceA(f.id)} title={f.id}>
+                          <span className="face-chip-name">{f.name}</span>
+                          <span className="face-chip-vibe">{f.vibe}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <input className="mono" value={duetFaceA} onChange={(e) => setDuetFaceA(e.target.value)} placeholder="r…" />
+                  </Field>
+                  <Field label={`${duetPlan.host?.name || "Host"} — face`}>
+                    <div className="face-row">
+                      {FACE_PRESETS.map((f) => (
+                        <button key={f.id} type="button" className={"face-chip" + (duetFaceB.trim() === f.id ? " on" : "")} onClick={() => setDuetFaceB(f.id)} title={f.id}>
+                          <span className="face-chip-name">{f.name}</span>
+                          <span className="face-chip-vibe">{f.vibe}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <input className="mono" value={duetFaceB} onChange={(e) => setDuetFaceB(e.target.value)} placeholder="r…" />
+                  </Field>
+                  <Field label={`Opening line — ${duetPlan.featured?.name || "featured"}`} hint="Spoken the instant the call starts (no LLM wait).">
+                    <input value={duetOpener} onChange={(e) => setDuetOpener(e.target.value)} />
+                  </Field>
+                  <Field label={`Scripted reply — ${duetPlan.host?.name || "host"}`} hint="Also instant: plays the moment the host joins, while the real turns generate — this is what makes the dialogue feel speedy.">
+                    <input value={duetOpenerB} onChange={(e) => setDuetOpenerB(e.target.value)} />
+                  </Field>
+                  <Field label="Exchanges" hint="How many back-and-forths before it wraps and saves (hard cap 5 minutes).">
+                    <input type="number" min="2" max="20" style={{ maxWidth: 120 }} value={duetTurns} onChange={(e) => setDuetTurns(e.target.value)} />
+                  </Field>
+                  <button className="pill-btn primary" onClick={startDuet} disabled={!!duetRun || studioActive}>
+                    {duetRun ? "Duet running…" : "🎭 Record duet"}
+                  </button>
+                </>
+              )}
             </>
           )}
 
