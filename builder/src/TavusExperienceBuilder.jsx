@@ -43,6 +43,7 @@ const STEPS = [
   { id: "tools", label: "Integrations", group: "Run it" },
   { id: "controls", label: "Timing", group: "Run it" },
   { id: "launch", label: "Launch & Share", group: "Run it" },
+  { id: "studio", label: "Studio", group: "Run it" },
   { id: "calls", label: "Results", group: "Run it" },
 ];
 
@@ -710,6 +711,13 @@ function VisitorDemo({ slug }) {
   );
 }
 
+/* ── Studio runtime: audio buffers + captured tab stream for the take that's
+      about to run. Module-level because the take spans two component trees
+      (the builder prepares it, CallExtras inside the call consumes it). ── */
+let STUDIO_RUNTIME = null;
+const setStudioRuntime = (rt) => { STUDIO_RUNTIME = rt; };
+const getStudioRuntime = () => STUDIO_RUNTIME;
+
 /* ── In-call extras: timers, wake reminders, interrupt button, guardrail echo.
       Lives INSIDE CVIProvider so it can use the Daily call object; these
       features need the custom call UI (they're inert in the iframe fallback). */
@@ -768,6 +776,93 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daily, controls.scriptedCards]);
+  // Studio takes: drive the conversation with pre-rendered TTS visitor lines
+  // and record the tab-captured stage — Daily's composed recordings can't see
+  // DOM overlays, so this is the only capture that includes Magic Canvas
+  // cards (and shows presentation slides exactly as the visitor sees them).
+  useEffect(() => {
+    const rt = controls.studio ? getStudioRuntime() : null;
+    if (!daily || !rt) return;
+    let disposed = false;
+    let quietTimer, fallbackTimer;
+    let lineIdx = 0;
+    let playing = false;
+    let finishing = false;
+
+    const finishTake = () => {
+      if (finishing || disposed) return;
+      finishing = true;
+      try { daily.stopRecording(); } catch { /* not recording */ }
+      setTimeout(() => {
+        try { daily.stopScreenShare(); } catch { /* already gone */ }
+        window.__tavusStageCapture = false;
+        onForceLeave?.();
+      }, 2000);
+    };
+
+    const playNext = () => {
+      if (disposed || playing || finishing) return;
+      if (lineIdx >= rt.buffers.length) { finishTake(); return; }
+      playing = true;
+      const src = rt.ctx.createBufferSource();
+      src.buffer = rt.buffers[lineIdx];
+      src.connect(rt.dest);
+      src.onended = () => {
+        playing = false;
+        lineIdx += 1;
+        // Safety net: if the replica's reply never registers, advance anyway.
+        clearTimeout(fallbackTimer);
+        fallbackTimer = setTimeout(playNext, 16_000);
+      };
+      try { src.start(); } catch { playing = false; }
+    };
+
+    // The replica going quiet for a beat = our turn to speak the next line.
+    const onMsg = (e) => {
+      const d = e?.data;
+      if (!d?.event_type || !/utterance|speech|respond/i.test(d.event_type)) return;
+      clearTimeout(quietTimer);
+      if (playing || finishing) return;
+      quietTimer = setTimeout(playNext, 1700);
+    };
+
+    const begin = async () => {
+      try { await rt.ctx.resume(); } catch { /* already running */ }
+      try { await daily.setLocalVideo(false); } catch { /* no camera is fine */ }
+      try { await daily.setInputDevicesAsync({ audioSource: rt.dest.stream.getAudioTracks()[0] }); }
+      catch (err) { console.error("[studio] couldn't set the TTS mic track:", err); }
+      try { await daily.setLocalAudio(true); } catch { /* default is on */ }
+      // The tab was captured on the Record-take click (gesture requirement);
+      // publish it and record with the stage dominant — same path as the
+      // manual ⏺ full-stage button.
+      if (rt.displayStream?.getVideoTracks().length) {
+        try {
+          window.__tavusStageCapture = true;
+          daily.startScreenShare({ mediaStream: rt.displayStream });
+          setTimeout(() => {
+            try { daily.startRecording({ layout: { preset: "default", max_cam_streams: 9 } }); } catch { /* badge shows the failure */ }
+          }, 1200);
+        } catch (err) { console.error("[studio] stage capture publish failed:", err); }
+      }
+      // The greeting opens most calls; if nothing is ever heard, start anyway.
+      clearTimeout(fallbackTimer);
+      fallbackTimer = setTimeout(playNext, 12_000);
+    };
+
+    const onJoined = () => begin();
+    daily.on("joined-meeting", onJoined);
+    daily.on("app-message", onMsg);
+    if (daily.meetingState() === "joined-meeting") begin();
+    return () => {
+      disposed = true;
+      clearTimeout(quietTimer);
+      clearTimeout(fallbackTimer);
+      daily.off("joined-meeting", onJoined);
+      daily.off("app-message", onMsg);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daily, controls.studio]);
+
   // "Full stage" recording is builder-only (visitors must never see a share
   // prompt) — visitor calls with a stage snapshot fall back to the grid.
   const stageMode = controls.recordingLayout === "stage" && !visitor;
@@ -1777,6 +1872,12 @@ export default function TavusExperienceBuilder() {
   // into controlsConfig.scriptedCards so it rides shared links).
   const [scCards, setScCards] = useState([]);
 
+  // Studio — scripted takes recorded as MP4 feature demos.
+  const [studioLines, setStudioLines] = useState([{ text: "" }]);
+  const [studioActive, setStudioActive] = useState(false);
+  const [studioStatus, setStudioStatus] = useState("");
+  const [ttsAvail, setTtsAvail] = useState(null); // null=unknown, {available, voice}, or false (probe failed)
+
   // Demo page
   const [site, setSite] = useState({
     brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop",
@@ -1845,6 +1946,16 @@ export default function TavusExperienceBuilder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Probe TTS availability when Studio is opened, so the step can show setup
+  // guidance instead of failing mid-take.
+  useEffect(() => {
+    if (step !== "studio" || ttsAvail !== null) return;
+    fetch("/api/tts")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d) => setTtsAvail(d))
+      .catch(() => setTtsAvail(false));
+  }, [step, ttsAvail]);
+
   // Pull the account's cloud-saved scenario names once signed in. A failure
   // (no Redis attached, bare vite dev) just means localStorage-only mode.
   useEffect(() => {
@@ -1881,7 +1992,7 @@ export default function TavusExperienceBuilder() {
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt, talkTrack,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
-    scCards,
+    scCards, studioLines,
     palLlm, knowledgeIdsRaw,
     site,
     expJourney,
@@ -1938,6 +2049,7 @@ export default function TavusExperienceBuilder() {
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
     setScCards(Array.isArray(c.scCards) ? c.scCards : []);
+    setStudioLines(Array.isArray(c.studioLines) && c.studioLines.length ? c.studioLines : [{ text: "" }]);
     setExpJourney(Array.isArray(c.expJourney) ? c.expJourney : []);
     // Email capture is table stakes — scenarios saved before the field
     // existed default ON; only an explicit false keeps it off.
@@ -3202,6 +3314,63 @@ export default function TavusExperienceBuilder() {
     saveFile(`tavus-perception-${callDetail.conversation_id || "call"}.txt`, p.join("\n\n---\n\n"));
   };
 
+  /* ── Studio: record a scripted take as an MP4 feature demo ── */
+
+  const endStudioRuntime = (message) => {
+    const rt = getStudioRuntime();
+    try { rt?.displayStream?.getTracks().forEach((t) => t.stop()); } catch { /* gone */ }
+    try { rt?.ctx?.close(); } catch { /* gone */ }
+    setStudioRuntime(null);
+    setStudioActive(false);
+    if (message) setStudioStatus(message);
+  };
+
+  const startStudioTake = async () => {
+    const lines = studioLines.map((l) => String(l.text || "").trim()).filter(Boolean);
+    if (!lines.length) { addLog("err", "Studio: write at least one visitor line first."); return; }
+    if (!canLaunch) { addLog("err", "Studio: needs your Tavus key + Face + PAL (Account step) before recording a take."); return; }
+    if (!(recordingEnabled && recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim())) {
+      addLog("err", "Studio: takes are captured via S3 recording — configure it on the Timing step first.");
+      return;
+    }
+    // Tab capture must happen inside this click (browser gesture rule) —
+    // it's what puts Magic Canvas cards and slides in the file.
+    setStudioStatus("Pick this tab in the share dialog — that capture IS the video.");
+    let displayStream = null;
+    try {
+      displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: 15 },
+        audio: false,
+        preferCurrentTab: true,
+        selfBrowserSurface: "include",
+      });
+    } catch {
+      setStudioStatus("Tab capture declined — a take needs it so Magic Canvas and slides are in the video.");
+      return;
+    }
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      await ctx.resume();
+      setStudioStatus(`Rendering ${lines.length} visitor line${lines.length > 1 ? "s" : ""} with TTS…`);
+      const buffers = [];
+      for (const text of lines) {
+        const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+        if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || `TTS failed (${r.status})`); }
+        buffers.push(await ctx.decodeAudioData(await r.arrayBuffer()));
+      }
+      const dest = ctx.createMediaStreamDestination();
+      setStudioRuntime({ ctx, dest, buffers, displayStream });
+      setStudioActive(true);
+      setStudioStatus("Take running — the demo page drives the whole call and ends on its own. Don't switch tabs.");
+      addLog("info", `Studio take: ${lines.length} scripted line${lines.length > 1 ? "s" : ""}, full-stage capture.`);
+      await launch();
+    } catch (e) {
+      try { displayStream?.getTracks().forEach((t) => t.stop()); } catch { /* gone */ }
+      endStudioRuntime(`Take failed: ${e.message}`);
+      addLog("err", `Studio: ${e.message}`);
+    }
+  };
+
   /* ── Shareable demo link: store the snapshot server-side, mint /d/{slug} ── */
 
   const shareDemo = async () => {
@@ -3731,11 +3900,12 @@ export default function TavusExperienceBuilder() {
           site={site}
           conversationUrl={conversation?.conversation_url || null}
           conversationId={conversation?.conversation_id || null}
-          controls={controlsConfig}
-          experience={experienceConfig}
+          controls={studioActive ? { ...controlsConfig, recordingLayout: "stage", studio: true } : controlsConfig}
+          experience={studioActive ? {} : experienceConfig}
           onStart={launch}
           onExit={() => {
             setSiteMode(false);
+            if (studioActive) endStudioRuntime("Take finished — the MP4 lands in Results (⏺ badge) a minute or two after processing.");
             if (promptOnReturn.current) { promptOnReturn.current = false; promptSaveIfDirty(); }
           }}
           onCallEnd={() => setConversation(null)}
@@ -5390,6 +5560,70 @@ export default function TavusExperienceBuilder() {
               </Field>
 
               <button className="pill-btn" onClick={() => setSiteMode(true)}>Preview the page</button>
+            </>
+          )}
+
+          {step === "studio" && (
+            <>
+              <h1>Studio</h1>
+              <p className="lede">
+                Record real MP4 feature demos with nobody on the visitor side. Script what the "visitor" says;
+                <b> Record take</b> opens the demo page, speaks your lines with TTS and natural turn-taking, and
+                captures the <b>full stage</b> — Magic Canvas cards, presentation slides, and the AI human exactly
+                as rendered — to your S3 bucket. The take ends itself and shows up in Results with a ⏺ badge.
+              </p>
+
+              <div className="subhead">Ready check</div>
+              <div className="kb-list" style={{ marginBottom: 18 }}>
+                <div className="kb-row">
+                  <span style={{ flex: 1, fontSize: 13 }}>Demo ready (key + Face + PAL)</span>
+                  <span className={"kb-status " + (canLaunch ? "kb-ready" : "kb-error")}>{canLaunch ? "ready" : "missing — Account step"}</span>
+                </div>
+                <div className="kb-row">
+                  <span style={{ flex: 1, fontSize: 13 }}>S3 recording (captures the take)</span>
+                  <span className={"kb-status " + (recordingEnabled && recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim() ? "kb-ready" : "kb-error")}>
+                    {recordingEnabled && recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim() ? "configured" : "set up on Timing"}
+                  </span>
+                </div>
+                <div className="kb-row">
+                  <span style={{ flex: 1, fontSize: 13 }}>TTS visitor voice</span>
+                  <span className={"kb-status " + (ttsAvail?.available ? "kb-ready" : ttsAvail === null ? "" : "kb-error")}>
+                    {ttsAvail === null ? "checking…" : ttsAvail?.available ? `ready (${ttsAvail.voice})` : "add OPENAI_API_KEY on Vercel"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="subhead">The visitor's lines</div>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 10 }}>
+                In order. The take waits for the AI human to finish each reply before speaking the next line —
+                write lines that exercise the feature you're demoing (say "pricing" to fire a scripted card,
+                push a guardrail, ask for the deck…). Keep them short and conversational.
+              </p>
+              <div className="kb-list" style={{ marginBottom: 10 }}>
+                {studioLines.map((l, i) => (
+                  <div key={i} className="kb-row">
+                    <span className="jr-num" style={{ flexShrink: 0 }}>{i + 1}</span>
+                    <input style={{ flex: 1 }} value={l.text} placeholder={i === 0 ? `e.g. Hi! Can you walk me through how this works?` : "…then the visitor says"}
+                      onChange={(e) => setStudioLines((ls) => ls.map((x, j) => (j === i ? { text: e.target.value } : x)))} />
+                    <button className="kb-move" onClick={() => setStudioLines((ls) => { if (!ls[i - 1]) return ls; const n = [...ls]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; return n; })} disabled={i === 0} title="Move up">↑</button>
+                    <button className="kb-move" onClick={() => setStudioLines((ls) => { if (!ls[i + 1]) return ls; const n = [...ls]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; return n; })} disabled={i === studioLines.length - 1} title="Move down">↓</button>
+                    <button className="kb-del" onClick={() => setStudioLines((ls) => (ls.length > 1 ? ls.filter((_, j) => j !== i) : ls))} disabled={studioLines.length <= 1} title="Remove line">✕</button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
+                <button className="pill-btn" onClick={() => setStudioLines((ls) => (ls.length >= 12 ? ls : [...ls, { text: "" }]))}>+ Line</button>
+              </div>
+
+              <button className="pill-btn primary" onClick={startStudioTake} disabled={studioActive}>
+                {studioActive ? "Take running…" : "🎬 Record take"}
+              </button>
+              {studioStatus && <p className="field-hint" style={{ marginTop: 10, maxWidth: 560 }}>{studioStatus}</p>}
+              <p className="field-hint" style={{ marginTop: 14, maxWidth: 560 }}>
+                Chrome pre-selects this tab in the share dialog — keep the tab visible for the whole take.
+                Each take is a normal conversation (normal minutes); re-rolling is one click. Lines save with the
+                demo, so a scenario doubles as a repeatable video script. End a take early with the call's leave button.
+              </p>
             </>
           )}
 

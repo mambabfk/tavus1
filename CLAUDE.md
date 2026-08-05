@@ -281,6 +281,21 @@ non-technical users; ids unchanged):
    page). Attend/feedback POST to `/api/experience`; the Results step shows
    a "Visitors & feedback" list, 👤/★ row badges, and a Visitor panel on
    call detail (`expMap`, fetched alongside recordings).
+5.8. **Studio** (`studio`) — records scripted takes as MP4 feature demos.
+   `studioLines` (saved with scenarios) script the visitor; `startStudioTake()`
+   captures the tab via getDisplayMedia **inside the click** (gesture rule),
+   renders lines via `POST /api/tts` (OpenAI TTS behind `OPENAI_API_KEY`;
+   GET probes availability for the step's ready-check), then `launch()`es
+   with `controls.studio: true` + `recordingLayout: "stage"`. The take
+   engine in `CallExtras` (reads module-level `STUDIO_RUNTIME`) joins with
+   the TTS MediaStream as mic (`setInputDevicesAsync`), camera off,
+   publishes the captured tab as the stage screenshare, starts the S3
+   recording, and turn-takes off utterance app-messages (1.7s quiet → next
+   line; 12–16s fallback timers so a take always completes). Tab capture is
+   the point: Daily's composed recordings can't see DOM overlays, so this
+   is the only capture that includes Magic Canvas cards. Takes surface in
+   Results as ordinary ⏺ recordings. **Live-call path untested in CI** —
+   verify on deployed hardware before demoing.
 6. **Launch** — runs the whole attach-then-create sequence, logs each step.
    Also **Preflight check** (`preflight()`): `POST /objectives/validate`
    (shape/chain check, nothing saved) + `POST /conversations` with
