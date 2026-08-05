@@ -299,6 +299,19 @@ non-technical users; ids unchanged):
    is the only capture that includes Magic Canvas cards. Takes surface in
    Results as ordinary ⏺ recordings. **Live-call path untested in CI** —
    verify on deployed hardware before demoing.
+   **Duet mode** (same step): two AI humans in live conversation. Two
+   conversations are created; each joins in a same-origin iframe
+   (`?duet=join&url=…&side=a|b` → `DuetJoiner`; dodges Daily's
+   one-call-object-per-page limit). The parent `DuetStage` is a pure TEXT
+   switchboard: a replica's finished turn (buffered `conversation.utterance`
+   speech, flushed on `stopped_speaking`; role from properties OR embedded
+   in the event type, user role skipped, streaming-utterance events
+   excluded) is sent to the other room as `conversation.respond`. No
+   microphones in either room → no feedback loops. Recording is LOCAL:
+   getDisplayMedia tab capture (with tab audio) → MediaRecorder → .webm
+   auto-download — S3/Daily recording never sees both rooms. Config fields
+   `duetPalB/FaceB/Opener/Topic/Turns` persist with scenarios; hard caps:
+   2×turns relays + 5-minute timer + `max_call_duration: 360` on both rooms.
 6. **Launch** — runs the whole attach-then-create sequence, logs each step.
    Also **Preflight check** (`preflight()`): `POST /objectives/validate`
    (shape/chain check, nothing saved) + `POST /conversations` with

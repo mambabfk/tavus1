@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useDaily } from "@daily-co/daily-react";
+import DailyIframe from "@daily-co/daily-js";
 import { upload as blobUpload } from "@vercel/blob/client";
 
 /* ─────────────────────────────────────────────────────────────
@@ -295,6 +296,14 @@ const BUILDER_CSS = `
         .lib-time { color:var(--muted); font-size:11.5px; flex-shrink:0; }
         .saveprompt { position:fixed; right:20px; bottom:20px; z-index:60; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:0 20px 60px -18px rgba(20,20,20,.4); padding:16px 18px; display:flex; flex-direction:column; gap:9px; width:300px; }
         .saveprompt-sub { color:var(--muted); font-size:12.5px; line-height:1.5; }
+        /* duet stage: two AI humans side by side, recorded from the tab */
+        .duet-root { position:fixed; inset:0; z-index:55; background:#101114; display:flex; flex-direction:column; }
+        .duet-bar { display:flex; align-items:center; gap:14px; padding:12px 18px; color:#e8e9ec; }
+        .duet-brand { font-weight:700; font-size:16px; letter-spacing:-.3px; flex:1; }
+        .duet-rec { font-family:var(--mono); font-size:12px; color:#ff6b5e; animation:recpulse 1.6s ease-in-out infinite; }
+        .duet-stage { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 14px; }
+        .duet-frame { width:100%; height:100%; border:none; border-radius:14px; background:#000; }
+        .duet-note { padding:10px 18px 14px; color:#9aa0ab; font-size:13px; text-align:center; min-height:38px; }
         .logo-wrap { display:flex; align-items:center; gap:10px; }
         .logo-word { font-weight:700; font-size:19px; letter-spacing:-.4px; }
         .logo-sub { font-family:var(--mono); font-size:11px; color:var(--muted); background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:4px 10px; }
@@ -708,6 +717,189 @@ function VisitorDemo({ slug }) {
         </div>
       )}
     </>
+  );
+}
+
+/* ── Duet: two AI humans in conversation, each in its own same-origin iframe
+      (Daily allows one call object per page — iframes are separate pages).
+      The parent is a text switchboard: when one replica finishes a turn, its
+      words go to the other room as conversation.respond. No microphones
+      anywhere, so there are no feedback loops; both voices play in the tab
+      and the tab capture records the whole stage locally. ── */
+
+/* Joiner page: /?duet=join&url=…&id=…&side=a|b — joins one room, renders the
+   replica full-bleed, relays finished turns up, accepts respond/leave down. */
+function DuetJoiner({ url, id, side }) {
+  const videoRef = useRef(null);
+  const audioRef = useRef(null);
+  useEffect(() => {
+    let call = null;
+    let buf = [];
+    const origin = window.location.origin;
+    const post = (m) => window.parent?.postMessage({ __duet: true, from: side, ...m }, origin);
+    const onParent = (e) => {
+      if (e.origin !== origin || e.data?.__duet !== true) return;
+      if (e.data.type === "respond" && e.data.text) {
+        try {
+          call?.sendAppMessage({
+            message_type: "conversation",
+            event_type: "conversation.respond",
+            conversation_id: id,
+            properties: { text: String(e.data.text).slice(0, 4000) },
+          }, "*");
+        } catch { /* room gone */ }
+      }
+      if (e.data.type === "leave") { try { call?.leave(); } catch { /* gone */ } }
+    };
+    window.addEventListener("message", onParent);
+    (async () => {
+      try {
+        call = DailyIframe.createCallObject();
+        call.on("track-started", (ev) => {
+          if (ev?.participant?.local) return;
+          const el = ev.track?.kind === "video" ? videoRef.current : audioRef.current;
+          if (!el) return;
+          const stream = el.srcObject instanceof MediaStream ? el.srcObject : new MediaStream();
+          stream.getTracks().filter((t) => t.kind === ev.track.kind).forEach((t) => stream.removeTrack(t));
+          stream.addTrack(ev.track);
+          el.srcObject = stream;
+          el.play?.().catch(() => post({ type: "autoplay-blocked" }));
+        });
+        call.on("app-message", (e2) => {
+          const d = e2?.data;
+          if (!d?.event_type) return;
+          // Role arrives as properties.role ("pal"/"replica"/"user") or embedded
+          // in the event type (conversation.replica.stopped_speaking).
+          const role = String(
+            d.properties?.role ?? (/\.user\./i.test(d.event_type) ? "user" : "replica")
+          ).toLowerCase();
+          if (role === "user") return; // duet rooms have no microphone anyway
+          // Exact match: conversation.utterance-streaming would duplicate text.
+          if (/^conversation\.utterance$/i.test(d.event_type)) {
+            const t = String(d.properties?.speech ?? d.properties?.text ?? "").trim();
+            if (t) buf.push(t);
+          }
+          // End of the replica's turn → hand its words to the other room.
+          if (/stopped_speaking/i.test(d.event_type)) {
+            const text = buf.join(" ").trim();
+            buf = [];
+            if (text) setTimeout(() => post({ type: "turn", text }), 700);
+          }
+        });
+        call.on("left-meeting", () => post({ type: "left" }));
+        await call.join({ url, startVideoOff: true, startAudioOff: true });
+        try { call.setLocalAudio(false); call.setLocalVideo(false); } catch { /* already off */ }
+        post({ type: "ready" });
+      } catch (err) {
+        post({ type: "fatal", error: err?.message || "join failed" });
+      }
+    })();
+    return () => {
+      window.removeEventListener("message", onParent);
+      try { call?.leave(); } catch { /* gone */ }
+      try { call?.destroy(); } catch { /* gone */ }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "#101114" }}>
+      <video ref={videoRef} autoPlay playsInline muted={false} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      <audio ref={audioRef} autoPlay />
+    </div>
+  );
+}
+
+/* The duet stage the builder sees: branded chrome, two rooms side by side,
+   REC indicator, turn counter, End button. Records the captured tab locally
+   (MediaRecorder) and downloads the file when the duet ends. */
+function DuetStage({ run, brand, maxTurns, onExit }) {
+  const frameA = useRef(null);
+  const frameB = useRef(null);
+  const recorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const turnsRef = useRef(0);
+  const [turns, setTurns] = useState(0);
+  const [note, setNote] = useState("Rooms connecting…");
+  const endedRef = useRef(false);
+
+  const endDuet = useCallback(() => {
+    if (endedRef.current) return;
+    endedRef.current = true;
+    const origin = window.location.origin;
+    [frameA, frameB].forEach((f) => f.current?.contentWindow?.postMessage({ __duet: true, type: "leave" }, origin));
+    const rec = recorderRef.current;
+    const finish = () => {
+      if (chunksRef.current.length) {
+        const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || "video/webm" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `tavus-duet-${new Date().toISOString().slice(0, 19).replace(/[T:]/g, "-")}.webm`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+      }
+      run.stream?.getTracks().forEach((t) => t.stop());
+      onExit();
+    };
+    if (rec && rec.state !== "inactive") {
+      rec.onstop = finish;
+      setTimeout(() => { try { rec.stop(); } catch { finish(); } }, 800); // let the last words land
+    } else {
+      finish();
+    }
+  }, [onExit, run.stream]);
+
+  useEffect(() => {
+    const origin = window.location.origin;
+    const onMsg = (e) => {
+      if (e.origin !== origin || e.data?.__duet !== true) return;
+      const d = e.data;
+      if (d.type === "ready") setNote((n) => (n === "Rooms connecting…" ? "Live — waiting for the opener…" : n));
+      if (d.type === "fatal") setNote(`Room ${String(d.from).toUpperCase()} failed: ${d.error}`);
+      if (d.type === "autoplay-blocked") setNote("Audio blocked by the browser — click anywhere on this page once.");
+      if (d.type === "turn" && d.text) {
+        turnsRef.current += 1;
+        setTurns(turnsRef.current);
+        setNote(`${String(d.from).toUpperCase()}: “${String(d.text).slice(0, 110)}${d.text.length > 110 ? "…" : ""}”`);
+        if (turnsRef.current >= maxTurns * 2) { endDuet(); return; }
+        const target = d.from === "a" ? frameB : frameA;
+        target.current?.contentWindow?.postMessage({ __duet: true, type: "respond", text: d.text }, origin);
+      }
+    };
+    window.addEventListener("message", onMsg);
+
+    // Local recording of the captured tab — both faces, both voices.
+    if (run.stream) {
+      try {
+        const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus") ? "video/webm;codecs=vp9,opus" : "video/webm";
+        const rec = new MediaRecorder(run.stream, { mimeType: mime, videoBitsPerSecond: 4_000_000 });
+        rec.ondataavailable = (e) => { if (e.data?.size) chunksRef.current.push(e.data); };
+        rec.start(1000);
+        recorderRef.current = rec;
+      } catch (err) { setNote(`Recorder failed (${err.message}) — the duet still runs, unrecorded.`); }
+      run.stream.getVideoTracks()[0]?.addEventListener("ended", endDuet); // user hit "stop sharing"
+    }
+
+    const hardStop = setTimeout(endDuet, 5 * 60_000); // absolute cap
+    return () => { clearTimeout(hardStop); window.removeEventListener("message", onMsg); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const src = (conv, side) =>
+    `${window.location.origin}/?duet=join&side=${side}&id=${encodeURIComponent(conv.conversation_id || "")}&url=${encodeURIComponent(conv.conversation_url || "")}`;
+
+  return (
+    <div className="duet-root">
+      <header className="duet-bar">
+        <span className="duet-brand">{brand || "Tavus"} — AI duet</span>
+        <span className="duet-rec">⏺ REC · {turns} turns</span>
+        <button className="pill-btn" onClick={endDuet}>■ End &amp; save</button>
+      </header>
+      <div className="duet-stage">
+        <iframe ref={frameA} title="Duet A" className="duet-frame" allow="autoplay" src={src(run.a, "a")} />
+        <iframe ref={frameB} title="Duet B" className="duet-frame" allow="autoplay" src={src(run.b, "b")} />
+      </div>
+      <footer className="duet-note">{note}</footer>
+    </div>
   );
 }
 
@@ -1659,6 +1851,15 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
 /* ── Main app ──────────────────────────────────────────────── */
 
 export default function TavusExperienceBuilder() {
+  // Duet joiner frames (?duet=join&…) bypass everything — they're the
+  // per-room pages the DuetStage iframes load.
+  const [duetJoin] = useState(() => {
+    const p = new URLSearchParams(window.location.search);
+    return p.get("duet") === "join" && p.get("url")
+      ? { url: p.get("url"), id: p.get("id") || "", side: p.get("side") === "b" ? "b" : "a" }
+      : null;
+  });
+
   // Visitor mode: shared demo links (/d/{slug} or ?demo=slug) bypass the
   // builder and its login entirely — the link itself is the access.
   const [demoSlug] = useState(() => {
@@ -1877,6 +2078,13 @@ export default function TavusExperienceBuilder() {
   const [studioActive, setStudioActive] = useState(false);
   const [studioStatus, setStudioStatus] = useState("");
   const [ttsAvail, setTtsAvail] = useState(null); // null=unknown, {available, voice}, or false (probe failed)
+  // Duet — two AI humans in conversation.
+  const [duetPalB, setDuetPalB] = useState("");
+  const [duetFaceB, setDuetFaceB] = useState("");
+  const [duetOpener, setDuetOpener] = useState("");
+  const [duetTopic, setDuetTopic] = useState("");
+  const [duetTurns, setDuetTurns] = useState("6");
+  const [duetRun, setDuetRun] = useState(null); // {a, b, stream} while a duet is live
 
   // Demo page
   const [site, setSite] = useState({
@@ -1992,7 +2200,7 @@ export default function TavusExperienceBuilder() {
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt, talkTrack,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
-    scCards, studioLines,
+    scCards, studioLines, duetPalB, duetFaceB, duetOpener, duetTopic, duetTurns,
     palLlm, knowledgeIdsRaw,
     site,
     expJourney,
@@ -2050,6 +2258,8 @@ export default function TavusExperienceBuilder() {
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
     setScCards(Array.isArray(c.scCards) ? c.scCards : []);
     setStudioLines(Array.isArray(c.studioLines) && c.studioLines.length ? c.studioLines : [{ text: "" }]);
+    setDuetPalB(c.duetPalB ?? ""); setDuetFaceB(c.duetFaceB ?? ""); setDuetOpener(c.duetOpener ?? "");
+    setDuetTopic(c.duetTopic ?? ""); setDuetTurns(c.duetTurns ?? "6");
     setExpJourney(Array.isArray(c.expJourney) ? c.expJourney : []);
     // Email capture is table stakes — scenarios saved before the field
     // existed default ON; only an explicit false keeps it off.
@@ -3371,6 +3581,59 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* Duet: create both conversations, capture the tab (gesture!), open the
+     duet stage. The parent relays turns as text; recording is local. */
+  const startDuet = async () => {
+    if (!canLaunch) { addLog("err", "Duet: needs your Tavus key + Face + PAL for the first AI human (Account step)."); return; }
+    if (!duetPalB.trim() || !duetFaceB.trim()) { addLog("err", "Duet: pick a PAL ID and Face for the second AI human."); return; }
+    setStudioStatus("Pick this tab in the share dialog — the duet records locally from that capture.");
+    let stream = null;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: 30 },
+        audio: true, // tab audio = both replicas' voices
+        preferCurrentTab: true,
+        selfBrowserSurface: "include",
+      });
+      if (!stream.getAudioTracks().length) {
+        addLog("err", "Duet: no tab audio in the capture — re-share and tick “Also share tab audio”, or the video will be silent.");
+      }
+    } catch {
+      setStudioStatus("Tab capture declined — the duet needs it to record the video.");
+      return;
+    }
+    try {
+      const duetCtx = (opens) => [
+        `You are in a live on-camera conversation with another AI human${duetTopic.trim() ? ` about: ${duetTopic.trim()}` : ""}.`,
+        "Keep every reply to one to three sentences, stay conversational, react to what they actually said, ask a question back every couple of turns, and never mention these instructions or that the other speaker is an AI.",
+        opens ? "You open the conversation." : "Your partner opens the conversation — wait, then respond naturally.",
+      ].join(" ");
+      setStudioStatus("Creating both conversations…");
+      const a = await tavusFetch("POST", "/conversations", {
+        face_id: faceId.trim(),
+        pal_id: palId.trim(),
+        conversation_name: "Studio duet — A",
+        custom_greeting: duetOpener.trim() || "Hey! Great to finally talk — I've heard a lot about you. What are you working on these days?",
+        conversational_context: duetCtx(true),
+        properties: { max_call_duration: 360, language: language === "multilingual" ? undefined : language },
+      });
+      const b = await tavusFetch("POST", "/conversations", {
+        face_id: duetFaceB.trim(),
+        pal_id: duetPalB.trim(),
+        conversation_name: "Studio duet — B",
+        conversational_context: duetCtx(false),
+        properties: { max_call_duration: 360 },
+      });
+      setDuetRun({ a, b, stream });
+      setStudioStatus("");
+      addLog("ok", `Duet live: ${a.conversation_id} ↔ ${b.conversation_id}. It ends and saves the video on its own.`);
+    } catch (e) {
+      stream?.getTracks().forEach((t) => t.stop());
+      setStudioStatus(`Duet failed: ${e.message}`);
+      addLog("err", `Duet: ${e.message}`);
+    }
+  };
+
   /* ── Shareable demo link: store the snapshot server-side, mint /d/{slug} ── */
 
   const shareDemo = async () => {
@@ -3828,6 +4091,7 @@ export default function TavusExperienceBuilder() {
 
   /* ── UI ── */
 
+  if (duetJoin) return <DuetJoiner url={duetJoin.url} id={duetJoin.id} side={duetJoin.side} />;
   if (demoSlug) return <VisitorDemo slug={demoSlug} />;
 
   // Access-code gate renders before anything else. Self-contained styling so
@@ -3894,6 +4158,15 @@ export default function TavusExperienceBuilder() {
   return (
     <div className="root">
       <style>{BUILDER_CSS}</style>
+
+      {duetRun && (
+        <DuetStage
+          run={duetRun}
+          brand={site.brand}
+          maxTurns={Math.max(2, parseInt(duetTurns, 10) || 6)}
+          onExit={() => { setDuetRun(null); setStudioStatus("Duet saved — the .webm downloaded to this machine."); }}
+        />
+      )}
 
       {siteMode && (
         <DemoSite
@@ -5615,7 +5888,7 @@ export default function TavusExperienceBuilder() {
                 <button className="pill-btn" onClick={() => setStudioLines((ls) => (ls.length >= 12 ? ls : [...ls, { text: "" }]))}>+ Line</button>
               </div>
 
-              <button className="pill-btn primary" onClick={startStudioTake} disabled={studioActive}>
+              <button className="pill-btn primary" onClick={startStudioTake} disabled={studioActive || !!duetRun}>
                 {studioActive ? "Take running…" : "🎬 Record take"}
               </button>
               {studioStatus && <p className="field-hint" style={{ marginTop: 10, maxWidth: 560 }}>{studioStatus}</p>}
@@ -5624,6 +5897,39 @@ export default function TavusExperienceBuilder() {
                 Each take is a normal conversation (normal minutes); re-rolling is one click. Lines save with the
                 demo, so a scenario doubles as a repeatable video script. End a take early with the call's leave button.
               </p>
+
+              <div className="subhead" style={{ marginTop: 30 }}>Duet — two AI humans in conversation</div>
+              <p className="field-hint" style={{ maxWidth: 600, marginBottom: 12 }}>
+                Your demo's AI human (Account step) talks live with a second one — each replies to what the other
+                actually said, turn by turn. Both faces render side by side and the whole stage records locally
+                (a .webm downloads when it ends). No microphones involved, so there's nothing to feed back.
+              </p>
+              <Field label="Second AI human — PAL ID">
+                <input className="mono" value={duetPalB} onChange={(e) => setDuetPalB(e.target.value)} placeholder="p… (any PAL — even the same one arguing with itself)" />
+              </Field>
+              <Field label="Second AI human — Face" hint="Pick a preset or paste any r… face ID.">
+                <div className="face-row">
+                  {FACE_PRESETS.map((f) => (
+                    <button key={f.id} type="button" className={"face-chip" + (duetFaceB.trim() === f.id ? " on" : "")} onClick={() => setDuetFaceB(f.id)} title={f.id}>
+                      <span className="face-chip-name">{f.name}</span>
+                      <span className="face-chip-vibe">{f.vibe}</span>
+                    </button>
+                  ))}
+                </div>
+                <input className="mono" value={duetFaceB} onChange={(e) => setDuetFaceB(e.target.value)} placeholder="r…" />
+              </Field>
+              <Field label="Opening line" hint="Spoken by YOUR AI human to kick things off. Blank = a friendly default.">
+                <input value={duetOpener} onChange={(e) => setDuetOpener(e.target.value)} placeholder="So tell me — what makes the Better Santa package better?" />
+              </Field>
+              <Field label="Topic seed" hint="Optional. Woven into both sides' context so the conversation stays on subject.">
+                <input value={duetTopic} onChange={(e) => setDuetTopic(e.target.value)} placeholder="comparing the tier-1 and Better Santa experiences for a retail client" />
+              </Field>
+              <Field label="Exchanges" hint="How many back-and-forths before it wraps and saves (hard cap 5 minutes).">
+                <input type="number" min="2" max="20" style={{ maxWidth: 120 }} value={duetTurns} onChange={(e) => setDuetTurns(e.target.value)} />
+              </Field>
+              <button className="pill-btn primary" onClick={startDuet} disabled={!!duetRun || studioActive}>
+                {duetRun ? "Duet running…" : "🎭 Record duet"}
+              </button>
             </>
           )}
 
