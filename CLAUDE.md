@@ -282,7 +282,11 @@ non-technical users; ids unchanged):
    a "Visitors & feedback" list, 👤/★ row badges, and a Visitor panel on
    call detail (`expMap`, fetched alongside recordings).
 5.8. **Studio** (`studio`) — records scripted takes as MP4 feature demos.
-   `studioLines` (saved with scenarios) script the visitor; `startStudioTake()`
+   `studioLines` (saved with scenarios) script the visitor — hand-written or
+   Claude-drafted (`kind: "script"` on generate-persona: lines engineered
+   from the demo's config to fire scripted-card trigger words in order,
+   request/react to the deck per its trigger mode, invite canvas cards,
+   advance the objectives, optionally test one guardrail); `startStudioTake()`
    captures the tab via getDisplayMedia **inside the click** (gesture rule),
    renders lines via `POST /api/tts` (**Cartesia** Sonic behind
    `CARTESIA_API_KEY` — per explicit user direction, same voice stack as

@@ -2085,6 +2085,8 @@ export default function TavusExperienceBuilder() {
   const [duetTopic, setDuetTopic] = useState("");
   const [duetTurns, setDuetTurns] = useState("6");
   const [duetRun, setDuetRun] = useState(null); // {a, b, stream} while a duet is live
+  const [scriptBusy, setScriptBusy] = useState(false);
+  const [scriptFocus, setScriptFocus] = useState("");
 
   // Demo page
   const [site, setSite] = useState({
@@ -3578,6 +3580,57 @@ export default function TavusExperienceBuilder() {
       try { displayStream?.getTracks().forEach((t) => t.stop()); } catch { /* gone */ }
       endStudioRuntime(`Take failed: ${e.message}`);
       addLog("err", `Studio: ${e.message}`);
+    }
+  };
+
+  /* Claude writes the visitor script from the demo's own config — lines
+     engineered to make scripted cards, canvas, the deck, and the objectives
+     flow fire on camera during a Studio take. */
+  const generateStudioScript = async () => {
+    setScriptBusy(true);
+    try {
+      addLog("info", "Writing the visitor script from this demo's configuration…");
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "script",
+          vibe: scriptFocus,
+          context: {
+            product: personaBrief.product,
+            brand: site.brand,
+            personaSummary: personaDraft.slice(0, 2000),
+            objectives: objectivesEnabled ? objectivesText.trim() : "",
+            guardrails: guardrailsEnabled ? guardrailsText.trim() : "",
+            presentation: presentationContext(),
+            canvasPlaybook: canvasEnabled ? canvasPlaybook.trim() : "",
+            canvasRules: canvasEnabled
+              ? Object.entries(componentRules).filter(([, v]) => String(v).trim()).map(([k, v]) => `${k}: ${v}`).join("\n")
+              : "",
+            scriptedCards: compiledScriptedCards.map((x) => ({ style: x.style, title: x.title, trigger: x.trigger, keywords: x.keywords })),
+            scheduling: !!schedulingUrl.trim(),
+          },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: generation failed`);
+      }
+      const lines = text
+        .split("\n")
+        .map((l) => l.replace(/^[\s"'\d.\-–—)]+/, "").replace(/["']\s*$/, "").trim())
+        .filter(Boolean)
+        .slice(0, 12);
+      if (!lines.length) throw new Error("Claude returned an empty script — try again.");
+      setStudioLines(lines.map((t) => ({ text: t })));
+      addLog("ok", `Script drafted: ${lines.length} visitor lines, tuned to this demo's cards, deck, and flow. Edit freely, then 🎬 Record take.`);
+    } catch (e) {
+      addLog("err", `Script: ${e.message}`);
+    } finally {
+      setScriptBusy(false);
     }
   };
 
@@ -5869,9 +5922,16 @@ export default function TavusExperienceBuilder() {
               <div className="subhead">The visitor's lines</div>
               <p className="field-hint" style={{ maxWidth: 560, marginBottom: 10 }}>
                 In order. The take waits for the AI human to finish each reply before speaking the next line —
-                write lines that exercise the feature you're demoing (say "pricing" to fire a scripted card,
-                push a guardrail, ask for the deck…). Keep them short and conversational.
+                lines that exercise the feature you're demoing (say "pricing" to fire a scripted card,
+                push a guardrail, ask for the deck…). Write them, or let Claude script them from this demo's config.
               </p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, maxWidth: 640 }}>
+                <input style={{ flex: "1 1 280px" }} value={scriptFocus} onChange={(e) => setScriptFocus(e.target.value)}
+                  placeholder='Focus (optional) — e.g. "show off the canvas cards and walk the deck"' />
+                <button className="pill-btn primary" onClick={generateStudioScript} disabled={scriptBusy}>
+                  {scriptBusy ? "Writing…" : "✨ Write the script for me"}
+                </button>
+              </div>
               <div className="kb-list" style={{ marginBottom: 10 }}>
                 {studioLines.map((l, i) => (
                   <div key={i} className="kb-row">

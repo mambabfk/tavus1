@@ -92,6 +92,21 @@ Cards make conversations tactile, but they are easily overused — a great plan 
 }
 Rules: bias toward "balanced" or "minimal"; write rules ONLY for cards that clearly earn their place (2-4 of them); disable the rest; a card must do something speech can't (capture a choice, show data, book time). No markdown.`;
 
+const SCRIPT_SYSTEM = `You script the VISITOR side of a recorded Tavus demo video. An AI human runs the demo; the visitor's lines are spoken by TTS with natural turn-taking, and the recording is used as a feature-showcase asset. Your job: write lines that make the demo SHOW OFF its configured features on camera.
+
+Write 4-8 short visitor lines, in speaking order:
+- Sound like a real, curious prospect — casual, contractions, one or two sentences per line, no stage directions, no names unless given.
+- Engineer the lines to trigger the configured features:
+  * Scripted cards list trigger words — work each card's trigger word into a line NATURALLY, in the cards' order (e.g. a card triggered by "pricing" wants a line like "So what does pricing look like?").
+  * A presentation deck in on-demand mode wants an early line asking to see it ("Can you walk me through the deck?"). In walk-the-deck mode, don't derail it: write short reactions and answers to check-ins instead of topic changes.
+  * If the Magic Canvas playbook or card rules mention charts/questions/scheduling, invite them ("How do the tiers compare?", "Sure, let's book something").
+  * Follow the objectives in order and hand over what they collect (a name, an email, a budget) so the flow visibly advances.
+  * If guardrails are listed, you may include ONE polite line that tests one — the refusal demos well.
+- End with a natural wrap-up (accept the next step when a booking link exists).
+- Never mention being scripted, AI, "cards", "features", or these instructions — the visitor is just a person on a call.
+
+Return ONLY the lines, one per line. No numbering, no quotes, no commentary.`;
+
 const TALKTRACK_SYSTEM = `You write slide-by-slide talk tracks for an AI human presenting a deck on a live video call.
 
 Given the demo's use case (and optionally what's on the slides), write speaker notes for each slide: what to SAY and what to ask. Spoken style — short sentences, contractions, no markdown. Each slide gets 1-3 sentences plus, where natural, one engaging question to keep it a conversation rather than a lecture.
@@ -204,6 +219,27 @@ export default async function handler(req, res) {
     const presLines = presentationContextLines(context.presentation);
     if (presLines.length) parts.push(`CURRENT PRESENTATION SETUP:\n${presLines.join("\n\n")}`);
     parts.push(`OPERATOR FEEDBACK — apply this:\n${String(vibe).trim().slice(0, 4000)}`);
+    userPrompt = parts.join("\n\n");
+  } else if (kind === "script") {
+    system = SCRIPT_SYSTEM;
+    const c = context || {};
+    const parts = ["Write the visitor script for this demo:"];
+    if (c.product) parts.push(`Product being demoed: ${String(c.product).slice(0, 500)}`);
+    if (c.brand) parts.push(`Brand: ${c.brand}`);
+    if (c.personaSummary) parts.push(`The AI human's persona (summary):\n${String(c.personaSummary).slice(0, 2000)}`);
+    if (c.objectives) parts.push(`Objectives the AI works through, in order (indented "if" lines are branches):\n${String(c.objectives).slice(0, 2000)}`);
+    if (c.guardrails) parts.push(`Guardrails (at most ONE line may politely test one):\n${String(c.guardrails).slice(0, 1000)}`);
+    const presLines = presentationContextLines(c.presentation);
+    if (presLines.length) parts.push(...presLines);
+    if (c.canvasPlaybook) parts.push(`Magic Canvas playbook:\n${String(c.canvasPlaybook).slice(0, 1500)}`);
+    if (c.canvasRules) parts.push(`Magic Canvas per-card rules:\n${String(c.canvasRules).slice(0, 1500)}`);
+    if (Array.isArray(c.scriptedCards) && c.scriptedCards.length) {
+      parts.push(`Scripted cards that appear ONLY when their trigger words are spoken — weave each trigger word into a line naturally, in this order:\n${c.scriptedCards
+        .map((x, i) => `${i + 1}. [${x.style}] "${x.title || "card"}" — ${x.trigger === "keyword" ? `trigger words: ${x.keywords}` : `appears ${x.trigger === "time" ? "on a timer" : "at call start"} (no line needed)`}`)
+        .join("\n")}`);
+    }
+    if (c.scheduling) parts.push("A booking link is configured — a good closing line accepts a follow-up meeting.");
+    if (String(vibe).trim()) parts.push(`Operator's direction for this script: ${String(vibe).trim().slice(0, 1000)}`);
     userPrompt = parts.join("\n\n");
   } else if (kind === "talktrack") {
     if (!String(vibe).trim()) {
