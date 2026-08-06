@@ -406,6 +406,20 @@ const BUILDER_CSS = `
         .duet-tile { position:relative; min-height:0; }
         .duet-tile .duet-frame { position:absolute; inset:0; }
         .duet-name { position:absolute; top:12px; left:12px; z-index:3; background:rgba(12,13,16,.66); color:#f2f3f5; font-size:12.5px; font-weight:600; letter-spacing:.2px; padding:5px 12px; border-radius:999px; pointer-events:none; }
+        /* "Call recording" look — reads like a saved Zoom/Meet call: Meet-dark
+           canvas, bottom-left name tags, a native Recording pill, controls
+           that fade away when the mouse is idle so the capture never shows
+           them, and the narrator as a Meet-style caption bar. */
+        .duet-root.duet-meeting { background:#202124; }
+        .duet-meeting .duet-stage { padding:8px; gap:8px; }
+        .duet-meeting .duet-tile { border-radius:8px; overflow:hidden; background:#3c4043; }
+        .duet-meeting .duet-name { top:auto; bottom:10px; left:10px; background:rgba(0,0,0,.55); color:#e8eaed; font-weight:500; font-size:12.5px; border-radius:6px; padding:4px 10px; }
+        .meet-rec { position:absolute; top:12px; left:14px; z-index:7; display:flex; align-items:center; gap:7px; color:#e8eaed; font-size:12.5px; background:rgba(32,33,36,.72); padding:5px 12px; border-radius:999px; pointer-events:none; }
+        .meet-rec-dot { width:9px; height:9px; border-radius:50%; background:#ea4335; animation:recpulse 1.6s ease-in-out infinite; }
+        .meet-controls { position:absolute; right:14px; bottom:14px; z-index:7; display:flex; gap:10px; align-items:center; background:rgba(32,33,36,.85); padding:8px 12px; border-radius:12px; transition:opacity .4s ease; }
+        .meet-controls.hidden { opacity:0; pointer-events:none; }
+        .meet-note { max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#9aa0ab; font-size:12px; }
+        .meet-captions { position:absolute; left:50%; transform:translateX(-50%); bottom:20px; z-index:5; max-width:72%; text-align:center; background:rgba(32,33,36,.85); color:#e8eaed; font-size:14px; line-height:1.45; padding:8px 16px; border-radius:8px; pointer-events:none; }
         /* the card renders ON the asker's tile, lower third — like their own screen */
         .duet-tile-card { position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:4; width:min(400px, 88%); animation:duetcard .45s ease; }
         .duet-tile-card .sc-card { position:static; transform:none; width:100%; box-shadow:0 22px 60px -16px rgba(0,0,0,.7); }
@@ -911,7 +925,24 @@ function DuetJoiner({ url, id, side, hold = false }) {
 /* The duet stage the builder sees: branded chrome, two rooms side by side,
    REC indicator, turn counter, End button. Records the captured tab locally
    (MediaRecorder) and downloads the file when the duet ends. */
-function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = "", openerB = "", summary = "", features = "", outline = [], surfaces = null, onExit }) {
+function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = "", openerB = "", summary = "", features = "", outline = [], surfaces = null, look = "stage", onExit }) {
+  // "meeting" look: the recording reads as a saved Zoom/Meet call — no
+  // branded chrome; the operator controls fade out when the mouse is idle
+  // so the tab capture shows only what a real call recording would.
+  const meeting = look === "meeting";
+  const [chromeVisible, setChromeVisible] = useState(true);
+  useEffect(() => {
+    if (!meeting) return undefined;
+    let idle;
+    const onMove = () => {
+      setChromeVisible(true);
+      clearTimeout(idle);
+      idle = setTimeout(() => setChromeVisible(false), 2500);
+    };
+    onMove();
+    window.addEventListener("mousemove", onMove);
+    return () => { clearTimeout(idle); window.removeEventListener("mousemove", onMove); };
+  }, [meeting]);
   // Opening choreography: BOTH rooms join at t=0 (both faces on screen
   // together — no black tile). Side B starts HELD (muted, auto-interrupted);
   // when A's opener lands, we release B with the scripted reply via echo.
@@ -1196,12 +1227,23 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
     `${window.location.origin}/?duet=join&side=${side}&id=${encodeURIComponent(conv.conversation_id || "")}&url=${encodeURIComponent(conv.conversation_url || "")}`;
 
   return (
-    <div className="duet-root">
-      <header className="duet-bar">
-        <span className="duet-brand">{brand || "Tavus"} — AI duet</span>
-        <span className="duet-rec">⏺ REC · {turns} turns</span>
-        <button className="pill-btn" onClick={endDuet}>■ End &amp; save</button>
-      </header>
+    <div className={"duet-root" + (meeting ? " duet-meeting" : "")}>
+      {meeting ? (
+        <>
+          <div className="meet-rec"><span className="meet-rec-dot" /> Recording</div>
+          <div className={"meet-controls" + (chromeVisible ? "" : " hidden")}>
+            <span className="meet-note">{note}</span>
+            <span style={{ color: "#9aa0ab", fontSize: 12, fontFamily: "var(--mono)" }}>{turns} turns</span>
+            <button className="pill-btn" onClick={endDuet}>■ End &amp; save</button>
+          </div>
+        </>
+      ) : (
+        <header className="duet-bar">
+          <span className="duet-brand">{brand || "Tavus"} — AI duet</span>
+          <span className="duet-rec">⏺ REC · {turns} turns</span>
+          <button className="pill-btn" onClick={endDuet}>■ End &amp; save</button>
+        </header>
+      )}
       <div className={"duet-stage" + (screenSide ? ` duet-screen-${screenSide}` : "")}>
         <div className="duet-tile">
           <iframe ref={frameA} title="Duet A" className="duet-frame" allow="autoplay" src={src(run.a, "a")} />
@@ -1222,10 +1264,10 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
           )}
         </div>
       </div>
-      {/* Narrator strip — tells the viewer what they're watching and which
-          Tavus feature is doing what, as it happens. */}
-      <div className="duet-narrator">{narr}</div>
-      <footer className="duet-note">{note}</footer>
+      {/* Narrator — in meeting look it reads as a live-captions bar (native
+          to a call recording); in stage look it's the branded strip. */}
+      {narr && <div className={meeting ? "meet-captions" : "duet-narrator"}>{narr}</div>}
+      {!meeting && <footer className="duet-note">{note}</footer>}
     </div>
   );
 }
@@ -1235,7 +1277,8 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
       narrator line — WITHOUT creating conversations. Free, instant, and the
       answer to "what exactly is about to be recorded?". Pacing is simulated
       (~11s a turn); order and placement are exact, wall-clock drifts a bit. ── */
-function DuetRehearsal({ brand, maxTurns, cards = [], labels = null, outline = [], surfaces = null, summary = "", features = "", onExit }) {
+function DuetRehearsal({ brand, maxTurns, cards = [], labels = null, outline = [], surfaces = null, summary = "", features = "", look = "stage", onExit }) {
+  const meeting = look === "meeting";
   const TURN = 11; // seconds per live turn (speech + generation), rough average
   const totalTurns = Math.max(4, maxTurns * 2);
   const total = totalTurns * TURN;
@@ -1317,9 +1360,9 @@ function DuetRehearsal({ brand, maxTurns, cards = [], labels = null, outline = [
     );
   };
   return (
-    <div className="duet-root">
+    <div className={"duet-root" + (meeting ? " duet-meeting" : "")}>
       <header className="duet-bar">
-        <span className="duet-brand">{brand || "Tavus"} — rehearsal (nothing is live, nothing is billed)</span>
+        <span className="duet-brand" style={meeting ? { color: "#e8eaed" } : undefined}>{brand || "Tavus"} — rehearsal (nothing is live, nothing is billed)</span>
         <span className="duet-rec">▶ {fmt(t)} / {fmt(total)} · turn {turn}/{totalTurns} · beat {beat}</span>
         <button className="pill-btn" onClick={onExit}>✕ Close rehearsal</button>
       </header>
@@ -1327,7 +1370,7 @@ function DuetRehearsal({ brand, maxTurns, cards = [], labels = null, outline = [
         {tile("a")}
         {tile("b")}
       </div>
-      <div className="duet-narrator">{narr}</div>
+      <div className={meeting ? "meet-captions" : "duet-narrator"} style={meeting ? { bottom: 108 } : undefined}>{narr}</div>
       <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 10, padding: "10px 20px 4px", color: "#aab2bf", fontSize: 13 }}>
         <button className="pill-btn" style={{ padding: "3px 12px" }} onClick={() => { setT(0); setPlaying(true); }}>⏪</button>
         <button className="pill-btn" style={{ padding: "3px 12px" }} onClick={() => setPlaying((p) => !p)}>{playing ? "⏸" : "▶"}</button>
@@ -2634,6 +2677,9 @@ export default function TavusExperienceBuilder() {
   const [duetBrowserBeat, setDuetBrowserBeat] = useState("0");
   const [duetBrowserShow, setDuetBrowserShow] = useState(""); // what the browser should pull up (URL or task)
   const [duetRehearse, setDuetRehearse] = useState(false); // free storyboard playback on a mock stage
+  // The point of a duet is replacing a hand-recorded avatar call — so the
+  // default look reads like a saved Zoom/Meet recording, not a demo stage.
+  const [duetLook, setDuetLook] = useState("meeting"); // "meeting" | "stage"
   // Two reusable Studio PALs — their prompts get PATCHed per plan, so duets
   // never pile up new PALs on the account.
   const [studioPalA, setStudioPalA] = useState("");
@@ -2760,7 +2806,7 @@ export default function TavusExperienceBuilder() {
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
     scCards, studioLines,
     duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser,
-    duetDeckBeat, duetBrowserBeat, duetBrowserShow, studioPalA, studioPalB,
+    duetDeckBeat, duetBrowserBeat, duetBrowserShow, duetLook, studioPalA, studioPalB,
     palLlm, knowledgeIdsRaw,
     site,
     expJourney,
@@ -2827,6 +2873,7 @@ export default function TavusExperienceBuilder() {
     setDuetDeck(!!c.duetDeck); setDuetBrowser(!!c.duetBrowser);
     setDuetDeckBeat(String(c.duetDeckBeat ?? "0")); setDuetBrowserBeat(String(c.duetBrowserBeat ?? "0"));
     setDuetBrowserShow(c.duetBrowserShow ?? "");
+    setDuetLook(c.duetLook === "stage" ? "stage" : "meeting");
     setStudioPalA(c.studioPalA ?? ""); setStudioPalB(c.studioPalB ?? "");
     setExpJourney(Array.isArray(c.expJourney) ? c.expJourney : []);
     // Email capture is table stakes — scenarios saved before the field
@@ -5028,6 +5075,7 @@ export default function TavusExperienceBuilder() {
             browserBeat: duetBrowser ? parseInt(duetBrowserBeat, 10) || 0 : 0,
             browserShow: duetBrowserShow.trim().slice(0, 200),
           }}
+          look={duetLook}
           onExit={() => { setDuetRun(null); setStudioStatus("Duet saved — the .webm downloaded to this machine."); }}
         />
       )}
@@ -5047,6 +5095,7 @@ export default function TavusExperienceBuilder() {
           }}
           summary={duetNarrIntro.trim()}
           features={duetNarrFeatures.trim()}
+          look={duetLook}
           onExit={() => setDuetRehearse(false)}
         />
       )}
@@ -7045,6 +7094,13 @@ export default function TavusExperienceBuilder() {
                   </Field>
                   <Field label="Exchanges" hint="How many back-and-forths before it wraps and saves (hard cap 5 minutes).">
                     <input type="number" min="2" max="20" style={{ maxWidth: 120 }} value={duetTurns} onChange={(e) => setDuetTurns(e.target.value)} />
+                  </Field>
+                  <Field label="Video look" hint="“Call recording” reads like a saved Zoom/Meet call: no branded chrome, bottom-left name tags, a native Recording pill, narrator as a captions bar — and the controls fade out whenever your mouse is still, so the capture never shows them.">
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {[["meeting", "🎥 Call recording (Zoom/Meet style)"], ["stage", "🎬 Branded stage"]].map(([v, l]) => (
+                        <button key={v} type="button" className={"pill-btn" + (duetLook === v ? " primary" : "")} style={{ padding: "5px 14px", fontSize: 12.5 }} onClick={() => setDuetLook(v)}>{l}</button>
+                      ))}
+                    </div>
                   </Field>
                   <Field label="On-screen surfaces" hint="Either one opens in its own window beside the face — never covering anyone. Pick the beat it opens on and the stage sends the featured AI a silent cue at that exact moment; “when the AI decides” leaves it to the model.">
                     {(() => {

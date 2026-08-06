@@ -353,7 +353,15 @@ non-technical users; ids unchanged):
    ~11s/turn simulated pacing; order/tile/beat positions exact, "≈" marks
    model-timed events. No conversations are created.
    **Deterministic placement**: `compileScriptedCards` defaults `owner` to
-   `"featured"` — a card's tile NEVER depends on which speaker triggered it. **Latency**: the joiner's end-of-turn quiet
+   `"featured"` — a card's tile NEVER depends on which speaker triggered it.
+   **Video look** (`duetLook`, default `"meeting"`): the duet's purpose is
+   replacing a hand-recorded avatar call, so the default look reads like a
+   saved Zoom/Meet recording — Meet-dark canvas, bottom-left name tags,
+   native "Recording" pill, narrator as a captions bar, and operator
+   controls (End & save, turn counter, live quotes) in a `.meet-controls`
+   cluster that fades out after 2.5s of mouse idle so the tab capture never
+   shows them. `"stage"` keeps the branded chrome. The rehearsal previews
+   whichever look is selected. **Latency**: the joiner's end-of-turn quiet
    window is adaptive — 900ms when the transcript ends on sentence-final
    punctuation, 1400ms for mid-sentence stops/blank buffers (scripted speech;
    short windows there caused talk-over) — and `ensureStudioPal` sets
