@@ -6731,7 +6731,18 @@ export default function TavusExperienceBuilder() {
                                 <option value="beat">at beat #</option><option value="keyword">on words</option><option value="time">on timer</option><option value="start">at start</option>
                               </select>
                               {c.trigger === "time"
-                                ? <input style={{ ...inp, width: 90 }} type="number" min="0" step="0.5" placeholder="min" value={c.atMinutes ?? ""} onChange={(e) => setCard(ci, { atMinutes: e.target.value })} />
+                                ? <input
+                                    style={{ ...inp, width: 110 }}
+                                    placeholder="1:30 or 90"
+                                    title="Exact time from call start — “m:ss”, or plain seconds"
+                                    value={c.atText ?? (Number(c.atMinutes) > 0 ? (() => { const s2 = Math.round(Number(c.atMinutes) * 60); return `${Math.floor(s2 / 60)}:${String(s2 % 60).padStart(2, "0")}`; })() : "")}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      const m2 = v.trim().match(/^(\d+):([0-5]?\d)$/);
+                                      const secs = m2 ? +m2[1] * 60 + +m2[2] : Math.max(0, Math.round(parseFloat(v) || 0));
+                                      setCard(ci, { atText: v, atMinutes: secs / 60 });
+                                    }}
+                                  />
                                 : c.trigger === "beat"
                                   ? (
                                     <select style={{ ...inp, flex: 1, minWidth: 120 }} value={Math.min(beats.length, Math.max(1, parseInt(c.atBeat, 10) || 1))} onChange={(e) => setCard(ci, { atBeat: e.target.value })}>
@@ -6752,6 +6763,7 @@ export default function TavusExperienceBuilder() {
                               </label>
                             </div>
                             {dropped && <div style={{ color: "#b4552d", fontSize: 11.5, marginTop: 5 }}>⚠ Incomplete — needs {c.style === "image" ? "an image URL" : "body text"}{c.trigger === "keyword" ? " and trigger words" : c.trigger === "time" ? " and a time" : ""} or it won’t appear.</div>}
+                            {!dropped && c.trigger === "time" && Math.round((parseFloat(c.atMinutes) || 0) * 60) > 300 && <div style={{ color: "#b4552d", fontSize: 11.5, marginTop: 5 }}>⚠ Past the 5-minute hard cap — the take may end before this shows.</div>}
                           </div>
                         );
                       };
