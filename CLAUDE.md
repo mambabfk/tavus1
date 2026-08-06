@@ -332,13 +332,28 @@ non-technical users; ids unchanged):
    (per explicit user direction — tone/expressions escalate across beats). Tiles carry `duet-name` chips
    (who is who); cards render in a dedicated `duet-cardbar` band BELOW the
    tiles (never over a face).
-   **On-screen surfaces** (`duetDeck`/`duetBrowser`, saved with scenarios):
-   the FEATURED side can present the deck (Presentation step's `docIds`,
-   `slides_trigger: "on_demand"`) and/or run Browser Use — startDuet PUTs the
-   skill on the featured studio PAL when on and DELETEs it when off (the
-   reusable PAL must not carry a stale deck into the next duet); planDuet
-   appends a beat hint to the brief so the outline actually reaches the deck
-   (toggle BEFORE planning). **Latency**: the joiner's end-of-turn quiet
+   **On-screen surfaces** (`duetDeck`/`duetBrowser` + `duetDeckBeat`/
+   `duetBrowserBeat`/`duetBrowserShow`, saved with scenarios): the FEATURED
+   side can present the deck (`docIdsRaw` editable in-place on the Studio
+   step — same state as the Presentation step; `slides_trigger:
+   "on_demand"`) and/or run Browser Use (with a "what to pull up" target) —
+   startDuet PUTs the skill on the featured studio PAL when on and DELETEs
+   it when off (the reusable PAL must not carry a stale deck into the next
+   duet); planDuet appends a beat hint to the brief so the outline actually
+   reaches the deck (toggle BEFORE planning). Each surface can be scheduled
+   to a talk-track beat: at that beat `DuetStage` rides a
+   `(Stage direction: …)` parenthetical into the next host→featured relay
+   (one-shot `deckCuedRef`/`browserCuedRef`; the featured context explains
+   the convention — act silently, never read aloud), so the surface opens
+   on cue instead of when the model feels like it.
+   **Rehearsal** (`DuetRehearsal`, "▶ Rehearse the take"): free playback of
+   the storyboard on a mock stage — placeholder tiles, every card on its
+   owner tile at its scheduled time, panel-open simulation, narrator line,
+   transport bar (play/pause/speed/scrub) and a clickable event ruler.
+   ~11s/turn simulated pacing; order/tile/beat positions exact, "≈" marks
+   model-timed events. No conversations are created.
+   **Deterministic placement**: `compileScriptedCards` defaults `owner` to
+   `"featured"` — a card's tile NEVER depends on which speaker triggered it. **Latency**: the joiner's end-of-turn quiet
    window is adaptive — 900ms when the transcript ends on sentence-final
    punctuation, 1400ms for mid-sentence stops/blank buffers (scripted speech;
    short windows there caused talk-over) — and `ensureStudioPal` sets

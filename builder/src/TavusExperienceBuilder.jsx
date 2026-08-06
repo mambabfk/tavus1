@@ -911,7 +911,7 @@ function DuetJoiner({ url, id, side, hold = false }) {
 /* The duet stage the builder sees: branded chrome, two rooms side by side,
    REC indicator, turn counter, End button. Records the captured tab locally
    (MediaRecorder) and downloads the file when the duet ends. */
-function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = "", openerB = "", summary = "", features = "", outline = [], onExit }) {
+function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = "", openerB = "", summary = "", features = "", outline = [], surfaces = null, onExit }) {
   // Opening choreography: BOTH rooms join at t=0 (both faces on screen
   // together — no black tile). Side B starts HELD (muted, auto-interrupted);
   // when A's opener lands, we release B with the scripted reply via echo.
@@ -948,9 +948,9 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
     if (cardFiredRef.current.has(i)) return;
     cardFiredRef.current.add(i);
     lastCardAtRef.current = Date.now();
-    // The plan assigns each card an owner (the speaker who raises that beat);
-    // the triggering speaker is only the fallback.
-    const side = cards[i].owner === "featured" ? "a" : cards[i].owner === "host" ? "b" : from;
+    // Placement is deterministic: every compiled card carries an owner —
+    // the triggering speaker never decides which tile a card lands on.
+    const side = cards[i].owner === "host" ? "b" : "a";
     setDuetCard({ card: cards[i], index: i, from: side, picked: null });
     setNarr("🪄 Magic Canvas — this interactive element was triggered live by what was just said.");
     // Duet cards never park forever: default auto-hide keeps them alternating.
@@ -961,6 +961,10 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
   };
   const readyRef = useRef({ a: false, b: false });
   const pendingRef = useRef({ a: [], b: [] });
+  // Scheduled surface cues — each fires exactly once, riding the next
+  // host→featured relay as a (Stage direction: …) parenthetical.
+  const deckCuedRef = useRef(false);
+  const browserCuedRef = useRef(false);
 
   const endDuet = useCallback(() => {
     if (endedRef.current) return;
@@ -1076,11 +1080,26 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
         lastTurnAtRef.current = Date.now();
         lastFromRef.current = d.from;
         if (turnsRef.current >= maxTurns * 2) { endDuet(); return; }
+        const nowBeat = Math.floor(turnsRef.current / 2) + 1; // 1-indexed talk-track beat
         // Once the opening exchange has played, tell the viewer which Tavus
         // features to watch for (holds until the next beat/card caption).
         if (turnsRef.current === 2 && features) {
           setNarr(features);
           lastCardAtRef.current = Date.now();
+        }
+        // Scheduled surfaces: at the chosen beat, ride a stage direction into
+        // the next host→featured relay so the deck / browser opens ON CUE
+        // instead of whenever the model feels like it.
+        let cue = "";
+        if (d.from === "b") {
+          if (surfaces?.deckBeat > 0 && nowBeat >= surfaces.deckBeat && !deckCuedRef.current) {
+            deckCuedRef.current = true;
+            cue += " (Stage direction: bring up the slide deck now — present the most relevant slide as you answer.)";
+          }
+          if (surfaces?.browserBeat > 0 && nowBeat >= surfaces.browserBeat && !browserCuedRef.current) {
+            browserCuedRef.current = true;
+            cue += ` (Stage direction: use your browser now${surfaces.browserShow ? ` — pull up ${surfaces.browserShow}` : ""} and show it while you keep talking.)`;
+          }
         }
         if (d.from === "a") {
           const isOpener = aFirstRef.current;
@@ -1103,10 +1122,9 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
             echoRelayedRef.current = true;
             clearTimeout(echoTimerRef.current);
             if (!text) text = openerB;
-            if (text) deliver("a", text);
-          } else if (text) {
-            deliver("a", text);
           }
+          const out = (text ? text + cue : cue).trim();
+          if (out) deliver("a", out);
         }
         if (text) setNote(`${labels?.[d.from] || String(d.from).toUpperCase()}: “${text.slice(0, 110)}${text.length > 110 ? "…" : ""}”`);
         // Backstop matching on the finished turn — the live speech feed
@@ -1114,7 +1132,6 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
         matchCards(text.toLowerCase(), d.from);
         // Beat-pinned cards: deterministic timing — fire when the talk track
         // reaches their beat (~2 turns per beat, same clock as the narrator).
-        const nowBeat = Math.floor(turnsRef.current / 2) + 1; // 1-indexed
         for (let i = 0; i < cards.length; i++) {
           if (cards[i].trigger !== "beat" || cardFiredRef.current.has(i)) continue;
           if (cards[i].atBeat <= nowBeat) { showDuetCard(i, d.from); break; }
@@ -1209,6 +1226,124 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
           Tavus feature is doing what, as it happens. */}
       <div className="duet-narrator">{narr}</div>
       <footer className="duet-note">{note}</footer>
+    </div>
+  );
+}
+
+/* ── Duet rehearsal: plays the storyboard on a mock stage — every card on its
+      exact tile at its scheduled moment, surface panels opening on cue, the
+      narrator line — WITHOUT creating conversations. Free, instant, and the
+      answer to "what exactly is about to be recorded?". Pacing is simulated
+      (~11s a turn); order and placement are exact, wall-clock drifts a bit. ── */
+function DuetRehearsal({ brand, maxTurns, cards = [], labels = null, outline = [], surfaces = null, summary = "", features = "", onExit }) {
+  const TURN = 11; // seconds per live turn (speech + generation), rough average
+  const totalTurns = Math.max(4, maxTurns * 2);
+  const total = totalTurns * TURN;
+  const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.max(0, Math.floor(s % 60))).padStart(2, "0")}`;
+  const beatTurn = (b) => Math.max(1, (Math.max(1, b) - 1) * 2); // first turn where the stage clock reaches beat b
+  const model = useMemo(() => {
+    const kwBeat = (c) => {
+      const kws = String(c.keywords || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+      return outline.findIndex((b2) => kws.some((k) => String(b2).toLowerCase().includes(k)));
+    };
+    const fires = cards.map((c, i) => {
+      let t; let approx = false;
+      if (c.trigger === "start") t = 1;
+      else if (c.trigger === "time") t = c.atSeconds;
+      else if (c.trigger === "beat") t = beatTurn(c.atBeat) * TURN;
+      else {
+        const bi = kwBeat(c);
+        approx = true; // keyword cards fire when the word is actually said
+        t = bi >= 0 ? (beatTurn(bi + 1) + 0.5) * TURN : Math.ceil(((i + 1) * totalTurns) / (cards.length + 1)) * TURN;
+      }
+      return { i, c, t: Math.min(total - 2, t), hide: Math.min(total, Math.min(total - 2, t) + (c.hideAfter || 35)), approx };
+    });
+    const deckT = surfaces?.deckOn ? (surfaces.deckBeat > 0 ? (beatTurn(surfaces.deckBeat) + 1) * TURN : total * 0.4) : null;
+    const browserT = surfaces?.browserOn ? (surfaces.browserBeat > 0 ? (beatTurn(surfaces.browserBeat) + 1) * TURN : total * 0.55) : null;
+    const events = [
+      ...fires.map((f) => ({ t: f.t, label: `${f.approx ? "≈" : ""}${f.c.style === "chart" ? "📊" : f.c.style === "stat" ? "🔢" : f.c.style === "image" ? "🖼" : f.c.style === "question" ? "❓" : "📄"} ${f.c.title || f.c.style} → ${f.c.owner === "host" ? labels?.b || "host" : labels?.a || "featured"}` })),
+      ...(deckT != null ? [{ t: deckT, label: `${surfaces.deckBeat > 0 ? "" : "≈"}📽 deck panel opens → ${labels?.a || "featured"}` }] : []),
+      ...(browserT != null ? [{ t: browserT, label: `${surfaces.browserBeat > 0 ? "" : "≈"}🌐 browser opens → ${labels?.a || "featured"}` }] : []),
+      { t: total, label: "⏹ take ends & saves" },
+    ].sort((x, y) => x.t - y.t);
+    return { fires, deckT, browserT, events };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const [t, setT] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const [speed, setSpeed] = useState(2);
+  useEffect(() => {
+    if (!playing) return undefined;
+    const iv = setInterval(() => setT((x) => (x + 0.2 * speed >= total ? (setPlaying(false), total) : x + 0.2 * speed)), 200);
+    return () => clearInterval(iv);
+  }, [playing, speed, total]);
+  const turn = Math.min(totalTurns, Math.floor(t / TURN) + 1);
+  const beat = Math.min(Math.max(1, outline.length), Math.floor(turn / 2) + 1);
+  const speaking = turn % 2 === 1 ? "a" : "b"; // featured opens
+  const lastFire = model.fires.filter((f) => f.t <= t).sort((x, y) => x.t - y.t).pop() || null;
+  const active = lastFire && t < lastFire.hide ? lastFire : null;
+  const deckOpen = model.deckT != null && t >= model.deckT;
+  const browserOpen = model.browserT != null && t >= model.browserT;
+  const panelOpen = deckOpen || browserOpen;
+  const narr = (() => {
+    const cands = [{ t: 0, s: summary || "Two AI humans in live conversation on Tavus." }];
+    if (features) cands.push({ t: 2 * TURN, s: features });
+    outline.forEach((b2, i) => cands.push({ t: beatTurn(i + 1) * TURN + 0.01, s: `Now: ${b2}` }));
+    model.fires.forEach((f) => cands.push({ t: f.t, s: "🪄 Magic Canvas — this interactive element was triggered live by what was just said." }));
+    if (model.deckT != null) cands.push({ t: model.deckT, s: "🖥 A window just opened beside the face — slides driven by the AI human itself." });
+    if (model.browserT != null) cands.push({ t: model.browserT, s: "🖥 A window just opened beside the face — a live browser driven by the AI human itself." });
+    return cands.filter((c) => c.t <= t).sort((x, y) => x.t - y.t).pop()?.s || "";
+  })();
+  const tile = (side) => {
+    const name = side === "a" ? labels?.a || "Featured" : labels?.b || "Host";
+    return (
+      <div className="duet-tile" key={side} style={{ background: side === "a" ? "linear-gradient(135deg,#23262e,#181a20)" : "linear-gradient(135deg,#1d232b,#15181d)", borderRadius: 12, overflow: "hidden", outline: speaking === side ? "2px solid rgba(255,171,113,.75)" : "1px solid rgba(255,255,255,.08)", position: "relative" }}>
+        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, color: "#aab2bf", right: side === "a" && panelOpen ? "58%" : 0, transition: "right .5s ease" }}>
+          <div style={{ width: 84, height: 84, borderRadius: "50%", background: "rgba(255,255,255,.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 34, fontWeight: 800, color: "#e8ebf0" }}>{name.slice(0, 1).toUpperCase()}</div>
+          <div style={{ fontSize: 13 }}>{speaking === side ? "speaking…" : "listening"}</div>
+        </div>
+        {side === "a" && panelOpen && (
+          <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: "58%", background: "#171a21", borderLeft: "1px solid rgba(255,255,255,.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "#cdd4de", fontSize: 14, textAlign: "center", padding: 16 }}>
+            {deckOpen ? "📽 Slide deck presents here" : "🌐 Live browser renders here"}
+          </div>
+        )}
+        <span className="duet-name">{name}</span>
+        {active && (active.c.owner === "host" ? "b" : "a") === side && (
+          <div className="duet-tile-card">
+            <ScriptedCard key={active.i} card={active.c} forcePicked={null} />
+          </div>
+        )}
+      </div>
+    );
+  };
+  return (
+    <div className="duet-root">
+      <header className="duet-bar">
+        <span className="duet-brand">{brand || "Tavus"} — rehearsal (nothing is live, nothing is billed)</span>
+        <span className="duet-rec">▶ {fmt(t)} / {fmt(total)} · turn {turn}/{totalTurns} · beat {beat}</span>
+        <button className="pill-btn" onClick={onExit}>✕ Close rehearsal</button>
+      </header>
+      <div className={"duet-stage" + (panelOpen ? " duet-screen-a" : "")}>
+        {tile("a")}
+        {tile("b")}
+      </div>
+      <div className="duet-narrator">{narr}</div>
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 10, padding: "10px 20px 4px", color: "#aab2bf", fontSize: 13 }}>
+        <button className="pill-btn" style={{ padding: "3px 12px" }} onClick={() => { setT(0); setPlaying(true); }}>⏪</button>
+        <button className="pill-btn" style={{ padding: "3px 12px" }} onClick={() => setPlaying((p) => !p)}>{playing ? "⏸" : "▶"}</button>
+        <select value={speed} onChange={(e) => setSpeed(Number(e.target.value))} style={{ background: "#1b1e24", color: "#e8ebf0", border: "1px solid rgba(255,255,255,.15)", borderRadius: 8, padding: "3px 8px", fontSize: 12.5 }}>
+          <option value={1}>1×</option><option value={2}>2×</option><option value={4}>4×</option>
+        </select>
+        <input type="range" min="0" max={total} step="0.5" value={t} onChange={(e) => { setT(Number(e.target.value)); setPlaying(false); }} style={{ flex: 1 }} />
+      </div>
+      <div style={{ flexShrink: 0, display: "flex", gap: 8, overflowX: "auto", padding: "6px 20px 14px", fontSize: 12 }}>
+        {model.events.map((ev, i) => (
+          <span key={i} style={{ whiteSpace: "nowrap", padding: "3px 10px", borderRadius: 999, border: "1px solid rgba(255,255,255,.14)", background: ev.t <= t ? "rgba(255,171,113,.18)" : "rgba(255,255,255,.04)", color: ev.t <= t ? "#ffd9bd" : "#8d95a3", cursor: "pointer" }} onClick={() => { setT(Math.max(0, ev.t - 1)); setPlaying(false); }} title="Jump here">
+            {fmt(ev.t)} {ev.label}
+          </span>
+        ))}
+      </div>
+      <footer className="duet-note">Simulated pacing at ~{TURN}s a turn — live turns drift a few seconds, but order, tiles and beat positions are exact. “≈” = model-timed (word-triggered or AI-decided).</footer>
     </div>
   );
 }
@@ -1622,7 +1757,7 @@ function compileScriptedCards(arr) {
       atBeat: Math.max(0, parseInt(c.atBeat, 10) || 0), // duets: 1-indexed talk-track beat
       atSeconds: Math.max(0, Math.round((parseFloat(c.atMinutes) || 0) * 60)),
       hideAfter: Math.max(0, parseInt(c.hideAfter, 10) || 0),
-      owner: c.owner === "featured" || c.owner === "host" ? c.owner : "", // duets: whose screen it belongs on
+      owner: c.owner === "host" ? "host" : "featured", // duets: whose screen it belongs on — ALWAYS explicit, placement is never speaker-dependent
     };
     if (style === "image" ? !card.url : !card.body) return null;
     if (trigger === "keyword" && !card.keywords) return null;
@@ -2492,6 +2627,13 @@ export default function TavusExperienceBuilder() {
   // and open in their own panel beside the face.
   const [duetDeck, setDuetDeck] = useState(false);
   const [duetBrowser, setDuetBrowser] = useState(false);
+  // Scheduled surface opens (1-indexed talk-track beat; 0 = let the AI decide).
+  // At the scheduled beat the stage injects a (Stage direction: …) into the
+  // relayed turn so the featured AI actually brings the surface up on cue.
+  const [duetDeckBeat, setDuetDeckBeat] = useState("0");
+  const [duetBrowserBeat, setDuetBrowserBeat] = useState("0");
+  const [duetBrowserShow, setDuetBrowserShow] = useState(""); // what the browser should pull up (URL or task)
+  const [duetRehearse, setDuetRehearse] = useState(false); // free storyboard playback on a mock stage
   // Two reusable Studio PALs — their prompts get PATCHed per plan, so duets
   // never pile up new PALs on the account.
   const [studioPalA, setStudioPalA] = useState("");
@@ -2617,7 +2759,8 @@ export default function TavusExperienceBuilder() {
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
     scCards, studioLines,
-    duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser, studioPalA, studioPalB,
+    duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser,
+    duetDeckBeat, duetBrowserBeat, duetBrowserShow, studioPalA, studioPalB,
     palLlm, knowledgeIdsRaw,
     site,
     expJourney,
@@ -2682,6 +2825,8 @@ export default function TavusExperienceBuilder() {
     setDuetNarrIntro(c.duetNarrIntro ?? ""); setDuetNarrFeatures(c.duetNarrFeatures ?? "");
     setDuetTurns(c.duetTurns ?? "6");
     setDuetDeck(!!c.duetDeck); setDuetBrowser(!!c.duetBrowser);
+    setDuetDeckBeat(String(c.duetDeckBeat ?? "0")); setDuetBrowserBeat(String(c.duetBrowserBeat ?? "0"));
+    setDuetBrowserShow(c.duetBrowserShow ?? "");
     setStudioPalA(c.studioPalA ?? ""); setStudioPalB(c.studioPalB ?? "");
     setExpJourney(Array.isArray(c.expJourney) ? c.expJourney : []);
     // Email capture is table stakes — scenarios saved before the field
@@ -4304,7 +4449,8 @@ export default function TavusExperienceBuilder() {
       const sharedCtx = `This is a recorded on-camera segment. Keep every turn short — one or two sentences, three only when a moment truly needs it. Never monologue. Follow the conversation plan in order:\n${outline}`;
       const surfaceCtx = [
         duetDeck && docIds.length ? "You have a slide deck attached. When the plan reaches material worth showing, present the relevant slide while you talk — don't narrate the mechanics, just bring it up." : "",
-        duetBrowser ? "You have a Browser Use skill. When the plan calls for showing something live on the web, pull the page up and talk over it." : "",
+        duetBrowser ? `You have a Browser Use skill.${duetBrowserShow.trim() ? ` When directed (or when the plan calls for it), pull up: ${duetBrowserShow.trim().slice(0, 300)}.` : " When the plan calls for showing something live on the web, pull the page up and talk over it."}` : "",
+        (duetDeck && docIds.length) || duetBrowser ? "The other speaker's messages may contain a parenthetical note like (Stage direction: …). Those notes are cues for you, not spoken words — act on them immediately and silently; never read them aloud, repeat them, or mention them." : "",
       ].filter(Boolean).join("\n");
       setStudioStatus("Creating both conversations…");
       const a = await tavusFetch("POST", "/conversations", {
@@ -4877,7 +5023,31 @@ export default function TavusExperienceBuilder() {
           summary={duetNarrIntro.trim()}
           features={duetNarrFeatures.trim()}
           outline={(Array.isArray(duetPlan?.outline) ? duetPlan.outline : []).map((b2) => String(b2).trim()).filter(Boolean)}
+          surfaces={{
+            deckBeat: duetDeck && docIds.length ? parseInt(duetDeckBeat, 10) || 0 : 0,
+            browserBeat: duetBrowser ? parseInt(duetBrowserBeat, 10) || 0 : 0,
+            browserShow: duetBrowserShow.trim().slice(0, 200),
+          }}
           onExit={() => { setDuetRun(null); setStudioStatus("Duet saved — the .webm downloaded to this machine."); }}
+        />
+      )}
+
+      {duetRehearse && duetPlan && !duetRun && (
+        <DuetRehearsal
+          brand={site.brand}
+          maxTurns={Math.max(2, parseInt(duetTurns, 10) || 6)}
+          cards={compileScriptedCards(duetPlan.cards)}
+          labels={{ a: duetPlan.featured?.name || "Featured", b: duetPlan.host?.name || "Host" }}
+          outline={(Array.isArray(duetPlan.outline) ? duetPlan.outline : []).map((b2) => String(b2).trim()).filter(Boolean)}
+          surfaces={{
+            deckOn: duetDeck && docIds.length > 0,
+            deckBeat: parseInt(duetDeckBeat, 10) || 0,
+            browserOn: duetBrowser,
+            browserBeat: parseInt(duetBrowserBeat, 10) || 0,
+          }}
+          summary={duetNarrIntro.trim()}
+          features={duetNarrFeatures.trim()}
+          onExit={() => setDuetRehearse(false)}
         />
       )}
 
@@ -6708,8 +6878,14 @@ export default function TavusExperienceBuilder() {
                       const byBeat = beats.map(() => []);
                       const loose = [];
                       raw.forEach((c, ci) => { const bi = beatFor(c); (bi >= 0 ? byBeat[bi] : loose).push(ci); });
-                      const deckBeat = duetDeck && docIds.length ? beats.findIndex((b2) => /slide|deck|present/i.test(b2)) : -1;
-                      const browserBeat = duetBrowser ? beats.findIndex((b2) => /browser|website|web ?page|live (site|page)/i.test(b2)) : -1;
+                      const deckSched = parseInt(duetDeckBeat, 10) || 0;
+                      const browserSched = parseInt(duetBrowserBeat, 10) || 0;
+                      const deckBeat = duetDeck && docIds.length
+                        ? (deckSched > 0 ? Math.min(beats.length, deckSched) - 1 : beats.findIndex((b2) => /slide|deck|present/i.test(b2)))
+                        : -1;
+                      const browserBeat = duetBrowser
+                        ? (browserSched > 0 ? Math.min(beats.length, browserSched) - 1 : beats.findIndex((b2) => /browser|website|web ?page|live (site|page)/i.test(b2)))
+                        : -1;
                       const inp = { fontSize: 12.5, padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", width: "100%", boxSizing: "border-box" };
                       const cardEditor = (ci) => {
                         const c = raw[ci];
@@ -6782,8 +6958,8 @@ export default function TavusExperienceBuilder() {
                               </div>
                               <div style={{ flex: 1.2 }}>
                                 {byBeat[i].map(cardEditor)}
-                                {deckBeat === i && <div style={{ color: "var(--muted)", marginBottom: 6 }}>📽 <b style={{ color: "var(--text)" }}>Deck panel opens</b> — slides beside the face</div>}
-                                {browserBeat === i && <div style={{ color: "var(--muted)", marginBottom: 6 }}>🌐 <b style={{ color: "var(--text)" }}>Live browser opens</b> beside the face</div>}
+                                {deckBeat === i && <div style={{ color: "var(--muted)", marginBottom: 6 }}>📽 <b style={{ color: "var(--text)" }}>Deck panel opens</b> — {deckSched > 0 ? "on cue at this beat" : "≈ when the AI decides (pick a beat above to lock it)"}</div>}
+                                {browserBeat === i && <div style={{ color: "var(--muted)", marginBottom: 6 }}>🌐 <b style={{ color: "var(--text)" }}>Live browser opens</b> — {browserSched > 0 ? "on cue at this beat" : "≈ when the AI decides (pick a beat above to lock it)"}</div>}
                                 <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11.5 }} onClick={() => addCard(i)}>+ card at this beat</button>
                               </div>
                             </div>
@@ -6796,8 +6972,31 @@ export default function TavusExperienceBuilder() {
                               <div style={{ flex: 1.2 }}>{cardEditor(ci)}</div>
                             </div>
                           ))}
-                          <div style={{ paddingTop: 8 }}>
+                          <div style={{ paddingTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
                             <button className="pill-btn" style={{ padding: "3px 12px", fontSize: 12 }} onClick={addBeat}>+ Add beat</button>
+                            {raw.some((c) => c.trigger === "keyword" || !c.trigger) && (
+                              <button
+                                className="pill-btn"
+                                style={{ padding: "3px 12px", fontSize: 12 }}
+                                title="Convert every trigger-word card to a fixed beat — fully deterministic timing"
+                                onClick={() => setDuetPlan((p) => {
+                                  const kwCards = (p.cards || []).filter((c) => c.trigger === "keyword" || !c.trigger);
+                                  let n = 0;
+                                  return {
+                                    ...p,
+                                    cards: (p.cards || []).map((c) => {
+                                      if (c.trigger !== "keyword" && c.trigger) return c;
+                                      n += 1;
+                                      const bi = beatFor(c);
+                                      const spread = Math.min(beats.length, Math.max(1, Math.round((n * beats.length) / (kwCards.length + 1))));
+                                      return { ...c, trigger: "beat", atBeat: bi >= 0 ? bi + 1 : spread };
+                                    }),
+                                  };
+                                })}
+                              >
+                                ⏱ Lock every card to its beat
+                              </button>
+                            )}
                           </div>
                           <p className="field-hint" style={{ margin: "8px 0 0" }}>
                             Edits here are what actually runs — the talk track rides into both rooms at record time and the cards compile from this list.
@@ -6847,19 +7046,50 @@ export default function TavusExperienceBuilder() {
                   <Field label="Exchanges" hint="How many back-and-forths before it wraps and saves (hard cap 5 minutes).">
                     <input type="number" min="2" max="20" style={{ maxWidth: 120 }} value={duetTurns} onChange={(e) => setDuetTurns(e.target.value)} />
                   </Field>
-                  <Field label="On-screen surfaces" hint="Either one opens in its own window beside the face — the tile splits like the canvas layout, never covering anyone. Toggle these BEFORE planning so the talk track includes the moment they come up.">
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer", marginBottom: 8 }}>
-                      <input type="checkbox" style={{ width: "auto" }} checked={duetDeck} onChange={(e) => setDuetDeck(e.target.checked)} disabled={!docIds.length} />
-                      📽 Present the deck {docIds.length ? `— the ${docIds.length} document${docIds.length > 1 ? "s" : ""} from the Presentation step` : "— add document IDs on the Presentation step first"}
-                    </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer" }}>
-                      <input type="checkbox" style={{ width: "auto" }} checked={duetBrowser} onChange={(e) => setDuetBrowser(e.target.checked)} />
-                      🌐 Browser Use — the featured AI human can pull up live websites
-                    </label>
+                  <Field label="On-screen surfaces" hint="Either one opens in its own window beside the face — never covering anyone. Pick the beat it opens on and the stage sends the featured AI a silent cue at that exact moment; “when the AI decides” leaves it to the model.">
+                    {(() => {
+                      const beats2 = (duetPlan.outline || []).map((b3) => String(b3).trim()).filter(Boolean);
+                      const beatSelect = (value, onChange) => (
+                        <select style={{ fontSize: 12.5, padding: "4px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)" }} value={value} onChange={(e) => onChange(e.target.value)}>
+                          <option value="0">when the AI decides</option>
+                          {beats2.map((b3, bi) => <option key={bi} value={bi + 1}>opens at beat {bi + 1} — {b3.slice(0, 30)}{b3.length > 30 ? "…" : ""}</option>)}
+                        </select>
+                      );
+                      return (
+                        <>
+                          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer", marginBottom: 6 }}>
+                            <input type="checkbox" style={{ width: "auto" }} checked={duetDeck} onChange={(e) => setDuetDeck(e.target.checked)} />
+                            📽 Present the deck
+                          </label>
+                          {duetDeck && (
+                            <div style={{ margin: "0 0 12px 26px", display: "flex", flexDirection: "column", gap: 6 }}>
+                              <input className="mono" style={{ fontSize: 12.5 }} value={docIdsRaw} onChange={(e) => setDocIdsRaw(e.target.value)} placeholder="Knowledge Base document IDs, comma-separated (shared with the Presentation step)" />
+                              {!docIds.length && <span className="field-hint" style={{ color: "#b4552d" }}>⚠ No document IDs yet — the deck can’t open without them.</span>}
+                              <div>{beatSelect(duetDeckBeat, setDuetDeckBeat)}</div>
+                            </div>
+                          )}
+                          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer", marginBottom: 6 }}>
+                            <input type="checkbox" style={{ width: "auto" }} checked={duetBrowser} onChange={(e) => setDuetBrowser(e.target.checked)} />
+                            🌐 Browser Use — the featured AI human pulls up a live website
+                          </label>
+                          {duetBrowser && (
+                            <div style={{ margin: "0 0 4px 26px", display: "flex", flexDirection: "column", gap: 6 }}>
+                              <input style={{ fontSize: 12.5 }} value={duetBrowserShow} onChange={(e) => setDuetBrowserShow(e.target.value)} placeholder="What should it pull up? — a URL or a task, e.g. “tavus.io pricing page”" />
+                              <div>{beatSelect(duetBrowserBeat, setDuetBrowserBeat)}</div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </Field>
-                  <button className="pill-btn primary" onClick={startDuet} disabled={!!duetRun || studioActive}>
-                    {duetRun ? "Duet running…" : "🎭 Record duet"}
-                  </button>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button className="pill-btn" onClick={() => setDuetRehearse(true)} disabled={!!duetRun} title="Free playback of the storyboard on a mock stage — see every card, tile and panel before recording">
+                      ▶ Rehearse the take
+                    </button>
+                    <button className="pill-btn primary" onClick={startDuet} disabled={!!duetRun || studioActive}>
+                      {duetRun ? "Duet running…" : "🎭 Record duet"}
+                    </button>
+                  </div>
                   <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px dashed var(--border)", maxWidth: 640 }}>
                     <p className="field-hint" style={{ margin: "0 0 8px" }}>
                       <b style={{ color: "var(--text)" }}>Sales handoff:</b> the video is the teaser — this turns{" "}
