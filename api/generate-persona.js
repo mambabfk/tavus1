@@ -233,6 +233,19 @@ function presentationContextLines(pres) {
   return lines;
 }
 
+/* "Promote": one side of a scripted duet becomes a live demo persona a real
+   human talks to — the sales handoff. Same character, no set dressing. */
+const PROMOTE_SYSTEM = `You convert one side of a scripted AI-to-AI "duet" demo into a live demo persona that a REAL HUMAN prospect will talk to. This is the sales handoff: the prospect watched the duet video, and now they meet the same AI human for real.
+
+Return ONLY JSON (no markdown fences): {"name": "...", "prompt": "...", "greeting": "...", "objectives": "..." | null}
+
+- "name": short PAL name — the character's name plus role (e.g. "Maya — intake specialist"). Never the word "duet".
+- "prompt": the live persona's system prompt. KEEP the character's identity, personality, product knowledge, signature phrases and emotional range from the duet persona — the prospect should recognize the person from the video. REMOVE everything that only made sense on a set: the co-host, the fixed talk-track order, turn counts, "recorded segment" framing, scripted openers, card trigger words. REWRITE ## Conversation Flow for a real visitor: greet warmly → learn who they are and what they care about → walk the same material adaptively (deck / live browser if noted) → answer objections honestly → close on a concrete next step. Keep the same section structure as the input prompt (## Identity & Role, ## Personality & Conversational Style, and so on), including the Perception anti-narration rules if present.
+- "greeting": ONE natural spoken line welcoming a visitor who just joined — reference the topic, never the video production.
+- "objectives": 3-6 plain-English lines (one per line, NO numbering or bullets) for the live demo's flow — discovery first, then the material, capture what the prospect cares about, land a next step. null only if the plan gives you nothing.
+
+The prompt is the product — everything else supports it.`;
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "POST only" });
@@ -294,6 +307,23 @@ export default async function handler(req, res) {
     system = DUET_SYSTEM;
     const parts = [`Design the duet:\n${String(vibe).trim().slice(0, 2000)}`];
     if (context?.brand) parts.push(`Brand on the demo page: ${context.brand}`);
+    userPrompt = parts.join("\n\n");
+  } else if (kind === "promote") {
+    const plan = req.body?.plan || {};
+    if (!String(plan?.prompt ?? "").trim()) {
+      res.status(400).json({ error: "No duet persona to promote — plan a duet first." });
+      return;
+    }
+    system = PROMOTE_SYSTEM;
+    const parts = [`DUET PERSONA TO PROMOTE (the featured side):\n${String(plan.prompt).trim().slice(0, 20000)}`];
+    if (plan.name) parts.push(`Character name: ${String(plan.name).slice(0, 200)}`);
+    if (plan.title) parts.push(`The duet video was titled: ${String(plan.title).slice(0, 200)}`);
+    if (Array.isArray(plan.outline) && plan.outline.length) {
+      parts.push(`Material covered in the video (the prospect has already seen this — the live call goes deeper, it doesn't replay it):\n${plan.outline.map((b, i) => `${i + 1}. ${String(b).slice(0, 300)}`).join("\n")}`);
+    }
+    if (context?.brand) parts.push(`Brand: ${context.brand}`);
+    if (context?.deck) parts.push("The live PAL has the same slide deck attached — the flow should present it when relevant.");
+    if (context?.browser) parts.push("The live PAL has Browser Use — it can pull up live websites when useful.");
     userPrompt = parts.join("\n\n");
   } else if (kind === "cards") {
     system = CARDS_SYSTEM;

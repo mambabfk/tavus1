@@ -829,7 +829,20 @@ function DuetJoiner({ url, id, side, hold = false }) {
           // Exact match: conversation.utterance-streaming would duplicate text.
           if (/^conversation\.utterance$/i.test(d.event_type)) {
             const t = String(d.properties?.speech ?? d.properties?.text ?? "").trim();
-            if (t) buf.push(t);
+            if (t) {
+              // Tavus can re-emit a turn's speech cumulatively (a later event
+              // contains everything said so far) — replace, never stack, or
+              // the relayed turn reads "A. B. A. B. C." and derails the
+              // other side's reply.
+              const last = buf[buf.length - 1];
+              if (!buf.length) buf.push(t);
+              else if (t === last || last.startsWith(t)) { /* duplicate / stale partial */ }
+              else if (t.startsWith(last)) buf[buf.length - 1] = t;
+              else buf.push(t);
+              // Live speech feed — keyword cards fire the moment the word is
+              // actually said, not an end-of-turn quiet-window later.
+              post({ type: "speech", text: t });
+            }
           }
           // stopped_speaking fires on PAUSES too — resuming within the quiet
           // window cancels the pending turn, so only a real end-of-turn posts
@@ -898,7 +911,7 @@ function DuetJoiner({ url, id, side, hold = false }) {
 /* The duet stage the builder sees: branded chrome, two rooms side by side,
    REC indicator, turn counter, End button. Records the captured tab locally
    (MediaRecorder) and downloads the file when the duet ends. */
-function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = "", summary = "", features = "", outline = [], onExit }) {
+function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = "", openerB = "", summary = "", features = "", outline = [], onExit }) {
   // Opening choreography: BOTH rooms join at t=0 (both faces on screen
   // together — no black tile). Side B starts HELD (muted, auto-interrupted);
   // when A's opener lands, we release B with the scripted reply via echo.
@@ -1000,9 +1013,33 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
         }, ms);
       }
     };
+    // Card matching runs on the LIVE speech feed (word said → card up) and
+    // again on the finished turn as a backstop (scripted speech has no live
+    // feed — its text gets substituted at turn time).
+    const matchCards = (lower, from) => {
+      if (!lower) return;
+      // A spoken answer visibly selects the matching option on a live
+      // question card — that's what makes it read as two-way, not a video.
+      setDuetCard((cur) => {
+        if (!cur || cur.card.style !== "question" || cur.picked !== null || cur.from === from) return cur;
+        const opts = String(cur.card.body || "").split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 4);
+        const hit = opts.findIndex((o) => lower.includes(o.toLowerCase()));
+        return hit >= 0 ? { ...cur, picked: hit } : cur;
+      });
+      for (let i = 0; i < cards.length; i++) {
+        const c = cards[i];
+        if (c.trigger !== "keyword" || cardFiredRef.current.has(i)) continue;
+        const kws = String(c.keywords || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+        if (kws.some((k) => lower.includes(k))) { showDuetCard(i, from); break; }
+      }
+    };
     const onMsg = (e) => {
       if (e.origin !== origin || e.data?.__duet !== true) return;
       const d = e.data;
+      if (d.type === "speech" && typeof d.text === "string") {
+        matchCards(d.text.toLowerCase(), d.from);
+        return;
+      }
       if (d.type === "ready" && (d.from === "a" || d.from === "b")) {
         readyRef.current[d.from] = true;
         const frame = d.from === "a" ? frameA : frameB;
@@ -1050,7 +1087,9 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
           aFirstRef.current = false;
           if (isOpener) {
             releaseB(); // B unmutes + speaks the scripted reply
-            if (!text) text = "";
+            // Scripted speech has no transcript — substitute the authored
+            // opener so its keywords still fire cards and the note reads.
+            if (!text) text = openerA;
             // Scripted reply already answers the opener — never relay it too.
             if (!openerB && text) deliver("b", text);
           } else if (text) {
@@ -1070,22 +1109,9 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
           }
         }
         if (text) setNote(`${labels?.[d.from] || String(d.from).toUpperCase()}: “${text.slice(0, 110)}${text.length > 110 ? "…" : ""}”`);
-        const lower = text.toLowerCase();
-        // A spoken answer visibly selects the matching option on a live
-        // question card — that's what makes it read as two-way, not a video.
-        setDuetCard((cur) => {
-          if (!cur || cur.card.style !== "question" || cur.picked !== null || cur.from === d.from) return cur;
-          const opts = String(cur.card.body || "").split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 4);
-          const hit = opts.findIndex((o) => lower.includes(o.toLowerCase()));
-          return hit >= 0 ? { ...cur, picked: hit } : cur;
-        });
-        // Keyword cards fire off what either AI actually says — on their tile.
-        for (let i = 0; i < cards.length; i++) {
-          const c = cards[i];
-          if (c.trigger !== "keyword" || cardFiredRef.current.has(i)) continue;
-          const kws = String(c.keywords || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-          if (kws.some((k) => lower.includes(k))) { showDuetCard(i, d.from); break; }
-        }
+        // Backstop matching on the finished turn — the live speech feed
+        // already ran, but substituted scripted texts only exist here.
+        matchCards(text.toLowerCase(), d.from);
         // Fallback scheduling: every card gets its moment even if its trigger
         // words never come up — the set is spread across the conversation.
         const totalTurns = maxTurns * 2;
@@ -2442,6 +2468,7 @@ export default function TavusExperienceBuilder() {
   const [duetDesc, setDuetDesc] = useState("");
   const [duetPlan, setDuetPlan] = useState(null); // {title, outline, featured, host, cards}
   const [duetPlanBusy, setDuetPlanBusy] = useState(false);
+  const [duetPromoteBusy, setDuetPromoteBusy] = useState(false); // sales handoff: duet persona → permanent live PAL
   const [duetFaceA, setDuetFaceA] = useState(""); // featured speaker's face
   const [duetFaceB, setDuetFaceB] = useState(""); // host's face
   const [duetOpener, setDuetOpener] = useState(""); // featured opener — seeded from the plan, editable
@@ -4137,6 +4164,65 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  /* Sales handoff: mint a PERMANENT PAL from the duet's featured persona —
+     same character, adapted by Claude to talk to a real human — and load it
+     into the builder as the live demo (Setup gets the IDs, Persona gets the
+     prompt, Goals get suggested objectives). It's a brand-new PAL, separate
+     from the two reusable studio PALs, so future duet plans never touch it. */
+  const promoteDuet = async () => {
+    if (!duetPlan?.featured?.prompt) { addLog("err", "Handoff: plan the duet first."); return; }
+    if (!apiKey.trim()) { addLog("err", "Handoff: needs your Tavus API key (Account step)."); return; }
+    if (!duetFaceA.trim()) { addLog("err", "Handoff: pick the featured face first — the live PAL keeps it."); return; }
+    setDuetPromoteBusy(true);
+    try {
+      addLog("info", "Adapting the duet persona for a real visitor (same character, no set dressing)…");
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "promote",
+          plan: { prompt: duetPlan.featured.prompt, name: duetPlan.featured.name, title: duetPlan.title, outline: duetPlan.outline },
+          context: { brand: site.brand, deck: !!(duetDeck && docIds.length), browser: !!duetBrowser },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: generation failed`);
+      }
+      const out = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+      if (!String(out?.prompt ?? "").trim()) throw new Error("The adapted persona came back empty — try again.");
+      const name = String(out.name || duetPlan.featured.name || "Live demo PAL").slice(0, 80);
+      addLog("info", `Creating the permanent PAL “${name}”…`);
+      const p = await tavusFetch("POST", "/pals", {
+        pal_name: name,
+        default_face_id: duetFaceA.trim(),
+        system_prompt: String(out.prompt),
+      });
+      const newId = p.pal_id || p.uuid || p.id;
+      if (!newId) throw new Error("PAL creation returned no id.");
+      // Load it as THE demo: Setup IDs, the attached prompt as the reviewable
+      // draft, a visitor-facing greeting, suggested objectives, and the same
+      // on-screen surfaces the duet showed (launch attaches those to this PAL).
+      setPalId(newId);
+      setFaceId(duetFaceA.trim());
+      setConversationName(name);
+      setPersonaDraft(String(out.prompt));
+      if (out.greeting && String(out.greeting).trim()) setGreeting(String(out.greeting).trim());
+      if (out.objectives && String(out.objectives).trim()) { setObjectivesText(String(out.objectives).trim()); setObjectivesEnabled(true); }
+      if (duetDeck && docIds.length) setPresentationEnabled(true);
+      if (duetBrowser) setBrowserUseEnabled(true);
+      addLog("ok", `Sales handoff ready: “${name}” (${newId}) is a permanent PAL — duet plans never overwrite it. Its prompt is already attached; review it here, tune the goals, then launch or share the link like any demo.`);
+      setStep("persona");
+    } catch (e) {
+      addLog("err", `Handoff: ${e.message}`);
+    } finally {
+      setDuetPromoteBusy(false);
+    }
+  };
+
   /* Reusable Studio PALs: PATCH the prompt on the cached PAL; create only
      when missing (or when the cached one was deleted account-side). */
   const ensureStudioPal = async (cachedId, setId, name, face, prompt) => {
@@ -4776,6 +4862,7 @@ export default function TavusExperienceBuilder() {
           maxTurns={Math.max(2, parseInt(duetTurns, 10) || 6)}
           cards={duetPlan ? compileScriptedCards(duetPlan.cards) : compiledScriptedCards}
           labels={duetPlan ? { a: duetPlan.featured?.name || "", b: duetPlan.host?.name || "" } : null}
+          openerA={duetOpener.trim()}
           openerB={duetOpenerB.trim()}
           summary={duetNarrIntro.trim()}
           features={duetNarrFeatures.trim()}
@@ -6583,22 +6670,61 @@ export default function TavusExperienceBuilder() {
                       <b style={{ color: "var(--text)" }}>{duetPlan.featured?.name || "Featured"}</b> opens ·{" "}
                       <b style={{ color: "var(--text)" }}>{duetPlan.host?.name || "Host"}</b> hosts
                     </p>
-                    <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.7 }}>
-                      {(duetPlan.outline || []).map((b2, i) => <div key={i}>{i + 1}. {b2}</div>)}
-                    </div>
-                    <div style={{ marginTop: 8 }}>
-                      {compileScriptedCards(duetPlan.cards).map((c, i) => {
-                        const icon = c.style === "chart" ? "📊" : c.style === "stat" ? "🔢" : c.style === "image" ? "🖼" : c.style === "question" ? "❓" : "📄";
-                        const kws = c.keywords.split(",").map((x) => x.trim()).filter(Boolean);
-                        return (
-                          <div key={i} style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.7 }}>
-                            ✅ {icon} <b style={{ color: "var(--text)" }}>{c.title || `${c.style} card`}</b>
-                            {c.trigger === "keyword" ? ` — appears on “${kws[0]}” (in the talk track)` : c.trigger === "time" ? ` — appears at ${Math.floor(c.atSeconds / 60)}:${String(c.atSeconds % 60).padStart(2, "0")}` : " — appears at start"}
+                    {/* Storyboard: the full talk track with its visuals side by
+                        side — each beat next to what's on screen at that moment. */}
+                    {(() => {
+                      const beats = duetPlan.outline || [];
+                      const cds = compileScriptedCards(duetPlan.cards);
+                      const icon = (c) => (c.style === "chart" ? "📊" : c.style === "stat" ? "🔢" : c.style === "image" ? "🖼" : c.style === "question" ? "❓" : "📄");
+                      const who = (c) => (c.owner === "featured" ? duetPlan.featured?.name || "featured" : c.owner === "host" ? duetPlan.host?.name || "host" : "");
+                      const beatFor = (c) => {
+                        if (c.trigger === "start") return 0;
+                        if (c.trigger !== "keyword") return -1;
+                        const kws = c.keywords.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+                        return beats.findIndex((b2) => kws.some((k) => b2.toLowerCase().includes(k)));
+                      };
+                      const byBeat = beats.map(() => []);
+                      const loose = [];
+                      cds.forEach((c) => { const bi = beatFor(c); (bi >= 0 ? byBeat[bi] : loose).push(c); });
+                      const deckBeat = duetDeck && docIds.length ? beats.findIndex((b2) => /slide|deck|present/i.test(b2)) : -1;
+                      const browserBeat = duetBrowser ? beats.findIndex((b2) => /browser|website|web ?page|live (site|page)/i.test(b2)) : -1;
+                      const visual = (c, j) => (
+                        <div key={j} style={{ color: "var(--muted)" }}>
+                          {icon(c)} <b style={{ color: "var(--text)" }}>{c.title || `${c.style} card`}</b>
+                          {c.trigger === "keyword" ? ` — on “${c.keywords.split(",")[0].trim()}”` : c.trigger === "time" ? ` — at ${Math.floor(c.atSeconds / 60)}:${String(c.atSeconds % 60).padStart(2, "0")}` : " — at start"}
+                          {who(c) ? ` · ${who(c)}’s tile` : ""}
+                        </div>
+                      );
+                      return (
+                        <div style={{ fontSize: 12.5, lineHeight: 1.55 }}>
+                          <div style={{ display: "flex", gap: 14, borderBottom: "1px solid var(--border)", padding: "2px 0 6px", fontWeight: 700, color: "var(--text)" }}>
+                            <div style={{ flex: 1 }}>Talk track</div>
+                            <div style={{ flex: 1 }}>On screen</div>
                           </div>
-                        );
-                      })}
-                      {!compileScriptedCards(duetPlan.cards).length && <span className="field-hint">No cards in this plan.</span>}
-                    </div>
+                          {beats.map((b2, i) => (
+                            <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: "7px 0", borderBottom: i < beats.length - 1 || loose.length ? "1px dashed var(--border)" : "none" }}>
+                              <div style={{ flex: 1, color: "var(--muted)" }}>
+                                <b style={{ color: "var(--text)" }}>{i + 1}.</b> {b2}
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                {byBeat[i].map(visual)}
+                                {deckBeat === i && <div style={{ color: "var(--muted)" }}>📽 <b style={{ color: "var(--text)" }}>Deck panel opens</b> — slides beside the face</div>}
+                                {browserBeat === i && <div style={{ color: "var(--muted)" }}>🌐 <b style={{ color: "var(--text)" }}>Live browser opens</b> beside the face</div>}
+                                {!byBeat[i].length && deckBeat !== i && browserBeat !== i && <span style={{ color: "var(--muted)", opacity: 0.4 }}>—</span>}
+                              </div>
+                            </div>
+                          ))}
+                          {loose.map((c, i) => (
+                            <div key={`x${i}`} style={{ display: "flex", gap: 14, padding: "7px 0" }}>
+                              <div style={{ flex: 1, color: "var(--muted)", fontStyle: "italic" }}>(not tied to a beat — spreads across the take)</div>
+                              <div style={{ flex: 1 }}>{visual(c, 0)}</div>
+                            </div>
+                          ))}
+                          {!beats.length && <span className="field-hint">No talk track in this plan yet.</span>}
+                          {!cds.length && <div className="field-hint" style={{ marginTop: 6 }}>No cards in this plan.</div>}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <Field label={`${duetPlan.featured?.name || "Featured"} — face`}>
@@ -6653,6 +6779,19 @@ export default function TavusExperienceBuilder() {
                   <button className="pill-btn primary" onClick={startDuet} disabled={!!duetRun || studioActive}>
                     {duetRun ? "Duet running…" : "🎭 Record duet"}
                   </button>
+                  <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px dashed var(--border)", maxWidth: 640 }}>
+                    <p className="field-hint" style={{ margin: "0 0 8px" }}>
+                      <b style={{ color: "var(--text)" }}>Sales handoff:</b> the video is the teaser — this turns{" "}
+                      <b style={{ color: "var(--text)" }}>{duetPlan.featured?.name || "the featured AI human"}</b> into a{" "}
+                      <b style={{ color: "var(--text)" }}>permanent</b> PAL a real person can jump in and talk to. Claude adapts
+                      the character for a live visitor (same personality and knowledge, no scripted co-host), creates a brand-new
+                      PAL that future duet plans never overwrite, and loads it into the builder — Setup gets the IDs, Persona the
+                      prompt, Goals the suggested flow. From there: launch it or share the link like any demo.
+                    </p>
+                    <button className="pill-btn" onClick={promoteDuet} disabled={duetPromoteBusy || !!duetRun}>
+                      {duetPromoteBusy ? "Creating the live PAL…" : "🤝 Continue as a live demo"}
+                    </button>
+                  </div>
                 </>
               )}
             </>

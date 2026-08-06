@@ -361,9 +361,28 @@ non-technical users; ids unchanged):
    `duetPalB/FaceB/Opener/Topic/Turns` persist with scenarios; hard caps:
    2×turns relays + 5-minute timer + `max_call_duration: 360` on both rooms.
    **Scripted cards in duets**: `DuetStage` receives `compiledScriptedCards`
-   and runs its own trigger engine off the relayed turn texts (either
-   speaker's words), overlaying `ScriptedCard` bottom-center (`duet-card`) —
-   Magic Canvas still never renders in duets.
+   and runs its trigger engine (`matchCards`) on the joiner's LIVE speech
+   feed (`{type:"speech"}` posted per utterance event — cards fire the
+   moment the word is said, not an end-of-turn quiet-window later) with the
+   finished-turn text as backstop (scripted speech has no live feed; the
+   authored `openerA`/`openerB` texts are substituted at turn time so their
+   keywords still fire). The joiner dedupes cumulative utterance re-emits
+   (Tavus can resend a turn's text containing everything so far — replace,
+   never stack, or relayed turns read "A. B. A. B. C."). Magic Canvas still
+   never renders in duets. The plan preview is a **storyboard**: talk-track
+   beats side by side with the visuals that fire on each (cards matched to
+   beats by keyword, deck/browser open markers, unmatched cards footed).
+   **Sales handoff** (`promoteDuet`, `kind: "promote"` on generate-persona):
+   "Continue as a live demo" — Claude adapts the featured duet persona for a
+   real human visitor (same character, co-host/talk-track mechanics removed,
+   visitor-facing Conversation Flow; returns JSON
+   `{name, prompt, greeting, objectives|null}`), creates a brand-new
+   PERMANENT PAL (never touched by `ensureStudioPal` — that only PATCHes the
+   two studio PAL ids), and loads it into the builder: Setup gets
+   palId/faceId/name, Persona the (already attached) prompt as reviewable
+   draft, greeting + suggested objectives applied, deck/browser toggles
+   carried into presentationEnabled/browserUseEnabled. Then launch/share as
+   any demo.
    **Scripted-card extras**: style `question` = clickable multiple choice
    (title is the question, body lines are the options); the pick goes to the
    LLM as `conversation.respond` (answer fn threaded through
