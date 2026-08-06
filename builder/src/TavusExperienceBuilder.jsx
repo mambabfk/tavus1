@@ -301,7 +301,9 @@ const BUILDER_CSS = `
         .duet-bar { display:flex; align-items:center; gap:14px; padding:12px 18px; color:#e8e9ec; }
         .duet-brand { font-weight:700; font-size:16px; letter-spacing:-.3px; flex:1; }
         .duet-rec { font-family:var(--mono); font-size:12px; color:#ff6b5e; animation:recpulse 1.6s ease-in-out infinite; }
-        .duet-stage { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 14px; }
+        .duet-stage { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 14px; transition:grid-template-columns .5s ease; }
+        .duet-stage.duet-screen-a { grid-template-columns:2.6fr 1fr; }
+        .duet-stage.duet-screen-b { grid-template-columns:1fr 2.6fr; }
         .duet-frame { width:100%; height:100%; border:none; border-radius:14px; background:#000; }
         .duet-note { padding:10px 18px 14px; color:#9aa0ab; font-size:13px; text-align:center; min-height:38px; }
         .logo-wrap { display:flex; align-items:center; gap:10px; }
@@ -797,7 +799,7 @@ function DuetJoiner({ url, id, side, hold = false }) {
           // Presentation slides / Browser Use arrive as the replica's screen
           // track — render it dominant with the face as a corner tile.
           const isScreen = ev.participant?.tracks?.screenVideo?.track?.id === ev.track.id;
-          if (isScreen) { attach(screenRef.current, ev.track); setHasScreen(true); }
+          if (isScreen) { attach(screenRef.current, ev.track); setHasScreen(true); post({ type: "screen", on: true }); }
           else attach(videoRef.current, ev.track);
         });
         call.on("track-stopped", (ev) => {
@@ -805,6 +807,7 @@ function DuetJoiner({ url, id, side, hold = false }) {
           if (ev?.track && scr instanceof MediaStream && scr.getTracks().some((t) => t.id === ev.track.id)) {
             screenRef.current.srcObject = null;
             setHasScreen(false);
+            post({ type: "screen", on: false });
           }
         });
         call.on("app-message", (e2) => {
@@ -837,11 +840,17 @@ function DuetJoiner({ url, id, side, hold = false }) {
           }
           if (/stopped_speaking/i.test(d.event_type)) {
             clearTimeout(pendingTurn);
+            // Adaptive quiet window — this wait IS most of the gap between
+            // speakers. A transcript ending on sentence-final punctuation is
+            // almost certainly a finished turn: confirm fast. Mid-sentence
+            // stops and blank buffers (scripted speech has no transcript)
+            // keep the long window — posting early there caused talk-over.
+            const quiet = /[.!?…]["')\]]*$/.test(buf.join(" ").trim()) ? 900 : 1400;
             pendingTurn = setTimeout(() => {
               const text = buf.join(" ").trim();
               buf = [];
               post({ type: "turn", text });
-            }, 1400);
+            }, quiet);
           }
         });
         call.on("left-meeting", () => post({ type: "left" }));
@@ -859,23 +868,28 @@ function DuetJoiner({ url, id, side, hold = false }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Slides / Browser Use land in their own panel — a window that slides open
+  // BESIDE the face (canvas-placement style), never replacing or covering it.
+  // Both videos stay mounted so track attach always has a target.
   return (
-    <div style={{ position: "fixed", inset: 0, background: "#101114" }}>
-      <video
-        ref={screenRef}
-        autoPlay
-        playsInline
-        style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000", display: hasScreen ? "block" : "none" }}
-      />
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted={false}
-        style={hasScreen
-          ? { position: "absolute", right: 12, bottom: 12, width: "26%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,.5)", zIndex: 2 }
-          : { width: "100%", height: "100%", objectFit: "cover" }}
-      />
+    <div style={{ position: "fixed", inset: 0, background: "#101114", display: "flex" }}>
+      <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
+        <video ref={videoRef} autoPlay playsInline muted={false} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      </div>
+      <div
+        style={{
+          width: hasScreen ? "58%" : 0,
+          transition: "width .5s ease",
+          overflow: "hidden",
+          flexShrink: 0,
+          background: "#171a21",
+          borderLeft: hasScreen ? "1px solid rgba(255,255,255,.12)" : "none",
+          padding: hasScreen ? 10 : 0,
+          boxSizing: "border-box",
+        }}
+      >
+        <video ref={screenRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "contain", background: "#000", borderRadius: 10 }} />
+      </div>
       <audio ref={audioRef} autoPlay muted={!!hold} />
     </div>
   );
@@ -911,6 +925,9 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
   // render ON THE ASKER'S TILE; when a question card is up, the other AI's
   // spoken answer visibly selects the matching option.
   const [duetCard, setDuetCard] = useState(null); // {card, index, from, picked}
+  // Which side has a live screen panel (slides / Browser Use) — that tile
+  // widens so the deck window and the face both stay readable.
+  const [screenSide, setScreenSide] = useState("");
   const cardFiredRef = useRef(new Set());
   const cardTimersRef = useRef([]);
   const cardsArmedRef = useRef(false);
@@ -1004,6 +1021,13 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
       }
       if (d.type === "fatal") setNote(`Room ${String(d.from).toUpperCase()} failed: ${d.error}`);
       if (d.type === "autoplay-blocked") setNote("Audio blocked by the browser — click anywhere on this page once.");
+      if (d.type === "screen" && (d.from === "a" || d.from === "b")) {
+        setScreenSide((cur) => (d.on ? d.from : cur === d.from ? "" : cur));
+        if (d.on) {
+          setNarr("🖥 A window just opened beside the face — slides or a live browser, driven by the AI human itself, mid-conversation.");
+          lastCardAtRef.current = Date.now();
+        }
+      }
       if (d.type === "turn") {
         // Scripted speech (custom greetings, echoes) can finish with NO
         // transcript — an empty turn still means "I'm done speaking". We know
@@ -1127,7 +1151,7 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerB = 
         <span className="duet-rec">⏺ REC · {turns} turns</span>
         <button className="pill-btn" onClick={endDuet}>■ End &amp; save</button>
       </header>
-      <div className="duet-stage">
+      <div className={"duet-stage" + (screenSide ? ` duet-screen-${screenSide}` : "")}>
         <div className="duet-tile">
           <iframe ref={frameA} title="Duet A" className="duet-frame" allow="autoplay" src={src(run.a, "a")} />
           {labels?.a && <span className="duet-name">{labels.a}</span>}
@@ -2426,6 +2450,11 @@ export default function TavusExperienceBuilder() {
   const [duetNarrIntro, setDuetNarrIntro] = useState(""); // summarizes the interaction
   const [duetNarrFeatures, setDuetNarrFeatures] = useState(""); // summarizes the Tavus features shown
   const [duetTurns, setDuetTurns] = useState("6");
+  // On-screen surfaces for the featured side: the deck (Presentation step's
+  // documents) and/or Browser Use — both arrive as the replica's screen track
+  // and open in their own panel beside the face.
+  const [duetDeck, setDuetDeck] = useState(false);
+  const [duetBrowser, setDuetBrowser] = useState(false);
   // Two reusable Studio PALs — their prompts get PATCHed per plan, so duets
   // never pile up new PALs on the account.
   const [studioPalA, setStudioPalA] = useState("");
@@ -2551,7 +2580,7 @@ export default function TavusExperienceBuilder() {
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
     scCards, studioLines,
-    duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, studioPalA, studioPalB,
+    duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser, studioPalA, studioPalB,
     palLlm, knowledgeIdsRaw,
     site,
     expJourney,
@@ -2615,6 +2644,7 @@ export default function TavusExperienceBuilder() {
     setDuetOpener(c.duetOpener ?? ""); setDuetOpenerB(c.duetOpenerB ?? "");
     setDuetNarrIntro(c.duetNarrIntro ?? ""); setDuetNarrFeatures(c.duetNarrFeatures ?? "");
     setDuetTurns(c.duetTurns ?? "6");
+    setDuetDeck(!!c.duetDeck); setDuetBrowser(!!c.duetBrowser);
     setStudioPalA(c.studioPalA ?? ""); setStudioPalB(c.studioPalB ?? "");
     setExpJourney(Array.isArray(c.expJourney) ? c.expJourney : []);
     // Email capture is table stakes — scenarios saved before the field
@@ -4072,7 +4102,16 @@ export default function TavusExperienceBuilder() {
       const res = await fetch("/api/generate-persona", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "duet", vibe: duetDesc, context: { brand: site.brand } }),
+        body: JSON.stringify({
+          kind: "duet",
+          // If a deck / live browser will be on screen, the plan should have
+          // a beat where the featured speaker actually brings it up.
+          vibe: duetDesc + [
+            duetDeck && docIds.length ? "\n\nThe featured speaker has a slide deck attached — include a beat where the host asks to see it and the featured speaker presents a slide or two." : "",
+            duetBrowser ? "\n\nThe featured speaker can drive a live web browser on screen — the plan may include a beat where they pull up a real page." : "",
+          ].join(""),
+          context: { brand: site.brand },
+        }),
       });
       const text = await res.text();
       if (!res.ok || text.startsWith("[error]")) {
@@ -4101,14 +4140,17 @@ export default function TavusExperienceBuilder() {
   /* Reusable Studio PALs: PATCH the prompt on the cached PAL; create only
      when missing (or when the cached one was deleted account-side). */
   const ensureStudioPal = async (cachedId, setId, name, face, prompt) => {
+    // Duet rooms have no camera or microphone — perception has nothing to see
+    // or hear, so switching it off drops that pipeline work (snappier turns).
+    const perceptionOff = { op: "add", path: "/layers/perception", value: { perception_model: "off" } };
     let id = String(cachedId || "").trim();
     if (id) {
       try {
-        await tavusFetch("PATCH", `/pals/${id}`, [{ op: "add", path: "/system_prompt", value: prompt }]);
+        await tavusFetch("PATCH", `/pals/${id}`, [{ op: "add", path: "/system_prompt", value: prompt }, perceptionOff]);
         return id;
       } catch { id = ""; /* stale — recreate below */ }
     }
-    const p = await tavusFetch("POST", "/pals", { pal_name: name, default_face_id: face, system_prompt: prompt });
+    const p = await tavusFetch("POST", "/pals", { pal_name: name, default_face_id: face, system_prompt: prompt, layers: { perception: { perception_model: "off" } } });
     id = p.pal_id || p.uuid || p.id;
     if (!id) throw new Error(`${name} creation returned no id.`);
     setId(id);
@@ -4142,15 +4184,39 @@ export default function TavusExperienceBuilder() {
       setStudioStatus("Preparing both AI humans from the plan…");
       const palA = await ensureStudioPal(studioPalA, setStudioPalA, "Studio duet — featured", duetFaceA.trim(), String(duetPlan.featured.prompt));
       const palB = await ensureStudioPal(studioPalB, setStudioPalB, "Studio duet — host", duetFaceB.trim(), String(duetPlan.host.prompt));
+      // On-screen surfaces ride the FEATURED side. Attach when on, detach
+      // when off — the reusable PAL must not carry a stale deck or browser
+      // into the next duet.
+      if (duetDeck && docIds.length) {
+        setStudioStatus("Attaching the deck to the featured AI human…");
+        await tavusFetch("PUT", `/pals/${palA}/skills/presentation`, { config: { document_ids: docIds, slides_trigger: "on_demand" } });
+      } else {
+        try { await tavusFetch("DELETE", `/pals/${palA}/skills/presentation`); } catch { /* wasn't attached */ }
+      }
+      if (duetBrowser) {
+        let browserCfg = {};
+        if (String(browserUseConfig).trim()) {
+          try { browserCfg = JSON.parse(browserUseConfig); }
+          catch { throw new Error("The browser_use advanced config isn't valid JSON — fix or clear it on the Integrations step."); }
+        }
+        setStudioStatus("Attaching Browser Use to the featured AI human…");
+        await tavusFetch("PUT", `/pals/${palA}/skills/browser_use`, { config: browserCfg });
+      } else {
+        try { await tavusFetch("DELETE", `/pals/${palA}/skills/browser_use`); } catch { /* wasn't attached */ }
+      }
       const outline = (duetPlan.outline || []).map((b2, i) => `${i + 1}. ${b2}`).join("\n");
-      const sharedCtx = `This is a recorded on-camera segment. Keep every turn to one to three sentences. Follow the conversation plan in order:\n${outline}`;
+      const sharedCtx = `This is a recorded on-camera segment. Keep every turn short — one or two sentences, three only when a moment truly needs it. Never monologue. Follow the conversation plan in order:\n${outline}`;
+      const surfaceCtx = [
+        duetDeck && docIds.length ? "You have a slide deck attached. When the plan reaches material worth showing, present the relevant slide while you talk — don't narrate the mechanics, just bring it up." : "",
+        duetBrowser ? "You have a Browser Use skill. When the plan calls for showing something live on the web, pull the page up and talk over it." : "",
+      ].filter(Boolean).join("\n");
       setStudioStatus("Creating both conversations…");
       const a = await tavusFetch("POST", "/conversations", {
         face_id: duetFaceA.trim(),
         pal_id: palA,
         conversation_name: `Studio duet — ${String(duetPlan.title || "featured").slice(0, 60)}`,
         ...(duetOpener.trim() ? { custom_greeting: duetOpener.trim() } : {}),
-        conversational_context: `${sharedCtx}\nYou open the conversation.`,
+        conversational_context: `${sharedCtx}\nYou open the conversation.${surfaceCtx ? `\n${surfaceCtx}` : ""}`,
         properties: { max_call_duration: 360 },
       });
       // The host joins HELD (silent, face visible) — its scripted reply is
@@ -6573,6 +6639,16 @@ export default function TavusExperienceBuilder() {
                   </Field>
                   <Field label="Exchanges" hint="How many back-and-forths before it wraps and saves (hard cap 5 minutes).">
                     <input type="number" min="2" max="20" style={{ maxWidth: 120 }} value={duetTurns} onChange={(e) => setDuetTurns(e.target.value)} />
+                  </Field>
+                  <Field label="On-screen surfaces" hint="Either one opens in its own window beside the face — the tile splits like the canvas layout, never covering anyone. Toggle these BEFORE planning so the talk track includes the moment they come up.">
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer", marginBottom: 8 }}>
+                      <input type="checkbox" style={{ width: "auto" }} checked={duetDeck} onChange={(e) => setDuetDeck(e.target.checked)} disabled={!docIds.length} />
+                      📽 Present the deck {docIds.length ? `— the ${docIds.length} document${docIds.length > 1 ? "s" : ""} from the Presentation step` : "— add document IDs on the Presentation step first"}
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer" }}>
+                      <input type="checkbox" style={{ width: "auto" }} checked={duetBrowser} onChange={(e) => setDuetBrowser(e.target.checked)} />
+                      🌐 Browser Use — the featured AI human can pull up live websites
+                    </label>
                   </Field>
                   <button className="pill-btn primary" onClick={startDuet} disabled={!!duetRun || studioActive}>
                     {duetRun ? "Duet running…" : "🎭 Record duet"}

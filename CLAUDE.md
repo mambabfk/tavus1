@@ -332,11 +332,25 @@ non-technical users; ids unchanged):
    (per explicit user direction — tone/expressions escalate across beats). Tiles carry `duet-name` chips
    (who is who); cards render in a dedicated `duet-cardbar` band BELOW the
    tiles (never over a face).
+   **On-screen surfaces** (`duetDeck`/`duetBrowser`, saved with scenarios):
+   the FEATURED side can present the deck (Presentation step's `docIds`,
+   `slides_trigger: "on_demand"`) and/or run Browser Use — startDuet PUTs the
+   skill on the featured studio PAL when on and DELETEs it when off (the
+   reusable PAL must not carry a stale deck into the next duet); planDuet
+   appends a beat hint to the brief so the outline actually reaches the deck
+   (toggle BEFORE planning). **Latency**: the joiner's end-of-turn quiet
+   window is adaptive — 900ms when the transcript ends on sentence-final
+   punctuation, 1400ms for mid-sentence stops/blank buffers (scripted speech;
+   short windows there caused talk-over) — and `ensureStudioPal` sets
+   `layers.perception.perception_model: "off"` (duet rooms have no camera or
+   mic; raven is dead weight). `speculative_inference` already defaults true.
    Two conversations are created; each joins in a same-origin iframe
    (`?duet=join&url=…&side=a|b` → `DuetJoiner`; dodges Daily's
    one-call-object-per-page limit). The joiner renders the replica's
-   screen track (presentation slides / Browser Use) dominant with the face
-   as a corner tile when present, so decks show up in duet recordings. The parent `DuetStage` is a pure TEXT
+   screen track (presentation slides / Browser Use) in a dedicated panel
+   that slides open BESIDE the face — canvas-placement style, never covering
+   it — and posts `{type:"screen"}` up so `DuetStage` widens that tile
+   (`duet-screen-a/b` grid classes) and captions it in the narrator. The parent `DuetStage` is a pure TEXT
    switchboard: a replica's finished turn (buffered `conversation.utterance`
    speech, flushed on `stopped_speaking`; role from properties OR embedded
    in the event type, user role skipped, streaming-utterance events
