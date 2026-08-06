@@ -369,9 +369,16 @@ non-technical users; ids unchanged):
    keywords still fire). The joiner dedupes cumulative utterance re-emits
    (Tavus can resend a turn's text containing everything so far — replace,
    never stack, or relayed turns read "A. B. A. B. C."). Magic Canvas still
-   never renders in duets. The plan preview is a **storyboard**: talk-track
-   beats side by side with the visuals that fire on each (cards matched to
-   beats by keyword, deck/browser open markers, unmatched cards footed).
+   never renders in duets. The plan preview is an **editable storyboard**:
+   talk-track beats side by side with the visuals that fire on each (cards
+   matched to beats by trigger keyword, deck/browser open markers, unmatched
+   cards footed). Both columns edit `duetPlan` in place — beats
+   (add/edit/delete; blank beats filtered at record time) and full card
+   editors (style/title/body/trigger/owner-tile, per-beat "+ card" seeds
+   trigger words from the beat, incomplete cards get a ⚠ won't-appear flag).
+   Edits ARE what runs (sharedCtx + compileScriptedCards read duetPlan
+   live); the personas embed the ORIGINAL outline, so direction changes
+   warrant a re-plan — the hint under the storyboard says so.
    **Sales handoff** (`promoteDuet`, `kind: "promote"` on generate-persona):
    "Continue as a live demo" — Claude adapts the featured duet persona for a
    real human visitor (same character, co-host/talk-track mechanics removed,

@@ -4290,7 +4290,7 @@ export default function TavusExperienceBuilder() {
       } else {
         try { await tavusFetch("DELETE", `/pals/${palA}/skills/browser_use`); } catch { /* wasn't attached */ }
       }
-      const outline = (duetPlan.outline || []).map((b2, i) => `${i + 1}. ${b2}`).join("\n");
+      const outline = (duetPlan.outline || []).map((b2) => String(b2).trim()).filter(Boolean).map((b2, i) => `${i + 1}. ${b2}`).join("\n");
       const sharedCtx = `This is a recorded on-camera segment. Keep every turn short — one or two sentences, three only when a moment truly needs it. Never monologue. Follow the conversation plan in order:\n${outline}`;
       const surfaceCtx = [
         duetDeck && docIds.length ? "You have a slide deck attached. When the plan reaches material worth showing, present the relevant slide while you talk — don't narrate the mechanics, just bring it up." : "",
@@ -4866,7 +4866,7 @@ export default function TavusExperienceBuilder() {
           openerB={duetOpenerB.trim()}
           summary={duetNarrIntro.trim()}
           features={duetNarrFeatures.trim()}
-          outline={Array.isArray(duetPlan?.outline) ? duetPlan.outline : []}
+          outline={(Array.isArray(duetPlan?.outline) ? duetPlan.outline : []).map((b2) => String(b2).trim()).filter(Boolean)}
           onExit={() => { setDuetRun(null); setStudioStatus("Duet saved — the .webm downloaded to this machine."); }}
         />
       )}
@@ -6671,57 +6671,105 @@ export default function TavusExperienceBuilder() {
                       <b style={{ color: "var(--text)" }}>{duetPlan.host?.name || "Host"}</b> hosts
                     </p>
                     {/* Storyboard: the full talk track with its visuals side by
-                        side — each beat next to what's on screen at that moment. */}
+                        side — and EDITABLE. Beats feed the shared context at
+                        record time; cards compile straight from this list. */}
                     {(() => {
                       const beats = duetPlan.outline || [];
-                      const cds = compileScriptedCards(duetPlan.cards);
-                      const icon = (c) => (c.style === "chart" ? "📊" : c.style === "stat" ? "🔢" : c.style === "image" ? "🖼" : c.style === "question" ? "❓" : "📄");
-                      const who = (c) => (c.owner === "featured" ? duetPlan.featured?.name || "featured" : c.owner === "host" ? duetPlan.host?.name || "host" : "");
+                      const raw = Array.isArray(duetPlan.cards) ? duetPlan.cards : [];
+                      const setBeat = (i, v) => setDuetPlan((p) => ({ ...p, outline: (p.outline || []).map((b2, j) => (j === i ? v : b2)) }));
+                      const delBeat = (i) => setDuetPlan((p) => ({ ...p, outline: (p.outline || []).filter((_, j) => j !== i) }));
+                      const addBeat = () => setDuetPlan((p) => ({ ...p, outline: [...(p.outline || []), ""] }));
+                      const setCard = (i, patch) => setDuetPlan((p) => ({ ...p, cards: (p.cards || []).map((c, j) => (j === i ? { ...c, ...patch } : c)) }));
+                      const delCard = (i) => setDuetPlan((p) => ({ ...p, cards: (p.cards || []).filter((_, j) => j !== i) }));
+                      const addCard = (beatText) => setDuetPlan((p) => ({
+                        ...p,
+                        cards: [...(Array.isArray(p.cards) ? p.cards : []), {
+                          style: "note", trigger: "keyword", title: "", body: "",
+                          keywords: String(beatText || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/).filter(Boolean).slice(0, 3).join(" "),
+                          owner: "featured", hideAfter: 0,
+                        }],
+                      }));
                       const beatFor = (c) => {
                         if (c.trigger === "start") return 0;
-                        if (c.trigger !== "keyword") return -1;
-                        const kws = c.keywords.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
-                        return beats.findIndex((b2) => kws.some((k) => b2.toLowerCase().includes(k)));
+                        if (c.trigger === "time") return -1;
+                        const kws = String(c.keywords ?? "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+                        return beats.findIndex((b2) => kws.some((k) => String(b2).toLowerCase().includes(k)));
                       };
                       const byBeat = beats.map(() => []);
                       const loose = [];
-                      cds.forEach((c) => { const bi = beatFor(c); (bi >= 0 ? byBeat[bi] : loose).push(c); });
+                      raw.forEach((c, ci) => { const bi = beatFor(c); (bi >= 0 ? byBeat[bi] : loose).push(ci); });
                       const deckBeat = duetDeck && docIds.length ? beats.findIndex((b2) => /slide|deck|present/i.test(b2)) : -1;
                       const browserBeat = duetBrowser ? beats.findIndex((b2) => /browser|website|web ?page|live (site|page)/i.test(b2)) : -1;
-                      const visual = (c, j) => (
-                        <div key={j} style={{ color: "var(--muted)" }}>
-                          {icon(c)} <b style={{ color: "var(--text)" }}>{c.title || `${c.style} card`}</b>
-                          {c.trigger === "keyword" ? ` — on “${c.keywords.split(",")[0].trim()}”` : c.trigger === "time" ? ` — at ${Math.floor(c.atSeconds / 60)}:${String(c.atSeconds % 60).padStart(2, "0")}` : " — at start"}
-                          {who(c) ? ` · ${who(c)}’s tile` : ""}
-                        </div>
-                      );
+                      const inp = { fontSize: 12.5, padding: "5px 8px", borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", width: "100%", boxSizing: "border-box" };
+                      const cardEditor = (ci) => {
+                        const c = raw[ci];
+                        const dropped = !compileScriptedCards([c]).length;
+                        return (
+                          <div key={ci} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 8, marginBottom: 8, background: "var(--surface)" }}>
+                            <div style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+                              <select style={{ ...inp, width: 96, flexShrink: 0 }} value={c.style || "note"} onChange={(e) => setCard(ci, { style: e.target.value })}>
+                                <option value="note">📄 note</option><option value="stat">🔢 stat</option><option value="chart">📊 chart</option><option value="image">🖼 image</option><option value="question">❓ question</option>
+                              </select>
+                              <input style={inp} placeholder="Card title" value={c.title ?? ""} onChange={(e) => setCard(ci, { title: e.target.value })} />
+                              <button className="kb-del" onClick={() => delCard(ci)} title="Remove this card">✕</button>
+                            </div>
+                            {c.style === "image"
+                              ? <input style={{ ...inp, marginBottom: 6 }} placeholder="Image URL" value={c.url ?? ""} onChange={(e) => setCard(ci, { url: e.target.value })} />
+                              : <textarea style={{ ...inp, marginBottom: 6, minHeight: 44, resize: "vertical" }} placeholder={c.style === "question" ? "The options — one per line" : c.style === "chart" ? "One “Label: value” per line" : c.style === "stat" ? "Big value\nlabel" : "Card text"} value={c.body ?? ""} onChange={(e) => setCard(ci, { body: e.target.value })} />}
+                            <div style={{ display: "flex", gap: 6 }}>
+                              <select style={{ ...inp, width: 92, flexShrink: 0 }} value={c.trigger || "keyword"} onChange={(e) => setCard(ci, { trigger: e.target.value })}>
+                                <option value="keyword">on words</option><option value="time">on timer</option><option value="start">at start</option>
+                              </select>
+                              {c.trigger === "time"
+                                ? <input style={{ ...inp, width: 90 }} type="number" min="0" step="0.5" placeholder="min" value={c.atMinutes ?? ""} onChange={(e) => setCard(ci, { atMinutes: e.target.value })} />
+                                : c.trigger === "keyword"
+                                  ? <input style={inp} placeholder="Trigger words, comma-separated" value={c.keywords ?? ""} onChange={(e) => setCard(ci, { keywords: e.target.value })} />
+                                  : <span style={{ flex: 1 }} />}
+                              <select style={{ ...inp, width: 130, flexShrink: 0 }} value={c.owner === "host" ? "host" : "featured"} onChange={(e) => setCard(ci, { owner: e.target.value })} title="Whose tile the card appears on">
+                                <option value="featured">{(duetPlan.featured?.name || "featured").slice(0, 14)}’s tile</option>
+                                <option value="host">{(duetPlan.host?.name || "host").slice(0, 14)}’s tile</option>
+                              </select>
+                            </div>
+                            {dropped && <div style={{ color: "#b4552d", fontSize: 11.5, marginTop: 5 }}>⚠ Incomplete — needs {c.style === "image" ? "an image URL" : "body text"}{c.trigger === "keyword" ? " and trigger words" : c.trigger === "time" ? " and a time" : ""} or it won’t appear.</div>}
+                          </div>
+                        );
+                      };
                       return (
                         <div style={{ fontSize: 12.5, lineHeight: 1.55 }}>
                           <div style={{ display: "flex", gap: 14, borderBottom: "1px solid var(--border)", padding: "2px 0 6px", fontWeight: 700, color: "var(--text)" }}>
                             <div style={{ flex: 1 }}>Talk track</div>
-                            <div style={{ flex: 1 }}>On screen</div>
+                            <div style={{ flex: 1.2 }}>On screen</div>
                           </div>
                           {beats.map((b2, i) => (
-                            <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: "7px 0", borderBottom: i < beats.length - 1 || loose.length ? "1px dashed var(--border)" : "none" }}>
-                              <div style={{ flex: 1, color: "var(--muted)" }}>
-                                <b style={{ color: "var(--text)" }}>{i + 1}.</b> {b2}
+                            <div key={i} style={{ display: "flex", gap: 14, alignItems: "flex-start", padding: "8px 0", borderBottom: "1px dashed var(--border)" }}>
+                              <div style={{ flex: 1, display: "flex", gap: 6, alignItems: "flex-start" }}>
+                                <b style={{ color: "var(--text)", paddingTop: 6 }}>{i + 1}.</b>
+                                <textarea style={{ ...inp, minHeight: 52, resize: "vertical" }} value={b2} onChange={(e) => setBeat(i, e.target.value)} placeholder="What gets covered in this beat…" />
+                                <button className="kb-del" onClick={() => delBeat(i)} title="Remove this beat">✕</button>
                               </div>
-                              <div style={{ flex: 1 }}>
-                                {byBeat[i].map(visual)}
-                                {deckBeat === i && <div style={{ color: "var(--muted)" }}>📽 <b style={{ color: "var(--text)" }}>Deck panel opens</b> — slides beside the face</div>}
-                                {browserBeat === i && <div style={{ color: "var(--muted)" }}>🌐 <b style={{ color: "var(--text)" }}>Live browser opens</b> beside the face</div>}
-                                {!byBeat[i].length && deckBeat !== i && browserBeat !== i && <span style={{ color: "var(--muted)", opacity: 0.4 }}>—</span>}
+                              <div style={{ flex: 1.2 }}>
+                                {byBeat[i].map(cardEditor)}
+                                {deckBeat === i && <div style={{ color: "var(--muted)", marginBottom: 6 }}>📽 <b style={{ color: "var(--text)" }}>Deck panel opens</b> — slides beside the face</div>}
+                                {browserBeat === i && <div style={{ color: "var(--muted)", marginBottom: 6 }}>🌐 <b style={{ color: "var(--text)" }}>Live browser opens</b> beside the face</div>}
+                                <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11.5 }} onClick={() => addCard(b2)}>+ card at this beat</button>
                               </div>
                             </div>
                           ))}
-                          {loose.map((c, i) => (
-                            <div key={`x${i}`} style={{ display: "flex", gap: 14, padding: "7px 0" }}>
-                              <div style={{ flex: 1, color: "var(--muted)", fontStyle: "italic" }}>(not tied to a beat — spreads across the take)</div>
-                              <div style={{ flex: 1 }}>{visual(c, 0)}</div>
+                          {loose.map((ci) => (
+                            <div key={`x${ci}`} style={{ display: "flex", gap: 14, padding: "8px 0", borderBottom: "1px dashed var(--border)" }}>
+                              <div style={{ flex: 1, color: "var(--muted)", fontStyle: "italic", paddingTop: 6 }}>
+                                {raw[ci]?.trigger === "time" ? "(on a timer)" : "(trigger words not in any beat — fires when spoken, or spreads across the take)"}
+                              </div>
+                              <div style={{ flex: 1.2 }}>{cardEditor(ci)}</div>
                             </div>
                           ))}
-                          {!beats.length && <span className="field-hint">No talk track in this plan yet.</span>}
-                          {!cds.length && <div className="field-hint" style={{ marginTop: 6 }}>No cards in this plan.</div>}
+                          <div style={{ paddingTop: 8 }}>
+                            <button className="pill-btn" style={{ padding: "3px 12px", fontSize: 12 }} onClick={addBeat}>+ Add beat</button>
+                          </div>
+                          <p className="field-hint" style={{ margin: "8px 0 0" }}>
+                            Edits here are what actually runs — the talk track rides into both rooms at record time and the cards compile from this list.
+                            Both personas were <i>written around</i> the original talk track, so for a big change of direction, re-plan instead of rewording.
+                          </p>
                         </div>
                       );
                     })()}
