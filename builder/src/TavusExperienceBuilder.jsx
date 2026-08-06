@@ -1112,14 +1112,22 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
         // Backstop matching on the finished turn — the live speech feed
         // already ran, but substituted scripted texts only exist here.
         matchCards(text.toLowerCase(), d.from);
-        // Fallback scheduling: every card gets its moment even if its trigger
-        // words never come up — the set is spread across the conversation.
+        // Beat-pinned cards: deterministic timing — fire when the talk track
+        // reaches their beat (~2 turns per beat, same clock as the narrator).
+        const nowBeat = Math.floor(turnsRef.current / 2) + 1; // 1-indexed
+        for (let i = 0; i < cards.length; i++) {
+          if (cards[i].trigger !== "beat" || cardFiredRef.current.has(i)) continue;
+          if (cards[i].atBeat <= nowBeat) { showDuetCard(i, d.from); break; }
+        }
+        // Fallback scheduling for KEYWORD cards only (beat/time/start cards
+        // have their own clock): every card still gets its moment even if
+        // its trigger words never come up — spread across the conversation.
         const totalTurns = maxTurns * 2;
         for (let i = 0; i < cards.length; i++) {
-          if (cardFiredRef.current.has(i)) continue;
+          if (cards[i].trigger !== "keyword" || cardFiredRef.current.has(i)) continue;
           const due = Math.ceil(((i + 1) * totalTurns) / (cards.length + 1));
           if (turnsRef.current >= due) showDuetCard(i, d.from);
-          break; // only the next unfired card, in plan order
+          break; // only the next unfired keyword card, in plan order
         }
         // Narrator follows the talk track (unless a card caption is fresh).
         const beat = Math.min(outline.length - 1, Math.floor(turnsRef.current / 2));
@@ -1603,7 +1611,7 @@ function compileScriptedCards(arr) {
   return (Array.isArray(arr) ? arr : []).map((c) => {
     const t = (v) => String(v ?? "").trim();
     const style = ["note", "chart", "stat", "image", "question"].includes(c.style) ? c.style : "note";
-    const trigger = ["keyword", "time", "start"].includes(c.trigger) ? c.trigger : "keyword";
+    const trigger = ["keyword", "beat", "time", "start"].includes(c.trigger) ? c.trigger : "keyword";
     const card = {
       style,
       trigger,
@@ -1611,12 +1619,14 @@ function compileScriptedCards(arr) {
       body: t(c.body),
       url: t(c.url),
       keywords: t(c.keywords),
+      atBeat: Math.max(0, parseInt(c.atBeat, 10) || 0), // duets: 1-indexed talk-track beat
       atSeconds: Math.max(0, Math.round((parseFloat(c.atMinutes) || 0) * 60)),
       hideAfter: Math.max(0, parseInt(c.hideAfter, 10) || 0),
       owner: c.owner === "featured" || c.owner === "host" ? c.owner : "", // duets: whose screen it belongs on
     };
     if (style === "image" ? !card.url : !card.body) return null;
     if (trigger === "keyword" && !card.keywords) return null;
+    if (trigger === "beat" && !card.atBeat) return null;
     if (trigger === "time" && !card.atSeconds) return null;
     return card;
   }).filter(Boolean).slice(0, 12);
@@ -6681,16 +6691,16 @@ export default function TavusExperienceBuilder() {
                       const addBeat = () => setDuetPlan((p) => ({ ...p, outline: [...(p.outline || []), ""] }));
                       const setCard = (i, patch) => setDuetPlan((p) => ({ ...p, cards: (p.cards || []).map((c, j) => (j === i ? { ...c, ...patch } : c)) }));
                       const delCard = (i) => setDuetPlan((p) => ({ ...p, cards: (p.cards || []).filter((_, j) => j !== i) }));
-                      const addCard = (beatText) => setDuetPlan((p) => ({
+                      const addCard = (beatIndex) => setDuetPlan((p) => ({
                         ...p,
                         cards: [...(Array.isArray(p.cards) ? p.cards : []), {
-                          style: "note", trigger: "keyword", title: "", body: "",
-                          keywords: String(beatText || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/).filter(Boolean).slice(0, 3).join(" "),
-                          owner: "featured", hideAfter: 0,
+                          style: "note", trigger: "beat", atBeat: beatIndex + 1,
+                          title: "", body: "", keywords: "", owner: "featured", hideAfter: 0,
                         }],
                       }));
                       const beatFor = (c) => {
                         if (c.trigger === "start") return 0;
+                        if (c.trigger === "beat") return Math.min(beats.length, Math.max(1, parseInt(c.atBeat, 10) || 1)) - 1;
                         if (c.trigger === "time") return -1;
                         const kws = String(c.keywords ?? "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
                         return beats.findIndex((b2) => kws.some((k) => String(b2).toLowerCase().includes(k)));
@@ -6716,19 +6726,30 @@ export default function TavusExperienceBuilder() {
                             {c.style === "image"
                               ? <input style={{ ...inp, marginBottom: 6 }} placeholder="Image URL" value={c.url ?? ""} onChange={(e) => setCard(ci, { url: e.target.value })} />
                               : <textarea style={{ ...inp, marginBottom: 6, minHeight: 44, resize: "vertical" }} placeholder={c.style === "question" ? "The options — one per line" : c.style === "chart" ? "One “Label: value” per line" : c.style === "stat" ? "Big value\nlabel" : "Card text"} value={c.body ?? ""} onChange={(e) => setCard(ci, { body: e.target.value })} />}
-                            <div style={{ display: "flex", gap: 6 }}>
-                              <select style={{ ...inp, width: 92, flexShrink: 0 }} value={c.trigger || "keyword"} onChange={(e) => setCard(ci, { trigger: e.target.value })}>
-                                <option value="keyword">on words</option><option value="time">on timer</option><option value="start">at start</option>
+                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                              <select style={{ ...inp, width: 96, flexShrink: 0 }} value={c.trigger || "keyword"} onChange={(e) => setCard(ci, { trigger: e.target.value, ...(e.target.value === "beat" && !c.atBeat ? { atBeat: 1 } : {}) })} title="When the card appears — at beat # is exact; on words fires live when spoken">
+                                <option value="beat">at beat #</option><option value="keyword">on words</option><option value="time">on timer</option><option value="start">at start</option>
                               </select>
                               {c.trigger === "time"
                                 ? <input style={{ ...inp, width: 90 }} type="number" min="0" step="0.5" placeholder="min" value={c.atMinutes ?? ""} onChange={(e) => setCard(ci, { atMinutes: e.target.value })} />
-                                : c.trigger === "keyword"
-                                  ? <input style={inp} placeholder="Trigger words, comma-separated" value={c.keywords ?? ""} onChange={(e) => setCard(ci, { keywords: e.target.value })} />
-                                  : <span style={{ flex: 1 }} />}
+                                : c.trigger === "beat"
+                                  ? (
+                                    <select style={{ ...inp, flex: 1, minWidth: 120 }} value={Math.min(beats.length, Math.max(1, parseInt(c.atBeat, 10) || 1))} onChange={(e) => setCard(ci, { atBeat: e.target.value })}>
+                                      {beats.map((b3, bi) => <option key={bi} value={bi + 1}>beat {bi + 1} — {String(b3).slice(0, 34)}{String(b3).length > 34 ? "…" : ""}</option>)}
+                                    </select>
+                                  )
+                                  : c.trigger === "keyword"
+                                    ? <input style={{ ...inp, flex: 1, minWidth: 120 }} placeholder="Trigger words, comma-separated" value={c.keywords ?? ""} onChange={(e) => setCard(ci, { keywords: e.target.value })} />
+                                    : <span style={{ flex: 1 }} />}
                               <select style={{ ...inp, width: 130, flexShrink: 0 }} value={c.owner === "host" ? "host" : "featured"} onChange={(e) => setCard(ci, { owner: e.target.value })} title="Whose tile the card appears on">
                                 <option value="featured">{(duetPlan.featured?.name || "featured").slice(0, 14)}’s tile</option>
                                 <option value="host">{(duetPlan.host?.name || "host").slice(0, 14)}’s tile</option>
                               </select>
+                              <label style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--muted)", fontSize: 11.5, flexShrink: 0 }} title="How long the card stays on screen">
+                                stays
+                                <input style={{ ...inp, width: 56 }} type="number" min="0" placeholder="35" value={c.hideAfter || ""} onChange={(e) => setCard(ci, { hideAfter: e.target.value })} />
+                                s
+                              </label>
                             </div>
                             {dropped && <div style={{ color: "#b4552d", fontSize: 11.5, marginTop: 5 }}>⚠ Incomplete — needs {c.style === "image" ? "an image URL" : "body text"}{c.trigger === "keyword" ? " and trigger words" : c.trigger === "time" ? " and a time" : ""} or it won’t appear.</div>}
                           </div>
@@ -6751,7 +6772,7 @@ export default function TavusExperienceBuilder() {
                                 {byBeat[i].map(cardEditor)}
                                 {deckBeat === i && <div style={{ color: "var(--muted)", marginBottom: 6 }}>📽 <b style={{ color: "var(--text)" }}>Deck panel opens</b> — slides beside the face</div>}
                                 {browserBeat === i && <div style={{ color: "var(--muted)", marginBottom: 6 }}>🌐 <b style={{ color: "var(--text)" }}>Live browser opens</b> beside the face</div>}
-                                <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11.5 }} onClick={() => addCard(b2)}>+ card at this beat</button>
+                                <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11.5 }} onClick={() => addCard(i)}>+ card at this beat</button>
                               </div>
                             </div>
                           ))}

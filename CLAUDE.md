@@ -374,8 +374,14 @@ non-technical users; ids unchanged):
    matched to beats by trigger keyword, deck/browser open markers, unmatched
    cards footed). Both columns edit `duetPlan` in place — beats
    (add/edit/delete; blank beats filtered at record time) and full card
-   editors (style/title/body/trigger/owner-tile, per-beat "+ card" seeds
-   trigger words from the beat, incomplete cards get a ⚠ won't-appear flag).
+   editors (style/title/body/trigger/owner-tile/stays-seconds, per-beat
+   "+ card" pins to that beat, incomplete cards get a ⚠ won't-appear flag).
+   **Card timing**: trigger `"beat"` + `atBeat` (1-indexed) fires when the
+   talk track reaches that beat (~2 turns/beat, the narrator's clock) —
+   deterministic, the default for hand-added cards and ~half of planned
+   ones (DUET_SYSTEM); `"keyword"` fires live off the speech feed; the
+   due-turn fallback spreads KEYWORD cards only (beat/time/start cards
+   keep their own clock).
    Edits ARE what runs (sharedCtx + compileScriptedCards read duetPlan
    live); the personas embed the ORIGINAL outline, so direction changes
    warrant a re-plan — the hint under the storyboard says so.
