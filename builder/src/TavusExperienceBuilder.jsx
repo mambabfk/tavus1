@@ -6908,7 +6908,28 @@ export default function TavusExperienceBuilder() {
                       const setBeat = (i, v) => setDuetPlan((p) => ({ ...p, outline: (p.outline || []).map((b2, j) => (j === i ? v : b2)) }));
                       const delBeat = (i) => setDuetPlan((p) => ({ ...p, outline: (p.outline || []).filter((_, j) => j !== i) }));
                       const addBeat = () => setDuetPlan((p) => ({ ...p, outline: [...(p.outline || []), ""] }));
-                      const setCard = (i, patch) => setDuetPlan((p) => ({ ...p, cards: (p.cards || []).map((c, j) => (j === i ? { ...c, ...patch } : c)) }));
+                      const beatOfKeywords = (c) => {
+                        const kws = String(c.keywords ?? "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
+                        return beats.findIndex((b2) => kws.some((k) => String(b2).toLowerCase().includes(k)));
+                      };
+                      // Editing must never move the editor out from under the
+                      // cursor: live keyword→beat matching used to re-home a
+                      // card mid-keystroke (the input remounted, focus dropped,
+                      // and it read as "a new card appeared somewhere else").
+                      // First edit pins the card to its current row (uiBeat,
+                      // display-only); beat-trigger cards follow their beat.
+                      const setCard = (i, patch) => setDuetPlan((p) => ({
+                        ...p,
+                        cards: (p.cards || []).map((c, j) => {
+                          if (j !== i) return c;
+                          const next = { ...c, ...patch };
+                          if ((next.trigger === "keyword" || !next.trigger) && !parseInt(next.uiBeat, 10)) {
+                            const bi = beatOfKeywords(c);
+                            next.uiBeat = bi >= 0 ? bi + 1 : -1; // -1 = pinned to the loose row
+                          }
+                          return next;
+                        }),
+                      }));
                       const delCard = (i) => setDuetPlan((p) => ({ ...p, cards: (p.cards || []).filter((_, j) => j !== i) }));
                       const addCard = (beatIndex) => setDuetPlan((p) => ({
                         ...p,
@@ -6921,8 +6942,10 @@ export default function TavusExperienceBuilder() {
                         if (c.trigger === "start") return 0;
                         if (c.trigger === "beat") return Math.min(beats.length, Math.max(1, parseInt(c.atBeat, 10) || 1)) - 1;
                         if (c.trigger === "time") return -1;
-                        const kws = String(c.keywords ?? "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
-                        return beats.findIndex((b2) => kws.some((k) => String(b2).toLowerCase().includes(k)));
+                        const pin = parseInt(c.uiBeat, 10);
+                        if (pin > 0) return Math.min(beats.length, pin) - 1;
+                        if (pin === -1) return -1;
+                        return beatOfKeywords(c);
                       };
                       const byBeat = beats.map(() => []);
                       const loose = [];
