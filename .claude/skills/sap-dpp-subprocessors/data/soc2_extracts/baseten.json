@@ -1,0 +1,85 @@
+{
+  "slug": "baseten",
+  "report_meta": {
+    "legal_entity_cover_exact": "Baseten Labs, Inc.",
+    "legal_entity_quote": "This report is confidential, and its use is limited to Baseten Labs, Inc. and its user organizations and the independent auditors of its user organizations.",
+    "legal_entity_page": 1,
+    "legal_entity_note": "Auditor's report is addressed 'To the Management of Baseten Labs, Inc. (Baseten)' (p3); management assertion says 'description of Baseten Labs, Inc.'s (Baseten) Baseten Platform' (p7).",
+    "system": "Baseten Platform",
+    "auditor": "Sensiba LLP",
+    "auditor_quote": "system description and are included in this section. Sensiba LLP performed testing to determine if",
+    "auditor_page": 23,
+    "auditor_note": "Auditor signature block gives only place/date ('San Jose, California / August 13, 2025', p6); auditor-report page footers read 'Sensiba.com'; 'Sensiba LLP' is named in Section 4 (p23).",
+    "report_period": "June 1, 2024 to May 31, 2025",
+    "report_period_quote": "For the period June 1, 2024 to May 31, 2025",
+    "report_period_page": 1,
+    "soc2_type": "SOC 2 Type 2",
+    "soc2_type_quote": "SYSTEM AND ORGANIZATION CONTROLS (SOC) 2 TYPE 2 REPORT ON MANAGEMENT'S DESCRIPTION OF ITS Baseten Platform",
+    "soc2_type_page": 1,
+    "trust_services_criteria": "Security, Availability, and Confidentiality",
+    "report_date": "August 13, 2025"
+  },
+  "findings": {
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "quote": "All cloud-based services are accessed through SSL-secured connections.",
+      "page": 13,
+      "control_ref": "CC6.7.1",
+      "note": "Transit encryption is evidenced — auditor 'Inspected TLS configurations to determine that the company uses appropriate encryption to protect user authentication and admin sessions' (CC6.7.1, p37, no exceptions noted) — but no TLS version number appears anywhere in the report. Indicate: 'SSL/TLS (version not specified in SOC 2 report)'."
+    },
+    "3.1.2": {
+      "value": "Others - pls indicate below",
+      "quote": "Customer data at rest is encrypted.",
+      "page": 37,
+      "control_ref": "CC6.7.2",
+      "note": "Encryption at rest confirmed by auditor test ('Inspected encryption configurations for data at rest', no exceptions noted; also C1.1.3, p48), but no algorithm (AES etc.) is named anywhere in the report. Indicate: 'Encrypted at rest, algorithm not named in SOC 2 report'."
+    },
+    "3.1.3": {
+      "value": "Others - pls indicate below",
+      "quote": "Backup infrastructure is maintained in AWS, with physical access restricted according to applicable AWS policies. All backups are encrypted using KMS-managed encryption keys, with access restricted to key personnel via AWS IAM permissions.",
+      "page": 13,
+      "note": "Backup encryption is explicit (AWS KMS-managed keys) but no cipher (e.g. AES-256) is named, so no exact dropdown match. Indicate: 'AWS KMS-managed encryption (algorithm not named in SOC 2 report)'."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "quote": "All backups are encrypted using KMS-managed encryption keys, with access restricted to key personnel via AWS IAM permissions.",
+      "page": 13,
+      "note": "Keys are AWS KMS-managed within Baseten's infrastructure ('AWS KMS — Secret management', p10; 'HashiCorp Vault — Secret and key management', p11), but the report never states who generates the keys or whether they are customer-specific, so no generation option can be selected without inference."
+    },
+    "3.1.8": {
+      "value": "Token-based (OTP) multi-factor authentication required for cloud resources and sensitive systems\nAnnual third-party penetration tests (network and application layer, external and internal) with tracked remediation\nContinuous plus quarterly third-party vulnerability scanning with timely remediation\nFirewalls restricting inbound/outbound traffic to approved connections, ports, and protocols\nFull-disk encryption on all company-issued workstations and laptops\nRemote access via VPN with token-based two-factor authentication",
+      "quotes": [
+        {"quote": "Employees accessing cloud resources are required to enable token-based (OTP) multi-factor authentication as supported by each service provider.", "page": 13, "control_ref": "CC6.1.2 (p34): MFA required to access sensitive systems"},
+        {"quote": "The company engages with third-party to conduct penetration tests of the production environment at least annually. Results are reviewed by management and high priority findings are tracked to resolution.", "page": 31, "control_ref": "CC4.1.2"},
+        {"quote": "Vulnerability scans are performed on a continuous basis to identify vulnerabilities and management takes action based on the results of the scan.", "page": 31, "control_ref": "CC4.1.1; also 'Vulnerability scanning is performed by a third-party vendor on a quarterly basis' (p15)"},
+        {"quote": "The company uses firewalls that ensure only approved connections, ports, and protocols are implemented.", "page": 37, "control_ref": "CC6.8.2"},
+        {"quote": "The company ensures that company-issued laptops have encrypted hard-disks.", "page": 37, "control_ref": "CC6.7.3"},
+        {"quote": "Authorized employees may access the system through from the Internet through the use of leading VPN technology. Employees are authenticated through the use of a token-based two-factor authentication system.", "page": 15}
+      ]
+    },
+    "3.2.1": {
+      "value": "Not known",
+      "quote": "All data is hosted by the above-listed subservice providers. Baseten's subservice providers do not allow Baseten employees physical access.",
+      "page": 12,
+      "note": "Infrastructure spans AWS, Google Cloud Platform (GKE/GCE/GCS), and GPU clouds CoreWeave, Crusoe, Nebius, Oracle Cloud, and Voltage Park (pp10-11), but no hosting region or EU/Europe data-location statement appears anywhere ('EU', 'Europe', 'GDPR' have zero hits). Cloud hosting is carved out: 'This report does not cover the cloud infrastructure subservice organizations listed above.' (p15) and 'Our examination did not include the services provided by the subservice organizations' (p3). EU Access can therefore not be confirmed or denied from this report."
+    }
+  },
+  "absent": [
+    {
+      "field": "3.1.6",
+      "reason": "No mention of anonymization anywhere in the report ('anonym' has zero hits)."
+    },
+    {
+      "field": "3.1.7",
+      "reason": "No mention of pseudonymization anywhere in the report ('pseudonym' has zero hits)."
+    },
+    {
+      "field": "3.1.1_version_detail",
+      "reason": "No TLS version (1.0/1.1/1.2/1.3) stated anywhere; only 'SSL-secured connections' (p13) and auditor inspection of 'TLS configurations' (p37)."
+    },
+    {
+      "field": "3.1.2_algorithm",
+      "reason": "No encryption algorithm (AES/3DES) named anywhere in the report for data at rest or backups; 'AES' has zero hits."
+    }
+  ]
+}

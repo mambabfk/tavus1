@@ -1,0 +1,105 @@
+{
+  "vendor_name": "Baseten Labs, Inc.",
+  "slug": "baseten",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: the sandbox network gateway (agent proxy) returned EGRESS_BLOCKED for baseten.co, www.baseten.co, trust.baseten.co and docs.baseten.co in this session, so NO Baseten page could be fetched directly (WebFetch failed on every attempt). Every value below is sourced from Baseten's own pages as surfaced verbatim in domain-restricted web-search snippets (allowed_domains limited to baseten.co / docs.baseten.co / trust.baseten.co). Per researcher hard rules, confidence is therefore capped at 'low' even where the underlying Baseten page appears unambiguous. The verifier pass should re-fetch each source_url from an unrestricted network before values are promoted. Baseten's full public trust center is at https://trust.baseten.co/ (SafeBase) — it gates the SOC 2 report and detailed TOMs behind an access request, so several encryption specifics are only available under NDA / via the report Tavus already holds in Vanta.",
+  "fields": {
+    "1.1": {
+      "value": "Baseten Labs, Inc. (US corporation)",
+      "source_url": "https://www.baseten.co/terms-and-conditions/",
+      "locator": "Terms and Conditions, opening paragraph: agreement between the entity accessing or using the service ('YOU' or 'CUSTOMER') and 'BASETEN LABS, INC. (\"BASETEN\")'; the same page describes Baseten Labs, Inc. as a U.S. corporation with principal business address 201 Spear Street, Suite 1600, San Francisco, CA 94105",
+      "confidence": "low",
+      "notes": "Snippet-sourced (direct fetch blocked by gateway EGRESS_BLOCKED). Consistent with the tasking note that Tavus's on-file SOC 2 names 'Baseten Labs, Inc.'. State of incorporation (likely Delaware for a US startup — but that would be inference, not evidence) was NOT stated in any retrieved snippet; confirm with the vendor. The field playbook requires this to match the entity named in TOM questionnaire #8.3 that Tavus already submitted — no TOM questionnaire file exists in this repo, so the filler/human must reconcile before writing the cell. Note: Baseten is not listed in config/scope.yaml (which predates this tasking); level 1 taken from the task instruction."
+    },
+    "1.1.1": {
+      "value": "Baseten Labs, Inc., 201 Spear Street, Suite 1600, San Francisco, CA 94105, USA. Privacy contact: privacy@baseten.co. No Article 27 GDPR representative identified in any retrieved material.",
+      "source_url": "https://www.baseten.co/terms-and-conditions/",
+      "locator": "Terms and Conditions: 'Baseten Labs, Inc. is a U.S. corporation with its principal business address at 201 Spear Street, Suite 1600, San Francisco, CA 94105'; privacy policy (baseten.co/privacy-policy) directs privacy inquiries to privacy@baseten.co",
+      "confidence": "low",
+      "notes": "Snippet-sourced (direct fetch blocked). No Article 27 EU representative surfaced in the privacy policy, terms, or DPA snippets; for a US vendor this absence is a legitimate finding per the playbook, but because the full pages could not be fetched, absence was not positively confirmed on-page — included in open questions. Baseten's DPA (incorporated into the Terms and Conditions page) contains a European Annex applying 'only if and to the extent Baseten's Processing of Customer Personal Data under the Agreement is subject to the GDPR', and references the EU SCCs and the UK Transfer Addendum (ICO template Addendum B.1.0, 2 Feb 2022)."
+    },
+    "1.1.2": {
+      "value": "N/A (no formally named data protection officer found). Data-protection requests: privacy@baseten.co — this working contact belongs in the 1.1.1 contact-details column per the form instruction.",
+      "source_url": "https://www.baseten.co/privacy-policy/",
+      "locator": "Privacy policy contact section: privacy inquiries directed to privacy@baseten.co; no DPO name, telephone number, or DPO title appears in any retrieved snippet of the privacy policy, terms, or DPA",
+      "confidence": "low",
+      "notes": "Searched baseten.co / docs.baseten.co / trust.baseten.co (domain-restricted) for 'data protection officer', 'EU representative', 'Article 27' — no DPO surfaced. Do-not-invent rule applied: N/A plus the published privacy email. Because the full privacy policy could not be fetched (gateway block), the absence of a DPO could not be positively confirmed on-page; confirm in writing with the vendor. No published telephone number found."
+    },
+    "1.4.2": {
+      "value": "SOC 2",
+      "source_url": "https://www.baseten.co/blog/soc-2-type-2/",
+      "locator": "Blog 'Baseten achieves SOC 2 Type II certification': SOC 2 Type 2 report for the period June 1, 2024 through May 31, 2025 available for download in the Baseten Trust Center (trust.baseten.co, SafeBase); trust pages state Baseten 'maintains compliance with SOC 2 Type II, HIPAA, and GDPR' for both Baseten-hosted and self-hosted deployments",
+      "confidence": "low",
+      "notes": "Snippet-sourced (direct fetch blocked). Dropdown value 'SOC 2' is exact per form_spec. Tasking note attests Baseten's SOC 2 is on file at Tavus (Vanta) — playbook requires the report to actually be on file before asserting, and that is satisfied per the task instruction; human should double-check the report period is current at submission time. Baseten is additionally HIPAA compliant (announced at baseten.co/blog/baseten-announces-hipaa-compliance/) — HIPAA is not an available dropdown option; note it in free text if the form allows. NO ISO 27001/27701/27018/9001/22301 or SOC 1/SOC 3 claim was found on any Baseten-owned page this session — do not tick those. Annual third-party penetration testing is also documented (docs.baseten.co/observability/security)."
+    },
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "source_url": "https://docs.baseten.co/inference/http-client-configuration",
+      "locator": "Docs 'Configure HTTP clients' (connections to Baseten inference endpoints): 'Each new HTTP client opens a fresh TCP connection, performs a full TLS handshake...' — i.e. the inference API is served over TLS/HTTPS. Terms/DPA security-measures language: 'commercially available industry standard encryption technologies for personal data that is transmitted over public networks (i.e., the Internet) or when transmitted wirelessly or at rest or stored on portable or removable media'",
+      "confidence": "low",
+      "notes": "Real standard: TLS/HTTPS — the negotiated TLS VERSION (1.2 vs 1.3) is not published anywhere retrieved this session, so per the form rule the dropdown must be 'Others - pls indicate below' with 'TLS (version not publicly documented; vendor to confirm minimum enforced version)' in the free-text row. Do NOT write 'TLS 1.2'/'TLS 1.3' without vendor confirmation. Snippet-sourced; direct fetch blocked, and an empirical TLS handshake against Baseten endpoints was impossible (gateway blocks CONNECT)."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Baseten's own pages state that data at rest IS encrypted — Terms/DPA security-measures language commits to 'commercially available industry standard encryption technologies' for personal data 'at rest or stored on portable or removable media' (baseten.co/terms-and-conditions/), the enterprise page says model weights and source code are protected 'using advanced encryption' (baseten.co/enterprise/), and docs describe encrypted secrets storage (docs.baseten.co/organization/secrets) — but NO page retrieved this session names the algorithm (AES-128/192/256 etc.), so the dropdown cannot be answered beyond 'Not known'. A targeted domain-restricted search for 'AES-256' across baseten.co, docs.baseten.co and trust.baseten.co returned no algorithm claim. The specific standard is likely in the SOC 2 report on file in Vanta or the gated SafeBase trust center — check there before emailing the vendor. Mitigating context: Baseten's default posture is zero data retention — model inputs/outputs are not stored by default (docs.baseten.co/observability/security)."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Backup encryption is not documented anywhere on Baseten's public pages retrieved this session ('Not known' is the playbook-expected answer for most vendors here). The trust center summary lists 'backups' among covered technical details (authentication mechanisms, backups, firewall configurations, data encryption, and cypher suites) but the detail is gated behind the SafeBase access request. Note the mitigating control: Baseten does not store model inputs, outputs, or weights by default (zero data retention for synchronous inference; async inputs stored only until processed, outputs never stored — docs.baseten.co/observability/security), which limits what customer personal data could be in backups at all."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Baseten page retrieved this session documents who generates or manages encryption keys, and no CMEK/BYOK offering was found. Asserting the playbook's managed-cloud default 'Key generated by Subprocessor (not customer-specific)' would be inference, not evidence — ask the vendor. Complication to resolve with the human: Baseten offers Self-hosted and Hybrid deployment models where workloads (and presumably keys) live in the customer's own cloud (baseten.co/deployments/baseten-self-hosted/, /baseten-hybrid/); the answer depends on which deployment model Tavus actually uses. Confirm Tavus's deployment model, then ask Baseten for the key-management scheme applicable to it."
+    },
+    "3.1.6": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary source retrieved this session states that Baseten can anonymize customer personal data on the customer's instruction (Art. 28(3)(e) support). Domain-restricted searches for anonymize/pseudonymize/de-identify on baseten.co and docs.baseten.co surfaced nothing vendor-specific. Adjacent-but-different fact (do not conflate): Baseten's default zero-data-retention posture (inputs/outputs not stored by default) is deletion/minimization, not an anonymization capability."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No mention of pseudonymization anywhere in retrieved Baseten material. Same search scope as 3.1.6."
+    },
+    "3.1.8": {
+      "value": "Zero data retention by default: model inputs and outputs are not stored by default (synchronous inference); for async inference, inputs are stored only temporarily until processed and outputs are never stored\nPer-customer dedicated Kubernetes namespace with workload isolation enforced through Calico and Cilium; nodes run in private subnets with firewall protections\nAnnual penetration testing by independent third-party security firms; malicious model deployments tested in a dedicated prod-like environment\nEncrypted secrets storage scoped to the customer workspace; secrets encrypted and injected into the model environment only at runtime\nSSO via SAML 2.0 with major identity providers (Okta, Google Workspace, Azure AD) plus SCIM 2.0 directory sync; role-based access control on workspaces; scoped workspace/personal API keys with central admin revocation\nSingle-tenant, self-hosted, and hybrid deployment options that keep workloads and data in the customer's own cloud\nRegional environments that route inference traffic exclusively to workload planes within a designated geographic region (US, EU, UK, Australia), guaranteeing data stays in the designated region\nSOC 2 Type II certified and HIPAA compliant (both Baseten-hosted and self-hosted deployments)",
+      "source_url": "https://docs.baseten.co/observability/security",
+      "locator": "Assembled one-per-line from: docs.baseten.co/observability/security (zero data retention, Kubernetes namespace isolation via Calico/Cilium, private subnets/firewalls, annual third-party penetration testing, SOC 2 Type II + HIPAA), docs.baseten.co/organization/secrets (encrypted secrets), baseten.co/resources/changelog/sso-and-scim/ and docs.baseten.co/observability/access (SSO/SAML 2.0, SCIM, RBAC, API key management), baseten.co/deployments/baseten-self-hosted/ and /baseten-hybrid/ (single-tenant/self-hosted/hybrid), docs.baseten.co/deployment/regional-environments (region-locked routing)",
+      "confidence": "low",
+      "notes": "Every line traces to a baseten.co or docs.baseten.co page surfaced in domain-restricted search snippets this session; none of the pages could be fetched directly (gateway EGRESS_BLOCKED). Deliberately excludes anything only claimed by third parties or inferable from the underlying cloud providers Baseten runs on."
+    },
+    "3.2.1": {
+      "value": "Yes",
+      "source_url": "https://docs.baseten.co/deployment/regional-environments",
+      "locator": "Docs 'Regional environments': Baseten can configure regional restrictions for a variety of geographic regions, including US, EU, UK, and Australia; 'Regional environments route inference traffic for a deployment exclusively to workload planes within a designated geographic region', with a region-specific inference endpoint 'guaranteeing data stays in the designated region'; positioned as enabling 'compliance with data residency and compliance requirements, such as GDPR'. Regional environments require initial configuration by Baseten (contact support).",
+      "confidence": "low",
+      "notes": "The playbook test is 'offers an EU region', not 'we use it' — Baseten documents an EU regional-environment offering, so Yes. Snippet-sourced (direct fetch blocked); verifier should re-fetch the docs page. Whether Tavus's deployment actually uses the EU region is 3.2.2 (Bucket B, human answers). Supporting evidence: baseten.co/blog/private-secure-deepseek-r1-in-production-in-us-eu-data-centers/ (US & EU data centers); Self-hosted/Hybrid also allow EU residency in the customer's own cloud."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm the exact legal entity that contracts for the Baseten service (full name, legal form, and state of incorporation — is it Baseten Labs, Inc., a Delaware corporation?) and the current registered address (your Terms state 201 Spear Street, Suite 1600, San Francisco, CA 94105).",
+    "Has Baseten designated a representative in the EU under Article 27 GDPR? If yes, please provide the representative's name and full address.",
+    "Does Baseten have a formally appointed Data Protection Officer? If yes, please provide name, telephone number and/or email; if not, please confirm privacy@baseten.co as the contact entitled to respond to data-protection requests, and provide a telephone number if available.",
+    "What minimum TLS version is enforced for data in transit on Baseten inference and management endpoints (TLS 1.2 or 1.3), and is TLS also enforced for internal traffic between platform services and model pods?",
+    "Is customer data at rest (async inference inputs while queued, logs, secrets, custom model weights and source code) encrypted, with which algorithm (e.g. AES-256), and on which underlying cloud provider(s)?",
+    "Are backups of customer data taken, and if so are they encrypted and with which algorithm?",
+    "Who generates and manages the encryption keys for data at rest — Baseten/its cloud provider (shared or customer-specific keys), or can customers supply their own keys (CMEK/BYOK)? Please answer for the Baseten Cloud deployment model specifically.",
+    "Can Baseten anonymize and/or pseudonymize customer personal data on the customer's documented instruction (Art. 28(3)(e) GDPR support)?",
+    "Beyond SOC 2 Type II and HIPAA, does Baseten hold any of: ISO/IEC 27001, 27018, 27701, 9001, ISO 22301/BS 25999, SOC 1, SOC 3? Please provide current certificates/reports.",
+    "For the EU regional environment: does it cover the video/audio inference workloads Tavus runs on Baseten, does it guarantee both processing and storage stay in the EU/EEA, and what is required to enable it for our account?"
+  ]
+}
