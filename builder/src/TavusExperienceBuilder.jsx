@@ -421,6 +421,10 @@ const BUILDER_CSS = `
         .meet-controls.hidden { opacity:0; pointer-events:none; }
         .meet-note { max-width:320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#9aa0ab; font-size:12px; }
         .meet-captions { position:absolute; left:50%; transform:translateX(-50%); bottom:20px; z-index:5; max-width:72%; text-align:center; background:rgba(32,33,36,.85); color:#e8eaed; font-size:14px; line-height:1.45; padding:8px 16px; border-radius:8px; pointer-events:none; }
+        /* Closed captions — live transcript of what's actually being said,
+           revealed word by word at speech pace. Speaker name in Meet blue. */
+        .duet-cc { position:fixed; left:50%; transform:translateX(-50%); z-index:6; max-width:70%; background:rgba(0,0,0,.72); color:#fff; font-size:15px; line-height:1.5; padding:7px 14px; border-radius:8px; text-align:center; pointer-events:none; }
+        .duet-cc b { color:#8ab4f8; font-weight:600; }
         /* the card renders ON the asker's tile, lower third — like their own screen */
         .duet-tile-card { position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:4; width:min(400px, 88%); animation:duetcard .45s ease; }
         .duet-tile-card .sc-card { position:static; transform:none; width:100%; box-shadow:0 22px 60px -16px rgba(0,0,0,.7); }
@@ -926,7 +930,29 @@ function DuetJoiner({ url, id, side, hold = false }) {
 /* The duet stage the builder sees: branded chrome, two rooms side by side,
    REC indicator, turn counter, End button. Records the captured tab locally
    (MediaRecorder) and downloads the file when the duet ends. */
-function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = "", openerB = "", summary = "", features = "", outline = [], surfaces = null, look = "stage", onExit }) {
+function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = "", openerB = "", summary = "", features = "", outline = [], surfaces = null, look = "stage", captions = false, onExit }) {
+  // Closed captions — live transcript off the speech feed, revealed word by
+  // word at roughly speech pace. Scripted lines (no transcript events) are
+  // captioned from their authored text at turn time.
+  const [cc, setCc] = useState(null); // {side, text, words, shown}
+  const ccClearRef = useRef(null);
+  const showCc = useCallback((side, textRaw) => {
+    const text = String(textRaw || "").trim();
+    if (!text) return;
+    setCc((cur) => {
+      const words = text.split(/\s+/);
+      // Cumulative re-emits extend the same caption; a new utterance restarts it.
+      if (cur && cur.side === side && text.startsWith(cur.text)) return { side, text, words, shown: cur.shown };
+      return { side, text, words, shown: Math.min(3, words.length) };
+    });
+    clearTimeout(ccClearRef.current);
+    ccClearRef.current = setTimeout(() => setCc(null), 9000);
+  }, []);
+  useEffect(() => {
+    if (!captions) return undefined;
+    const iv = setInterval(() => setCc((cur) => (cur && cur.shown < cur.words.length ? { ...cur, shown: cur.shown + 1 } : cur)), 320);
+    return () => { clearInterval(iv); clearTimeout(ccClearRef.current); };
+  }, [captions]);
   // "meeting" look: the recording reads as a saved Zoom/Meet call — no
   // branded chrome; the operator controls fade out when the mouse is idle
   // so the tab capture shows only what a real call recording would.
@@ -1073,6 +1099,7 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
       if (e.origin !== origin || e.data?.__duet !== true) return;
       const d = e.data;
       if (d.type === "speech" && typeof d.text === "string") {
+        if (captions) showCc(d.from, d.text);
         matchCards(d.text.toLowerCase(), d.from);
         return;
       }
@@ -1158,6 +1185,9 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
           const out = (text ? text + cue : cue).trim();
           if (out) deliver("a", out);
         }
+        // Scripted lines emit no speech events — caption them from the
+        // authored text the moment their turn lands.
+        if (captions && !rawText && text) showCc(d.from, text);
         if (text) setNote(`${labels?.[d.from] || String(d.from).toUpperCase()}: “${text.slice(0, 110)}${text.length > 110 ? "…" : ""}”`);
         // Backstop matching on the finished turn — the live speech feed
         // already ran, but substituted scripted texts only exist here.
@@ -1265,9 +1295,17 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
           )}
         </div>
       </div>
+      {/* Closed captions — what's actually being said, revealed at speech pace. */}
+      {captions && cc && (
+        <div className="duet-cc" style={{ bottom: meeting ? 18 : 96 }}>
+          <b>{(cc.side === "a" ? labels?.a : labels?.b) || (cc.side === "a" ? "Speaker 1" : "Speaker 2")}:</b>{" "}
+          {cc.words.slice(Math.max(0, cc.shown - 18), cc.shown).join(" ")}
+        </div>
+      )}
       {/* Narrator — in meeting look it reads as a live-captions bar (native
-          to a call recording); in stage look it's the branded strip. */}
-      {narr && <div className={meeting ? "meet-captions" : "duet-narrator"}>{narr}</div>}
+          to a call recording); in stage look it's the branded strip. When CC
+          is on it sits above the caption line. */}
+      {narr && <div className={meeting ? "meet-captions" : "duet-narrator"} style={meeting && captions ? { bottom: 74 } : undefined}>{narr}</div>}
       {!meeting && <footer className="duet-note">{note}</footer>}
     </div>
   );
@@ -2681,6 +2719,7 @@ export default function TavusExperienceBuilder() {
   // The point of a duet is replacing a hand-recorded avatar call — so the
   // default look reads like a saved Zoom/Meet recording, not a demo stage.
   const [duetLook, setDuetLook] = useState("meeting"); // "meeting" | "stage"
+  const [duetCaptions, setDuetCaptions] = useState(true); // CC: live transcript of what's said
   // Two reusable Studio PALs — their prompts get PATCHed per plan, so duets
   // never pile up new PALs on the account.
   const [studioPalA, setStudioPalA] = useState("");
@@ -2807,7 +2846,7 @@ export default function TavusExperienceBuilder() {
     canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
     scCards, studioLines,
     duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser,
-    duetDeckBeat, duetBrowserBeat, duetBrowserShow, duetLook, studioPalA, studioPalB,
+    duetDeckBeat, duetBrowserBeat, duetBrowserShow, duetLook, duetCaptions, studioPalA, studioPalB,
     palLlm, knowledgeIdsRaw,
     site,
     expJourney,
@@ -2875,6 +2914,7 @@ export default function TavusExperienceBuilder() {
     setDuetDeckBeat(String(c.duetDeckBeat ?? "0")); setDuetBrowserBeat(String(c.duetBrowserBeat ?? "0"));
     setDuetBrowserShow(c.duetBrowserShow ?? "");
     setDuetLook(c.duetLook === "stage" ? "stage" : "meeting");
+    setDuetCaptions(c.duetCaptions !== false); // CC default on; only explicit false turns it off
     setStudioPalA(c.studioPalA ?? ""); setStudioPalB(c.studioPalB ?? "");
     setExpJourney(Array.isArray(c.expJourney) ? c.expJourney : []);
     // Email capture is table stakes — scenarios saved before the field
@@ -5077,6 +5117,7 @@ export default function TavusExperienceBuilder() {
             browserShow: duetBrowserShow.trim().slice(0, 200),
           }}
           look={duetLook}
+          captions={duetCaptions}
           onExit={() => { setDuetRun(null); setStudioStatus("Duet saved — the .webm downloaded to this machine."); }}
         />
       )}
@@ -7125,6 +7166,10 @@ export default function TavusExperienceBuilder() {
                         <button key={v} type="button" className={"pill-btn" + (duetLook === v ? " primary" : "")} style={{ padding: "5px 14px", fontSize: 12.5 }} onClick={() => setDuetLook(v)}>{l}</button>
                       ))}
                     </div>
+                    <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer", marginTop: 10 }}>
+                      <input type="checkbox" style={{ width: "auto" }} checked={duetCaptions} onChange={(e) => setDuetCaptions(e.target.checked)} />
+                      💬 Closed captions — live transcript of what's said, revealed at speech pace (scripted openers captioned too)
+                    </label>
                   </Field>
                   <Field label="On-screen surfaces" hint="Either one opens in its own window beside the face — never covering anyone. Pick the beat it opens on and the stage sends the featured AI a silent cue at that exact moment; “when the AI decides” leaves it to the model.">
                     {(() => {
