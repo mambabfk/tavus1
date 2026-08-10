@@ -1,0 +1,107 @@
+{
+  "vendor_name": "Modal Labs, Inc.",
+  "slug": "modal",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: the sandbox network gateway (agent proxy) returned 403 CONNECT denials for modal.com, www.modal.com, security.modal.com, trust.modal.com and web.archive.org in this session, so NO Modal page could be fetched directly (WebFetch and curl both failed). Every value below is sourced from Modal's own pages as surfaced verbatim in domain-restricted web-search snippets (allowed_domains limited to modal.com / trust.modal.com). Per researcher hard rules, confidence is therefore capped at 'low' even where the underlying Modal page is unambiguous. The verifier pass should re-fetch each source_url from an unrestricted network before values are promoted. SCOPE CAVEAT: Modal does not appear in config/scope.yaml (the 2026-04-27 authorized-subprocessor list) — the level-1 designation and the soc2_on_file_in_vanta status come from the tasking prompt, not from the signed-off scope file; reconcile before filling the workbook.",
+  "fields": {
+    "1.1": {
+      "value": "Modal Labs, Inc. (Delaware corporation)",
+      "source_url": "https://modal.com/legal/terms",
+      "locator": "Terms of Service (Software as a Service Agreement), opening: agreement is with Modal Labs, Inc., a Delaware corporation; the Data Processing Addendum (modal.com/legal/dpa, effective October 31, 2025) is likewise 'between Modal Labs, Inc. and Customer'",
+      "confidence": "low",
+      "notes": "Snippet-sourced (direct fetch blocked by gateway 403). Entity name corroborated across modal.com/legal/terms, modal.com/legal/dpa and the site copyright line ('property of Modal Labs, Inc.'). The field playbook requires this to match the entity named in TOM questionnaire #8.3 that Tavus already submitted — no TOM questionnaire file exists in this repo, so the filler/human must reconcile before writing the cell."
+    },
+    "1.1.1": {
+      "value": "Full postal address: Not known — no registered/mailing address is published on any Modal legal page retrieved this session. Privacy/security contact: security@modal.com. No Article 27 GDPR representative identified in any retrieved material.",
+      "source_url": "https://modal.com/docs/guide/security",
+      "locator": "Security and privacy at Modal (docs): privacy- and security-related inquiries directed to security@modal.com; modal.com/blog/hipaa gives the same contact. Privacy policy (modal.com/legal/privacy-policy) and terms notices section surfaced no street address in any snippet.",
+      "confidence": "low",
+      "notes": "Snippet-sourced (direct fetch blocked). Searched modal.com/legal/privacy-policy, /legal/terms (incl. the March 2024 and October 2025 dated versions), /legal/dpa, /company for a street address, 'Attn', legal@/privacy@ contacts — none surfaced. modal.com/company says the team is 'based out of New York, Stockholm, and San Francisco' (HQ is New York), but that is not a registered address and must not be written into the form. Absence of an Art. 27 EU representative is a legitimate finding for a US vendor per the playbook, but because full pages could not be fetched the absence was not positively confirmed — both items are in open questions."
+    },
+    "1.1.2": {
+      "value": "N/A (no formally named data protection officer found). Data-protection requests: security@modal.com — per the form instruction this working contact belongs in the 1.1.1 contact-details column.",
+      "source_url": "https://modal.com/docs/guide/security",
+      "locator": "Security and privacy at Modal (docs) and modal.com/blog/hipaa: security@modal.com is the published contact for security/privacy/compliance inquiries (incl. BAA requests); no DPO name, telephone number, or DPO title appears in any retrieved snippet of the privacy policy, DPA, or terms",
+      "confidence": "low",
+      "notes": "Searched modal.com (domain-restricted) for 'data protection officer', GDPR 'representative', privacy contact — no DPO surfaced. Do-not-invent rule applied: N/A plus the published contact email. Because the full privacy policy and DPA could not be fetched (gateway 403), the absence of a DPO could not be positively confirmed on-page; confirm in writing with the vendor. No telephone number is published anywhere retrieved."
+    },
+    "1.4.2": {
+      "value": "SOC 2",
+      "source_url": "https://modal.com/blog/soc2type2",
+      "locator": "Blog post 'Modal is SOC 2 Type II Compliant'; corroborated by modal.com/docs/guide/security: 'Modal has successfully completed a System and Organization Controls (SOC) 2 Type 2 audit. Access to the SOC 2 Type 2 report is available through Modal's Security Portal' (trust.modal.com)",
+      "confidence": "low",
+      "notes": "Snippet-sourced (direct fetch blocked; trust.modal.com itself also blocked). SOC 2 Type II is the only audit certification Modal claims on its own retrieved pages — no ISO 27001/27701/27018/9001/22301 certification claim was found (an ISO 27001 mention in search output traced to generic marketing-blog language, not a claim that Modal holds it; do not assert it). Modal also offers a HIPAA BAA on its Enterprise plan (modal.com/blog/hipaa) — relevant context but not a dropdown option. Playbook rule: do not assert SOC 2 unless the report is on file in Vanta — Modal is not in scope.yaml and has no soc2_on_file_in_vanta attestation, so check Vanta / obtain the report via trust.modal.com before this dropdown is filled."
+    },
+    "3.1.1": {
+      "value": "TLS 1.3",
+      "source_url": "https://modal.com/docs/guide/security",
+      "locator": "Security and privacy at Modal (docs): 'All user data is encrypted in transit ... All public Modal APIs use TLS 1.3, the latest and safest version of the TLS protocol'; the same page states Modal forces HTTPS for all services using TLS",
+      "confidence": "low",
+      "notes": "Snippet-sourced (direct fetch blocked; an empirical TLS handshake against api.modal.com was impossible because the gateway blocks CONNECT). The claim covers 'all public Modal APIs'; whether TLS 1.3 (vs 1.2) is also the minimum for web endpoints serving Modal Functions and for internal service-to-service traffic is not stated in retrieved snippets — confirm with vendor before relying on '1.3' for the entire data path."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Encryption at rest IS documented — modal.com/docs/guide/security: 'All user data is encrypted in transit and at rest' and 'Function inputs and outputs are stored encrypted at rest' — but no Modal page retrieved this session names the algorithm/standard (AES-128/256 etc.). A domain-restricted search for 'AES' on modal.com returned no algorithm statement. Writing 'AES-256' would be inference from industry norm, which the hard rules forbid; the honest dropdown value is 'Not known' with the positive encrypted-at-rest fact carried in 3.1.8. Searched: modal.com/docs/guide/security, /docs/guide/secrets, /docs/guide/customer-supplied-encryption-keys, /legal/dpa (all via snippets; direct fetches blocked)."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Backup encryption is not documented separately anywhere on Modal's public pages retrieved this session ('Not known' is the playbook-expected answer here). Related mitigating controls found instead: function inputs and outputs are deleted within a maximum TTL of 7 days (small payloads ≤2 MiB inline in the metadata store, larger in object storage), and Modal Inference endpoints are zero-data-retention — request/response payloads are never written to disk (modal.com/docs/guide/security). Ask the vendor whether customer data appears in backups at all and, if so, how backups are encrypted."
+    },
+    "3.1.4": {
+      "value": "Key generated by Subprocessor (not customer-specific)",
+      "source_url": "https://modal.com/docs/guide/customer-supplied-encryption-keys",
+      "locator": "Customer Supplied Encryption Keys (docs): 'CSEK lets you provide your own key material when creating supported Modal resources, and Modal uses the key as part of the resource encryption flow, but does not persist the key' (key material 16–512 bytes) — framing that establishes the default (non-CSEK) flow uses Modal-provided keys",
+      "confidence": "low",
+      "notes": "Playbook default for managed cloud applied ('Key generated by Subprocessor (not customer-specific)' unless Tavus uses CMEK/BYOK — CHECK WITH THE HUMAN). Modal-managed default keys are implied by the CSEK page (customer keys are the opt-in exception), but Modal does not publicly document whether default at-rest keys are per-customer or shared, so the '(not customer-specific)' half is the playbook default, not vendor evidence. If Tavus supplies CSEK key material for the resources Modal processes, the correct dropdown becomes 'Key generated by your company'. Confirm both points (default key scoping; whether Tavus uses CSEK) before filling.",
+      "requires_signoff": true,
+      "signed_off_by": null
+    },
+    "3.1.6": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary source states Modal can anonymize customer personal data on the customer's instruction. Adjacent-but-different fact found (do not conflate): the Terms of Service (October 2025 version) let Modal use 'Aggregated De-identified Data' — data collected in connection with Customer's use of the Service, in aggregate de-identified form, explicitly EXCLUDING Customer Data uploaded or submitted by Customer — for Modal's own business purposes. That is Modal de-identifying its own usage analytics, not a processor anonymization capability offered over SAP/Tavus personal data. Searched modal.com legal pages and docs via domain-restricted search."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No mention of a pseudonymization capability anywhere in retrieved Modal material. The DPA commits to 'appropriate technical and organizational measures described on Schedule 2, including measures referred to in Article 32(1) of the GDPR' (modal.com/legal/dpa) — Art. 32(1)(a) names pseudonymisation, but Schedule 2's actual contents could not be retrieved this session, so no capability can be asserted. Ask the vendor for Schedule 2 of the DPA."
+    },
+    "3.1.8": {
+      "value": "All user data encrypted in transit and at rest; all public Modal APIs use TLS 1.3 and HTTPS is forced for all services\nCompute jobs containerized and virtualized with gVisor (Google's sandboxing container runtime, as used in Google Cloud Run/GKE), with syscall-filtering logic isolating workloads from host OS and from other tenants\nData minimization: function inputs/outputs stored encrypted and deleted within a maximum TTL of 7 days; Modal Inference endpoints are zero-data-retention (payloads never written to disk, in-flight network traffic only)\nSecrets stored as encrypted objects until container startup\nCustomer Supplied Encryption Keys (CSEK) available for supported resources — Modal uses customer key material in the encryption flow and does not persist the key\nLeast-privileged approach to customer data: Modal states it will never access or use customer source code, function inputs/outputs, or anything stored in Images and Volumes\nExternal penetration testing firms engaged to assess software security; internal code reviews via PR-based development workflow (GitHub)\nRegion selection incl. EU-only execution (region=\"eu\" pins Functions/Sandboxes to EU datacenters)\nRole-based access for service users (Viewer/Contributor per Environment) with production isolated from dev/staging\nSOC 2 Type II audit completed, report available via Security Portal (trust.modal.com); HIPAA BAA available on Enterprise plan",
+      "source_url": "https://modal.com/docs/guide/security",
+      "locator": "Assembled one-per-line from: docs/guide/security (encryption in transit/at rest, TLS 1.3, gVisor, 7-day TTL, zero-data-retention inference, least-privileged access, pen testing, PR-based review, SOC 2), docs/guide/secrets (encrypted secret objects), docs/guide/customer-supplied-encryption-keys (CSEK), docs/guide/region-selection (EU pinning), docs/guide/service-users (RBAC/least privilege), blog/hipaa (BAA), blog/soc2type2 (SOC 2 Type II)",
+      "confidence": "low",
+      "notes": "Every line traces to a modal.com page surfaced in domain-restricted search snippets this session; none of the pages could be fetched directly (gateway 403). Deliberately excludes anything only claimed by third parties or inferable from Modal's underlying cloud providers (Modal runs on hyperscaler infrastructure incl. AWS per modal.com/blog/aws-partnership-press-release — do not attribute the hyperscalers' controls to Modal)."
+    },
+    "3.2.1": {
+      "value": "Yes",
+      "source_url": "https://modal.com/docs/guide/region-selection",
+      "locator": "Region selection (docs): supported regions include 'eu' (European Economic Area) with narrower 'eu-west', 'eu-north', 'eu-south'; 'Specifying region=\"eu\" will ensure that Functions run within EU datacenters', called out for GDPR use cases; launch post modal.com/blog/region-selection-launch; available on all plans per modal.com/blog/modal-product-updates-feb-2025",
+      "confidence": "low",
+      "notes": "The test is 'does the vendor OFFER an EU region' — Modal clearly documents an EU region offering for Functions/Sandboxes, including routing-region control for inputs/outputs (routing_region argument). Snippet-sourced (direct fetch blocked). Whether the EU region covers every Modal product surface Tavus uses (e.g. storage resources like Volumes, the metadata/control plane) is not established from snippets — flag for vendor. 3.2.2 (is EU Access actually used in Tavus's service) is a deployment fact for the human, not researched here."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please provide the full registered/mailing address of Modal Labs, Inc. (none is published on modal.com's legal pages), and confirm the exact legal entity and state of incorporation (Delaware corporation?) that contracts for the service Tavus uses.",
+    "Has Modal Labs, Inc. designated a representative in the EU under Article 27 GDPR? If yes, please provide the representative's name and full address.",
+    "Does Modal have a formally appointed Data Protection Officer? If yes, please provide name, telephone number and/or email; if not, please confirm security@modal.com (or another address) as the contact entitled to respond to data-protection requests, plus a telephone number if available.",
+    "Your docs state all user data is encrypted at rest — which algorithm/standard is used (e.g. AES-256), for (a) function inputs/outputs, (b) Volumes/Images, (c) the metadata store, and (d) object storage?",
+    "Are backups taken of customer data, and if so are they encrypted and with which algorithm?",
+    "For the default (non-CSEK) encryption flow, who generates and manages the at-rest keys — Modal or its underlying cloud provider — and are keys customer-specific or shared? Does Tavus's workload support Customer Supplied Encryption Keys, and for which resource types?",
+    "What is the minimum TLS version enforced for (a) public Modal APIs, (b) web endpoints serving Modal Functions, and (c) internal service-to-service and container-to-control-plane traffic?",
+    "Can Modal anonymize and/or pseudonymize customer personal data on the customer's documented instruction (Art. 28(3)(e) GDPR support), as distinct from the 'Aggregated De-identified Data' usage-analytics right in your Terms of Service? Please also provide Schedule 2 (TOMs) of your DPA.",
+    "Please provide your current SOC 2 Type II report (via trust.modal.com) and confirm whether Modal holds any ISO certifications (27001/27018/27701/9001/22301) — none are claimed on your public pages.",
+    "Does the EU region offering (region=\"eu\") cover the full processing chain for real-time video/audio inference workloads — container execution, input/output routing (routing_region), Volumes/object storage, and control-plane metadata — such that personal data can be kept within the EU/EEA end to end?"
+  ]
+}
