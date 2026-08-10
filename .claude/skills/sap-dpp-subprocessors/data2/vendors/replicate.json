@@ -1,0 +1,105 @@
+{
+  "vendor_name": "Replicate, LLC",
+  "slug": "replicate",
+  "level": 1,
+  "contact_directly": true,
+  "research_caveat": "IMPORTANT: the sandbox network gateway (agent proxy) returned 403 CONNECT denials for replicate.com, internal.replicate.com, archive.org and web.archive.org in this session, so NO Replicate page could be fetched directly (WebFetch and curl both failed). Every value below is sourced from Replicate's own pages as surfaced verbatim in domain-restricted web-search snippets (allowed_domains limited to replicate.com). Per researcher hard rules, confidence is therefore capped at 'low' even where the underlying Replicate page is unambiguous. The verifier pass should re-fetch each source_url from an unrestricted network before values are promoted. ADDITIONAL ENTITY CAVEAT: Replicate publicly announced it is joining Cloudflare (https://replicate.com/blog/replicate-cloudflare); its Terms of Service and privacy policy now name 'Replicate, LLC' (historically the company was 'Replicate, Inc.'), consistent with a post-acquisition entity conversion. The exact current legal entity and its relationship to Cloudflare, Inc. must be confirmed with the vendor and reconciled against Tavus's TOM questionnaire #8.3 (no TOM file exists in this repo).",
+  "fields": {
+    "1.1": {
+      "value": "Replicate, LLC (US limited liability company)",
+      "source_url": "https://replicate.com/terms",
+      "locator": "Terms of service, opening paragraph: 'a legally binding agreement between Replicate, LLC (\"Replicate\", \"we\", or \"our\" as applicable) and you (\"Customer\", \"you\" or \"your\" as applicable)'; governing law is California, venue San Francisco",
+      "confidence": "low",
+      "notes": "Snippet-sourced (direct fetch blocked by gateway 403). The privacy policy contact block also names 'Replicate, LLC'. Replicate announced it is joining Cloudflare (replicate.com/blog/replicate-cloudflare — 'Replicate will carry on as a distinct brand'), so the LLC is likely now a Cloudflare, Inc. subsidiary; older documents may say 'Replicate, Inc.'. The field playbook requires this to match the entity named in TOM questionnaire #8.3 that Tavus already submitted — no TOM questionnaire file exists in this repo, so the filler/human must reconcile before writing the cell. State of formation not published on retrieved pages; ask vendor."
+    },
+    "1.1.1": {
+      "value": "Replicate, LLC, 101 Townsend Street, San Francisco, CA 94107, USA. Privacy contact: privacy@replicate.com. No Article 27 GDPR representative identified in any retrieved material.",
+      "source_url": "https://replicate.com/privacy",
+      "locator": "Privacy policy, contact section: 'you can contact Replicate by mail at: Replicate, LLC, 101 Townsend Street, San Francisco, CA 94107' or 'via email at privacy@replicate.com'",
+      "confidence": "low",
+      "notes": "Snippet-sourced (direct fetch blocked). ADDRESS DISCREPANCY: a second Replicate-controlled copy of the privacy policy at internal.replicate.com/privacy lists '2261 Market Street #4056, San Francisco, CA 94114' — the authoritative registered address must be confirmed with the vendor. No Art. 27 EU representative surfaced in the privacy policy or terms; for a US vendor this absence is a legitimate finding per the playbook, but because the full page could not be fetched, absence was not positively confirmed — included in open questions."
+    },
+    "1.1.2": {
+      "value": "N/A (no formally named data protection officer found). Data-protection requests: privacy@replicate.com — this working contact belongs in the 1.1.1 contact-details column per the form instruction.",
+      "source_url": "https://replicate.com/privacy",
+      "locator": "Privacy policy, contact section: privacy inquiries directed to privacy@replicate.com; no DPO name, telephone number, or DPO title appears in any retrieved snippet of the privacy policy or terms",
+      "confidence": "low",
+      "notes": "Searched replicate.com (domain-restricted) for 'data protection officer', 'representative', GDPR contact — no DPO surfaced. Do-not-invent rule applied: N/A plus the published privacy email. Because the full privacy policy could not be fetched (gateway 403), the absence of a DPO could not be positively confirmed on-page; confirm in writing with the vendor."
+    },
+    "1.4.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No SOC 1/2/3, ISO 27001/27701/27018/9001, or ISO 22301 certification claim was found on any Replicate-owned page this session. The Enterprise page (replicate.com/enterprise) says Replicate is 'built for enterprise security, privacy, and compliance' with 'strict controls for access, encryption, and incident response' and supports data processing agreements, but names no certification. No public trust center was found. scope.yaml has soc2_on_file_in_vanta: null for Replicate — check Vanta before answering 1.4.2. Post-acquisition, Replicate may come under Cloudflare, Inc.'s audit program, but that is not evidenced on Replicate's pages and must not be asserted. Searched: replicate.com/enterprise, replicate.com/privacy, replicate.com/terms, replicate.com/blog, replicate.com/changelog (all via domain-restricted search; direct fetches blocked by gateway 403)."
+    },
+    "3.1.1": {
+      "value": "Others - pls indicate below",
+      "source_url": "https://replicate.com/blog/shared-network-vulnerability-disclosure",
+      "locator": "Shared network vulnerability disclosure (blog, May 2024): 'since February 20th, all internal traffic from model pods is encrypted using TLS'; mitigations included 'encrypting all internal traffic and restricting privileged network access for all model containers'. The public API (api.replicate.com) is served over HTTPS (replicate.com/docs/reference/http).",
+      "confidence": "low",
+      "notes": "Real standard: TLS/HTTPS — the negotiated TLS VERSION (1.2 vs 1.3) is not published anywhere retrieved this session, so per the form rule the dropdown must be 'Others - pls indicate below' with 'TLS (version not publicly documented; vendor confirms internal pod traffic TLS-encrypted since 2024-02-20)' in the free-text row. Do NOT write 'TLS 1.2'/'TLS 1.3' without vendor confirmation. Snippet-sourced; direct fetch blocked. An empirical TLS handshake against api.replicate.com was impossible (gateway blocks CONNECT)."
+    },
+    "3.1.2": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No Replicate primary source retrieved this session states an encryption-at-rest standard for customer data (inputs, outputs, files, model weights). The Enterprise page mentions 'strict controls for... encryption' without specifics. Replicate runs on hyperscaler infrastructure (its published subprocessor list is at replicate.com/docs/topics/site-policy/subprocessors, contents not retrievable this session), but inferring the underlying cloud's AES-256 default would violate the no-inference rule. Searched: replicate.com/enterprise, /privacy, /terms, /docs (security, data-retention, secrets pages) via domain-restricted search; all direct fetches blocked."
+    },
+    "3.1.3": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Backup encryption is not documented anywhere on Replicate's public pages retrieved this session ('Not known' is the playbook-expected answer for most vendors here). Note the related mitigating control: API prediction inputs/outputs are auto-deleted after one hour by default (replicate.com/docs/topics/predictions/data-retention), which limits what could be in backups at all. Searched same pages as 3.1.2."
+    },
+    "3.1.4": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "Since no encryption-at-rest standard or key-management scheme is documented at all (see 3.1.2), asserting the playbook's managed-cloud default 'Key generated by Subprocessor (not customer-specific)' would be inference, not evidence. No CMEK/BYOK offering was found either. Ask the vendor; also confirm with the human whether Tavus's Replicate arrangement involves any customer-managed keys (very unlikely for an inference API, but the playbook says check)."
+    },
+    "3.1.6": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No primary source states Replicate can anonymize customer personal data on the customer's instruction. Adjacent-but-different facts found (do not conflate): the privacy policy says Replicate 'may disclose de-identified, aggregate, or anonymous information about Website visitors' and the Terms define 'Resultant Data' as aggregated and anonymized usage data (replicate.com/privacy, replicate.com/terms) — that is Replicate anonymizing its own analytics data, not a processor capability offered over SAP/Tavus personal data. Searched replicate.com privacy/terms/docs via domain-restricted search."
+    },
+    "3.1.7": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "No mention of pseudonymization anywhere in retrieved Replicate material. Same search scope as 3.1.6."
+    },
+    "3.1.8": {
+      "value": "API prediction data minimization: all input parameters, output values, output files and logs for API-created predictions are automatically removed after one hour by default (customer must save copies to retain them)\nAll internal traffic from model pods encrypted with TLS (since 2024-02-20) and privileged network access restricted for all model containers\nModels run containerized (Cog models built into OCI images) as a defense against code escaping containers\nAutomatic API token compromise monitoring: public GitHub repositories scanned for accidentally committed Replicate API tokens; compromised tokens automatically disabled; multiple scoped tokens supported\nSecret input values redacted in logs and prediction metadata after being sent to the model\nAudit logging of model access and configuration changes (deployments)\nPrivate, dedicated API endpoints available via deployments\nPublic responsible-disclosure practice with published post-incident reports (e.g. May 2024 shared-network vulnerability disclosure, mitigation deployed within 24 hours of report)",
+      "source_url": "https://replicate.com/docs/topics/predictions/data-retention",
+      "locator": "Assembled one-per-line from: docs/topics/predictions/data-retention (one-hour auto-deletion; also changelog/2023-01-04-api-prediction-data-no-longer-stored), blog/shared-network-vulnerability-disclosure (internal TLS since Feb 20, restricted privileged network access, OCI containerization, 24h mitigation), docs/topics/security/api-tokens (token scanning/auto-disable, multiple tokens), docs/topics/predictions/secrets (secret redaction), docs/topics/deployments (audit logging, private endpoints)",
+      "confidence": "low",
+      "notes": "Every line traces to a replicate.com page surfaced in domain-restricted search snippets this session; none of the pages could be fetched directly (gateway 403). Deliberately excludes anything only claimed by third parties or inferable from the underlying cloud provider."
+    },
+    "3.2.1": {
+      "value": "Not known",
+      "source_url": null,
+      "locator": null,
+      "confidence": "none",
+      "notes": "The test is 'does the vendor OFFER an EU region'. No Replicate page retrieved this session documents region selection, EU data residency, or where inference runs; the docs describe deployments/hardware choices but not geographic regions. Replicate runs on hyperscaler infrastructure that has EU regions, but that does not establish that Replicate offers EU processing to customers — 'Not known' is the only supportable answer. Post-Cloudflare-acquisition regionality plans (integration with Cloudflare's network) are also undocumented. Searched: replicate.com/docs (deployments, how-does-replicate-work), /enterprise, /privacy via domain-restricted search."
+    }
+  },
+  "open_questions_for_vendor": [
+    "Please confirm the exact current legal entity that contracts for the Replicate service (name, legal form, state of formation, and registered address) following the Cloudflare acquisition — is it Replicate, LLC, and is it a wholly-owned subsidiary of Cloudflare, Inc.? Your public pages show two addresses (101 Townsend Street, San Francisco, CA 94107 on replicate.com/privacy; 2261 Market Street #4056, San Francisco, CA 94114 on internal.replicate.com/privacy) — which is authoritative?",
+    "Has Replicate (or its Cloudflare parent, on Replicate's behalf) designated a representative in the EU under Article 27 GDPR? If yes, please provide the representative's name and full address.",
+    "Does Replicate have a formally appointed Data Protection Officer? If yes, please provide name, telephone number and/or email; if not, please confirm privacy@replicate.com as the contact entitled to respond to data-protection requests.",
+    "Which security certifications or audit reports does Replicate currently hold (SOC 2 Type II, SOC 1/3, ISO/IEC 27001, 27018, 27701, 22301, 9001)? Please provide the current reports/certificates. If Replicate is now covered under Cloudflare, Inc.'s compliance program, please state which certifications extend to the Replicate service and from what date.",
+    "What minimum TLS version is enforced for data in transit (a) on the public API endpoints (api.replicate.com) and (b) for internal traffic between services and model pods?",
+    "Is customer data (prediction inputs, outputs, files, logs, custom model weights) encrypted at rest, with which algorithm (e.g. AES-256), and on which underlying cloud provider(s) and region(s) is it stored?",
+    "Are backups of customer data taken, and if so are they encrypted and with which algorithm?",
+    "Who generates and manages the encryption keys for data at rest — Replicate/its cloud provider (shared or customer-specific keys), or can customers supply their own keys (CMEK/BYOK)?",
+    "Can Replicate anonymize and/or pseudonymize customer personal data on the customer's documented instruction (Art. 28(3)(e) GDPR support), as opposed to the aggregated/anonymized 'Resultant Data' described in your Terms?",
+    "Does Replicate offer an EU processing region or EU data residency option (inference executed and data stored within the EU/EEA)? If yes, how is it enabled and does it cover video/audio inference workloads?"
+  ]
+}

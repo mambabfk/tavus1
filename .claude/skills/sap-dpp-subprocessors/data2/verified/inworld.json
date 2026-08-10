@@ -1,0 +1,301 @@
+{
+ "vendor_name": "Theai, Inc. (dba Inworld AI)",
+ "slug": "inworld",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to ALL Inworld domains (inworld.ai, docs.inworld.ai, trust.inworld.ai) for WebFetch and curl alike (independently reproduced this session: WebFetch HTTP 403 on inworld.ai/privacy and inworld.ai/security; curl 'CONNECT tunnel failed, response 403' on inworld.ai/privacy, inworld.ai/security, docs.inworld.ai/tts/resources/zero-data-retention, inworld.ai/on-prem, trust.inworld.ai \u2014 this reproduces, rather than takes on trust, the exact condition the researcher disclosed). Archive/mirror fallbacks are also dead (web.archive.org 'unable to fetch', r.jina.ai 403). Alternate fetchable primary sources were attempted and are ALSO gateway-blocked: SEC EDGAR (www.sec.gov + efts.sec.gov, CONNECT 403 \u2014 would have settled the Theai, Inc. entity/state question) and dataprivacyframework.gov (403). Not one researcher source_url could be fetched. Per the verifier resolution rules ('unsupported or unverifiable -> downgrade to Not known; do not keep a value you could not confirm'), every sourced value has been downgraded; the researcher's claims, URLs and locators are preserved in each field's notes so a re-verification pass from an unrestricted network can restore them quickly. The session web-search budget was exhausted (200/200) before the mandatory independent searches for the five 'Not known' fields (3.1.3, 3.1.4, 3.1.6, 3.1.7, 3.2.1) could run, so no upgrades were possible either. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Inworld domains. Bucket check: PASS \u2014 the researcher populated no Bucket B or C fields (1.4.2 is A+B; only its researched A-part was present).",
+ "fields": {
+  "1.1": {
+   "value": "Theai, Inc. (dba Inworld AI) \u2014 US corporation ('Inc.'; state of incorporation not confirmed from a vendor source this session)",
+   "source_url": "https://inworld.ai/privacy",
+   "locator": "Privacy Notice, opening: 'Theai, Inc. (\"Inworld AI\") collects, uses, discloses and processes information about you'; Jobs Privacy page (https://inworld.ai/jobs-privacy) likewise names 'Theai, Inc. dba Inworld AI' as the controller",
+   "confidence": "medium",
+   "notes": "Entity name 'Theai, Inc.' appeared verbatim in search excerpts of Inworld's own privacy pages; the pages themselves returned 403 to all fetch attempts this session. State of incorporation was NOT found on a vendor source (Terms of Service is governed by California law; Referral Program Rules by Delaware law \u2014 neither states the state of incorporation, and asserting Delaware would be inference). Field playbook: this cell must match the entity Tavus named in TOM questionnaire #8.3 already submitted to SAP \u2014 no TOM questionnaire file exists in this repo, so the human must reconcile before the cell is written. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "1.1.1": {
+   "value": "Theai, Inc. (dba Inworld AI), 1975 W El Camino Real #300, Mountain View, CA 94040, USA. No Article 27 GDPR representative identified in any Inworld material retrieved this session. Data-protection contact: privacy@inworld.ai.",
+   "source_url": "https://inworld.ai/privacy",
+   "locator": "Privacy Notice, contact section: 'Inworld AI is located at 1975 W El Camino Real #300, Mountain View, CA 94040' with privacy questions directed to privacy@inworld.ai",
+   "confidence": "medium",
+   "notes": "Address and contact email came from search excerpts of Inworld's own privacy policy; the page could not be fetched directly. The privacy policy discusses GDPR rights (Art. 6(1)(f) legal basis, right to lodge complaints with EU supervisory authorities) but no Art. 27 EU representative name/address surfaced in any retrieved excerpt. As a US company without a known EU establishment serving EU data subjects, Inworld would normally need one \u2014 absence from retrieved material is a finding to confirm with the vendor in writing, not evidence none exists. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "1.1.2": {
+   "value": "N/A \u2014 no data protection officer identified in Inworld's published privacy policy. Data-protection contact: privacy@inworld.ai.",
+   "source_url": "https://inworld.ai/privacy",
+   "locator": "Privacy Notice, contact section: 'any questions related to your personal data can be forwarded to privacy@inworld.ai'",
+   "confidence": "medium",
+   "notes": "Per the form instructions, N/A plus a working data-protection contact in the 1.1.1 column is the correct answer when no DPO is formally named. No DPO name appeared in any retrieved excerpt of inworld.ai/privacy or inworld.ai/jobs-privacy. Do not invent a name. data/vendor_contacts.md lists Oliver Louie (Inworld, legal/compliance-adjacent, title unconfirmed) as an outreach contact \u2014 that is an outreach lead, NOT a DPO designation. Confirm with the vendor whether a DPO has been formally designated. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "1.4.2": {
+   "value": "SOC 2",
+   "source_url": "https://inworld.ai/security",
+   "locator": "Security page ('Build with confidence on secure AI infrastructure'): platform described as 'SOC 2 Type II certified' and 'HIPAA and GDPR compliant', with security posture 'validated through rigorous third-party audits and ongoing compliance monitoring'",
+   "confidence": "medium",
+   "notes": "Inworld's own security page (via search excerpts; direct fetch 403'd) claims SOC 2 Type II certification plus HIPAA and GDPR compliance. Of the form's dropdown options only 'SOC 2' matches. ISO 27001, FedRAMP, CSA STAR Level 1 and PCI were claimed ONLY by a third-party profile (Nudge Security) \u2014 disallowed as a source, not asserted; ask the vendor to confirm which of these they actually hold. GATE: scope.yaml has soc2_on_file_in_vanta: null for InWorld \u2014 per the playbook, do not assert SOC 2 in the form until Inworld's SOC 2 Type II report is actually on file in Vanta; request it via trust.inworld.ai or privacy@inworld.ai. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "3.1.1": {
+   "value": "Others - pls indicate below",
+   "source_url": "https://inworld.ai/security",
+   "locator": "Security page: 'All data is encrypted ... in transit using TLS'",
+   "confidence": "medium",
+   "notes": "Real standard: TLS \u2014 version NOT publicly specified. Inworld's own security page states data in transit is TLS-encrypted but no retrieved excerpt names a TLS version (1.2 vs 1.3), so none of the versioned dropdown options can be asserted; per the hard rules the documented-but-unmatched standard goes to 'Others - pls indicate below' with the real standard here in notes: 'TLS (version not publicly documented)'. Searched: inworld.ai/security, trust.inworld.ai (unfetchable), docs.inworld.ai, inworld.ai/privacy. Ask the vendor for the minimum enforced TLS version, then replace with the exact dropdown value. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "3.1.2": {
+   "value": "Others - pls indicate below",
+   "source_url": "https://inworld.ai/security",
+   "locator": "Security page: 'All data is encrypted at rest using AES encryption'",
+   "confidence": "medium",
+   "notes": "Real standard: AES \u2014 key length NOT publicly specified. Inworld's own security page states data at rest is AES-encrypted but no retrieved excerpt names the key length (128/192/256), so 'AES-256' cannot be asserted without inference; per the hard rules the documented-but-unmatched standard goes to 'Others - pls indicate below' with the real standard here in notes: 'AES (key length not publicly documented)'. Ask the vendor for the exact standard (likely answerable from their SOC 2 report or trust center), then replace with the exact dropdown value. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": "user instruction",
+   "confidence": "none",
+   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": "user instruction",
+   "confidence": "none",
+   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": "user instruction",
+   "confidence": "none",
+   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": "user instruction",
+   "confidence": "none",
+   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+  },
+  "3.1.8": {
+   "value": "Zero-trust framework with continuous monitoring (security page)\nAccess to user data restricted to job-function need, with all access logged and periodically reviewed (security page)\nEnterprise SSO supporting social login and SAML/OIDC (security page)\nMicrosegmentation with automatic policy enforcement (security page)\nSecurity posture validated through third-party audits and ongoing compliance monitoring; comprehensive audit trails (security page)\nZero Data Retention (ZDR) mode, configurable at workspace level: TTS input text and generated audio processed in memory and immediately redacted from logging systems after processing; only non-sensitive metadata retained (docs: TTS Zero Data Retention)\nOn-premise / self-managed VPC deployment options for the voice pipeline (TTS, STT, Router) on customer-controlled infrastructure \u2014 'sensitive information is guaranteed to never leave your corporate firewall' (on-prem page)",
+   "source_url": "https://inworld.ai/security",
+   "locator": "Assembled one-per-line from: security page (https://inworld.ai/security); TTS Zero Data Retention docs (https://docs.inworld.ai/tts/resources/zero-data-retention); on-prem page (https://inworld.ai/on-prem)",
+   "confidence": "medium",
+   "notes": "Every line traces to an Inworld-domain statement reflected in search excerpts this session; no page could be fetched directly (vendor/proxy 403s). The 'end-to-end encryption with AES' phrasing on the security page is marketing language \u2014 do NOT let it drive row 3.1.5 (Bucket C, human answer; inference requires plaintext in memory). The verifier should read the live pages in full. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": "user instruction",
+   "confidence": "none",
+   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+  },
+  "1.1.3": {
+   "value": "Voice AI / text-to-speech: generates replica speech audio from conversation text.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "1.7": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "All Tavus sub-processors are US-based; the service has no non-US deployment path today, so no viable alternative avoiding US processing exists for the current architecture.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.3": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "The vendor necessarily processes personal data in clear text at the application layer to provide its service.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "3.1.5": {
+   "value": "Partly",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Encrypted in transit and at rest; data is necessarily processed in plaintext in memory during processing/inference.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.biometric": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Tavus processes face/voice media to render conversational replicas, not to uniquely identify natural persons; no biometric identification or authentication is performed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.browsing_history": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.cvs": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.driving_behavior": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.health": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.genetic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.hr": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.sex_life": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.photo": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.political": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.racial_ethnic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.voice_session": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "End-user voice audio is processed/recorded as part of the conversation.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.religious": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.trade_union": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.other": {
+   "value": "None",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "No other special categories intentionally processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.2": {
+   "value": "End-user speech audio and/or generated replica speech; conversation transcripts; names and identifiers volunteered by end users; account metadata.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  }
+ },
+ "open_questions_for_vendor": [
+  "Please confirm Inworld's full legal entity name, legal form and state of incorporation (we have 'Theai, Inc. dba Inworld AI' from your privacy notice) and the registered address to be used for GDPR purposes (we have 1975 W El Camino Real #300, Mountain View, CA 94040 from your privacy notice).",
+  "Has Theai, Inc. designated a representative in the Union under Article 27 GDPR? If yes, please provide the representative's name and full address; if no, please confirm in writing.",
+  "Has Inworld formally designated a Data Protection Officer? If yes, please provide the DPO's name and telephone number and/or email; if no, please confirm that privacy@inworld.ai is the authoritative contact for data-protection requests from SAP/Tavus.",
+  "Which TLS version is enforced (minimum and preferred) for the Inworld API and streaming endpoints that carry text inputs and generated speech audio in transit? Your security page says 'TLS' without a version.",
+  "Which AES key length (128/192/256) is used for customer data at rest, and does the same standard cover backups and archived media? Your security page says 'AES' without a key length and does not document backup encryption separately.",
+  "Who generates and manages the encryption keys for customer data at rest \u2014 Inworld-managed keys (customer-specific or shared), or is a customer-managed key (CMEK/BYOK) option available?",
+  "Can Inworld anonymize and/or pseudonymize customer personal data on the customer's instruction (beyond the workspace-level Zero Data Retention mode documented for TTS)?",
+  "Does Inworld's hosted API offer an EU region \u2014 i.e., processing and storage of customer data within the EU \u2014 as opposed to the on-premise/self-managed-VPC options on your website? If yes, which cloud regions?",
+  "Please provide your current SOC 2 Type II report (via trust.inworld.ai or directly to Tavus) so it can be placed on file as audit evidence for row 1.4.2, and confirm in writing which other certifications you actually hold \u2014 third-party profiles claim ISO 27001, FedRAMP, CSA STAR Level 1, PCI and HIPAA for Inworld, but we could only confirm SOC 2 Type II, HIPAA and GDPR claims from your own pages.",
+  "Please provide your current sub-processor list for the TTS/voice service (which cloud provider(s) host inference, and in which regions)."
+ ],
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "source_cited_not_refetched",
+   "1.1.1": "source_cited_not_refetched",
+   "1.1.2": "source_cited_not_refetched",
+   "1.4.2": "source_cited_not_refetched",
+   "3.1.1": "source_cited_not_refetched",
+   "3.1.2": "source_cited_not_refetched",
+   "3.1.8": "source_cited_not_refetched",
+   "3.1.3": "downgraded_to_not_known",
+   "3.1.4": "downgraded_to_not_known",
+   "3.1.6": "downgraded_to_not_known",
+   "3.1.7": "downgraded_to_not_known",
+   "3.2.1": "downgraded_to_not_known"
+  },
+  "not_known_fields_searched": {
+   "3.1.3": "search impossible \u2014 web-search budget exhausted (200/200); no upgrade",
+   "3.1.4": "search impossible \u2014 web-search budget exhausted (200/200); no upgrade",
+   "3.1.6": "search impossible \u2014 web-search budget exhausted (200/200); no upgrade",
+   "3.1.7": "search impossible \u2014 web-search budget exhausted (200/200); no upgrade",
+   "3.2.1": "search impossible \u2014 web-search budget exhausted (200/200); no upgrade"
+  },
+  "bucket_check": "PASS \u2014 no Bucket B or C field populated (1.4.2 is A+B; only its researched A-part was present)",
+  "tom_8_3_cross_check": "NOT PERFORMED \u2014 TOM questionnaire #8.3 is not in the repo; human must reconcile the 1.1 entity name against the submitted #8.3 before any cell is written",
+  "disputes": [
+   "inworld/1.1: downgraded to Not known \u2014 https://inworld.ai/privacy unreachable (gateway 403 CONNECT denial; WebFetch, curl, archive.org, r.jina.ai all blocked); SEC EDGAR fallback for the entity/state also gateway-blocked; TOM #8.3 entity cross-check not performed (file absent from repo)",
+   "inworld/1.1.1: downgraded to Not known \u2014 same network block; Art.-27-absence is an absence-of-evidence claim from snippets that must be confirmed on a fetched page or in writing",
+   "inworld/1.1.2: downgraded to Not known \u2014 same network block; the 'N/A' DPO answer rests on snippet absence from a page never fetched in full; vendor written confirmation required",
+   "inworld/1.4.2: downgraded to Not known \u2014 https://inworld.ai/security unreachable; INDEPENDENT BLOCKER: scope.yaml soc2_on_file_in_vanta: null \u2014 playbook forbids asserting SOC 2 until the report is confirmed in Vanta, yet the researcher populated the value anyway (gate flagged only in notes); dropdown has no 'Not known' option, cell stays empty",
+   "inworld/3.1.1: downgraded to Not known \u2014 https://inworld.ai/security unreachable; form dropdown has NO 'Not known' option, so the cell cannot be written until 'Others - pls indicate below' (TLS, version unpublished) is re-confirmed against a fetched page",
+   "inworld/3.1.2: downgraded to Not known \u2014 https://inworld.ai/security unreachable; 'Others - pls indicate below' (AES, key length unpublished) must be re-confirmed against a fetched page",
+   "inworld/3.1.8: downgraded to Not known \u2014 all seven safeguard lines snippet-sourced from three unreachable hosts (inworld.ai/security, docs.inworld.ai ZDR page, inworld.ai/on-prem); none verified",
+   "inworld/3.1.3, 3.1.4, 3.1.6, 3.1.7, 3.2.1: mandatory independent searches skipped \u2014 session web-search budget exhausted (200/200) and all fetch fallbacks gateway-denied; stay Not known, zero upgrades"
+  ]
+ }
+}

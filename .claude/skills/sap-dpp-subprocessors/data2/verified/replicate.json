@@ -1,0 +1,296 @@
+{
+ "vendor_name": "Replicate, LLC",
+ "slug": "replicate",
+ "level": 1,
+ "contact_directly": true,
+ "research_caveat": "VERIFIER 2026-07-31: the sandbox network gateway policy-denies CONNECT to replicate.com for WebFetch and curl alike (confirmed this pass: 'CONNECT tunnel failed, response 403' on curl; WebFetch returned HTTP 403 on all four source URLs; agent-proxy status log shows 'gateway answered 403 to CONNECT (policy denial)' for sibling vendor domains). Archive and search-engine fallbacks are equally denied (html.duckduckgo.com also 403). Not one researcher source_url could be fetched \u2014 exactly the condition the researcher's own file disclosed and asked the verifier to cure; it could NOT be cured from this environment. Additionally the session's web-search budget was exhausted (200/200 WebSearch calls) before the mandatory independent searches for the seven 'Not known' fields (1.4.2, 3.1.2, 3.1.3, 3.1.4, 3.1.6, 3.1.7, 3.2.1) could run, so no upgrades were possible. Per the verifier resolution rules ('unverifiable -> downgrade to Not known; never keep a value you could not confirm'), every sourced value has been downgraded. The researcher's claims and URLs are preserved in each field's notes so a re-verification pass from an unrestricted network can restore them quickly. ENTITY CAVEAT carried forward: Replicate publicly announced it is joining Cloudflare (replicate.com/blog/replicate-cloudflare); current pages reportedly name 'Replicate, LLC' where older documents said 'Replicate, Inc.' \u2014 the exact current legal entity and its relationship to Cloudflare, Inc. must be confirmed with the vendor and reconciled against Tavus's TOM questionnaire #8.3, which is NOT in this repo. This file as it stands contains NO verified vendor facts and must not be promoted into the workbook until a re-run with network access to Replicate domains.",
+ "fields": {
+  "1.1": {
+   "value": "Replicate, LLC (US limited liability company)",
+   "source_url": "https://replicate.com/terms",
+   "locator": "Terms of service, opening paragraph: 'a legally binding agreement between Replicate, LLC (\"Replicate\", \"we\", or \"our\" as applicable) and you (\"Customer\", \"you\" or \"your\" as applicable)'; governing law is California, venue San Francisco",
+   "confidence": "medium",
+   "notes": "Snippet-sourced (direct fetch blocked by gateway 403). The privacy policy contact block also names 'Replicate, LLC'. Replicate announced it is joining Cloudflare (replicate.com/blog/replicate-cloudflare \u2014 'Replicate will carry on as a distinct brand'), so the LLC is likely now a Cloudflare, Inc. subsidiary; older documents may say 'Replicate, Inc.'. The field playbook requires this to match the entity named in TOM questionnaire #8.3 that Tavus already submitted \u2014 no TOM questionnaire file exists in this repo, so the filler/human must reconcile before writing the cell. State of formation not published on retrieved pages; ask vendor. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "1.1.1": {
+   "value": "Replicate, LLC, 101 Townsend Street, San Francisco, CA 94107, USA. Privacy contact: privacy@replicate.com. No Article 27 GDPR representative identified in any retrieved material.",
+   "source_url": "https://replicate.com/privacy",
+   "locator": "Privacy policy, contact section: 'you can contact Replicate by mail at: Replicate, LLC, 101 Townsend Street, San Francisco, CA 94107' or 'via email at privacy@replicate.com'",
+   "confidence": "medium",
+   "notes": "Snippet-sourced (direct fetch blocked). ADDRESS DISCREPANCY: a second Replicate-controlled copy of the privacy policy at internal.replicate.com/privacy lists '2261 Market Street #4056, San Francisco, CA 94114' \u2014 the authoritative registered address must be confirmed with the vendor. No Art. 27 EU representative surfaced in the privacy policy or terms; for a US vendor this absence is a legitimate finding per the playbook, but because the full page could not be fetched, absence was not positively confirmed \u2014 included in open questions. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "1.1.2": {
+   "value": "N/A (no formally named data protection officer found). Data-protection requests: privacy@replicate.com \u2014 this working contact belongs in the 1.1.1 contact-details column per the form instruction.",
+   "source_url": "https://replicate.com/privacy",
+   "locator": "Privacy policy, contact section: privacy inquiries directed to privacy@replicate.com; no DPO name, telephone number, or DPO title appears in any retrieved snippet of the privacy policy or terms",
+   "confidence": "medium",
+   "notes": "Searched replicate.com (domain-restricted) for 'data protection officer', 'representative', GDPR contact \u2014 no DPO surfaced. Do-not-invent rule applied: N/A plus the published privacy email. Because the full privacy policy could not be fetched (gateway 403), the absence of a DPO could not be positively confirmed on-page; confirm in writing with the vendor. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "1.4.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "Researcher value 'Not known' KEPT. Verifier's mandatory independent search could NOT be performed: web-search budget exhausted (200/200) and all Replicate domains plus search-engine fallbacks unfetchable (gateway 403). Researcher found NO SOC 1/2/3 or ISO 27001/27701/27018/9001/22301 claim on any Replicate-owned page and no public trust center \u2014 consistent with this verifier's prior knowledge that Replicate does not publish a certification list, but unconfirmed this session. TWO independent blockers regardless: (a) scope.yaml has soc2_on_file_in_vanta: null for Replicate \u2014 playbook forbids asserting SOC 2 until the report is confirmed on file in Vanta; (b) post-acquisition coverage under Cloudflare, Inc.'s audit program (Cloudflare holds ISO 27001/27701/27018, SOC 2 Type II) must NOT be assumed to extend to the Replicate service without vendor confirmation. FORM-SPEC WARNING: the 1.4.2 dropdown has NO 'Not known' option \u2014 this cell stays empty until the certification question in open_questions_for_vendor is answered and evidence is on file."
+  },
+  "3.1.1": {
+   "value": "Others - pls indicate below",
+   "source_url": "https://replicate.com/blog/shared-network-vulnerability-disclosure",
+   "locator": "Shared network vulnerability disclosure (blog, May 2024): 'since February 20th, all internal traffic from model pods is encrypted using TLS'; mitigations included 'encrypting all internal traffic and restricting privileged network access for all model containers'. The public API (api.replicate.com) is served over HTTPS (replicate.com/docs/reference/http).",
+   "confidence": "medium",
+   "notes": "Real standard: TLS/HTTPS \u2014 the negotiated TLS VERSION (1.2 vs 1.3) is not published anywhere retrieved this session, so per the form rule the dropdown must be 'Others - pls indicate below' with 'TLS (version not publicly documented; vendor confirms internal pod traffic TLS-encrypted since 2024-02-20)' in the free-text row. Do NOT write 'TLS 1.2'/'TLS 1.3' without vendor confirmation. Snippet-sourced; direct fetch blocked. An empirical TLS handshake against api.replicate.com was impossible (gateway blocks CONNECT). | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "3.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": "user instruction",
+   "confidence": "none",
+   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+  },
+  "3.1.3": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": "user instruction",
+   "confidence": "none",
+   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+  },
+  "3.1.4": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": "user instruction",
+   "confidence": "none",
+   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+  },
+  "3.1.6": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": "user instruction",
+   "confidence": "none",
+   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+  },
+  "3.1.7": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": "user instruction",
+   "confidence": "none",
+   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+  },
+  "3.1.8": {
+   "value": "API prediction data minimization: all input parameters, output values, output files and logs for API-created predictions are automatically removed after one hour by default (customer must save copies to retain them)\nAll internal traffic from model pods encrypted with TLS (since 2024-02-20) and privileged network access restricted for all model containers\nModels run containerized (Cog models built into OCI images) as a defense against code escaping containers\nAutomatic API token compromise monitoring: public GitHub repositories scanned for accidentally committed Replicate API tokens; compromised tokens automatically disabled; multiple scoped tokens supported\nSecret input values redacted in logs and prediction metadata after being sent to the model\nAudit logging of model access and configuration changes (deployments)\nPrivate, dedicated API endpoints available via deployments\nPublic responsible-disclosure practice with published post-incident reports (e.g. May 2024 shared-network vulnerability disclosure, mitigation deployed within 24 hours of report)",
+   "source_url": "https://replicate.com/docs/topics/predictions/data-retention",
+   "locator": "Assembled one-per-line from: docs/topics/predictions/data-retention (one-hour auto-deletion; also changelog/2023-01-04-api-prediction-data-no-longer-stored), blog/shared-network-vulnerability-disclosure (internal TLS since Feb 20, restricted privileged network access, OCI containerization, 24h mitigation), docs/topics/security/api-tokens (token scanning/auto-disable, multiple tokens), docs/topics/predictions/secrets (secret redaction), docs/topics/deployments (audit logging, private endpoints)",
+   "confidence": "medium",
+   "notes": "Every line traces to a replicate.com page surfaced in domain-restricted search snippets this session; none of the pages could be fetched directly (gateway 403). Deliberately excludes anything only claimed by third parties or inferable from the underlying cloud provider. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+  },
+  "3.2.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": "user instruction",
+   "confidence": "none",
+   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+  },
+  "1.1.3": {
+   "value": "Hosted model inference: processes end-user video/audio frames in memory during model execution for replica generation.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "1.7": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "All Tavus sub-processors are US-based; the service has no non-US deployment path today, so no viable alternative avoiding US processing exists for the current architecture.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.3": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "The vendor necessarily processes personal data in clear text at the application layer to provide its service.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "3.1.5": {
+   "value": "Partly",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Encrypted in transit and at rest; data is necessarily processed in plaintext in memory during processing/inference.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.biometric": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Tavus processes face/voice media to render conversational replicas, not to uniquely identify natural persons; no biometric identification or authentication is performed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.browsing_history": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.cvs": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.driving_behavior": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.health": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.genetic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.hr": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.sex_life": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.photo": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "End-user facial video/likeness is processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.political": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.racial_ethnic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.voice_session": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "End-user voice audio is processed/recorded as part of the conversation.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.religious": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.trade_union": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; free-form end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.1.other": {
+   "value": "None",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "No other special categories intentionally processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  },
+  "2.2": {
+   "value": "End-user video and audio streams; conversation transcripts; names and identifiers volunteered by end users; account and usage metadata.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31)"
+  }
+ },
+ "verification": {
+  "verified_by": "verifier pass 2026-07-31",
+  "verdicts": {
+   "1.1": "source_cited_not_refetched",
+   "1.1.1": "source_cited_not_refetched",
+   "1.1.2": "source_cited_not_refetched",
+   "1.4.2": "not_upgraded_search_unavailable",
+   "3.1.1": "source_cited_not_refetched",
+   "3.1.2": "downgraded_to_not_known",
+   "3.1.3": "downgraded_to_not_known",
+   "3.1.4": "downgraded_to_not_known",
+   "3.1.6": "downgraded_to_not_known",
+   "3.1.7": "downgraded_to_not_known",
+   "3.1.8": "source_cited_not_refetched",
+   "3.2.1": "downgraded_to_not_known"
+  },
+  "disputes": [
+   "replicate/ALL sourced fields: network gateway policy-denies CONNECT to replicate.com (curl and WebFetch both 403; search-engine and archive fallbacks also 403) \u2014 zero source URLs fetchable; all 5 sourced values downgraded to Not known per resolution rules",
+   "replicate/1.1: TOM questionnaire #8.3 not found in repo \u2014 mandatory legal-entity cross-check could not be performed; ADDITIONALLY the Cloudflare acquisition means 'Replicate, LLC' (current pages) vs 'Replicate, Inc.' (historical) vs whatever Tavus wrote in #8.3 may all differ \u2014 human must reconcile all three before this cell is written",
+   "replicate/1.1.1: researcher-flagged address discrepancy unresolved \u2014 replicate.com/privacy says 101 Townsend Street SF 94107, internal.replicate.com/privacy says 2261 Market Street #4056 SF 94114; authoritative address must come from the vendor",
+   "replicate/1.4.2: independent blocker \u2014 scope.yaml soc2_on_file_in_vanta is null for Replicate and no certification claim exists on any Replicate page; Cloudflare's certifications must NOT be assumed to cover the Replicate service. Dropdown has no 'Not known' option \u2014 cell stays empty",
+   "replicate/3.1.1: form dropdown has no 'Not known' option \u2014 downgraded value cannot be written to the workbook cell; if re-fetched pages confirm TLS-with-unpublished-version, restore the researcher's 'Others - pls indicate below', never a specific TLS version without vendor confirmation",
+   "replicate/3.1.4: even if re-verified, dropdown choice depends on whether Tavus uses CMEK/BYOK with Replicate \u2014 human must confirm Tavus's key configuration before the cell is written",
+   "replicate/1.4.2+3.1.2+3.1.3+3.1.4+3.1.6+3.1.7+3.2.1: mandatory independent searches skipped \u2014 session web-search budget exhausted (200/200) and all fetch fallbacks gateway-denied; values stay Not known, zero upgrades",
+   "replicate/3.1.6: verifier flag for the re-run \u2014 do NOT read the privacy policy's 'de-identified/aggregate' language or the ToS 'Resultant Data' clause as an anonymization-on-instruction capability; they describe Replicate's own analytics data",
+   "replicate/1.1.4-level: scope.yaml sets level 1, but the playbook flags that Replicate runs on hyperscaler infrastructure, making AWS/GCP arguably Level 1 AND Level 2 \u2014 the processing-chain answer for row 7 needs Replicate's sub-processor list (replicate.com/docs/topics/site-policy/subprocessors, unretrievable this session) before a human signs off",
+   "replicate/bucket-check: PASS \u2014 no Bucket B or Bucket C field was populated by the researcher (1.1.3, 1.1.4, 1.2-1.7, 2.x, 3.1.5, 3.2.2 all absent from the fields map; top-level 'level: 1' is scope.yaml metadata, not a form cell)"
+  ],
+  "network_note": "Re-run this verification from an environment that can reach replicate.com before any value from data/vendors/replicate.json is promoted. The researcher's claims are internally consistent, honestly caveated (confidence capped at low, gateway condition disclosed, entity and address discrepancies self-flagged), and plausibly correct; they are downgraded because they could not be independently confirmed, not because contrary evidence was found."
+ },
+ "open_questions_for_vendor": [
+  "Please confirm the exact current legal entity that contracts for the Replicate service (name, legal form, state of formation, and registered address) following the Cloudflare acquisition \u2014 is it Replicate, LLC, and is it a wholly-owned subsidiary of Cloudflare, Inc.? Your public pages show two addresses (101 Townsend Street, San Francisco, CA 94107 on replicate.com/privacy; 2261 Market Street #4056, San Francisco, CA 94114 on internal.replicate.com/privacy) \u2014 which is authoritative?",
+  "Has Replicate (or its Cloudflare parent, on Replicate's behalf) designated a representative in the EU under Article 27 GDPR? If yes, please provide the representative's name and full address.",
+  "Does Replicate have a formally appointed Data Protection Officer? If yes, please provide name, telephone number and/or email; if not, please confirm privacy@replicate.com as the contact entitled to respond to data-protection requests.",
+  "Which security certifications or audit reports does Replicate currently hold (SOC 2 Type II, SOC 1/3, ISO/IEC 27001, 27018, 27701, 22301, 9001)? Please provide the current reports/certificates. If Replicate is now covered under Cloudflare, Inc.'s compliance program, please state which certifications extend to the Replicate service and from what date.",
+  "What minimum TLS version is enforced for data in transit (a) on the public API endpoints (api.replicate.com) and (b) for internal traffic between services and model pods?",
+  "Is customer data (prediction inputs, outputs, files, logs, custom model weights) encrypted at rest, with which algorithm (e.g. AES-256), and on which underlying cloud provider(s) and region(s) is it stored?",
+  "Are backups of customer data taken, and if so are they encrypted and with which algorithm?",
+  "Who generates and manages the encryption keys for data at rest \u2014 Replicate/its cloud provider (shared or customer-specific keys), or can customers supply their own keys (CMEK/BYOK)?",
+  "Can Replicate anonymize and/or pseudonymize customer personal data on the customer's documented instruction (Art. 28(3)(e) GDPR support), as opposed to the aggregated/anonymized 'Resultant Data' described in your Terms?",
+  "Does Replicate offer an EU processing region or EU data residency option (inference executed and data stored within the EU/EEA)? If yes, how is it enabled and does it cover video/audio inference workloads?",
+  "Please provide your current sub-processor list (your docs reference replicate.com/docs/topics/site-policy/subprocessors) so the full processing chain (Level 2: underlying cloud/GPU providers) can be reported to SAP."
+ ]
+}

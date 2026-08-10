@@ -54,8 +54,8 @@ def main():
     out = os.path.join(ROOT, args.out)
     os.makedirs(os.path.dirname(out), exist_ok=True)
 
-    files = sorted(glob.glob(os.path.join(ROOT, "data/verified/*.json"))) or \
-            sorted(glob.glob(os.path.join(ROOT, "data/vendors/*.json")))
+    files = sorted(glob.glob(os.path.join(ROOT, os.environ.get("DPP_DATA_DIR","data"), "verified/*.json"))) or \
+            sorted(glob.glob(os.path.join(ROOT, os.environ.get("DPP_DATA_DIR","data"), "vendors/*.json")))
     cols = list(SPEC["vendor_columns"].values())
     if len(files) > len(cols) and load_overflow_handling() != "second_sheet":
         print(f"{len(files)} vendors but {len(cols)} columns and scope.yaml's "

@@ -100,8 +100,8 @@ def check_vendor(path):
 def main():
     check_scope()
     check_program_answers()
-    files = sorted(glob.glob(os.path.join(ROOT, "data/verified/*.json"))) or \
-            sorted(glob.glob(os.path.join(ROOT, "data/vendors/*.json")))
+    files = sorted(glob.glob(os.path.join(ROOT, os.environ.get("DPP_DATA_DIR","data"), "verified/*.json"))) or \
+            sorted(glob.glob(os.path.join(ROOT, os.environ.get("DPP_DATA_DIR","data"), "vendors/*.json")))
     if not files:
         errors.append("No vendor JSON files found. Run the researcher first.")
     for p in files:
