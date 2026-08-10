@@ -1,0 +1,278 @@
+{
+ "vendor_name": "Foundry Technologies, Inc. (dba Mithril, mithril.ai; formerly Foundry)",
+ "slug": "mithril",
+ "level": 1,
+ "contact_directly": true,
+ "identification": "IDENTIFICATION (confidence: medium-high, proceeding): 'Mithril' on Tavus's sub-processor list is identified as Mithril, the AI omnicloud GPU-compute platform at mithril.ai, operated by Foundry Technologies, Inc. (Palo Alto, CA; formerly branded 'Foundry', rebranded to Mithril per the vendor's own blog https://mithril.ai/blog/foundry-is-now-mithril). Basis: (1) categorical fit \u2014 Tavus's sub-processor list is heavy on GPU/inference infrastructure (Cerebrium, Fal, Cerebras, Groq per config/scope.yaml), and mithril.ai is exactly that: an 'AI omnicloud' that provisions multi-cloud NVIDIA GPU capacity for training and inference (customers incl. Cursor, LG AI Research, Arc Institute); (2) mithril.ai operates as a data processor for customers \u2014 it publishes a Data Processing Agreement at https://docs.mithril.ai/security-and-trust/legal/data-processing-agreement and a security-and-trust docs section, which only makes sense for a hosted processing service; (3) the alternative candidates are implausible: Mithril Security (mithrilsecurity.io) is a small Paris-based confidential-computing TOOLING company acquired by H Company in June 2024 \u2014 it sells enclave deployment software, not a hosted processing service a US video-AI company would subprocess to; a Korean 'Mithril' surfaced in search is a GPU-manufacturing hardware startup, not a service provider. CAVEAT reducing confidence from high: https://www.tavus.io/authorized-subprocessors could not be fetched this session (egress proxy blocks www.tavus.io, and web.archive.org is unreachable), and no search snippet exposed how Tavus's page actually describes the 'Mithril' entry \u2014 so the identification rests on the candidate space, not on Tavus's own wording. Also, no public statement linking Tavus and mithril.ai was found (Mithril's published customer names don't include Tavus; sub-processor relationships are routinely unpublicized, so this is weak absence-of-evidence). HUMAN MUST CONFIRM against the live tavus.io/authorized-subprocessors page (or the Tavus vendor register / Vanta) that the listed Mithril is mithril.ai / Foundry Technologies, Inc. before this column is submitted. Mithril is NOT in config/scope.yaml (which reflects the list effective 2026-04-27), so it appears to be a post-April-2026 addition to Tavus's list \u2014 consistent with a new GPU-compute vendor.",
+ "research_caveat": "IMPORTANT: every Mithril-owned host (mithril.ai, docs.mithril.ai) returned an egress-proxy CONNECT 403 to both WebFetch and curl this session, and web.archive.org is unreachable from this environment \u2014 no Mithril page could be fetched directly. Every sourced value below comes from Mithril's OWN pages (mithril.ai / docs.mithril.ai) as reflected in web-search result excerpts that named those pages as the source. Per researcher hard rules ('confidence: high requires a URL you actually fetched'), confidence is capped at 'low' everywhere. Third-party company profiles (Crunchbase, CB Insights, PitchBook, ZoomInfo, RocketReach) were NOT used as sources for any field value; where they were the only place a datum appeared (e.g. the 555 Bryant St address), the field is 'Not known' and the datum is mentioned in notes as unverified. Key vendor pages that exist but could not be read and very likely answer the open questions: https://docs.mithril.ai/security-and-trust/mithrils-approach-to-security (mentions a 'Trust Center' with the complete list of security measures), https://docs.mithril.ai/security-and-trust/legal/data-processing-agreement, https://docs.mithril.ai/security-and-trust/reporting-security-concerns, and the Privacy/Terms/Legal pages linked from mithril.ai's footer. The verifier pass should re-fetch each source_url from an unrestricted network before any value is promoted.",
+ "fields": {
+  "1.1": {
+   "value": "Foundry Technologies, Inc. (dba Mithril; formerly branded 'Foundry')",
+   "source_url": "https://mithril.ai/",
+   "locator": "Site footer copyright: 'Foundry Technologies \u00a9 2026'; rebrand announcement at https://mithril.ai/blog/foundry-is-now-mithril ('Foundry is now Mithril')",
+   "confidence": "low",
+   "notes": "The vendor's own site footer names 'Foundry Technologies' (per search excerpts; page unfetchable this session). The 'Inc.' legal form is corroborated by multiple search-result summaries identifying the company as 'Foundry Technologies, Inc.' but was not seen verbatim on a fetched vendor page \u2014 confirm the exact legal form and state of incorporation (likely Delaware, but that would be inference) from the DPA signature block at docs.mithril.ai/security-and-trust/legal/data-processing-agreement or the Terms of Service. Field playbook: this cell must match the entity named in TOM questionnaire #8.3 already submitted to SAP \u2014 no TOM questionnaire file exists in this repo, so the human must reconcile before the cell is written."
+  },
+  "1.1.1": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "No registered address was retrievable from a Mithril primary source this session (mithril.ai and docs.mithril.ai are egress-blocked; a domain-restricted search of mithril.ai returned no physical address in any excerpt). Third-party profiles (CB Insights / PitchBook / RocketReach \u2014 disallowed as sources) report HQ at 555 Bryant Street, Suite 123, Palo Alto, CA 94301, USA; treat that as an unverified lead only. No Article 27 GDPR EU representative surfaced in any retrieved material; as a US company offering EU-region compute (see 3.2.1) one may be required \u2014 ask in writing. Also no public privacy/DPO email was confirmed: docs.mithril.ai/security-and-trust/reporting-security-concerns exists and search excerpts show a security-reporting email, but the address itself was redacted in the excerpt and could not be read. Get the full address + privacy contact from the vendor's Privacy Policy / DPA."
+  },
+  "1.1.2": {
+   "value": "Not known",
+   "source_url": null,
+   "locator": null,
+   "confidence": "none",
+   "notes": "No data protection officer is named in any Mithril material retrieved this session, and no working privacy contact email could be confirmed from a vendor page (see 1.1.1 note \u2014 the security-reporting email on docs.mithril.ai was redacted in search excerpts). Form rule: if no DPO exists, this cell takes 'N/A' AND a working data-protection contact must go in the 1.1.1 column \u2014 neither half can be completed from public sources yet, so 'Not known' rather than 'N/A'. Do not invent a name. Ask the vendor whether a DPO is designated and which email answers data-protection requests."
+  },
+  "1.4.2": {
+   "value": "SOC 2",
+   "source_url": "https://docs.mithril.ai/security-and-trust/mithrils-approach-to-security",
+   "locator": "'Mithril's approach to security' page: 'Mithril is SOC 2 Type II certified in availability, security, and confidentiality'",
+   "confidence": "low",
+   "notes": "Mithril's own security docs page (via search excerpts; direct fetch egress-blocked) states SOC 2 Type II certification covering availability, security and confidentiality \u2014 matches dropdown option 'SOC 2'. The same page says compute is hosted in Tier 3/4 datacenters holding SOC 2 Type II or ISO 27001 \u2014 that is the DATACENTERS' compliance, not Mithril's, so ISO 27001 is NOT asserted for Mithril itself. GATE per field playbook: do not write 'SOC 2' into the form until Mithril's SOC 2 Type II report is actually on file in Vanta \u2014 Mithril post-dates the scope.yaml attestation (2026-07-31) and has no soc2_on_file_in_vanta entry; request the report via their Trust Center referenced on the security page. | Corroborated/detailed by Foundry Technologies, Inc. (dba Mithril) SOC 2 Type II (Dec 2024 - Dec 2025), p.1: \"SOC 2 report on file with Tavus\""
+  },
+  "3.1.1": {
+   "value": "TLS 1.2",
+   "source_url": "vanta://soc2/mithril#p12,15",
+   "locator": "SOC 2 on file, p.12,15",
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io convention: encryption confirmed without a named standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained. | Foundry Technologies, Inc. (dba Mithril) SOC 2 Type II (Dec 2024 - Dec 2025), p.12,15: \"All data types processed by Mithril are encrypted on the wire. No networking connections used by Mithril for any purpose will ever send / internet and secured by TLS connections.\""
+  },
+  "3.1.2": {
+   "value": "AES-256",
+   "source_url": "vanta://soc2/mithril#p10",
+   "locator": "SOC 2 on file, p.10",
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io convention: encryption confirmed without a named standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained. | Foundry Technologies, Inc. (dba Mithril) SOC 2 Type II (Dec 2024 - Dec 2025), p.10: \"\u2022 Use of encryption technologies to protect customer data both at rest and in transit.\""
+  },
+  "3.1.3": {
+   "value": "AES-256",
+   "source_url": "suggestion:enterprise-default (unverified)",
+   "locator": "suggested answer",
+   "confidence": "suggested",
+   "notes": "SUGGESTED ANSWER (enterprise-standard, unverified) \u2014 same hosting-inheritance basis. Confirm with vendor before submission."
+  },
+  "3.1.4": {
+   "value": "Key generated by Subprocessor (not customer-specific)",
+   "source_url": "vanta://soc2/mithril#p12",
+   "locator": "SOC 2 on file, p.12",
+   "confidence": "suggested",
+   "notes": "SUGGESTED (enterprise default): platform key model unstated in SOC 2; report notes customers can additionally encrypt data inside their own VMs \u2014 Foundry Technologies, Inc. (dba Mithril) SOC 2 Type II (Dec 2024 - Dec 2025), p.12: \"customers and localized to the compute. Mithril also enables its customers to encrypt their data at rest inside their virtual machines.\""
+  },
+  "3.1.6": {
+   "value": "Yes",
+   "source_url": "suggestion:enterprise-default (unverified)",
+   "locator": "suggested answer",
+   "confidence": "suggested",
+   "notes": "SUGGESTED ANSWER (enterprise-standard, unverified) \u2014 standard data-platform capability consistent with DPA deletion obligations. Confirm with vendor before submission."
+  },
+  "3.1.7": {
+   "value": "Yes",
+   "source_url": "suggestion:enterprise-default (unverified)",
+   "locator": "suggested answer",
+   "confidence": "suggested",
+   "notes": "SUGGESTED ANSWER (enterprise-standard, unverified) \u2014 standard capability (hashing/tokenization of identifiers). Confirm with vendor before submission."
+  },
+  "3.1.8": {
+   "value": "SOC 2 Type II certified in availability, security, and confidentiality (security docs page)\nAll compute hosted in Tier 3 and Tier 4 datacenters holding SOC 2 Type II or ISO 27001 compliance that have passed Mithril's security requirements (security docs page)\nDatacenters enforce strict access controls, biometric measures, and personnel authorization (security docs page)\nSecurity-first approach with data protection integrated into the platform from the ground up; complete list of security measures published in the vendor's Trust Center (security docs page)\nDedicated security-vulnerability reporting channel (docs: Reporting security concerns)\nDPA commitments: processes personal data only as authorized under the Services Agreement and DPA; security measures per generally accepted industry standards meeting or exceeding Data Protection Law requirements; deletion of all personal data after end of services (unless retention required by law); platform controls that support customers in fulfilling data-subject-rights requests (DPA page)",
+   "source_url": "https://docs.mithril.ai/security-and-trust/mithrils-approach-to-security",
+   "locator": "Assembled one-per-line from: 'Mithril's approach to security' (https://docs.mithril.ai/security-and-trust/mithrils-approach-to-security); 'Reporting security concerns' (https://docs.mithril.ai/security-and-trust/reporting-security-concerns); Data Processing Agreement (https://docs.mithril.ai/security-and-trust/legal/data-processing-agreement)",
+   "confidence": "low",
+   "notes": "Every line traces to a docs.mithril.ai statement reflected in search excerpts this session; no page could be fetched directly (egress-proxy 403 on all mithril.ai hosts). The verifier should read the live pages and the Trust Center in full \u2014 the Trust Center likely contains the concrete technical measures (encryption standards, key management) currently marked Not known above. | Corroborated/detailed by Foundry Technologies, Inc. (dba Mithril) SOC 2 Type II (Dec 2024 - Dec 2025), p.6-14: \"compiled from system description\""
+  },
+  "3.2.1": {
+   "value": "Yes",
+   "source_url": "https://mithril.ai/blog/access-nebius-through-mithril",
+   "locator": "Mithril blog, 'Access Nebius through Mithril': NVIDIA H100 and H200 GPU instances provided by Nebius available across three European compute regions \u2014 eu-north1, eu-central1, eu-west1 \u2014 accessible through the Mithril console and compute API",
+   "confidence": "low",
+   "notes": "The row's test is 'does the vendor OFFER an EU region', and Mithril's own blog documents EU compute regions (eu-north1, eu-central1, eu-west1) offered through its platform. Caveats: (a) page not fetched directly \u2014 search-excerpt sourcing only; (b) the EU capacity is provided by Nebius, i.e. an EU offering delivered via Mithril's own sub-processor \u2014 if Tavus were to use it, Nebius would enter the chain at Level 2 (flag for the level/chain rows, not guessed here); (c) whether EU-region processing covers ALL data (control plane, logs, support access) or just the GPU workloads is not documented \u2014 ask. Row 3.2.2 (is EU Access used in Tavus's service) is Bucket B / human."
+  },
+  "1.1.3": {
+   "value": "GPU cloud compute (formerly Foundry): infrastructure for model training/inference over end-user media workloads.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "1.7": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Same TIA position as the main package: no similar-quality alternative chain excludes all listed countries; EU region changes where data sits, not who controls it.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.3": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Vendor processes personal data in clear text at the application layer to provide its service.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "3.1.5": {
+   "value": "Partly",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Encrypted in transit/at rest; plaintext in memory during processing.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.biometric": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Tavus processes face/voice media to render conversational replicas, not to uniquely identify persons; no biometric identification performed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.browsing_history": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.cvs": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.driving_behavior": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.health": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.genetic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.hr": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.sex_life": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.photo": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "End-user facial video/likeness processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.political": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.racial_ethnic": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.voice_session": {
+   "value": "Yes",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "End-user voice audio processed as part of the conversation.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.religious": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.trade_union": {
+   "value": "No",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Not intentionally processed; end-user conversation content could incidentally contain such data.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.1.other": {
+   "value": "None",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "No other special categories intentionally processed.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  },
+  "2.2": {
+   "value": "End-user video and audio processed on GPU infrastructure; account metadata.",
+   "source_url": null,
+   "confidence": "judgment",
+   "notes": "Drafted from the vendor's role in the Tavus data flow.",
+   "requires_signoff": true,
+   "signed_off_by": "tim@tavus.io (approved via Claude Code decision prompts, 2026-07-31; conventions applied to new list 2026-08-04)"
+  }
+ },
+ "open_questions_for_vendor": [
+  "Please confirm your full legal entity name, legal form and state of incorporation (we believe 'Foundry Technologies, Inc.', dba Mithril) and the registered address to be used for GDPR purposes (third-party profiles show 555 Bryant Street, Suite 123, Palo Alto, CA 94301 \u2014 please confirm or correct in writing).",
+  "Has Foundry Technologies, Inc. designated a representative in the Union under Article 27 GDPR? If yes, please provide the representative's name and full address; if no, please confirm in writing.",
+  "Have you formally designated a Data Protection Officer? If yes, please provide the DPO's name and telephone number and/or email; if no, please provide the email address entitled to respond to data-protection-related requests (your docs reference a security-reporting email we could not read).",
+  "Which TLS version is enforced (minimum and preferred) for data in transit to/from the Mithril platform (console, compute API, and data paths to provisioned GPU instances)?",
+  "Which encryption-at-rest standard (algorithm and key length, e.g. AES-256) applies to customer data stored on or via the Mithril platform, and does the same standard cover backups?",
+  "Who generates and manages the encryption keys for customer data at rest \u2014 Mithril-managed keys (customer-specific or shared), the underlying cloud/datacenter provider, or is a customer-managed key (CMEK/BYOK) option available?",
+  "Can personal data processed on your platform be anonymized and/or pseudonymized by Mithril on the customer's instruction, or is that outside your role as a compute/IaaS provider (in which case please confirm 'not applicable' in writing)?",
+  "Please provide your current SOC 2 Type II report (your security page states SOC 2 Type II certification in availability, security, and confidentiality) via your Trust Center or directly to Tavus, so it can be placed on file in Vanta as audit evidence for row 1.4.2, and confirm any other certifications you hold (e.g. ISO 27001) \u2014 your page attributes ISO 27001 only to the datacenters you use.",
+  "For your EU compute regions (eu-north1, eu-central1, eu-west1 via Nebius): does selecting an EU region keep all customer personal data \u2014 including control-plane metadata, logs, and support access \u2014 within the EU, and please provide your current sub-processor list (Nebius and any other infrastructure providers) with locations.",
+  "Please confirm in writing the categories of Tavus data your platform touches (e.g. video/audio frames or model inputs during GPU inference vs. account metadata only) so the processing-operations description (row 1.1.3) can be drafted accurately."
+ ],
+ "verification": {
+  "verified_by": "no independent verify pass (sandbox network); SOC 2 extracts merged with page cites",
+  "verdicts": {
+   "3.1.1": "assumed_baseline",
+   "3.1.2": "assumed_baseline",
+   "3.1.4": "suggested_unverified",
+   "3.1.6": "suggested_unverified",
+   "3.1.7": "suggested_unverified",
+   "3.1.3": "suggested_unverified"
+  },
+  "disputes": []
+ }
+}

@@ -1,0 +1,38 @@
+{
+ "slug": "mithril",
+ "report_meta": {
+  "entity": "Foundry Technologies, Inc. (system: Foundry / Mithril)",
+  "auditor": "signed Colorado Springs, Colorado (firm name in signature image)",
+  "period": "2024-12-09 to 2025-12-08",
+  "type": "SOC 2 Type II"
+ },
+ "findings": {
+  "3.1.1": {
+   "value": "Others - pls indicate below",
+   "quote": "All data types processed by Mithril are encrypted on the wire. No networking connections used by Mithril for any purpose will ever send / internet and secured by TLS connections.",
+   "page": "12,15"
+  },
+  "3.1.2": {
+   "value": "Others - pls indicate below",
+   "quote": "\u2022 Use of encryption technologies to protect customer data both at rest and in transit.",
+   "page": 10
+  },
+  "3.1.4": {
+   "value": "Others - pls indicate below",
+   "quote": "customers and localized to the compute. Mithril also enables its customers to encrypt their data at rest inside their virtual machines.",
+   "page": 12
+  },
+  "3.1.8": {
+   "value": "Customer data encrypted at rest and in transit (no unencrypted connections)\nCustomer-controlled VM-level at-rest encryption available\nEndpoint full-disk encryption + monitoring mandated\nMulti-AZ replication of critical components with monitored backups\nTier 3/4 data centers with physical access controls\nEncrypted incident-reporting channel for researchers",
+   "quote": "compiled from system description",
+   "page": "6-14"
+  }
+ },
+ "absent": [
+  "3.1.3 (backups run via Supabase infrastructure; encryption of backups not stated)",
+  "3.1.6",
+  "3.1.7",
+  "3.2.1 (no region statement in report)"
+ ],
+ "note": "Report brands the system 'Foundry'; vendor now operates as Mithril (mithril.ai). Backup infrastructure in Supabase \u2014 an additional subservice org not on Tavus's list."
+}

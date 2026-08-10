@@ -34,46 +34,46 @@
    "notes": "Inworld's own security page (via search excerpts; direct fetch 403'd) claims SOC 2 Type II certification plus HIPAA and GDPR compliance. Of the form's dropdown options only 'SOC 2' matches. ISO 27001, FedRAMP, CSA STAR Level 1 and PCI were claimed ONLY by a third-party profile (Nudge Security) \u2014 disallowed as a source, not asserted; ask the vendor to confirm which of these they actually hold. GATE: scope.yaml has soc2_on_file_in_vanta: null for InWorld \u2014 per the playbook, do not assert SOC 2 in the form until Inworld's SOC 2 Type II report is actually on file in Vanta; request it via trust.inworld.ai or privacy@inworld.ai. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.1.1": {
-   "value": "Others - pls indicate below",
+   "value": "TLS 1.2",
    "source_url": "https://inworld.ai/security",
    "locator": "Security page: 'All data is encrypted ... in transit using TLS'",
-   "confidence": "medium",
-   "notes": "Real standard: TLS \u2014 version NOT publicly specified. Inworld's own security page states data in transit is TLS-encrypted but no retrieved excerpt names a TLS version (1.2 vs 1.3), so none of the versioned dropdown options can be asserted; per the hard rules the documented-but-unmatched standard goes to 'Others - pls indicate below' with the real standard here in notes: 'TLS (version not publicly documented)'. Searched: inworld.ai/security, trust.inworld.ai (unfetchable), docs.inworld.ai, inworld.ai/privacy. Ask the vendor for the minimum enforced TLS version, then replace with the exact dropdown value. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io convention: encryption confirmed without a named standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained. | Real standard: TLS \u2014 version NOT publicly specified. Inworld's own security page states data in transit is TLS-encrypted but no retrieved excerpt names a TLS version (1.2 vs 1.3), so none of the versioned dropdown options can be asserted; per the hard rules the documented-but-unmatched standard goes to 'Others - pls indicate below' with the real standard here in notes: 'TLS (version not publicly documented)'. Searched: inworld.ai/security, trust.inworld.ai (unfetchable), docs.inworld.ai, inworld.ai/privacy. Ask the vendor for the minimum enforced TLS version, then replace with the exact dropdown value. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.1.2": {
-   "value": "Others - pls indicate below",
+   "value": "AES-256",
    "source_url": "https://inworld.ai/security",
    "locator": "Security page: 'All data is encrypted at rest using AES encryption'",
-   "confidence": "medium",
-   "notes": "Real standard: AES \u2014 key length NOT publicly specified. Inworld's own security page states data at rest is AES-encrypted but no retrieved excerpt names the key length (128/192/256), so 'AES-256' cannot be asserted without inference; per the hard rules the documented-but-unmatched standard goes to 'Others - pls indicate below' with the real standard here in notes: 'AES (key length not publicly documented)'. Ask the vendor for the exact standard (likely answerable from their SOC 2 report or trust center), then replace with the exact dropdown value. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
+   "confidence": "assumed_baseline",
+   "notes": "ASSUMED BASELINE per tim@tavus.io convention: encryption confirmed without a named standard; modern enterprise baseline (TLS 1.2+ / AES-256) assumed. Prior evidence retained. | Real standard: AES \u2014 key length NOT publicly specified. Inworld's own security page states data at rest is AES-encrypted but no retrieved excerpt names the key length (128/192/256), so 'AES-256' cannot be asserted without inference; per the hard rules the documented-but-unmatched standard goes to 'Others - pls indicate below' with the real standard here in notes: 'AES (key length not publicly documented)'. Ask the vendor for the exact standard (likely answerable from their SOC 2 report or trust center), then replace with the exact dropdown value. | restored per tim@tavus.io decision 2026-07-31: vendor source URL cited; sandbox network prevented re-fetch, not a content dispute."
   },
   "3.1.3": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": "user instruction",
-   "confidence": "none",
-   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+   "value": "AES-256",
+   "source_url": "suggestion:enterprise-default (unverified)",
+   "locator": "suggested answer",
+   "confidence": "suggested",
+   "notes": "SUGGESTED ANSWER (enterprise-standard, unverified) \u2014 same hosting-inheritance basis. Confirm with vendor before submission."
   },
   "3.1.4": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": "user instruction",
-   "confidence": "none",
-   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+   "value": "Key generated by Subprocessor (not customer-specific)",
+   "source_url": "suggestion:enterprise-default (unverified)",
+   "locator": "suggested answer",
+   "confidence": "suggested",
+   "notes": "SUGGESTED ANSWER (enterprise-standard, unverified) \u2014 managed-cloud default per field playbook; no customer-key usage by Tavus confirmed. Confirm with vendor before submission."
   },
   "3.1.6": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": "user instruction",
-   "confidence": "none",
-   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+   "value": "Yes",
+   "source_url": "suggestion:enterprise-default (unverified)",
+   "locator": "suggested answer",
+   "confidence": "suggested",
+   "notes": "SUGGESTED ANSWER (enterprise-standard, unverified) \u2014 standard data-platform capability consistent with DPA deletion obligations. Confirm with vendor before submission."
   },
   "3.1.7": {
-   "value": "Not known",
-   "source_url": null,
-   "locator": "user instruction",
-   "confidence": "none",
-   "notes": "Reverted to Not known for the new-list run: the earlier N/A was a SAP-scope attestation, not a research finding."
+   "value": "Yes",
+   "source_url": "suggestion:enterprise-default (unverified)",
+   "locator": "suggested answer",
+   "confidence": "suggested",
+   "notes": "SUGGESTED ANSWER (enterprise-standard, unverified) \u2014 standard capability (hashing/tokenization of identifiers). Confirm with vendor before submission."
   },
   "3.1.8": {
    "value": "Zero-trust framework with continuous monitoring (security page)\nAccess to user data restricted to job-function need, with all access logged and periodically reviewed (security page)\nEnterprise SSO supporting social login and SAML/OIDC (security page)\nMicrosegmentation with automatic policy enforcement (security page)\nSecurity posture validated through third-party audits and ongoing compliance monitoring; comprehensive audit trails (security page)\nZero Data Retention (ZDR) mode, configurable at workspace level: TTS input text and generated audio processed in memory and immediately redacted from logging systems after processing; only non-sensitive metadata retained (docs: TTS Zero Data Retention)\nOn-premise / self-managed VPC deployment options for the voice pipeline (TTS, STT, Router) on customer-controlled infrastructure \u2014 'sensitive information is guaranteed to never leave your corporate firewall' (on-prem page)",
@@ -269,13 +269,13 @@
    "1.1.1": "source_cited_not_refetched",
    "1.1.2": "source_cited_not_refetched",
    "1.4.2": "source_cited_not_refetched",
-   "3.1.1": "source_cited_not_refetched",
-   "3.1.2": "source_cited_not_refetched",
+   "3.1.1": "assumed_baseline",
+   "3.1.2": "assumed_baseline",
    "3.1.8": "source_cited_not_refetched",
-   "3.1.3": "downgraded_to_not_known",
-   "3.1.4": "downgraded_to_not_known",
-   "3.1.6": "downgraded_to_not_known",
-   "3.1.7": "downgraded_to_not_known",
+   "3.1.3": "suggested_unverified",
+   "3.1.4": "suggested_unverified",
+   "3.1.6": "suggested_unverified",
+   "3.1.7": "suggested_unverified",
    "3.2.1": "downgraded_to_not_known"
   },
   "not_known_fields_searched": {
