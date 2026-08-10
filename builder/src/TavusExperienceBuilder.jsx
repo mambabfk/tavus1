@@ -51,6 +51,7 @@ const STEPS = [
 /* Tavus-hosted LLMs available for a PAL's brain (layers.llm.model). */
 const PAL_LLMS = [
   { v: "tavus-glm-4.7", label: "GLM 4.7 — recommended", desc: "Best overall: fast, smart, 200K context." },
+  { v: "tavus-gemma-4", label: "Gemma 4", desc: "Tavus's recommended default in the docs — fast, tuned for CVI." },
   { v: "tavus-gpt-5.2", label: "GPT 5.2", desc: "Strong reasoning; latency less critical." },
   { v: "tavus-claude-haiku-4.5", label: "Claude Haiku 4.5", desc: "Quick and capable." },
   { v: "tavus-gemini-3-flash", label: "Gemini 3 Flash", desc: "Fast, current Gemini." },
