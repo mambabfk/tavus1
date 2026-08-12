@@ -21,6 +21,10 @@ function applyJourneyPrefs(payload, journeyArr, prefs) {
     if (s.type === "question") {
       const opt = s.options?.[Number(ans.option)];
       if (typeof opt === "string") lines.push(`- ${s.prompt} → ${opt}`);
+      // Authored per-option override — how the conversation changes when this
+      // option is picked ("Label :: instructions" on the Experience step).
+      const oc = Array.isArray(s.optionContext) ? String(s.optionContext[Number(ans.option)] ?? "").trim() : "";
+      if (oc) lines.push(oc.slice(0, 600));
     } else if (s.type === "input") {
       const text = String(ans.text ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
       if (text) lines.push(`- ${s.prompt} → "${text}"`);

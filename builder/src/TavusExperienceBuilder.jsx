@@ -107,6 +107,10 @@ function applyJourneyPrefs(payload, journeyArr, prefs) {
     if (s.type === "question") {
       const opt = s.options?.[ans.option];
       if (typeof opt === "string") lines.push(`- ${s.prompt} → ${opt}`);
+      // Authored per-option override — the builder's instructions for how the
+      // conversation changes when this option is picked, not just the Q&A.
+      const oc = Array.isArray(s.optionContext) ? String(s.optionContext[ans.option] ?? "").trim() : "";
+      if (oc) lines.push(oc);
     } else if (s.type === "input") {
       const text = String(ans.text ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
       if (text) lines.push(`- ${s.prompt} → "${text}"`);
@@ -3299,8 +3303,17 @@ export default function TavusExperienceBuilder() {
     if (s.type === "info") return (t(s.title) || t(s.body)) ? { type: "info", title: t(s.title), body: t(s.body) } : null;
     if (s.type === "video") return t(s.url) ? { type: "video", title: t(s.title), url: t(s.url) } : null;
     if (s.type === "question") {
-      const options = String(s.optionsText ?? "").split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 6);
-      return t(s.prompt) && options.length >= 2 ? { type: "question", prompt: t(s.prompt), options } : null;
+      // "Label :: instructions" — the label is the visitor-facing choice; the
+      // part after :: is a conversational-context override injected when that
+      // option is picked (e.g. Hard :: Be a demanding interviewer…).
+      const pairs = String(s.optionsText ?? "").split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 6)
+        .map((l) => { const ix = l.indexOf("::"); return ix >= 0 ? [l.slice(0, ix).trim(), l.slice(ix + 2).trim()] : [l, ""]; })
+        .filter(([label]) => label);
+      const options = pairs.map(([label]) => label);
+      const optionContext = pairs.map(([, ctx]) => ctx.slice(0, 600));
+      return t(s.prompt) && options.length >= 2
+        ? { type: "question", prompt: t(s.prompt), options, ...(optionContext.some(Boolean) ? { optionContext } : {}) }
+        : null;
     }
     if (s.type === "input") return t(s.prompt) ? { type: "input", prompt: t(s.prompt), placeholder: t(s.placeholder) } : null;
     if (s.type === "personas") {
@@ -6703,8 +6716,10 @@ export default function TavusExperienceBuilder() {
                       {s.type === "question" && (
                         <>
                           <input value={s.prompt || ""} onChange={(e) => patchJourneyStep(i, { prompt: e.target.value })} placeholder="Question — e.g. Have you filled out the waiver form?" />
-                          <textarea value={s.optionsText || ""} onChange={(e) => patchJourneyStep(i, { optionsText: e.target.value })} placeholder={"One answer per line (2–6):\nYes, it's done\nNot yet"} />
-                          <p className="field-hint" style={{ margin: 0 }}>The visitor's pick is fed to the AI as context and stored with the call.</p>
+                          <textarea value={s.optionsText || ""} onChange={(e) => patchJourneyStep(i, { optionsText: e.target.value })} placeholder={"One answer per line (2–6). Add \" :: instructions\" to rewrite the AI's behavior for that pick:\nEasy :: Be warm and encouraging — softball questions, coach after every answer.\nHard :: Be a demanding interviewer — push back on vague answers, ask for numbers."} />
+                          <p className="field-hint" style={{ margin: 0 }}>
+                            The visitor's pick is fed to the AI and stored with the call. Anything after <b>::</b> on a line is a conversational-context override — it changes how the AI behaves when that option is picked, not just what it knows. The visitor only ever sees the label.
+                          </p>
                         </>
                       )}
                       {s.type === "input" && (
