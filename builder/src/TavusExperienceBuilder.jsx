@@ -2550,6 +2550,10 @@ export default function TavusExperienceBuilder() {
   });
   const setBriefField = (k, v) => setPersonaBrief((b) => ({ ...b, [k]: v }));
   const [personaDraft, setPersonaDraft] = useState("");
+  // How the prompt gets authored: "brief" = describe it and Claude drafts;
+  // "paste" = bring your own system prompt (written in Claude or anywhere)
+  // and attach it as-is. Same draft box, same attach/revise machinery.
+  const [personaMode, setPersonaMode] = useState("brief");
   const [personaFeedback, setPersonaFeedback] = useState("");
 
   // Version control for the prompt: every generate / revise / inject / attach
@@ -2851,7 +2855,7 @@ export default function TavusExperienceBuilder() {
     scCards, studioLines,
     duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser,
     duetDeckBeat, duetBrowserBeat, duetBrowserShow, duetLook, duetCaptions, studioPalA, studioPalB,
-    palLlm, knowledgeIdsRaw,
+    palLlm, knowledgeIdsRaw, personaMode,
     site,
     expJourney,
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
@@ -2904,6 +2908,7 @@ export default function TavusExperienceBuilder() {
     setComponentRules({ ...Object.fromEntries(CANVAS_COMPONENTS.map((x) => [x.key, ""])), ...(c.componentRules || {}) });
     setCanvasPlaybook(c.canvasPlaybook ?? "");
     setPalLlm(c.palLlm ?? "tavus-glm-4.7");
+    setPersonaMode(c.personaMode === "paste" ? "paste" : "brief");
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
     setScCards(Array.isArray(c.scCards) ? c.scCards : []);
@@ -5374,8 +5379,16 @@ export default function TavusExperienceBuilder() {
             <>
               <h1>Persona</h1>
               <p className="lede">
-                Describe the demo in plain English and Claude drafts the PAL's system prompt — voice-first, demo-ready, aware of your objectives, guardrails, and Canvas setup. Review and edit the draft, then attach it. Like objectives, the prompt lives on the PAL itself and persists across conversations.
+                {personaMode === "paste"
+                  ? "Bring your own system prompt — written in Claude, another tool, or by hand. Paste it below and attach; that exact text becomes the persona. Revise-with-feedback and prompt history work on it just like a generated draft."
+                  : "Describe the demo in plain English and Claude drafts the PAL's system prompt — voice-first, demo-ready, aware of your objectives, guardrails, and Canvas setup. Review and edit the draft, then attach it. Like objectives, the prompt lives on the PAL itself and persists across conversations."}
               </p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
+                {[["brief", "✨ Draft it with Claude"], ["paste", "✍️ I have my own prompt"]].map(([v, l]) => (
+                  <button key={v} type="button" className={"pill-btn" + (personaMode === v ? " primary" : "")} style={{ padding: "5px 14px", fontSize: 12.5 }} onClick={() => setPersonaMode(v)}>{l}</button>
+                ))}
+              </div>
+              {personaMode === "brief" && (<>
               <Field label="Product / company" hint="What is being demoed, in a sentence or two.">
                 <input value={personaBrief.product} onChange={(e) => setBriefField("product", e.target.value)} placeholder="Acme Health — AI-powered patient intake for clinics" />
               </Field>
@@ -5402,10 +5415,13 @@ export default function TavusExperienceBuilder() {
               <button className="pill-btn primary" style={{ marginBottom: 18 }} onClick={generatePersona} disabled={generating}>
                 {generating && !personaDraft ? "Drafting…" : personaDraft ? "Regenerate" : "Generate with Claude"}
               </button>
+              </>)}
 
-              <Field label="System prompt draft" hint={personaDraft
-                ? "Edit freely — this exact text becomes the persona."
-                : "Generated here; you can also paste or write your own."}>
+              <Field label={personaMode === "paste" ? "Your system prompt" : "System prompt draft"} hint={personaMode === "paste"
+                ? "Paste the full prompt here — it's attached verbatim, nothing is rewritten. Tip: prompts following the Tavus Prompting Guide structure (Identity & Role, Personality, Conversation Flow…) perform best on video calls."
+                : personaDraft
+                  ? "Edit freely — this exact text becomes the persona."
+                  : "Generated here; you can also paste or write your own."}>
                 <textarea
                   style={{ minHeight: 260, fontSize: 13, lineHeight: 1.6 }}
                   value={personaDraft}
