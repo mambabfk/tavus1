@@ -505,6 +505,14 @@ const BUILDER_CSS = `
            object-fit:cover so it crops instead of squishing. Structural selector
            because the module class names are hashed. */
         .cvi-wrap .cvi-video-pane > * > * { height:100%; max-height:none; aspect-ratio:auto; border-radius:0; }
+        /* A replica stream that isn't 16:9 (portrait/square faces) must never
+           be crop-zoomed on the desktop stage — the vendored UI forces
+           object-fit:cover, which chops the head off. Letterbox it against
+           the dark pane instead. Phone/kiosk/hologram keep cover: their
+           portrait frames are meant to fill, and side-cropping a centered
+           face is safe there. Canvas-split panes also keep cover (the pane
+           is near-square; contain would shrink the face behind the card). */
+        .demo-desktop .cvi-wrap:not(.canvas-split) video[class*="mainVideo"] { object-fit: contain !important; }
         .canvas-split-right .cvi-video-pane { right:var(--canvas-panel-w); }
         .canvas-split-left .cvi-video-pane { left:var(--canvas-panel-w); }
         /* A light sheet (site canvas color), not a dark strip — it should read as
