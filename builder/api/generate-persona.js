@@ -233,6 +233,30 @@ function presentationContextLines(pres) {
   return lines;
 }
 
+/* Design engine: a plain-English vibe → a constrained page-design spec the
+   demo page renders (tokens + text only — never HTML/CSS, so nothing can
+   break the call stage or inject markup). */
+const DESIGN_SYSTEM = `You design the look of a live demo web page whose centerpiece is a face-to-face AI video call. From a plain-English vibe description, return ONLY JSON (no markdown fences):
+
+{"palette":{"canvas":"#...","surface":"#...","text":"#...","muted":"#...","accent":"#...","border":"#... or rgba(...)"},
+ "font":"inter"|"serif"|"grotesk"|"mono"|"system",
+ "radius":<number 4-32>,
+ "hero":"center"|"split",
+ "eyebrow":"...", "headline":"...", "tagline":"...", "cta":"...",
+ "sections":[up to 4, in display order, chosen from:
+   {"type":"logos","items":["Plausible Customer Name", ... up to 6]},
+   {"type":"features","items":[{"title":"...","body":"one sentence"} x3]},
+   {"type":"stats","items":[{"value":"98%","label":"..."} x3]},
+   {"type":"quote","text":"...","name":"Name, role"}],
+ "footer":"one short line"}
+
+Rules:
+- Colors are real CSS hex or rgba() values ONLY. The palette must be readable: text on canvas at high contrast (aim ≥ 7:1), muted on canvas ≥ 4.5:1, surface subtly distinct from canvas, accent strong enough for a button fill. Dark vibes get true dark canvases; light vibes stay airy.
+- Copy is grounded in the brand/product context provided and written like THEIR site — confident marketing voice, never "demo tool" language, no lorem ipsum, no placeholder brackets. Headline ≤ 9 words. cta ≤ 4 words.
+- The video call stage is the hero's centerpiece — pick "split" when the copy deserves a column (B2B, editorial), "center" for launch/consumer energy.
+- Follow the vibe faithfully over any default taste: "dark editorial" → near-black canvas + serif; "clinical SaaS" → white + inter + small radius; "playful" → bigger radius + brighter accent.
+- Sections should sell the product in the context given — a stats section only if numbers plausibly exist, logos only for B2B vibes.`;
+
 /* "Promote": one side of a scripted duet becomes a live demo persona a real
    human talks to — the sales handoff. Same character, no set dressing. */
 const PROMOTE_SYSTEM = `You convert one side of a scripted AI-to-AI "duet" demo into a live demo persona that a REAL HUMAN prospect will talk to. This is the sales handoff: the prospect watched the duet video, and now they meet the same AI human for real.
@@ -307,6 +331,19 @@ export default async function handler(req, res) {
     system = DUET_SYSTEM;
     const parts = [`Design the duet:\n${String(vibe).trim().slice(0, 2000)}`];
     if (context?.brand) parts.push(`Brand on the demo page: ${context.brand}`);
+    userPrompt = parts.join("\n\n");
+  } else if (kind === "design") {
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Describe the vibe first — what should the page feel like?" });
+      return;
+    }
+    system = DESIGN_SYSTEM;
+    const parts = [`Design the page for this vibe:\n${String(vibe).trim().slice(0, 2000)}`];
+    if (context?.brand) parts.push(`Brand: ${String(context.brand).slice(0, 200)}`);
+    if (context?.product) parts.push(`Product being demoed: ${String(context.product).slice(0, 500)}`);
+    if (context?.audience) parts.push(`Audience: ${String(context.audience).slice(0, 300)}`);
+    if (context?.headline) parts.push(`Current headline (improve or keep the spirit): ${String(context.headline).slice(0, 200)}`);
+    if (context?.tagline) parts.push(`Current tagline: ${String(context.tagline).slice(0, 300)}`);
     userPrompt = parts.join("\n\n");
   } else if (kind === "promote") {
     const plan = req.body?.plan || {};

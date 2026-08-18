@@ -85,6 +85,7 @@ const SITE_FORMATS = [
   { v: "phone", label: "Mobile app", desc: "A scrollable in-app screen inside a real phone frame — how it feels living in your app." },
   { v: "kiosk", label: "Kiosk", desc: "A freestanding kiosk totem with a touch-to-start attract screen. Go live for real kiosk hardware." },
   { v: "hologram", label: "Hologram", desc: "A Proto-style holobox — white enclosure, glowing life-size screen the AI beams into." },
+  { v: "designed", label: "✨ Designed", desc: "A vibe-built page from the design engine below — palette, type, hero and on-page sections, generated to your description." },
 ];
 
 /* Video URL → embeddable source for journey video steps. YouTube/Loom/Vimeo
@@ -487,6 +488,31 @@ const BUILDER_CSS = `
         .demo-brand { font-weight:700; font-size:18px; letter-spacing:-.3px; }
         .demo-main { flex:1; display:flex; flex-direction:column; align-items:center; padding:24px 24px 48px; }
         .demo-header { text-align:center; margin-bottom:28px; }
+        /* ✨ Designed pages — spec-driven look from the design engine. The
+           spec only supplies tokens + text; layout is these fixed classes. */
+        .demo-designed .demo-nav { background:var(--canvas); border-bottom:1px solid var(--border); }
+        .dz-page { width:min(1140px,94%); margin:0 auto; padding-bottom:36px; }
+        .dz-hero { padding:38px 0 26px; display:grid; gap:30px; }
+        .dz-hero-center .dz-hero { justify-items:center; text-align:center; }
+        .dz-hero-center .dz-stage { width:min(980px,100%); }
+        .dz-hero-split .dz-hero { grid-template-columns:1fr 1.25fr; align-items:center; text-align:left; }
+        .dz-eyebrow { font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--accent); font-weight:700; }
+        .dz-copy h1 { font-size:clamp(30px,4.4vw,50px); line-height:1.04; letter-spacing:-1.4px; margin:12px 0 12px; color:var(--text); }
+        .dz-copy p { color:var(--muted); font-size:16.5px; line-height:1.55; margin:0; max-width:56ch; }
+        .dz-stage { width:100%; min-width:0; }
+        .dz-stage .demo-stage { width:100%; }
+        .dz-logos { display:flex; gap:30px; justify-content:center; flex-wrap:wrap; padding:20px 0 6px; border-top:1px solid var(--border); color:var(--muted); opacity:.6; font-size:13px; letter-spacing:.6px; font-weight:600; }
+        .dz-features { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; padding:26px 0 6px; }
+        .dz-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius,18px); padding:20px; }
+        .dz-card h3 { margin:0 0 8px; font-size:16px; color:var(--text); }
+        .dz-card p { margin:0; color:var(--muted); font-size:13.5px; line-height:1.55; }
+        .dz-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; padding:24px 0 4px; text-align:center; }
+        .dz-stats b { display:block; font-size:clamp(26px,3vw,38px); letter-spacing:-1px; color:var(--accent); }
+        .dz-stats span { color:var(--muted); font-size:13px; }
+        .dz-quote { margin:30px auto 8px; max-width:640px; text-align:center; font-size:19px; line-height:1.5; color:var(--text); }
+        .dz-quote cite { display:block; margin-top:10px; font-style:normal; color:var(--muted); font-size:13.5px; }
+        .dz-footer { border-top:1px solid var(--border); margin-top:30px; padding-top:16px; color:var(--muted); font-size:12.5px; text-align:center; }
+        @media (max-width:900px) { .dz-hero-split .dz-hero { grid-template-columns:1fr; } }
         /* Brand carry-through on themed pages: accent eyebrow + accent CTA +
            a soft accent wash behind the hero. Alto default stays untouched. */
         .demo-eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--accent); margin-bottom:14px; }
@@ -2314,6 +2340,32 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
     ].filter(([, v]) => v)
   ) : undefined;
 
+  // ✨ Design-engine spec (site.design) — vibe-built palette/type/layout,
+  // sanitized at render time: only real CSS colors, fonts from a fixed map.
+  const dz = format === "designed" && site.design && typeof site.design === "object" ? site.design : null;
+  const dzVars = (() => {
+    if (!dz) return null;
+    const col = (v) => {
+      const s2 = String(v ?? "").trim();
+      return /^#[0-9a-f]{3,8}$/i.test(s2) || /^rgba?\([\d\s.,%]+\)$/i.test(s2) ? s2 : null;
+    };
+    const fonts = {
+      inter: "'Inter', system-ui, -apple-system, sans-serif",
+      serif: "Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+      grotesk: "'Space Grotesk', 'Inter', system-ui, sans-serif",
+      mono: "'IBM Plex Mono', ui-monospace, monospace",
+      system: "system-ui, -apple-system, 'Segoe UI', sans-serif",
+    };
+    const vars = {};
+    const p = dz.palette || {};
+    [["canvas", "--canvas"], ["surface", "--surface"], ["text", "--text"], ["muted", "--muted"], ["accent", "--accent"], ["border", "--border"]]
+      .forEach(([k, cssVar]) => { const v = col(p[k]); if (v) vars[cssVar] = v; });
+    if (fonts[dz.font]) vars["--font"] = fonts[dz.font];
+    const r = parseInt(dz.radius, 10);
+    if (r >= 4 && r <= 32) vars["--radius"] = `${r}px`;
+    return vars;
+  })();
+
   // Brand the browser tab itself: title + favicon from the logo. Small, but
   // it's half of what makes a page read as "theirs" instead of a tool.
   useEffect(() => {
@@ -2331,7 +2383,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
   }, [site.brand, site.logoUrl]);
 
   return (
-    <div className={`demo-root demo-${format}${format === "kiosk" && kioskLive ? " demo-kiosk-live" : ""}${t ? " demo-themed" : ""}`} style={themeVars}>
+    <div className={`demo-root demo-${format}${format === "kiosk" && kioskLive ? " demo-kiosk-live" : ""}${t ? " demo-themed" : ""}`} style={dzVars ? { ...(themeVars || {}), ...dzVars } : themeVars}>
       {format === "kiosk" && kioskLive && (
         <button className="kiosk-exit" onClick={handleExit} title="Back to builder">×</button>
       )}
@@ -2470,6 +2522,50 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
               </div>
               <div className="holo-foot">powered by tavus</div>
             </div>
+          </div>
+        ) : format === "designed" && dz ? (
+          /* ✨ Design-engine page: the vibe-built spec rendered as a real
+             site — hero (center or split) framing the call stage, then the
+             sections Claude wrote (logos / features / stats / quote). All
+             content is plain text from the spec; colors/fonts are the
+             sanitized CSS vars applied on the root. */
+          <div className={"dz-page dz-hero-" + (dz.hero === "split" ? "split" : "center")}>
+            <section className="dz-hero">
+              <div className="dz-copy">
+                {(dz.eyebrow || site.brand) && <span className="dz-eyebrow">{String(dz.eyebrow || site.brand)}</span>}
+                <h1>{site.headline || "Talk to our AI human"}</h1>
+                {site.tagline && <p>{site.tagline}</p>}
+              </div>
+              <div className="dz-stage"><div className="demo-stage">{stage()}</div></div>
+            </section>
+            {Array.isArray(dz.sections) && dz.sections.slice(0, 4).map((s2, i) => {
+              if (s2?.type === "logos" && Array.isArray(s2.items)) {
+                return <div key={i} className="dz-logos" aria-hidden="true">{s2.items.slice(0, 6).map((n, j) => <span key={j}>{String(n)}</span>)}</div>;
+              }
+              if (s2?.type === "features" && Array.isArray(s2.items)) {
+                return (
+                  <section key={i} className="dz-features">
+                    {s2.items.slice(0, 4).map((f, j) => (
+                      <div key={j} className="dz-card"><h3>{String(f?.title ?? "")}</h3><p>{String(f?.body ?? "")}</p></div>
+                    ))}
+                  </section>
+                );
+              }
+              if (s2?.type === "stats" && Array.isArray(s2.items)) {
+                return (
+                  <section key={i} className="dz-stats">
+                    {s2.items.slice(0, 4).map((f, j) => (
+                      <div key={j}><b>{String(f?.value ?? "")}</b><span>{String(f?.label ?? "")}</span></div>
+                    ))}
+                  </section>
+                );
+              }
+              if (s2?.type === "quote" && s2.text) {
+                return <blockquote key={i} className="dz-quote">“{String(s2.text)}”{s2.name ? <cite>— {String(s2.name)}</cite> : null}</blockquote>;
+              }
+              return null;
+            })}
+            {dz.footer && <footer className="dz-footer">{String(dz.footer)}</footer>}
           </div>
         ) : (
           <div className="demo-stage">{stage()}</div>
@@ -2761,6 +2857,52 @@ export default function TavusExperienceBuilder() {
     brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop",
   });
   const setSiteField = (k, v) => setSite((s) => ({ ...s, [k]: v }));
+  const [designBusy, setDesignBusy] = useState(false);
+
+  /* ✨ Design engine: vibe description → Claude returns a constrained design
+     spec (palette/type/radius/hero + real on-page sections). The spec lives
+     in site.design (rides scenarios AND share-link snapshots), renders as
+     the "designed" format, and is sanitized at render. Iterate by tweaking
+     the vibe and re-running — each run is a fresh design. */
+  const generateSiteDesign = async () => {
+    const vibe = String(site.designVibe || "").trim();
+    if (!vibe) return;
+    setDesignBusy(true);
+    try {
+      addLog("info", "Designing the page — palette, type, hero, sections…");
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "design",
+          vibe,
+          context: { brand: site.brand, headline: site.headline, tagline: site.tagline, product: personaBrief.product, audience: personaBrief.audience },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: generation failed`);
+      }
+      const spec = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+      if (!spec?.palette || typeof spec.palette !== "object") throw new Error("The design came back incomplete — try a more specific vibe.");
+      setSite((s) => ({
+        ...s,
+        design: spec,
+        format: "designed",
+        headline: spec.headline || s.headline,
+        tagline: spec.tagline || s.tagline,
+        cta: spec.cta || s.cta,
+      }));
+      addLog("ok", `Page designed — ${spec.font || "custom"} type, ${Array.isArray(spec.sections) ? spec.sections.length : 0} on-page sections. Format is now ✨ Designed; preview it, tweak the vibe, re-run to iterate.`);
+    } catch (e) {
+      addLog("err", `Design: ${e.message}`);
+    } finally {
+      setDesignBusy(false);
+    }
+  };
 
   // Experience arc — guided pre-call journey + email gate (table stakes:
   // default ON) + attendance alert + post-call feedback.
@@ -6784,12 +6926,45 @@ export default function TavusExperienceBuilder() {
                       {f.v === "phone" && <div className="fv-phone" />}
                       {f.v === "kiosk" && <div className="fv-kiosk" />}
                       {f.v === "hologram" && <div className="fv-holo" />}
+                      {f.v === "designed" && <div style={{ fontSize: 26, lineHeight: "44px" }}>✨</div>}
                     </div>
                     <div style={{ fontWeight: 600 }}>{f.label}</div>
                     <div style={{ fontSize: 11.5, marginTop: 4, lineHeight: 1.4 }}>{f.desc}</div>
                   </div>
                 ))}
               </div>
+
+              <div className="subhead">✨ Design engine</div>
+              <Field
+                label="Describe the vibe"
+                hint={'Vibe-build the whole page: Claude designs the palette, typography, hero layout, and writes real on-page sections (features, stats, a quote, a logo strip) around the call stage. Preview instantly, tweak the description, re-run — each run is a fresh design. The design rides scenarios and share links.'}
+              >
+                <textarea
+                  style={{ minHeight: 56 }}
+                  value={site.designVibe || ""}
+                  onChange={(e) => setSiteField("designVibe", e.target.value)}
+                  placeholder={'e.g. "Premium health-tech landing — calm, airy off-white, one deep green accent, editorial serif headline" or "dark, cinematic, product-launch energy, electric blue accent"'}
+                />
+                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                  <button className="pill-btn primary" onClick={generateSiteDesign} disabled={designBusy || !String(site.designVibe || "").trim()}>
+                    {designBusy ? "Designing…" : site.design ? "✨ Redesign from this vibe" : "✨ Generate the page design"}
+                  </button>
+                  {site.design && <button className="pill-btn" onClick={() => setSiteMode(true)}>👁 Preview it</button>}
+                  {site.design && (
+                    <button className="pill-btn ghost" onClick={() => setSite((s) => ({ ...s, design: null, format: s.format === "designed" ? "desktop" : s.format }))}>
+                      ✕ Remove design
+                    </button>
+                  )}
+                </div>
+                {site.design?.palette && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8 }}>
+                    {["canvas", "surface", "accent", "text"].map((k) => site.design.palette[k] && (
+                      <span key={k} title={`${k}: ${site.design.palette[k]}`} style={{ width: 16, height: 16, borderRadius: 5, background: site.design.palette[k], border: "1px solid var(--border)" }} />
+                    ))}
+                    <span className="field-hint" style={{ marginLeft: 4 }}>{site.design.font || "custom"} · {site.design.hero === "split" ? "split hero" : "centered hero"} · {Array.isArray(site.design.sections) ? site.design.sections.length : 0} sections</span>
+                  </span>
+                )}
+              </Field>
 
               <div className="subhead">In-call controls</div>
               <div className="skill-head" style={{ marginBottom: 6 }}>

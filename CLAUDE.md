@@ -251,6 +251,14 @@ non-technical users; ids unchanged):
    top bar + speaker grilles, glowing blue 9:16 screen the call renders
    into — bright and physical, per explicit user direction; NOT dark
    sci-fi).
+   ... | `designed` (**✨ design engine**: a plain-English vibe on the site
+   step → `kind: "design"` on generate-persona returns a constrained spec —
+   palette/font-key/radius/hero center|split + real on-page sections
+   (logos/features/stats/quote) + headline/tagline/cta — stored in
+   `site.design` (rides scenarios AND share-link snapshots), applied as
+   sanitized CSS vars (hex/rgba regex, fixed font map) merged over
+   `themeVars`, rendered by the `dz-*` classes. NEVER render spec HTML/CSS
+   raw — tokens + text only. "Remove design" falls back to desktop).
    `DemoSite` switches on `site.format` via `demo-{format}` CSS classes.
    Canvas split-layout only engages on `desktop` and live kiosk — phone,
    framed kiosk, and hologram keep the card overlay behavior.
