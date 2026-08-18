@@ -1809,6 +1809,7 @@ const store = {
   },
 };
 const SCENARIOS_KEY = "tavus_builder_scenarios_v1";
+const DRAFT_KEY = "tavus_builder_draft_v1"; // rolling autosave of the whole config
 const SCENMETA_KEY = "tavus_builder_scenario_meta_v1"; // name → {updatedAt} for the library list
 const REC_KEY = "tavus_builder_recording_v1"; // S3 recording defaults (non-secret identifiers)
 const WEBHOOK_KEY = "tavus_builder_webhook_v1"; // callback URL — account plumbing, survives scenario loads
@@ -3060,6 +3061,45 @@ export default function TavusExperienceBuilder() {
     setSavePromptName(activeScenario || conversationName || site.brand || "");
     setSavePrompt(true);
   };
+
+  /* ── Never lose work again ──
+     1. Rolling autosave: every change writes a draft (debounced) that is
+        restored on the next load — browser Back, refresh, closed tab, crash:
+        the builder reopens exactly where it was.
+     2. Browser Back on the demo page closes the demo instead of navigating
+        away (the demo is an overlay in this same SPA — leaving the page was
+        what nuked the state). */
+  const draftReady = useRef(false);
+  useEffect(() => {
+    try {
+      const d = store.get(DRAFT_KEY, null);
+      if (d?.config && typeof d.config === "object") {
+        applyConfig(d.config);
+        if (d.active) setActiveScenario(d.active);
+        addLog("info", "Restored your work in progress from the autosave draft.");
+      }
+    } catch { /* corrupt draft — start clean */ }
+    draftReady.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!draftReady.current) return undefined; // don't overwrite the draft before it's restored
+    const t = setTimeout(() => {
+      store.set(DRAFT_KEY, { at: new Date().toISOString(), active: activeScenario, config: collectConfig() });
+    }, 900);
+    return () => clearTimeout(t);
+  });
+  useEffect(() => {
+    if (!siteMode) return undefined;
+    window.history.pushState({ tavusDemo: true }, "");
+    const onPop = () => {
+      setSiteMode(false);
+      if (promptOnReturn.current) { promptOnReturn.current = false; promptSaveIfDirty(); }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [siteMode]);
 
   const exportScenario = () => {
     const name = activeScenario || scenarioName.trim() || "scenario";
@@ -5003,9 +5043,14 @@ export default function TavusExperienceBuilder() {
       const data = await tavusFetch("POST", "/conversations", payload);
       setConversation(data);
       addLog("ok", `Live: ${data.conversation_id || ""}`);
+      // Save BEFORE the demo page opens — nothing that happens on that page
+      // (browser Back, refresh, closing the tab) can lose this config.
+      if (isConfigDirty()) {
+        saveScenario();
+        addLog("info", "Auto-saved this demo to your library before opening the page.");
+      }
       setSiteMode(true);
-      // A launched demo is worth keeping — prompt to save when they come
-      // back from the demo page (the page covers the builder right now).
+      // Belt-and-braces: if anything was still unsaved, prompt on return.
       promptOnReturn.current = true;
     } catch (e) {
       addLog("err", e.message + " — if this is a network/CORS block, copy the curl from the preview panel and run it from a terminal or backend.");

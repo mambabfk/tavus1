@@ -544,6 +544,12 @@ real local Vite app.
   degrades to the old localStorage-only behavior with honest log lines.
 - **API key** (`APIKEY_KEY = "tavus_builder_api_key_v1"`) — remembered only when
   the "Remember key" box is checked; **never included in scenario exports**.
+- **Autosave draft** (`DRAFT_KEY = "tavus_builder_draft_v1"`) — a rolling,
+  debounced (900ms) snapshot of `collectConfig()` written on every change and
+  restored on mount (with `activeScenario`), so Back/refresh/crash never lose
+  work. Launch also auto-saves to the library (`saveScenario()`) when dirty
+  BEFORE opening the demo page, and `siteMode` pushes a history entry so the
+  browser Back button closes the demo overlay instead of leaving the SPA.
 
 ## Conventions when editing
 
