@@ -2946,15 +2946,16 @@ export default function TavusExperienceBuilder() {
   // Wispr Flow dictation (preferred when WISPR_API_KEY is set server-side):
   // record raw PCM, encode 16kHz WAV, transcribe via /api/dictate on stop.
   // Falls back to the browser's live speech recognition automatically.
-  const [wisprAvail, setWisprAvail] = useState(false);
+  const [dictEngine, setDictEngine] = useState(""); // "" = browser fallback | "cartesia" | "wisprflow"
   const [transcribing, setTranscribing] = useState(false);
   const wavRecRef = useRef(null);
   const dictApplyRef = useRef(null);
   useEffect(() => {
     if (demoSlug || duetJoin || (auth.required && !auth.authed)) return;
-    fetch("/api/dictate").then((r) => (r.ok ? r.json() : null)).then((d) => setWisprAvail(!!d?.available)).catch(() => { /* bare vite — browser engine only */ });
+    fetch("/api/dictate").then((r) => (r.ok ? r.json() : null)).then((d) => setDictEngine(d?.available ? String(d.provider || "server") : "")).catch(() => { /* bare vite — browser engine only */ });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.authed]);
+  const dictEngineName = dictEngine === "cartesia" ? "Cartesia Ink" : dictEngine === "wisprflow" ? "Wispr Flow" : "the browser's built-in engine";
   const finishWisprDictation = async () => {
     const rec = wavRecRef.current;
     if (!rec) return;
@@ -3005,9 +3006,9 @@ export default function TavusExperienceBuilder() {
       return;
     }
     dictApplyRef.current = apply;
-    if (wisprAvail) { startWisprDictation(target); return; }
+    if (dictEngine) { startWisprDictation(target); return; }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { addLog("err", "Dictation isn't available — add WISPR_API_KEY on Vercel for Wispr Flow, or use Chrome/Edge for the built-in engine."); return; }
+    if (!SR) { addLog("err", "Dictation isn't available — CARTESIA_API_KEY on Vercel enables server-side dictation (same key as Studio TTS), or use Chrome/Edge for the built-in engine."); return; }
     const rec = new SR();
     rec.continuous = true;
     rec.interimResults = true;
@@ -6006,7 +6007,7 @@ export default function TavusExperienceBuilder() {
                     className={"pill-btn" + (dictating === "vibe" ? " primary" : "")}
                     onClick={() => toggleDictation("vibe", (t2) => setPersonaBrief((b) => ({ ...b, vibe: (b.vibe ? b.vibe + " " : "") + t2 })))}
                     disabled={transcribing}
-                    title={wisprAvail ? "Dictation by Wispr Flow" : "Dictation by the browser's built-in engine"}
+                    title={`Dictation by ${dictEngineName}`}
                   >
                     {dictating === "vibe" ? "⏹ Stop — I'm done talking" : transcribing ? "🎙 Transcribing…" : "🎙 Talk it out"}
                   </button>
@@ -8147,7 +8148,7 @@ export default function TavusExperienceBuilder() {
               <button
                 className={"pill-btn" + (dictating === "edit" ? " primary" : "")}
                 style={{ flexShrink: 0, padding: "6px 12px" }}
-                title={wisprAvail ? "Dictate the change (Wispr Flow)" : "Dictate the change"}
+                title={`Dictate the change (${dictEngineName})`}
                 disabled={transcribing}
                 onClick={() => toggleDictation("edit", (t2) => setEditAsk((v) => (v ? v + " " : "") + t2))}
               >
