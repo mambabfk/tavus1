@@ -193,6 +193,7 @@ function briefToPrompt(brief, context) {
   const lines = ["Write a Tavus persona system prompt for this demo:"];
   const add = (label, v) => { if (v && String(v).trim()) lines.push(`${label}: ${String(v).trim()}`); };
 
+  add("The demo, in the operator's own words", brief.vibe);
   add("Product / company", brief.product);
   add("Audience (who the persona talks to)", brief.audience);
   add("Goal of the conversation", brief.goal);
@@ -232,6 +233,22 @@ function presentationContextLines(pres) {
   if (pres.talkTrack) lines.push(`Slide-by-slide talk track (attached to the presentation skill — keep the persona's flow consistent with it):\n${String(pres.talkTrack).slice(0, 3000)}`);
   return lines;
 }
+
+/* Chat-with-the-demo: one instruction → coordinated edits across every
+   implicated piece. The operator's existing text is sacred — edit, never
+   regenerate, and touch only what the instruction reaches. */
+const EDIT_SYSTEM = `You are the live editor for a configured AI-human video demo. The operator gives ONE instruction; you edit only the pieces it implicates and return the complete new text for those pieces.
+
+Return ONLY JSON (no markdown fences):
+{"note":"one sentence — what you changed and why it satisfies the ask",
+ "changes":{"prompt":null|"full updated system prompt","objectives":null|"updated objectives lines","guardrails":null|"updated guardrail lines","greeting":null|"updated spoken greeting","headline":null|"...","tagline":null|"...","cta":null|"...","canvasPlaybook":null|"..."}}
+
+Rules:
+- EDIT, never regenerate. Preserve the operator's existing wording, structure, and voice everywhere the instruction doesn't reach — their edits are sacred. If a piece needs no change, return null for it.
+- Cross-piece consistency: a conversation-flow change belongs in objectives (they drive the flow mechanically — a prompt-only edit leaves the PAL looping on stale steps) AND in the prompt's Conversation Flow section. A new rule belongs in guardrails AND the prompt's constraints section when one exists. Tone/personality changes usually touch only the prompt (and maybe the greeting).
+- Formats: objectives = one step per line, in order; branches indented as "if <condition> -> <detour objective>"; optional "| var" suffix. guardrails = one rule per line; [visual] marks camera-enforced rules. The prompt keeps its ## section structure.
+- Page copy (headline/tagline/cta) changes only when the instruction is about the page.
+- Never invent content for a piece that was provided as "(empty)" unless the instruction explicitly asks for it.`;
 
 /* Design engine: a plain-English vibe → a constrained page-design spec the
    demo page renders (tokens + text only — never HTML/CSS, so nothing can
@@ -332,6 +349,26 @@ export default async function handler(req, res) {
     const parts = [`Design the duet:\n${String(vibe).trim().slice(0, 2000)}`];
     if (context?.brand) parts.push(`Brand on the demo page: ${context.brand}`);
     userPrompt = parts.join("\n\n");
+  } else if (kind === "edit") {
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Tell the demo what to change first." });
+      return;
+    }
+    system = EDIT_SYSTEM;
+    const c = context || {};
+    const piece = (label, v) => `${label}:\n${String(v ?? "").trim() || "(empty)"}`;
+    userPrompt = [
+      `OPERATOR'S INSTRUCTION — apply this and nothing else:\n${String(vibe).trim().slice(0, 2000)}`,
+      piece("CURRENT SYSTEM PROMPT", String(c.prompt ?? "").slice(0, 20000)),
+      piece("CURRENT OBJECTIVES (one per line; indented if-lines are branches)", String(c.objectives ?? "").slice(0, 4000)),
+      piece("CURRENT GUARDRAILS (one per line)", String(c.guardrails ?? "").slice(0, 4000)),
+      piece("CURRENT GREETING (spoken first line)", String(c.greeting ?? "").slice(0, 500)),
+      piece("CURRENT PAGE HEADLINE", String(c.headline ?? "").slice(0, 200)),
+      piece("CURRENT PAGE TAGLINE", String(c.tagline ?? "").slice(0, 300)),
+      piece("CURRENT PAGE BUTTON LABEL", String(c.cta ?? "").slice(0, 100)),
+      piece("CURRENT MAGIC CANVAS PLAYBOOK", String(c.canvasPlaybook ?? "").slice(0, 2000)),
+      c.brand ? `Brand: ${String(c.brand).slice(0, 200)}` : "",
+    ].filter(Boolean).join("\n\n");
   } else if (kind === "design") {
     if (!String(vibe).trim()) {
       res.status(400).json({ error: "Describe the vibe first — what should the page feel like?" });
@@ -406,7 +443,7 @@ export default async function handler(req, res) {
     if (context.brand) parts.push(`Brand: ${context.brand}`);
     userPrompt = parts.join("\n\n");
   } else {
-    const hasInput = ["product", "audience", "goal", "tone", "mustCover", "avoid"]
+    const hasInput = ["vibe", "product", "audience", "goal", "tone", "mustCover", "avoid"]
       .some((k) => brief[k] && String(brief[k]).trim());
     if (!hasInput) {
       res.status(400).json({ error: "Describe the demo first — at least one brief field is required." });

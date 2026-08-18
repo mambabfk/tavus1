@@ -528,6 +528,12 @@ const BUILDER_CSS = `
         .demolib-foot { display:flex; align-items:center; gap:12px; margin-top:10px; flex-wrap:wrap; }
         .demolib-badges { display:flex; gap:6px; flex-wrap:wrap; }
         .demolib-badges span { border:1px solid var(--border); background:var(--canvas); border-radius:999px; padding:3px 10px; font-size:11.5px; color:var(--muted); white-space:nowrap; }
+        /* Chat-with-the-demo edit bar — fixed bottom-center, approve-to-apply */
+        .editbar { position:fixed; left:50%; transform:translateX(-50%); bottom:16px; z-index:40; width:min(720px,92%); display:flex; gap:8px; align-items:center; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:8px 10px; box-shadow:0 18px 50px -18px rgba(20,20,20,.3); }
+        .editbar input { flex:1; border:none; background:transparent; font:inherit; font-size:13.5px; color:var(--text); outline:none; padding:6px 8px; }
+        .editbar-pending { display:flex; align-items:center; gap:14px; width:100%; padding:2px 4px; }
+        .editbar-pending > div:first-child { flex:1; min-width:0; }
+        .editbar-chip { border:1px solid var(--accent); border-radius:999px; padding:2px 10px; font-size:11.5px; color:var(--text); background:color-mix(in srgb, var(--accent) 14%, transparent); }
         /* ✨ Designed pages — spec-driven look from the design engine. The
            spec only supplies tokens + text; layout is these fixed classes. */
         .demo-designed .demo-nav { background:var(--canvas); border-bottom:1px solid var(--border); }
@@ -2700,7 +2706,7 @@ export default function TavusExperienceBuilder() {
 
   // Persona (Claude-drafted system prompt)
   const [personaBrief, setPersonaBrief] = useState({
-    product: "", audience: "", goal: "", tone: "", emotions: "", mustCover: "", avoid: "",
+    vibe: "", product: "", audience: "", goal: "", tone: "", emotions: "", mustCover: "", avoid: "",
   });
   const setBriefField = (k, v) => setPersonaBrief((b) => ({ ...b, [k]: v }));
   const [personaDraft, setPersonaDraft] = useState("");
@@ -2899,6 +2905,70 @@ export default function TavusExperienceBuilder() {
   const setSiteField = (k, v) => setSite((s) => ({ ...s, [k]: v }));
   const [designBusy, setDesignBusy] = useState(false);
 
+  /* Chat with the demo — the seamless edit path. One instruction edits every
+     implicated piece together (prompt, objectives, guardrails, greeting,
+     page copy, canvas playbook). Nothing applies until the operator approves
+     the change list: hand edits are sacred. */
+  const [editAsk, setEditAsk] = useState("");
+  const [editBusy, setEditBusy] = useState(false);
+  const [editPending, setEditPending] = useState(null); // {ask, note, changes, labels}
+  const EDIT_LABELS = {
+    prompt: "persona prompt", objectives: "objectives", guardrails: "guardrails", greeting: "greeting",
+    headline: "headline", tagline: "tagline", cta: "button label", canvasPlaybook: "canvas playbook",
+  };
+  const runDemoEdit = async () => {
+    const ask = editAsk.trim();
+    if (!ask || editBusy) return;
+    setEditBusy(true);
+    try {
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "edit",
+          vibe: ask,
+          context: {
+            prompt: personaDraft, objectives: objectivesText, guardrails: guardrailsText, greeting,
+            headline: site.headline, tagline: site.tagline, cta: site.cta, canvasPlaybook, brand: site.brand,
+          },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: edit failed`);
+      }
+      const out = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+      const changes = out?.changes && typeof out.changes === "object" ? out.changes : {};
+      const keys = Object.keys(EDIT_LABELS).filter((k) => typeof changes[k] === "string" && changes[k].trim());
+      if (!keys.length) throw new Error("Nothing changed — try a more specific instruction.");
+      setEditPending({ ask, note: String(out.note || ""), changes, keys });
+    } catch (e) {
+      addLog("err", `Edit: ${e.message}`);
+    } finally {
+      setEditBusy(false);
+    }
+  };
+  const applyDemoEdit = () => {
+    const c = editPending?.changes;
+    if (!c) return;
+    const applied = [];
+    const put = (k, fn) => { if (typeof c[k] === "string" && c[k].trim()) { fn(c[k]); applied.push(EDIT_LABELS[k]); } };
+    put("prompt", (v) => { setPersonaDraft(v); setPersonaAttached(false); });
+    put("objectives", (v) => { setObjectivesText(v); setObjectivesEnabled(true); });
+    put("guardrails", (v) => { setGuardrailsText(v); setGuardrailsEnabled(true); });
+    put("greeting", setGreeting);
+    put("headline", (v) => setSiteField("headline", v));
+    put("tagline", (v) => setSiteField("tagline", v));
+    put("cta", (v) => setSiteField("cta", v));
+    put("canvasPlaybook", setCanvasPlaybook);
+    addLog("ok", `Edited ${applied.join(", ")}.${c.prompt ? " The prompt changed — re-attach it on the Persona step before the next launch." : ""} Goals re-attach on launch automatically.`);
+    setEditPending(null);
+    setEditAsk("");
+  };
+
   /* ✨ Design engine: vibe description → Claude returns a constrained design
      spec (palette/type/radius/hero + real on-page sections). The spec lives
      in site.design (rides scenarios AND share-link snapshots), renders as
@@ -3069,7 +3139,7 @@ export default function TavusExperienceBuilder() {
     // Older scenarios without a webhook must not wipe the remembered one.
     setCallbackUrl(c.callbackUrl || store.get(WEBHOOK_KEY, ""));
     setGreeting(c.greeting ?? "");
-    setPersonaBrief({ product: "", audience: "", goal: "", tone: "", emotions: "", mustCover: "", avoid: "", ...(c.personaBrief || {}) });
+    setPersonaBrief({ vibe: "", product: "", audience: "", goal: "", tone: "", emotions: "", mustCover: "", avoid: "", ...(c.personaBrief || {}) });
     setPersonaDraft(c.personaDraft ?? "");
     setPersonaAttached(false);
     setVisionEnabled(!!c.visionEnabled); setVisionVibe(c.visionVibe ?? "");
@@ -5763,28 +5833,40 @@ export default function TavusExperienceBuilder() {
                 ))}
               </div>
               {personaMode === "brief" && (<>
-              <Field label="Product / company" hint="What is being demoed, in a sentence or two.">
-                <input value={personaBrief.product} onChange={(e) => setBriefField("product", e.target.value)} placeholder="Acme Health — AI-powered patient intake for clinics" />
+              <Field label="Describe it" hint="One box — everything you know, in your own words: the product, who it talks to, what a win looks like, the personality and energy. Flow steps live on Objectives, rules on Guardrails; the generator reads both from there, so you never type them twice.">
+                <textarea
+                  style={{ minHeight: 110 }}
+                  value={personaBrief.vibe || ""}
+                  onChange={(e) => setBriefField("vibe", e.target.value)}
+                  placeholder={"e.g. A warm, sharp intake specialist for Acme Health demoing AI patient intake to clinic ops leads. Wins the call when they see the 5-minute setup and book a follow-up. Confident, a little playful, never salesy — lights up when showing the product."}
+                />
               </Field>
-              <Field label="Audience" hint="Who the persona will be talking to.">
-                <input value={personaBrief.audience} onChange={(e) => setBriefField("audience", e.target.value)} placeholder="Clinic operations leads evaluating intake tools" />
-              </Field>
-              <Field label="Goal of the conversation">
-                <input value={personaBrief.goal} onChange={(e) => setBriefField("goal", e.target.value)} placeholder="Qualify their needs and book a follow-up with sales" />
-              </Field>
-              <Field label="Tone / personality" hint="Optional.">
-                <input value={personaBrief.tone} onChange={(e) => setBriefField("tone", e.target.value)} placeholder="Warm, expert, gets to the point" />
-              </Field>
-              <Field label="Emotional vibe" hint="Optional — how it should feel and react. Tavus performs this through the voice and face automatically; Claude turns your vibe into real emotional direction in the prompt.">
-                <textarea style={{ minHeight: 64 }} value={personaBrief.emotions} onChange={(e) => setBriefField("emotions", e.target.value)}
-                  placeholder={"Warm and upbeat by default. Gets genuinely excited showing the product. If the visitor sounds frustrated or confused, slows down, softens, and reassures."} />
-              </Field>
-              <Field label="Must cover" hint="Optional — key points the persona should work in.">
-                <textarea value={personaBrief.mustCover} onChange={(e) => setBriefField("mustCover", e.target.value)} placeholder={"HIPAA compliance\n5-minute setup\nEHR integrations"} />
-              </Field>
-              <Field label="Must avoid" hint="Optional — one per line. These shape the prompt AND are added to the Guardrails step automatically when you generate, so rules live in one place.">
-                <textarea value={personaBrief.avoid} onChange={(e) => setBriefField("avoid", e.target.value)} placeholder={"Custom pricing\nCompetitor comparisons"} />
-              </Field>
+              <details style={{ marginBottom: 16, maxWidth: 640 }}>
+                <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>
+                  Fine-tune (optional) — pin down specifics the one-liner shouldn't carry
+                </summary>
+                <div style={{ paddingTop: 12 }}>
+                  <Field label="Product / company">
+                    <input value={personaBrief.product} onChange={(e) => setBriefField("product", e.target.value)} placeholder="Acme Health — AI-powered patient intake for clinics" />
+                  </Field>
+                  <Field label="Audience">
+                    <input value={personaBrief.audience} onChange={(e) => setBriefField("audience", e.target.value)} placeholder="Clinic operations leads evaluating intake tools" />
+                  </Field>
+                  <Field label="Goal of the conversation">
+                    <input value={personaBrief.goal} onChange={(e) => setBriefField("goal", e.target.value)} placeholder="Qualify their needs and book a follow-up with sales" />
+                  </Field>
+                  <Field label="Tone / personality">
+                    <input value={personaBrief.tone} onChange={(e) => setBriefField("tone", e.target.value)} placeholder="Warm, expert, gets to the point" />
+                  </Field>
+                  <Field label="Emotional vibe" hint="How it should feel and react — Tavus performs this through the voice and face automatically.">
+                    <textarea style={{ minHeight: 64 }} value={personaBrief.emotions} onChange={(e) => setBriefField("emotions", e.target.value)}
+                      placeholder={"Warm and upbeat by default. Gets genuinely excited showing the product. If the visitor sounds frustrated, slows down and reassures."} />
+                  </Field>
+                  <p className="field-hint" style={{ margin: "0 0 4px" }}>
+                    Looking for “must cover” / “must avoid”? They moved: conversation steps live on <b>Objectives &amp; Guardrails</b> — one home, no duplicates — and the generator always reads them from there.
+                  </p>
+                </div>
+              </details>
 
               <button className="pill-btn primary" style={{ marginBottom: 18 }} onClick={generatePersona} disabled={generating}>
                 {generating && !personaDraft ? "Drafting…" : personaDraft ? "Regenerate" : "Generate with Claude"}
@@ -7866,6 +7948,40 @@ export default function TavusExperienceBuilder() {
               })()}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Chat with the demo — the always-there edit bar. One instruction,
+          coordinated edits across every implicated piece, approve-to-apply. */}
+      {!siteMode && !duetRun && !duetRehearse && auth.authed !== false && (
+        <div className="editbar">
+          {editPending ? (
+            <div className="editbar-pending">
+              <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+                <b>✨ {editPending.note || "Ready to apply."}</b>
+                <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {editPending.keys.map((k) => <span key={k} className="editbar-chip">{EDIT_LABELS[k]}</span>)}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <button className="pill-btn primary" style={{ padding: "6px 16px" }} onClick={applyDemoEdit}>Apply</button>
+                <button className="pill-btn ghost" style={{ padding: "6px 12px" }} onClick={() => setEditPending(null)}>Discard</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <input
+                value={editAsk}
+                onChange={(e) => setEditAsk(e.target.value)}
+                placeholder='✨ Tell the demo what to change — "friendlier", "kill the pricing question", "book the meeting earlier"…'
+                onKeyDown={(e) => e.key === "Enter" && runDemoEdit()}
+                disabled={editBusy}
+              />
+              <button className="pill-btn primary" style={{ flexShrink: 0, padding: "7px 18px" }} onClick={runDemoEdit} disabled={editBusy || !editAsk.trim()}>
+                {editBusy ? "Thinking…" : "Edit"}
+              </button>
+            </>
+          )}
         </div>
       )}
 

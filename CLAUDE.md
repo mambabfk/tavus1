@@ -123,11 +123,14 @@ non-technical users; ids unchanged):
 
 1. **Setup** — `apiKey`, `faceId`, `palId`, `language`, `conversationName`,
    `callbackUrl` (webhook), `greeting`. `canLaunch` requires key + face + PAL.
-1.5. **Persona** — plain-English brief (`personaBrief`: product, audience,
-   goal, tone, mustCover, avoid) → `generatePersona()` POSTs brief + current
-   builder context (objectives, guardrails, canvas playbook, presentation) to
-   `/api/generate-persona` and streams the draft into an editable
-   `personaDraft` textarea → `attachPersona()` PATCHes the PAL with
+1.5. **Persona** — ONE freeform vibe box (`personaBrief.vibe`) + an optional
+   "Fine-tune" drawer (product, audience, goal, tone, emotions; the old
+   mustCover/avoid inputs are GONE from the UI — Objectives & Guardrails are
+   the single home for flow/rules and the generator reads them from context;
+   the state fields remain for old scenarios) → `generatePersona()` POSTs
+   brief + current builder context (objectives, guardrails, canvas playbook,
+   presentation) to `/api/generate-persona` and streams the draft into an
+   editable `personaDraft` textarea → `attachPersona()` PATCHes the PAL with
    `[{op:"add", path:"/system_prompt", value}]`. Draft → review → attach; the
    attach never happens without the human seeing the text.
    **Revise with feedback** (`revisePersona()`, `kind: "revise"`): a one-line
@@ -440,6 +443,20 @@ non-technical users; ids unchanged):
    (shape/chain check, nothing saved) + `POST /conversations` with
    `test_mode: true` (Tavus validates the full payload incl. recording
    storage; conversation is created pre-ended — no PAL joins, no cost).
+
+## Chat with the demo (`kind: "edit"`)
+
+A fixed bottom-center **edit bar** (`.editbar`, hidden on demo/duet overlays
+and the login screen): one plain-English instruction → `kind: "edit"` on
+generate-persona receives the full current state (prompt, objectives,
+guardrails, greeting, page copy, canvas playbook) and returns
+`{note, changes:{piece: null|newText}}` — an EDIT, never a regenerate
+(operator text is sacred; flow changes must land in objectives, rules in
+guardrails + prompt). Nothing applies until the operator clicks **Apply** on
+the pending card (note + changed-piece chips). Prompt edits clear
+`personaAttached` (manual re-attach); objectives/guardrails re-attach on the
+next launch. This is the primary post-generate editing path — steps stay for
+surgical edits.
 
 ## Launch sequence (`launch()`)
 
