@@ -43,6 +43,22 @@ export default async function handler(req, res) {
       res.status(200).json(d && typeof d === "object" ? d : {});
       return;
     }
+    // Meta-only update (status / purpose line from the library tab) — never
+    // touches the stored config.
+    if (req.method === "POST" && req.body?.meta && !req.body?.config) {
+      const name = normName(req.body?.name);
+      if (!name) { res.status(400).json({ error: "Which demo? name is required." }); return; }
+      const patch = req.body.meta || {};
+      const clean = {};
+      if (typeof patch.desc === "string") clean.desc = patch.desc.trim().slice(0, 300);
+      if (typeof patch.status === "string" && ["draft", "ready", "shared", "archived"].includes(patch.status)) clean.status = patch.status;
+      if (!Object.keys(clean).length) { res.status(400).json({ error: "Nothing to update." }); return; }
+      const prev = (await kvHget(`scenmeta:${owner}`, name)) || {};
+      await kvHset(`scenmeta:${owner}`, name, { ...prev, ...clean });
+      res.status(200).json({ ok: true });
+      return;
+    }
+
     if (req.method === "POST" && req.body?.draft) {
       const d = req.body.draft;
       if (!d?.config || typeof d.config !== "object" || Array.isArray(d.config)) {
@@ -98,7 +114,12 @@ export default async function handler(req, res) {
       }
       const updatedAt = new Date().toISOString();
       await kvHset(key, name, { name, config, updatedAt, savedBy: owner });
-      try { await kvHset(`scenmeta:${owner}`, name, { updatedAt, savedBy: owner }); } catch { /* meta is best-effort */ }
+      // Merge, don't replace — the meta hash also carries the library's
+      // status/purpose fields, which a config re-save must not wipe.
+      try {
+        const prevMeta = (await kvHget(`scenmeta:${owner}`, name)) || {};
+        await kvHset(`scenmeta:${owner}`, name, { ...prevMeta, updatedAt, savedBy: owner });
+      } catch { /* meta is best-effort */ }
       res.status(200).json({ ok: true, name, updatedAt });
       return;
     }

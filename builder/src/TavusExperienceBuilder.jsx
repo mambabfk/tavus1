@@ -31,6 +31,7 @@ const CANVAS_COMPONENTS = [
 
 const STEPS = [
   { id: "start", label: "New Demo", group: "Start" },
+  { id: "demos", label: "Demo library", group: "Start" },
   { id: "setup", label: "Account", group: "Start" },
   { id: "persona", label: "Persona", group: "The AI human" },
   { id: "guide", label: "Objectives & Guardrails", group: "The AI human" },
@@ -79,6 +80,38 @@ const FACE_PRESETS = [
   { name: "Dawn", vibe: "casual", id: "re22cfdd52e0" },
   { name: "Lucas", vibe: "studio", id: "r5f0577fc829" },
 ];
+
+/* One-glance loadout badges for a demo's library card — derived from the
+   stored config, zero extra typing. Null when only a cloud copy exists
+   locally (config not cached in this browser). */
+function demoBadges(cfg) {
+  if (!cfg || typeof cfg !== "object") return null;
+  const b = [];
+  b.push({ desktop: "🖥 desktop", phone: "📱 mobile app", kiosk: "🏬 kiosk", hologram: "🫧 hologram", designed: "✨ designed page" }[cfg.site?.format] || "🖥 desktop");
+  const face = FACE_PRESETS.find((f) => f.id === String(cfg.faceId || "").trim());
+  if (face) b.push(`🙂 ${face.name}`);
+  b.push(String(cfg.palId || "").trim() ? "🧠 PAL linked" : "⚠ no PAL yet");
+  if (cfg.objectivesEnabled) {
+    const n = String(cfg.objectivesText || "").split("\n").filter((l) => l.trim() && !/^[ \t]/.test(l)).length;
+    if (n) b.push(`🎯 ${n} objective${n > 1 ? "s" : ""}`);
+  }
+  if (cfg.guardrailsEnabled) {
+    const n = String(cfg.guardrailsText || "").split("\n").filter((l) => l.trim()).length;
+    if (n) b.push(`🛡 ${n} guardrail${n > 1 ? "s" : ""}`);
+  }
+  if (cfg.presentationEnabled) b.push("📽 deck");
+  if (cfg.canvasEnabled) b.push("🪄 canvas");
+  if (Array.isArray(cfg.scCards) && cfg.scCards.length) b.push(`🃏 ${cfg.scCards.length} scripted card${cfg.scCards.length > 1 ? "s" : ""}`);
+  if (cfg.visionEnabled) b.push("👁 perception");
+  if (cfg.toolsEnabled && Array.isArray(cfg.toolRows) && cfg.toolRows.some((r) => String(r?.name || "").trim())) b.push("🔧 tools");
+  const j = Array.isArray(cfg.expJourney) ? cfg.expJourney.length : 0;
+  if (j) b.push(`🧭 ${j}-step journey`);
+  if (cfg.expEmailGate !== false) b.push("✉ email gate");
+  if (cfg.recordingEnabled) b.push("⏺ records");
+  if (cfg.duetPlan) b.push("🎭 duet");
+  if (String(cfg.language || "english").toLowerCase() !== "english") b.push(`🌐 ${cfg.language}`);
+  return b;
+}
 
 const SITE_FORMATS = [
   { v: "desktop", label: "Desktop", desc: "Full page — headline, tagline, wide 16:9 stage. The default." },
@@ -488,6 +521,13 @@ const BUILDER_CSS = `
         .demo-brand { font-weight:700; font-size:18px; letter-spacing:-.3px; }
         .demo-main { flex:1; display:flex; flex-direction:column; align-items:center; padding:24px 24px 48px; }
         .demo-header { text-align:center; margin-bottom:28px; }
+        /* Demo library tab — one card per saved demo: purpose, status, loadout */
+        .demolib-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:12px 14px; margin-bottom:10px; max-width:760px; }
+        .demolib-top { display:flex; align-items:center; gap:10px; }
+        .demolib-desc { width:100%; margin-top:8px; font-size:13px; }
+        .demolib-foot { display:flex; align-items:center; gap:12px; margin-top:10px; flex-wrap:wrap; }
+        .demolib-badges { display:flex; gap:6px; flex-wrap:wrap; }
+        .demolib-badges span { border:1px solid var(--border); background:var(--canvas); border-radius:999px; padding:3px 10px; font-size:11.5px; color:var(--muted); white-space:nowrap; }
         /* ✨ Designed pages — spec-driven look from the design engine. The
            spec only supplies tokens + text; layout is these fixed classes. */
         .demo-designed .demo-nav { background:var(--canvas); border-bottom:1px solid var(--border); }
@@ -3213,6 +3253,22 @@ export default function TavusExperienceBuilder() {
     setSavePrompt(true);
   };
 
+  /* Library metadata (status + purpose line) — lives in the meta hash, never
+     in the config, so editing it doesn't touch the demo itself. Synced to the
+     account like scenario meta (the GET already merges it back down). */
+  const updateScenarioMeta = (name, patch) => {
+    const metaNext = { ...scenMeta, [name]: { ...(scenMeta[name] || {}), ...patch } };
+    setScenMeta(metaNext);
+    store.set(SCENMETA_KEY, metaNext);
+    if (cloudSync !== "off") {
+      fetch("/api/scenarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, meta: patch }),
+      }).catch(() => { /* offline — local meta still applies */ });
+    }
+  };
+
   /* A PAL ID must never be orphaned from the demo it belongs to — creating
      or changing the PAL re-saves the active demo (debounced), so loading it
      later always brings the PAL back. (The old failure: create the PAL after
@@ -5438,7 +5494,7 @@ export default function TavusExperienceBuilder() {
           <button
             className="pill-btn"
             style={{ padding: "8px 16px", fontSize: 13, maxWidth: 280, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-            onClick={() => { setLibQuery(""); setLibOpen(true); }}
+            onClick={() => { setLibQuery(""); setStep("demos"); }}
             title="Open the demo library — search, load, and manage every saved demo. Name demos “Client / Use case” to group them."
           >
             📁 {activeScenario || "Demos"}{" "}
@@ -5495,6 +5551,77 @@ export default function TavusExperienceBuilder() {
         </nav>
 
         <main className="main">
+          {step === "demos" && (
+            <>
+              <h1>Demo library</h1>
+              <p className="lede">
+                Every saved demo{cloudSync === "on" ? " — synced to your account ☁ —" : ""} grouped by the “Client / Use case” naming convention.
+                Give each one a status and a one-line purpose so anyone can tell what it is without loading it.
+              </p>
+              <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", maxWidth: 760 }}>
+                <input className="lib-search" style={{ flex: "1 1 240px", margin: 0 }} placeholder="Search names and purposes…" value={libQuery} onChange={(e) => setLibQuery(e.target.value)} />
+                <button className="pill-btn" onClick={exportScenario}>Export</button>
+                <button className="pill-btn" onClick={() => importRef.current?.click()}>Import</button>
+              </div>
+              {(() => {
+                const all = Array.from(new Set([...Object.keys(scenarios), ...cloudNames]));
+                const q = libQuery.trim().toLowerCase();
+                const filtered = q ? all.filter((n) => n.toLowerCase().includes(q) || String(scenMeta[n]?.desc || "").toLowerCase().includes(q)) : all;
+                if (!filtered.length) {
+                  return <p className="field-hint">{all.length ? "Nothing matches that search." : "No saved demos yet — build one and hit Save (launching auto-saves too)."}</p>;
+                }
+                const groupOf = (n) => { const m = n.match(/^(.+?)\s*\/\s*.+$/); return m ? m[1].trim() : ""; };
+                const time = (n) => scenMeta[n]?.updatedAt || "";
+                const groups = {};
+                filtered.forEach((n) => { (groups[groupOf(n)] ||= []).push(n); });
+                const keys = Object.keys(groups).sort((a, b) => (a === "") - (b === "") || a.localeCompare(b));
+                const STATUS = [["draft", "🟡 Draft"], ["ready", "🟢 Ready"], ["shared", "📤 Shared"], ["archived", "🗄 Archived"]];
+                return keys.map((g) => (
+                  <div key={g || "(ungrouped)"} style={{ marginBottom: 20 }}>
+                    {(g || keys.length > 1) && <div className="lib-group" style={{ padding: "0 2px 8px" }}>{g || "Ungrouped"}</div>}
+                    {groups[g].sort((a, b) => time(b).localeCompare(time(a)) || a.localeCompare(b)).map((n) => {
+                      const cfg = scenarios[n] || null;
+                      const meta = scenMeta[n] || {};
+                      const t2 = time(n);
+                      const badges = demoBadges(cfg);
+                      return (
+                        <div key={n} className="demolib-card">
+                          <div className="demolib-top">
+                            <button className="lib-name" style={{ fontSize: 15 }} onClick={() => loadScenario(n)} title={`Load “${n}”`}>
+                              {g ? n.replace(/^.+?\s*\/\s*/, "") : n}
+                              {activeScenario === n && <span className="lib-active">loaded</span>}
+                            </button>
+                            {cloudNames.includes(n) && <span title="Synced to your account">☁</span>}
+                            {t2 && <span className="lib-time" title={`${t2}${meta.savedBy ? ` · saved by ${meta.savedBy}` : ""}`}>{new Date(t2).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>}
+                            <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => loadScenario(n)}>Load</button>
+                            <button className="kb-del" title={`Delete “${n}”`} onClick={() => { if (window.confirm(`Delete “${n}”? This removes the saved copy everywhere.`)) deleteScenario(n); }}>✕</button>
+                          </div>
+                          <input
+                            key={`desc-${n}`}
+                            className="demolib-desc"
+                            defaultValue={meta.desc || ""}
+                            placeholder="What is this demo? e.g. “Pricing-objection flow for the exec team — deck + booking”"
+                            onBlur={(e) => { const v = e.target.value.trim().slice(0, 300); if (v !== (meta.desc || "")) updateScenarioMeta(n, { desc: v }); }}
+                          />
+                          <div className="demolib-foot">
+                            <div className="seg" style={{ fontSize: 11.5 }}>
+                              {STATUS.map(([v, l]) => (
+                                <button key={v} className={(meta.status || "draft") === v ? "on" : ""} onClick={() => updateScenarioMeta(n, { status: v })}>{l}</button>
+                              ))}
+                            </div>
+                            <div className="demolib-badges">
+                              {(badges || ["☁ cloud copy — load once here to see its loadout"]).map((b, i) => <span key={i}>{b}</span>)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
+            </>
+          )}
+
           {step === "start" && (
             <>
               <h1>New Demo</h1>
