@@ -64,11 +64,20 @@ const PRESENTABLE = /\.(pdf|png|jpe?g|pptx)(\?|#|$)/i;
 
 /* Face presets — the team's go-to stock faces, one click instead of hunting
    down the r… ID every time. The free-text field still takes any face ID. */
+/* All Phoenix-4 default faces (from the Tavus platform's Default Faces
+   gallery) + custom presets — pickable everywhere a face is needed. */
 const FACE_PRESETS = [
   { name: "Kelly", vibe: "casual", id: "r862e3a3c5e0" },
   { name: "Mark", vibe: "casual", id: "rcea962f9f9b" },
   { name: "Celine", vibe: "casual", id: "r1a0108fbd75" },
   { name: "Gloria", vibe: "warm", id: "r3f427f43c9d" },
+  { name: "Zane", vibe: "casual", id: "ra3a03647d46" },
+  { name: "Ivy", vibe: "casual", id: "r0a8102ab353" },
+  { name: "Ruby", vibe: "office", id: "rcc28da86847" },
+  { name: "Victor", vibe: "office", id: "re3fd4adeafd" },
+  { name: "Victor", vibe: "casual", id: "r1d7cf9edbb4" },
+  { name: "Dawn", vibe: "casual", id: "re22cfdd52e0" },
+  { name: "Lucas", vibe: "studio", id: "r5f0577fc829" },
 ];
 
 const SITE_FORMATS = [
@@ -3062,6 +3071,18 @@ export default function TavusExperienceBuilder() {
     setSavePrompt(true);
   };
 
+  /* A PAL ID must never be orphaned from the demo it belongs to — creating
+     or changing the PAL re-saves the active demo (debounced), so loading it
+     later always brings the PAL back. (The old failure: create the PAL after
+     saving, never re-save, load the demo → prompt present, PAL gone → a
+     duplicate PAL gets created.) */
+  useEffect(() => {
+    if (!draftReady.current || !activeScenario || !palId.trim()) return undefined;
+    const t = setTimeout(() => { if (isConfigDirty()) saveScenario(activeScenario); }, 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [palId]);
+
   /* ── Never lose work again ──
      1. Rolling autosave: every change writes a draft (debounced) that is
         restored on the next load — browser Back, refresh, closed tab, crash:
@@ -5552,7 +5573,18 @@ export default function TavusExperienceBuilder() {
               )}
 
               <div className="subhead">Create the persona</div>
-              <Field label="" hint="Creates a brand-new PAL with this prompt as its brain and sets it as your PAL ID. Needs the API key and Face ID from Setup.">
+              <Field label="Face" hint="Every Phoenix-4 default face, right here — no trip to the platform UI. Picking one fills the Face ID everywhere (Setup included); paste a custom r… ID below if you have one.">
+                <div className="face-row">
+                  {FACE_PRESETS.map((f) => (
+                    <button key={f.id} type="button" className={"face-chip" + (faceId.trim() === f.id ? " on" : "")} onClick={() => setFaceId(f.id)} title={f.id}>
+                      <span className="face-chip-name">{f.name}</span>
+                      <span className="face-chip-vibe">{f.vibe}</span>
+                    </button>
+                  ))}
+                </div>
+                <input className="mono" value={faceId} onChange={(e) => setFaceId(e.target.value)} placeholder="r… (or pick a face above)" />
+              </Field>
+              <Field label="" hint="Creates a brand-new PAL with this prompt as its brain and the face above, and sets it as your PAL ID — the demo auto-saves so the PAL stays tied to it.">
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <input style={{ flex: "1 1 180px" }} value={newPalName} onChange={(e) => setNewPalName(e.target.value)} placeholder="Name it — e.g. Acme Sales Expert"
                     onKeyDown={(e) => e.key === "Enter" && !creatingPal && createPal()} />
