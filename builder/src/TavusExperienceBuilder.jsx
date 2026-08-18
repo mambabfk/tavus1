@@ -51,8 +51,8 @@ const STEPS = [
 
 /* Tavus-hosted LLMs available for a PAL's brain (layers.llm.model). */
 const PAL_LLMS = [
-  { v: "tavus-glm-4.7", label: "GLM 4.7 — recommended", desc: "Best overall: fast, smart, 200K context." },
-  { v: "tavus-gemma-4", label: "Gemma 4", desc: "Tavus's recommended default in the docs — fast, tuned for CVI." },
+  { v: "tavus-gemma-4", label: "Gemma 4 — recommended", desc: "Tavus's recommended default — fast, tuned for CVI." },
+  { v: "tavus-glm-4.7", label: "GLM 4.7", desc: "Fast and smart with a 200K context window." },
   { v: "tavus-gpt-5.2", label: "GPT 5.2", desc: "Strong reasoning; latency less critical." },
   { v: "tavus-claude-haiku-4.5", label: "Claude Haiku 4.5", desc: "Quick and capable." },
   { v: "tavus-gemini-3-flash", label: "Gemini 3 Flash", desc: "Fast, current Gemini." },
@@ -274,6 +274,68 @@ const parseObjectives = (text, confirmationMode) => {
   return items;
 };
 
+/* Pass-1 outline of the objectives DSL (same grouping parseObjectives uses)
+   — mains with their branches, for the visual decision tree. */
+function flowOutline(text) {
+  const mains = [];
+  for (const raw of String(text || "").split("\n")) {
+    if (!raw.trim()) continue;
+    const indented = /^\s/.test(raw);
+    const line = raw.trim().replace(/^(?:->|→)\s*/, "");
+    const branch = line.match(/^if\s+(.+?)\s*(?:->|→|:)\s*(.+)$/i);
+    if (branch && (indented || mains.length) && mains.length) {
+      const [p, v] = branch[2].split("|").map((s) => s.trim());
+      if (p) mains[mains.length - 1].branches.push({ condition: branch[1].trim(), prompt: p, vars: v });
+      continue;
+    }
+    const [p, v] = line.split("|").map((s) => s.trim());
+    if (p) mains.push({ prompt: p, vars: v, branches: [] });
+  }
+  return mains;
+}
+
+/* Visual decision tree for the objectives flow — a live rendering of the
+   exact graph parseObjectives attaches (branches detour then rejoin the
+   next step; the "anything else" lane is added mechanically at launch),
+   so what you see is what runs. */
+function FlowDiagram({ text }) {
+  const mains = flowOutline(text);
+  if (!mains.length) return null;
+  const vars = (v) => (v ? <span className="fv-vars">📎 {v}</span> : null);
+  return (
+    <div className="flowviz">
+      <div className="fv-cap">▶ conversation starts</div>
+      {mains.map((m, i) => (
+        <div key={i}>
+          <div className="fv-arrow">↓</div>
+          <div className="fv-node">
+            <span className="fv-num">{i + 1}</span>
+            <span style={{ minWidth: 0 }}>{m.prompt}</span>
+            {vars(m.vars)}
+          </div>
+          {m.branches.length > 0 && (
+            <div className="fv-branches">
+              {m.branches.map((b, k) => (
+                <div key={k} className="fv-branch">
+                  <span className="fv-cond">if {b.condition}</span>
+                  <span className="fv-node fv-detour">↳ {b.prompt}{vars(b.vars)}</span>
+                  <span className="fv-rejoin">{i + 1 < mains.length ? `→ rejoins at ${i + 2}` : "→ then wraps up"}</span>
+                </div>
+              ))}
+              <div className="fv-branch">
+                <span className="fv-cond fv-else">anything else</span>
+                <span className="fv-rejoin">{i + 1 < mains.length ? `→ continues to ${i + 2}` : "→ wraps up"}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+      <div className="fv-arrow">↓</div>
+      <div className="fv-cap fv-end">✅ flow complete</div>
+    </div>
+  );
+}
+
 /* One guardrail per line. "[visual]" anywhere in the line marks it visual. */
 const parseGuardrails = (text) => {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -310,6 +372,26 @@ const parsePronunciation = (text) => {
   }
   return rules;
 };
+
+/* Pronunciation editor rows ⇄ the one-line-per-rule DSL. The DSL stays the
+   stored format (scenarios + launch payload unchanged); the row editor is a
+   friendlier face on the same text. */
+function pronRowsFromText(text) {
+  const rows = [];
+  for (const line of String(text || "").split("\n")) {
+    if (!line.trim()) continue;
+    const ipa = /\[ipa\]/i.test(line);
+    const cs = /\[case\]/i.test(line);
+    const cleaned = line.replace(/\[(ipa|case)\]/gi, "").trim();
+    const m = cleaned.match(/^(.+?)\s*(?:=|:|->)\s*(.+)$/);
+    if (m) rows.push({ word: m[1].trim(), pron: m[2].trim(), ipa, cs });
+  }
+  return rows;
+}
+const pronTextFromRows = (rows) => rows
+  .filter((r) => String(r.word).trim() || String(r.pron).trim())
+  .map((r) => `${String(r.word).trim()} = ${String(r.pron).trim()}${r.ipa ? " [ipa]" : ""}${r.cs ? " [case]" : ""}`)
+  .join("\n");
 
 /* Parse Claude's vision draft (VISUAL:/AUDIO: sections with "- query" lines). */
 const parseVisionDraft = (text) => {
@@ -566,6 +648,21 @@ const BUILDER_CSS = `
         .editbar-pending { display:flex; align-items:center; gap:14px; width:100%; padding:2px 4px; }
         .editbar-pending > div:first-child { flex:1; min-width:0; }
         .editbar-chip { border:1px solid var(--accent); border-radius:999px; padding:2px 10px; font-size:11.5px; color:var(--text); background:color-mix(in srgb, var(--accent) 14%, transparent); }
+        /* Objectives decision tree — the DSL rendered as the graph it compiles to */
+        .flowviz { max-width:640px; margin:2px 0 16px; font-size:13px; }
+        .fv-cap { display:inline-block; background:var(--text); color:var(--surface); border-radius:999px; padding:4px 14px; font-size:11.5px; font-weight:600; letter-spacing:.3px; }
+        .fv-cap.fv-end { background:#2e7d4f; color:#fff; }
+        .fv-arrow { color:var(--muted); padding:3px 0 3px 20px; line-height:1; }
+        .fv-node { display:inline-flex; align-items:center; gap:9px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:8px 13px; box-shadow:0 3px 10px -6px rgba(20,20,20,.18); max-width:100%; }
+        .fv-num { flex-shrink:0; width:20px; height:20px; border-radius:50%; background:var(--accent); color:#fff; font-size:11px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+        .fv-vars { flex-shrink:0; font-size:11px; color:var(--muted); }
+        .fv-branches { margin:8px 0 4px 30px; padding-left:16px; border-left:2px dashed var(--border); display:flex; flex-direction:column; gap:7px; }
+        .fv-branch { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+        .fv-cond { background:color-mix(in srgb, var(--accent) 16%, var(--surface)); border:1px solid var(--accent); border-radius:999px; padding:3px 11px; font-size:11.5px; font-weight:600; flex-shrink:0; }
+        .fv-cond.fv-else { background:var(--canvas); border-color:var(--border); color:var(--muted); font-weight:500; }
+        .fv-detour { border-style:dashed; padding:5px 11px; }
+        .fv-rejoin { font-size:11px; color:var(--muted); white-space:nowrap; }
+        .pron-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
         /* ✨ Designed pages — spec-driven look from the design engine. The
            spec only supplies tokens + text; layout is these fixed classes. */
         .demo-designed .demo-nav { background:var(--canvas); border-bottom:1px solid var(--border); }
@@ -2772,6 +2869,78 @@ export default function TavusExperienceBuilder() {
   // Pronunciation dictionary + expressive delivery
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [pronunciationText, setPronunciationText] = useState("");
+  // Pronunciation manager: row editor over the DSL + account dictionaries.
+  const [pronRows, setPronRows] = useState([]);
+  const [pronDicts, setPronDicts] = useState(null); // null = not loaded yet
+  const [pronDictsLoading, setPronDictsLoading] = useState(false);
+  const [pronDictName, setPronDictName] = useState("");
+  const [pronDictId, setPronDictId] = useState(""); // saved dictionary chosen for this demo
+  const applyPronRows = (rows) => { setPronRows(rows); setPronunciationText(pronTextFromRows(rows)); };
+  const fetchPronDicts = async () => {
+    if (!apiKey.trim()) { addLog("err", "Enter your Tavus API key in Setup first."); return; }
+    setPronDictsLoading(true);
+    try {
+      const d = await tavusFetch("GET", "/pronunciation-dictionaries");
+      setPronDicts(Array.isArray(d) ? d : d?.data || d?.pronunciation_dictionaries || []);
+    } catch (e) {
+      addLog("err", `Dictionaries: ${e.message}`);
+    } finally {
+      setPronDictsLoading(false);
+    }
+  };
+  const savePronDict = async () => {
+    const rules = parsePronunciation(pronunciationText);
+    if (!rules.length) { addLog("err", "No valid rules yet — add at least one word first."); return; }
+    try {
+      const name = pronDictName.trim() || `${(site.brand || conversationName || "builder").slice(0, 240)} dictionary`;
+      addLog("info", `Saving dictionary "${name}" (${rules.length} rule${rules.length > 1 ? "s" : ""})…`);
+      const d = await tavusFetch("POST", "/pronunciation-dictionaries", { name, rules });
+      const id = d.pronunciation_dictionary_id || d.uuid || d.id;
+      addLog("ok", `Dictionary "${name}" saved${id ? ` (${id})` : ""} — reusable across every demo on this account.`);
+      if (id) setPronDictId(id);
+      fetchPronDicts();
+    } catch (e) {
+      addLog("err", `Save dictionary: ${e.message}`);
+    }
+  };
+  const deletePronDict = async (id, name) => {
+    if (!window.confirm(`Delete dictionary “${name || id}”? Any PAL still pointing at it loses these pronunciations.`)) return;
+    try {
+      await tavusFetch("DELETE", `/pronunciation-dictionaries/${id}`);
+      addLog("info", `Dictionary “${name || id}” deleted.`);
+      if (pronDictId === id) setPronDictId("");
+      fetchPronDicts();
+    } catch (e) {
+      addLog("err", `Delete dictionary: ${e.message}`);
+    }
+  };
+  const attachPronDict = async (id) => {
+    setPronDictId(id);
+    if (!palId.trim()) { addLog("info", "Dictionary selected — it attaches to the PAL's voice on launch."); return; }
+    try {
+      await tavusFetch("PATCH", `/pals/${palId.trim()}`, [{ op: "add", path: "/layers/tts/pronunciation_dictionary_id", value: id }]);
+      addLog("ok", "Dictionary attached to the PAL's voice (persists until you change it).");
+    } catch (e) {
+      addLog("err", `Attach dictionary: ${e.message}`);
+    }
+  };
+  const loadPronDictRules = async (id, name) => {
+    try {
+      const d = await tavusFetch("GET", `/pronunciation-dictionaries/${id}`);
+      const rules = Array.isArray(d?.rules) ? d.rules : Array.isArray(d?.data?.rules) ? d.data.rules : [];
+      if (!rules.length) { addLog("info", "That dictionary has no readable rules to load."); return; }
+      applyPronRows(rules.map((r) => ({
+        word: String(r.text ?? r.word ?? ""),
+        pron: String(r.pronunciation ?? ""),
+        ipa: r.type === "ipa" || r.type === "phoneme",
+        cs: !!r.case_sensitive,
+      })));
+      setPronDictName(name || "");
+      addLog("ok", `Loaded ${rules.length} rule${rules.length > 1 ? "s" : ""} from “${name || id}” — edit away, then Save as a dictionary.`);
+    } catch (e) {
+      addLog("err", `Load rules: ${e.message}`);
+    }
+  };
   const [emotionControl, setEmotionControl] = useState(true);
 
   // Voice & accent (Cartesia catalog via /api/voices)
@@ -2842,7 +3011,7 @@ export default function TavusExperienceBuilder() {
   // New-PAL creation (Persona step)
   const [newPalName, setNewPalName] = useState("");
   const [creatingPal, setCreatingPal] = useState(false);
-  const [palLlm, setPalLlm] = useState("tavus-glm-4.7");
+  const [palLlm, setPalLlm] = useState("tavus-gemma-4");
 
   // Knowledge Base
   const [kbDocs, setKbDocs] = useState(null); // null = not loaded yet
@@ -3024,6 +3193,48 @@ export default function TavusExperienceBuilder() {
     dictationRef.current = rec;
     setDictating(target);
   };
+  /* Describe-the-flow (typed or dictated) → kind:"flow" structures it into
+     the objectives DSL, revising existing steps rather than clobbering them.
+     The decision-tree diagram re-renders live from the result. */
+  const [flowDesc, setFlowDesc] = useState("");
+  const [flowBusy, setFlowBusy] = useState(false);
+  const structureFlow = async () => {
+    const desc = flowDesc.trim();
+    if (!desc || flowBusy) return;
+    if (dictating) toggleDictation(dictating, () => {});
+    setFlowBusy(true);
+    try {
+      addLog("info", "Structuring the flow from your description…");
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "flow",
+          vibe: desc,
+          context: { objectives: objectivesText, guardrails: guardrailsText, brand: site.brand, product: personaBrief.product || personaBrief.vibe },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: structuring failed`);
+      }
+      const out = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+      if (!out?.objectives || !String(out.objectives).trim()) throw new Error("No flow came back — describe the steps a little more concretely.");
+      setObjectivesText(String(out.objectives).trim());
+      setObjectivesEnabled(true);
+      if (typeof out.guardrails === "string" && out.guardrails.trim()) { setGuardrailsText(out.guardrails.trim()); setGuardrailsEnabled(true); }
+      addLog("ok", `${out.note || "Flow structured."} Check the decision tree — goals attach on the next launch.`);
+      setFlowDesc("");
+    } catch (e) {
+      addLog("err", `Flow: ${e.message}`);
+    } finally {
+      setFlowBusy(false);
+    }
+  };
+
   const [spinBusy, setSpinBusy] = useState(false);
   const [autoDraft, setAutoDraft] = useState(false); // fires generatePersona AFTER spin-up state lands
   const spinUp = async () => {
@@ -3276,7 +3487,7 @@ export default function TavusExperienceBuilder() {
     faceId, palId, language, conversationName, callbackUrl, greeting,
     personaBrief, personaDraft,
     visionEnabled, visionVibe, visualQueriesText, audioQueriesText,
-    speechEnabled, pronunciationText, emotionControl, externalVoiceId, externalVoiceName,
+    speechEnabled, pronunciationText, pronDictId, pronDictName, emotionControl, externalVoiceId, externalVoiceName,
     maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, wakePhrase, interruptButton, guardrailEcho,
     recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout,
     toolsEnabled, toolRows, toolWebhook, toolEcho,
@@ -3307,6 +3518,8 @@ export default function TavusExperienceBuilder() {
     setVisionEnabled(!!c.visionEnabled); setVisionVibe(c.visionVibe ?? "");
     setVisualQueriesText(c.visualQueriesText ?? ""); setAudioQueriesText(c.audioQueriesText ?? "");
     setSpeechEnabled(!!c.speechEnabled); setPronunciationText(c.pronunciationText ?? "");
+    setPronRows(pronRowsFromText(c.pronunciationText ?? ""));
+    setPronDictId(c.pronDictId ?? ""); setPronDictName(c.pronDictName ?? "");
     setEmotionControl(c.emotionControl !== false);
     setExternalVoiceId(c.externalVoiceId ?? ""); setExternalVoiceName(c.externalVoiceName ?? "");
     setMaxMinutes(c.maxMinutes ?? ""); setTimeWarning(c.timeWarning ?? "");
@@ -3339,7 +3552,7 @@ export default function TavusExperienceBuilder() {
     setCanvasStyle(c.canvasStyle ?? "balanced");
     setComponentRules({ ...Object.fromEntries(CANVAS_COMPONENTS.map((x) => [x.key, ""])), ...(c.componentRules || {}) });
     setCanvasPlaybook(c.canvasPlaybook ?? "");
-    setPalLlm(c.palLlm ?? "tavus-glm-4.7");
+    setPalLlm(c.palLlm ?? "tavus-gemma-4"); // scenarios that chose a model keep it; new/legacy default to Gemma
     setPersonaMode(c.personaMode === "paste" ? "paste" : "brief");
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
@@ -4425,6 +4638,18 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  // Upload self-diagnosis: probe once when the Knowledge step opens, so a
+  // missing Blob store shows as a clear banner instead of a mid-upload error.
+  const [blobReady, setBlobReady] = useState(null);
+  useEffect(() => {
+    if (step !== "kb" || blobReady !== null) return;
+    fetch("/api/blob-upload")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setBlobReady(d ? !!d.configured : false))
+      .catch(() => setBlobReady(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+
   const addKbDoc = async () => {
     const url = kbUrl.trim();
     if (!url) return;
@@ -4471,7 +4696,7 @@ export default function TavusExperienceBuilder() {
       fetchKbDocs(true);
     } catch (e) {
       const msg = String(e.message || e);
-      addLog("err", `Upload: ${msg.includes("BLOB_READ_WRITE_TOKEN") || msg.includes("No token") ? "File storage isn't set up — in Vercel: Storage → Create Database → Blob, attach it, redeploy." : msg}`);
+      addLog("err", `Upload: ${/BLOB_READ_WRITE_TOKEN|No token|client token|not set up/i.test(msg) ? `File storage isn't set up — in Vercel: Storage → Create Database → Blob, attach it, redeploy. (${msg.slice(0, 160)})` : msg}`);
     } finally {
       setKbAdding(false);
     }
@@ -5460,11 +5685,19 @@ export default function TavusExperienceBuilder() {
       }
 
       // Pronunciation: create a dictionary, attach it to the PAL's voice.
-      if (speechEnabled && pronunciationRules.length) {
-        addLog("info", `Creating pronunciation dictionary (${pronunciationRules.length} rule${pronunciationRules.length > 1 ? "s" : ""})…`);
-        const dict = await tavusFetch("POST", "/pronunciation-dictionaries", pronunciationPayload);
-        const dictId = dict.pronunciation_dictionary_id || dict.uuid || dict.id;
-        addLog("ok", `Dictionary created: ${dictId}`);
+      if (speechEnabled && (pronunciationRules.length || pronDictId)) {
+        // Editor rules win: they become a fresh dictionary. With an empty
+        // editor, the saved dictionary picked on the Voice step attaches.
+        let dictId = pronDictId;
+        if (pronunciationRules.length) {
+          addLog("info", `Creating pronunciation dictionary (${pronunciationRules.length} rule${pronunciationRules.length > 1 ? "s" : ""})…`);
+          const dict = await tavusFetch("POST", "/pronunciation-dictionaries", {
+            name: pronDictName.trim() || pronunciationPayload.name,
+            rules: pronunciationRules,
+          });
+          dictId = dict.pronunciation_dictionary_id || dict.uuid || dict.id;
+          addLog("ok", `Dictionary created: ${dictId}`);
+        }
         addLog("info", "Attaching dictionary to the PAL's voice…");
         await tavusFetch("PATCH", `/pals/${pal}`, [
           { op: "add", path: "/layers/tts/pronunciation_dictionary_id", value: dictId },
@@ -6188,23 +6421,49 @@ export default function TavusExperienceBuilder() {
                 <div className="subhead" style={{ margin: 0 }}>Objectives</div>
                 <Toggle on={objectivesEnabled} onChange={setObjectivesEnabled} />
               </div>
-              <p className="field-hint" style={{ maxWidth: 600, marginBottom: 8 }}>
-                One objective per line — top to bottom is the flow, and the PAL won't advance until a step completes.
-                <b> Branch with if/then</b>: indent a line as <span className="mono">if &lt;condition&gt; -&gt; &lt;detour objective&gt;</span> under
-                a step; the detour runs when the condition matches, then rejoins the main flow (a catch-all is added for you).
-                To collect data, just say so ("Ask for their name and email").
-              </p>
-              <Field label="" hint={objectivesEnabled && objectivesPayload.data.length
-                ? (() => { let n = 0; return `Your flow: ${objectivesPayload.data.map((o) => `${/_if\d+_/.test(o.objective_name) ? "↳" : `${++n})`} ${shortLabel(o.objective_prompt)}`).join("   ")}`; })()
-                : "Best for templated flows (intake, interview, qualification). Free-flowing conversations usually don't need objectives."}>
+              <Field label="Describe the flow" hint="Type it or 🎙 talk it — “first ask which product, if budget's under 10k pitch the starter tier, end by booking a meeting”. Claude structures it into the decision tree below; rules you mention land in Guardrails. Existing steps get revised, never clobbered.">
                 <textarea
-                  style={{ minHeight: 130 }}
+                  style={{ minHeight: 64, ...(dictating === "flow" ? { outline: "2px solid var(--accent)" } : {}) }}
+                  disabled={!objectivesEnabled}
+                  value={flowDesc}
+                  onChange={(e) => setFlowDesc(e.target.value)}
+                  placeholder="First figure out which product they care about, then budget — under $10k pitch the starter tier. No timeline? Dig into urgency. Get their email, end by booking a follow-up."
+                />
+                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                  <button
+                    className={"pill-btn" + (dictating === "flow" ? " primary" : "")}
+                    disabled={!objectivesEnabled || transcribing}
+                    title={`Dictation by ${dictEngineName}`}
+                    onClick={() => toggleDictation("flow", (t2) => setFlowDesc((v) => (v ? v + " " : "") + t2))}
+                  >
+                    {dictating === "flow" ? "⏹ Stop — I'm done" : transcribing ? "🎙 Transcribing…" : "🎙 Talk it out"}
+                  </button>
+                  <button className="pill-btn primary" onClick={structureFlow} disabled={flowBusy || !objectivesEnabled || !flowDesc.trim()}>
+                    {flowBusy ? "Structuring…" : "✨ Structure the flow"}
+                  </button>
+                </div>
+              </Field>
+              {objectivesEnabled && objectivesText.trim() ? (
+                <FlowDiagram text={objectivesText} />
+              ) : (
+                <p className="field-hint" style={{ maxWidth: 600, marginBottom: 10 }}>
+                  Best for templated flows (intake, interview, qualification) — describe one above and the decision tree appears here. Free-flowing conversations usually don't need objectives.
+                </p>
+              )}
+              <details style={{ maxWidth: 640, marginBottom: 10 }}>
+                <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>✏️ Edit the steps as text (advanced)</summary>
+                <p className="field-hint" style={{ margin: "10px 0 8px" }}>
+                  One objective per line, top to bottom. <b>Branch with if/then</b>: indent a line as <span className="mono">if &lt;condition&gt; -&gt; &lt;detour objective&gt;</span> under
+                  a step — the detour rejoins the main flow (a catch-all is added for you). Append <span className="mono">| var</span> to capture data. The tree above updates as you type.
+                </p>
+                <textarea
+                  style={{ minHeight: 130, width: "100%" }}
                   disabled={!objectivesEnabled}
                   value={objectivesText}
                   onChange={(e) => setObjectivesText(e.target.value)}
                   placeholder={"Ask which product they're evaluating\nUnderstand their budget and timeline\n  if budget is under $10k -> Suggest the starter tier and check it fits\n  if they have no timeline -> Explore what would make this urgent\nAsk who else is involved in the decision\nBook a follow-up meeting"}
                 />
-              </Field>
+              </details>
               {objectivesEnabled && (
                 <Field label="Completion check">
                   <div className="seg">
@@ -6334,18 +6593,96 @@ export default function TavusExperienceBuilder() {
               <p className="field-hint" style={{ maxWidth: 560, marginBottom: 20 }}>
                 On: the voice and face carry real emotion, guided by the "Emotional vibe" you set in the Persona step. Off: flat, even delivery (rarely what you want for demos). Applied on launch.
               </p>
-              <Field label="Rules" hint={speechEnabled && pronunciationRules.length
-                ? `${pronunciationRules.length} rule${pronunciationRules.length > 1 ? "s" : ""} ready: ${pronunciationRules.slice(0, 4).map((r) => r.text).join(", ")}${pronunciationRules.length > 4 ? "…" : ""}`
-                : 'Write it how it sounds: "Tavus = TAH-vuss". For phonetic IPA notation add [ipa]; for exact-case matching add [case].'}>
-                <textarea
-                  className="mono"
-                  style={{ minHeight: 140 }}
-                  disabled={!speechEnabled}
-                  value={pronunciationText}
-                  onChange={(e) => setPronunciationText(e.target.value)}
-                  placeholder={"Tavus = TAH-vuss\nCVI = C V I\nNguyen = win\nlive demo = lyve demo"}
-                />
-              </Field>
+              <div className="subhead">Pronunciation</div>
+              <p className="field-hint" style={{ maxWidth: 620, marginBottom: 10 }}>
+                Two formats per word: <b>say it like</b> spells the sound in plain letters (TAH-vuss) — right for 95% of cases;
+                <b> IPA</b> takes the formal phonetic alphabet (ˈtɑːvəs) when you need exact precision. <b>Aa</b> makes a rule case-sensitive
+                (so "NASA" and "nasa" can differ). Rules become a dictionary on the PAL's voice at launch — or save one below and reuse it across demos.
+              </p>
+              {speechEnabled && (
+                <div style={{ maxWidth: 680, marginBottom: 10 }}>
+                  {pronRows.map((r, i) => (
+                    <div key={i} className="pron-row">
+                      <input style={{ flex: "1 1 130px" }} placeholder="Word — e.g. Tavus" value={r.word}
+                        onChange={(e) => applyPronRows(pronRows.map((x, j) => (j === i ? { ...x, word: e.target.value } : x)))} />
+                      <span style={{ color: "var(--muted)" }}>→</span>
+                      <input style={{ flex: "1 1 170px" }} placeholder={r.ipa ? "IPA — e.g. ˈtɑːvəs" : "Say it like — e.g. TAH-vuss"} value={r.pron}
+                        onChange={(e) => applyPronRows(pronRows.map((x, j) => (j === i ? { ...x, pron: e.target.value } : x)))} />
+                      <select style={{ width: "auto", flexShrink: 0 }} value={r.ipa ? "ipa" : "alias"}
+                        onChange={(e) => applyPronRows(pronRows.map((x, j) => (j === i ? { ...x, ipa: e.target.value === "ipa" } : x)))}>
+                        <option value="alias">say it like</option>
+                        <option value="ipa">IPA</option>
+                      </select>
+                      <label title="Case-sensitive — only matches this exact capitalization" style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12.5, color: "var(--muted)", cursor: "pointer", flexShrink: 0 }}>
+                        <input type="checkbox" style={{ width: "auto" }} checked={!!r.cs}
+                          onChange={(e) => applyPronRows(pronRows.map((x, j) => (j === i ? { ...x, cs: e.target.checked } : x)))} />
+                        Aa
+                      </label>
+                      <button className="kb-del" title="Remove this rule" onClick={() => applyPronRows(pronRows.filter((_, j) => j !== i))}>✕</button>
+                    </div>
+                  ))}
+                  <button className="pill-btn" style={{ padding: "4px 14px", fontSize: 12.5 }}
+                    onClick={() => setPronRows([...pronRows, { word: "", pron: "", ipa: false, cs: false }])}>
+                    + Add word
+                  </button>
+                  <details style={{ marginTop: 10 }}>
+                    <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--muted)" }}>📋 Bulk paste (one “word = how to say it” per line)</summary>
+                    <textarea
+                      className="mono"
+                      style={{ minHeight: 110, marginTop: 8, width: "100%" }}
+                      value={pronunciationText}
+                      onChange={(e) => { setPronunciationText(e.target.value); setPronRows(pronRowsFromText(e.target.value)); }}
+                      placeholder={"Tavus = TAH-vuss\nCVI = C V I\nNguyen = win [case]\nlive demo = lyve demo"}
+                    />
+                  </details>
+                </div>
+              )}
+
+              {speechEnabled && (
+                <>
+                  <div className="skill-head" style={{ marginTop: 16, marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>Your dictionaries</span>
+                    <button className="pill-btn" style={{ padding: "5px 14px", fontSize: 12.5 }} onClick={fetchPronDicts} disabled={pronDictsLoading}>
+                      {pronDictsLoading ? "Loading…" : pronDicts ? "Refresh" : "Load dictionaries"}
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, maxWidth: 620, marginBottom: 10, flexWrap: "wrap" }}>
+                    <input style={{ flex: "1 1 220px" }} value={pronDictName} onChange={(e) => setPronDictName(e.target.value)} placeholder="Dictionary name — e.g. Acme product terms" />
+                    <button className="pill-btn primary" style={{ flexShrink: 0 }} onClick={savePronDict} disabled={!pronunciationRules.length}>
+                      💾 Save rules as a dictionary
+                    </button>
+                  </div>
+                  {pronDicts !== null && !pronDicts.length && <p className="field-hint">No saved dictionaries on this account yet.</p>}
+                  {!!pronDicts?.length && (
+                    <div className="kb-list" style={{ maxWidth: 680 }}>
+                      {pronDicts.map((d) => {
+                        const id = d.pronunciation_dictionary_id || d.uuid || d.id;
+                        const name = d.name || d.dictionary_name || id;
+                        return (
+                          <div key={id} className="kb-row">
+                            <span style={{ flex: 1, minWidth: 0, fontSize: 13 }}>
+                              <b>{name}</b>
+                              {Array.isArray(d.rules) && <span style={{ color: "var(--muted)" }}> · {d.rules.length} rule{d.rules.length !== 1 ? "s" : ""}</span>}
+                              <div style={{ fontSize: 11, color: "var(--muted)", fontFamily: "var(--mono)", overflow: "hidden", textOverflow: "ellipsis" }}>{id}</div>
+                            </span>
+                            <button className={"pill-btn" + (pronDictId === id ? " primary" : "")} style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0 }}
+                              onClick={() => attachPronDict(id)} title="Use this dictionary for this demo's PAL (attaches now if the PAL exists, else at launch)">
+                              {pronDictId === id ? "In use ✓" : "Use for this demo"}
+                            </button>
+                            <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0 }} onClick={() => loadPronDictRules(id, name)} title="Copy its rules into the editor above">
+                              ✏️ Edit rules
+                            </button>
+                            <button className="kb-del" title="Delete this dictionary from the account" onClick={() => deletePronDict(id, name)}>✕</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <p className="field-hint" style={{ maxWidth: 620, marginTop: 8 }}>
+                    At launch: rules in the editor become a fresh dictionary on the PAL; an empty editor attaches the dictionary marked “In use”.
+                  </p>
+                </>
+              )}
             </>
           )}
 
@@ -6372,6 +6709,12 @@ export default function TavusExperienceBuilder() {
                   {kbAdding ? "Adding…" : "Add to Knowledge Base"}
                 </button>
               </div>
+              {blobReady === false && (
+                <p className="field-hint" style={{ color: "var(--danger)", maxWidth: 560, marginBottom: 8 }}>
+                  ⚠ Direct file upload isn't configured on the server — in Vercel: <b>Storage → Create Database → Blob</b>, attach it to this project, redeploy.
+                  Add-by-link (above) works regardless.
+                </p>
+              )}
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, maxWidth: 560 }}>
                 <span className="field-hint" style={{ margin: 0 }}>…or straight from your computer:</span>
                 <button className="pill-btn" onClick={() => kbFileRef.current?.click()} disabled={kbAdding}>

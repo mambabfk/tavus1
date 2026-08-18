@@ -234,6 +234,20 @@ function presentationContextLines(pres) {
   return lines;
 }
 
+/* Flow: a plain-English (often dictated) scenario description → structured
+   objectives DSL, revising any existing steps rather than clobbering them. */
+const FLOW_SYSTEM = `You structure conversation flows for a Tavus PAL from plain-English descriptions — often rambly dictation. Return ONLY JSON (no markdown fences):
+
+{"note":"one sentence on what the flow now does",
+ "objectives":"the FULL updated flow — one step per line, in order; indent branch lines under their step as \\"if <condition> -> <detour objective>\\"; append \\"| var1, var2\\" to any step that must capture data",
+ "guardrails":null|"FULL updated guardrails, one per line — ONLY when the description states rules (never-do's); otherwise null"}
+
+Rules:
+- If CURRENT OBJECTIVES exist, the description is a revision: keep unaffected steps word-for-word (the operator's text is sacred) and change only what the description reaches. If none exist, create the flow.
+- Steps are goals the PAL drives toward, phrased as actions ("Ask which product they're evaluating") — not stage directions or paragraphs. 3-8 main steps.
+- Branches are detours that automatically rejoin the main flow at the next step — never write a catch-all or "otherwise" line, one is added mechanically. Branch only where the description implies different handling.
+- Data capture: when the description says to collect something (name, email, budget), add the "| var" suffix rather than a separate step.`;
+
 /* Spin-up: a spoken brain-dump (rambly dictation transcript) → clean builder
    inputs. The frontend then auto-runs the prompt generator on top. */
 const SPINUP_SYSTEM = `You turn a spoken brain-dump — a raw, rambly dictation transcript about a demo — into clean builder inputs. Return ONLY JSON (no markdown fences):
@@ -360,6 +374,18 @@ export default async function handler(req, res) {
     system = DUET_SYSTEM;
     const parts = [`Design the duet:\n${String(vibe).trim().slice(0, 2000)}`];
     if (context?.brand) parts.push(`Brand on the demo page: ${context.brand}`);
+    userPrompt = parts.join("\n\n");
+  } else if (kind === "flow") {
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Describe the flow first — the steps, and any if/then forks." });
+      return;
+    }
+    system = FLOW_SYSTEM;
+    const parts = [`FLOW DESCRIPTION (structure this):\n${String(vibe).trim().slice(0, 6000)}`];
+    parts.push(`CURRENT OBJECTIVES:\n${String(context?.objectives ?? "").trim() || "(none yet)"}`);
+    parts.push(`CURRENT GUARDRAILS:\n${String(context?.guardrails ?? "").trim() || "(none yet)"}`);
+    if (context?.brand) parts.push(`Brand: ${String(context.brand).slice(0, 200)}`);
+    if (context?.product) parts.push(`Product/demo context: ${String(context.product).slice(0, 500)}`);
     userPrompt = parts.join("\n\n");
   } else if (kind === "spinup") {
     if (!String(vibe).trim()) {

@@ -10,16 +10,27 @@ const ALLOWED_TYPES = [
   "application/pdf",
   "image/png",
   "image/jpeg",
+  "image/webp",
   "text/plain",
+  "text/markdown",
   "text/csv",
+  "application/vnd.ms-excel", // what Windows browsers report for .csv
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/octet-stream", // some OS/browser combos report no real type — Tavus validates content anyway
 ];
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") { res.status(405).json({ error: "POST only" }); return; }
+  // GET = configuration probe, so the Knowledge step can say exactly what's
+  // wrong instead of failing mid-upload.
+  if (req.method === "GET") {
+    if (!isAuthed(req)) { res.status(401).json({ error: "Not signed in." }); return; }
+    res.status(200).json({ configured: !!process.env.BLOB_READ_WRITE_TOKEN });
+    return;
+  }
+  if (req.method !== "POST") { res.status(405).json({ error: "GET or POST only" }); return; }
   if (!isAuthed(req)) { res.status(401).json({ error: "Not signed in — enter the access code first." }); return; }
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     res.status(500).json({ error: "File uploads aren't set up. In Vercel: Storage → Create Database → Blob (attach to this project), then redeploy." });
