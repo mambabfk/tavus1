@@ -3070,23 +3070,54 @@ export default function TavusExperienceBuilder() {
         away (the demo is an overlay in this same SPA — leaving the page was
         what nuked the state). */
   const draftReady = useRef(false);
+  const lastDraftJsonRef = useRef("");
   useEffect(() => {
-    try {
-      const d = store.get(DRAFT_KEY, null);
-      if (d?.config && typeof d.config === "object") {
-        applyConfig(d.config);
-        if (d.active) setActiveScenario(d.active);
-        addLog("info", "Restored your work in progress from the autosave draft.");
+    // Restore the NEWEST draft across this browser and the account's cloud
+    // copy — so two computers on the same account always resume from
+    // wherever work happened last. ISO timestamps compare lexicographically.
+    (async () => {
+      let best = null;
+      try {
+        const local = store.get(DRAFT_KEY, null);
+        if (local?.config && typeof local.config === "object") best = { ...local, from: "this browser's autosave" };
+      } catch { /* corrupt local draft — ignore */ }
+      try {
+        const r = await fetch("/api/scenarios?draft=1");
+        if (r.ok) {
+          const cloud = await r.json().catch(() => null);
+          if (cloud?.config && typeof cloud.config === "object" && (!best || String(cloud.at || "") > String(best.at || ""))) {
+            best = { ...cloud, from: "your account ☁ — the newest across your computers" };
+          }
+        }
+      } catch { /* offline / no Redis — the local draft still applies */ }
+      if (best) {
+        applyConfig(best.config);
+        if (best.active) setActiveScenario(best.active);
+        lastDraftJsonRef.current = JSON.stringify(best.config);
+        addLog("info", `Restored your work in progress from ${best.from}.`);
       }
-    } catch { /* corrupt draft — start clean */ }
-    draftReady.current = true;
+      draftReady.current = true;
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     if (!draftReady.current) return undefined; // don't overwrite the draft before it's restored
     const t = setTimeout(() => {
-      store.set(DRAFT_KEY, { at: new Date().toISOString(), active: activeScenario, config: collectConfig() });
-    }, 900);
+      const config = collectConfig();
+      const json = JSON.stringify(config);
+      if (json === lastDraftJsonRef.current) return; // nothing actually changed
+      lastDraftJsonRef.current = json;
+      const draft = { at: new Date().toISOString(), active: activeScenario, config };
+      store.set(DRAFT_KEY, draft);
+      // Cloud copy makes the draft follow the account across computers.
+      if (cloudSync !== "off") {
+        fetch("/api/scenarios", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ draft }),
+        }).catch(() => { /* offline — the local draft still protects this machine */ });
+      }
+    }, 1200);
     return () => clearTimeout(t);
   });
   useEffect(() => {

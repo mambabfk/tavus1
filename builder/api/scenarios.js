@@ -1,5 +1,5 @@
 import { isAuthed, sessionEmail } from "./_auth.js";
-import { kvAvailable, kvHset, kvHget, kvHdel, kvHkeys, kvHgetall } from "./_kv.js";
+import { kvAvailable, kvHset, kvHget, kvHdel, kvHkeys, kvHgetall, kvGet, kvSetEx } from "./_kv.js";
 
 /* Cloud-synced builder scenarios — the durable copy behind the localStorage
    cache, so saved demos survive cleared browser storage, blocked storage
@@ -32,8 +32,37 @@ export default async function handler(req, res) {
 
   const owner = sessionEmail(req) || "team";
   const key = `scenarios:${owner}`;
+  // Rolling work-in-progress draft — follows the ACCOUNT, so switching
+  // computers resumes exactly where the other machine left off. One draft
+  // per account (30-day TTL), newest-wins by its `at` timestamp client-side.
+  const draftKey = `scendraft:${owner}`;
 
   try {
+    if (req.method === "GET" && String(req.query?.draft ?? "") === "1") {
+      const d = await kvGet(draftKey);
+      res.status(200).json(d && typeof d === "object" ? d : {});
+      return;
+    }
+    if (req.method === "POST" && req.body?.draft) {
+      const d = req.body.draft;
+      if (!d?.config || typeof d.config !== "object" || Array.isArray(d.config)) {
+        res.status(400).json({ error: "Empty draft." });
+        return;
+      }
+      if (JSON.stringify(d).length > 400_000) {
+        res.status(413).json({ error: "Draft too large to sync — try a smaller logo image." });
+        return;
+      }
+      await kvSetEx(draftKey, {
+        at: String(d.at || new Date().toISOString()).slice(0, 40),
+        active: String(d.active || "").slice(0, 80),
+        config: d.config,
+        savedBy: owner,
+      }, 30 * 86400);
+      res.status(200).json({ ok: true });
+      return;
+    }
+
     if (req.method === "GET") {
       const name = normName(req.query?.name);
       if (name) {
