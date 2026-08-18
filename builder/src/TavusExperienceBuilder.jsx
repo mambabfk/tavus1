@@ -2955,6 +2955,58 @@ export default function TavusExperienceBuilder() {
   const [browserUseEnabled, setBrowserUseEnabled] = useState(false);
   const [browserUseConfig, setBrowserUseConfig] = useState(""); // optional JSON — the skill is new, config schema may grow
   const [browsePlan, setBrowsePlan] = useState(""); // the "talk track" for browsing: when -> which page, one per line
+  // Browser Use config, schema-driven: the form is rendered from the skill's
+  // OWN config schema pulled from the account's registry (GET /skills), so
+  // fields stay correct as Tavus evolves the brand-new skill. Values live in
+  // browserUseConfig (JSON string) — one source of truth with the raw box.
+  const [browserSchema, setBrowserSchema] = useState(null); // null=untried, false=no schema published, object=schema
+  const [browserSchemaLoading, setBrowserSchemaLoading] = useState(false);
+  const fetchBrowserSchema = async () => {
+    if (!apiKey.trim()) { addLog("err", "Enter your Tavus API key in Setup first."); return; }
+    setBrowserSchemaLoading(true);
+    try {
+      const d = await tavusFetch("GET", "/skills");
+      const list = Array.isArray(d) ? d : d?.data || d?.skills || [];
+      const sk = list.find((s) => [s.skill_id, s.id, s.name].includes("browser_use"));
+      const schema = sk?.config_schema || sk?.configSchema || sk?.schema || null;
+      if (schema && typeof schema === "object" && schema.properties && typeof schema.properties === "object") {
+        setBrowserSchema(schema);
+        addLog("ok", `Browser Use: loaded ${Object.keys(schema.properties).length} config option${Object.keys(schema.properties).length > 1 ? "s" : ""} straight from Tavus's skill registry.`);
+      } else {
+        setBrowserSchema(false);
+        addLog("info", sk
+          ? "Tavus doesn't publish a config schema for browser_use yet — use the JSON box below; “Validate & attach now” checks it against the live API."
+          : "browser_use isn't in this account's skill registry response — it may need enabling on the account. The JSON box + validate still work.");
+      }
+    } catch (e) {
+      setBrowserSchema(false);
+      addLog("err", `Skill registry: ${e.message} — the JSON box below still works.`);
+    } finally {
+      setBrowserSchemaLoading(false);
+    }
+  };
+  const browserCfgObj = useMemo(() => { try { return JSON.parse(browserUseConfig || "{}") || {}; } catch { return {}; } }, [browserUseConfig]);
+  const setBrowserCfgField = (k, v) => {
+    const next = { ...browserCfgObj };
+    const empty = v === "" || v === null || v === undefined || (Array.isArray(v) && !v.length);
+    if (empty) delete next[k]; else next[k] = v;
+    setBrowserUseConfig(Object.keys(next).length ? JSON.stringify(next, null, 2) : "");
+  };
+  const validateBrowserUse = async () => {
+    if (!palId.trim()) { addLog("err", "Validation needs a PAL ID (Setup step) — Tavus checks the config on attach."); return; }
+    let cfg = {};
+    if (browserUseConfig.trim()) {
+      try { cfg = JSON.parse(browserUseConfig); } catch { addLog("err", "The Browser Use config isn't valid JSON — fix it first."); return; }
+    }
+    try {
+      addLog("info", "Attaching Browser Use with this config (Tavus validates it server-side)…");
+      await tavusFetch("PUT", `/pals/${palId.trim()}/skills/browser_use`, { config: cfg });
+      setBrowserUseEnabled(true);
+      addLog("ok", "✓ Tavus accepted the config — Browser Use is attached to the PAL now (persists until detached).");
+    } catch (e) {
+      addLog("err", `Tavus rejected the config: ${e.message}`);
+    }
+  };
 
   // Integrations (custom LLM tools → any webhook)
   const [toolsEnabled, setToolsEnabled] = useState(false);
@@ -5299,7 +5351,7 @@ export default function TavusExperienceBuilder() {
         let browserCfg = {};
         if (String(browserUseConfig).trim()) {
           try { browserCfg = JSON.parse(browserUseConfig); }
-          catch { throw new Error("The browser_use advanced config isn't valid JSON — fix or clear it on the Integrations step."); }
+          catch { throw new Error("The browser_use config isn't valid JSON — fix or clear it on the Presentation step."); }
         }
         setStudioStatus("Attaching Browser Use to the featured AI human…");
         await tavusFetch("PUT", `/pals/${palA}/skills/browser_use`, { config: browserCfg });
@@ -5724,7 +5776,7 @@ export default function TavusExperienceBuilder() {
         let cfg = {};
         if (String(cfgText).trim()) {
           try { cfg = JSON.parse(cfgText); }
-          catch { throw new Error(`The ${skillId} advanced config isn't valid JSON — fix or clear it on the Integrations step.`); }
+          catch { throw new Error(`The ${skillId} config isn't valid JSON — fix or clear it (browser_use lives on the Presentation step now).`); }
         }
         addLog("info", `Attaching the ${skillId.replace("_", " ")} skill…`);
         await tavusFetch("PUT", `/pals/${pal}/skills/${skillId}`, { config: cfg });
@@ -6898,6 +6950,89 @@ export default function TavusExperienceBuilder() {
                     onClick={() => setTalkTrack([])}>Clear track</button>
                 </div>
               )}
+
+              <div className="skill-head" style={{ maxWidth: 620, marginTop: 26, marginBottom: 4 }}>
+                <span style={{ fontSize: 15, fontWeight: 700 }}>🌐 Browser Use — live web on stage</span>
+                <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => detachSkill("browser_use")}>Detach</button>
+                  <Toggle on={browserUseEnabled} onChange={setBrowserUseEnabled} />
+                </span>
+              </div>
+              <p className="field-hint" style={{ maxWidth: 620 }}>
+                The AI human drives a real browser on the call — the page renders in the stage exactly like slides do
+                (same screen track). Steer <i>when</i> it browses with the plan below; configure <i>how</i> with options
+                pulled live from Tavus's skill registry.
+              </p>
+              {browserUseEnabled && (
+                <>
+                  <Field label="Browse plan" hint='The "talk track" for browsing — one moment per line, when → which page. Rides each launch (like canvas rules), so different demos can browse differently on the same PAL.'>
+                    <textarea style={{ minHeight: 90, fontSize: 13 }} value={browsePlan}
+                      onChange={(e) => setBrowsePlan(e.target.value)}
+                      placeholder={"When they ask about pricing → pull up tavus.io/pricing\nWhen comparing plans → the plans comparison page\nIf they mention the API → the developer docs homepage"} />
+                  </Field>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+                    <button className="pill-btn" onClick={injectBrowsingIntoPrompt} disabled={generating || !personaDraft.trim()}
+                      title={personaDraft.trim() ? "Claude weaves the browsing moments into the persona (and goals) so the conversation actually steers there" : "Draft a persona first"}>
+                      {generating ? "Weaving…" : "🪡 Inject into prompt"}
+                    </button>
+                  </div>
+                  <div className="subhead" style={{ marginTop: 14 }}>Skill configuration</div>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                    <button className="pill-btn" onClick={fetchBrowserSchema} disabled={browserSchemaLoading}>
+                      {browserSchemaLoading ? "Loading…" : browserSchema && browserSchema !== false ? "↻ Reload config options" : "⚙️ Load config options from Tavus"}
+                    </button>
+                    <button className="pill-btn primary" onClick={validateBrowserUse} title="PUT the skill to your PAL right now — Tavus validates the config server-side and the log shows the verdict">
+                      🧪 Validate &amp; attach now
+                    </button>
+                  </div>
+                  {browserSchema && browserSchema !== false && (
+                    <div style={{ maxWidth: 620, marginBottom: 10 }}>
+                      {Object.entries(browserSchema.properties).map(([key, p]) => {
+                        const req = Array.isArray(browserSchema.required) && browserSchema.required.includes(key);
+                        const val = browserCfgObj[key];
+                        const label = `${key}${req ? " *" : ""}`;
+                        const type = Array.isArray(p?.enum) ? "enum" : p?.type;
+                        return (
+                          <Field key={key} label={label} hint={String(p?.description || "")}>
+                            {type === "boolean" ? (
+                              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+                                <input type="checkbox" style={{ width: "auto" }} checked={val === true}
+                                  onChange={(e) => setBrowserCfgField(key, e.target.checked ? true : "")} />
+                                {p?.description ? "on" : key}
+                              </label>
+                            ) : type === "enum" ? (
+                              <select style={{ width: "auto" }} value={val ?? ""} onChange={(e) => setBrowserCfgField(key, e.target.value)}>
+                                <option value="">(default{p?.default !== undefined ? `: ${String(p.default)}` : ""})</option>
+                                {p.enum.map((o) => <option key={String(o)} value={o}>{String(o)}</option>)}
+                              </select>
+                            ) : type === "number" || type === "integer" ? (
+                              <input type="number" style={{ maxWidth: 200 }} value={val ?? ""}
+                                placeholder={p?.default !== undefined ? String(p.default) : ""}
+                                onChange={(e) => setBrowserCfgField(key, e.target.value === "" ? "" : Number(e.target.value))} />
+                            ) : type === "array" ? (
+                              <textarea style={{ minHeight: 60, fontSize: 12.5 }} value={Array.isArray(val) ? val.join("\n") : ""}
+                                placeholder="One entry per line"
+                                onChange={(e) => setBrowserCfgField(key, e.target.value.split("\n").map((s2) => s2.trim()).filter(Boolean))} />
+                            ) : (
+                              <input value={val ?? ""} placeholder={p?.default !== undefined ? String(p.default) : ""}
+                                onChange={(e) => setBrowserCfgField(key, e.target.value)} />
+                            )}
+                          </Field>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <details style={{ maxWidth: 620, marginBottom: 8 }} {...(browserSchema === false ? { open: true } : {})}>
+                    <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--muted)" }}>{"{ }"} Raw config JSON</summary>
+                    <textarea className="mono" style={{ minHeight: 90, fontSize: 12, marginTop: 8, width: "100%" }} value={browserUseConfig}
+                      onChange={(e) => setBrowserUseConfig(e.target.value)} placeholder='{ }' />
+                    <p className="field-hint" style={{ margin: "6px 0 0" }}>
+                      The form above and this box edit the same config. Passed verbatim as the skill's config at attach;
+                      🧪 Validate gets Tavus's server-side verdict instantly.
+                    </p>
+                  </details>
+                </>
+              )}
             </>
           )}
 
@@ -7137,42 +7272,11 @@ export default function TavusExperienceBuilder() {
                 Live web answers mid-call — no configuration.
               </p>
 
-              <div className="skill-head" style={{ maxWidth: 560, marginBottom: 4 }}>
-                <span style={{ fontSize: 13, fontWeight: 600 }}>🌐 Browser Use</span>
-                <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => detachSkill("browser_use")}>Detach</button>
-                  <Toggle on={browserUseEnabled} onChange={setBrowserUseEnabled} />
-                </span>
-              </div>
               <p className="field-hint" style={{ maxWidth: 560 }}>
-                The AI human drives a live web browser on the call — the browser view appears in the stage automatically
-                (same screen track as slides). Steer <i>when</i> it browses through the persona ("when they ask about pricing,
-                pull up the pricing page"). This skill is brand-new: if Tavus rejects the attach at launch, the log shows the
-                exact reason (it may need enabling on your account).
+                🌐 <b>Browser Use moved to the Presentation step</b> — it's an on-stage surface like slides, so it lives with them now
+                (browse plan, live config options from Tavus, validate-and-attach).{" "}
+                <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11.5 }} onClick={() => setStep("presentation")}>Take me there</button>
               </p>
-              {browserUseEnabled && (
-                <>
-                  <Field label="Browse plan" hint='The "talk track" for browsing — one moment per line, when → which page. Travels with each launch (like canvas rules), so different demos can browse differently on the same PAL.'>
-                    <textarea style={{ minHeight: 90, fontSize: 13 }} value={browsePlan}
-                      onChange={(e) => setBrowsePlan(e.target.value)}
-                      placeholder={"When they ask about pricing → pull up tavus.io/pricing\nWhen comparing plans → the plans comparison page\nIf they mention the API → the developer docs homepage"} />
-                  </Field>
-                  <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-                    <button className="pill-btn" onClick={injectBrowsingIntoPrompt} disabled={generating || !personaDraft.trim()}
-                      title={personaDraft.trim() ? "Claude weaves the browsing moments into the persona (and goals) so the conversation actually steers there" : "Draft a persona first"}>
-                      {generating ? "Weaving…" : "🪡 Inject into prompt"}
-                    </button>
-                  </div>
-                  <p className="field-hint" style={{ maxWidth: 560, marginBottom: 14 }}>
-                    Like cards, browsing only happens when the conversation reaches its moment — the plan rides each launch, and
-                    <b> Inject into prompt</b> makes the persona steer toward those moments. Re-attach the prompt afterwards, then relaunch.
-                  </p>
-                  <Field label="Advanced config (optional JSON)" hint='Passed verbatim as the skill’s config. Leave empty for defaults; add fields from the Browser Use docs as they ship (e.g. a starting URL or allowed sites).'>
-                    <textarea className="mono" style={{ minHeight: 70, fontSize: 12 }} value={browserUseConfig}
-                      onChange={(e) => setBrowserUseConfig(e.target.value)} placeholder='{ }' />
-                  </Field>
-                </>
-              )}
             </>
           )}
 
