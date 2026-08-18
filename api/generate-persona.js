@@ -234,6 +234,18 @@ function presentationContextLines(pres) {
   return lines;
 }
 
+/* Spin-up: a spoken brain-dump (rambly dictation transcript) → clean builder
+   inputs. The frontend then auto-runs the prompt generator on top. */
+const SPINUP_SYSTEM = `You turn a spoken brain-dump — a raw, rambly dictation transcript about a demo — into clean builder inputs. Return ONLY JSON (no markdown fences):
+
+{"note":"one sentence on what you set up",
+ "brief":"2-4 sentence cleaned description of the demo persona: who it is, who it talks to, what winning looks like, the personality — keep the operator's language and intent, drop the umms, false starts and repetition",
+ "objectives":null|"conversation steps, one per line, in order; indent branches as \\"if <condition> -> <detour objective>\\" — ONLY when the dictation implies a flow",
+ "guardrails":null|"rules, one per line; add [visual] for camera-enforced rules — ONLY rules the operator actually stated or clearly implied",
+ "greeting":null|"a natural spoken first line, IF the dictation implies how it should open"}
+
+Rules: never invent objectives or guardrails that weren't in the dictation — null beats padding. Preserve specific names, numbers, and product facts exactly as spoken. The brief feeds a prompt generator, so it should describe the persona, not read like marketing copy.`;
+
 /* Chat-with-the-demo: one instruction → coordinated edits across every
    implicated piece. The operator's existing text is sacred — edit, never
    regenerate, and touch only what the instruction reaches. */
@@ -348,6 +360,15 @@ export default async function handler(req, res) {
     system = DUET_SYSTEM;
     const parts = [`Design the duet:\n${String(vibe).trim().slice(0, 2000)}`];
     if (context?.brand) parts.push(`Brand on the demo page: ${context.brand}`);
+    userPrompt = parts.join("\n\n");
+  } else if (kind === "spinup") {
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Nothing to spin up — dictate or type your thoughts first." });
+      return;
+    }
+    system = SPINUP_SYSTEM;
+    const parts = [`DICTATION TRANSCRIPT:\n${String(vibe).trim().slice(0, 8000)}`];
+    if (context?.brand) parts.push(`Brand: ${String(context.brand).slice(0, 200)}`);
     userPrompt = parts.join("\n\n");
   } else if (kind === "edit") {
     if (!String(vibe).trim()) {

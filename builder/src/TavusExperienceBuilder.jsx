@@ -113,6 +113,38 @@ function demoBadges(cfg) {
   return b;
 }
 
+/* Float32 mic chunks → 16kHz mono 16-bit WAV → base64, for the Wispr Flow
+   dictation API. Resamples linearly when the AudioContext refused 16kHz. */
+function encodeWavBase64(chunks, totalLen, inRate) {
+  let data = new Float32Array(totalLen);
+  let o = 0;
+  chunks.forEach((c) => { data.set(c, o); o += c.length; });
+  const RATE = 16000;
+  if (inRate !== RATE && inRate > 0) {
+    const outLen = Math.floor((totalLen * RATE) / inRate);
+    const out = new Float32Array(outLen);
+    for (let i = 0; i < outLen; i++) {
+      const pos = (i * inRate) / RATE;
+      const i0 = Math.floor(pos);
+      const frac = pos - i0;
+      out[i] = (data[i0] || 0) * (1 - frac) + (data[Math.min(totalLen - 1, i0 + 1)] || 0) * frac;
+    }
+    data = out;
+  }
+  const buf = new ArrayBuffer(44 + data.length * 2);
+  const v = new DataView(buf);
+  const ws = (off, s) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
+  ws(0, "RIFF"); v.setUint32(4, 36 + data.length * 2, true); ws(8, "WAVE");
+  ws(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, RATE, true); v.setUint32(28, RATE * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  ws(36, "data"); v.setUint32(40, data.length * 2, true);
+  for (let i = 0; i < data.length; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, data[i])) * 0x7fff, true);
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 32768) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 32768));
+  return btoa(bin);
+}
+
 const SITE_FORMATS = [
   { v: "desktop", label: "Desktop", desc: "Full page — headline, tagline, wide 16:9 stage. The default." },
   { v: "phone", label: "Mobile app", desc: "A scrollable in-app screen inside a real phone frame — how it feels living in your app." },
@@ -2904,6 +2936,135 @@ export default function TavusExperienceBuilder() {
   });
   const setSiteField = (k, v) => setSite((s) => ({ ...s, [k]: v }));
   const [designBusy, setDesignBusy] = useState(false);
+
+  /* 🎙 Dictation (browser speech recognition — Chrome/Edge) + Spin-up: talk
+     out your thoughts on the persona, flow, and rules; the transcript streams
+     into the vibe box live, then one click turns the brain-dump into a clean
+     brief + objectives + guardrails and auto-drafts the prompt on top. */
+  const dictationRef = useRef(null);
+  const [dictating, setDictating] = useState(""); // "" | "vibe" | "edit"
+  // Wispr Flow dictation (preferred when WISPR_API_KEY is set server-side):
+  // record raw PCM, encode 16kHz WAV, transcribe via /api/dictate on stop.
+  // Falls back to the browser's live speech recognition automatically.
+  const [wisprAvail, setWisprAvail] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const wavRecRef = useRef(null);
+  const dictApplyRef = useRef(null);
+  useEffect(() => {
+    if (demoSlug || duetJoin || (auth.required && !auth.authed)) return;
+    fetch("/api/dictate").then((r) => (r.ok ? r.json() : null)).then((d) => setWisprAvail(!!d?.available)).catch(() => { /* bare vite — browser engine only */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.authed]);
+  const finishWisprDictation = async () => {
+    const rec = wavRecRef.current;
+    if (!rec) return;
+    wavRecRef.current = null;
+    clearTimeout(rec.capTimer);
+    try { rec.proc.disconnect(); rec.src.disconnect(); rec.stream.getTracks().forEach((tr) => tr.stop()); rec.ctx.close(); } catch { /* torn down */ }
+    const total = rec.chunks.reduce((n, c) => n + c.length, 0);
+    if (total < (rec.ctx.sampleRate || 16000) / 2) return; // under half a second — nothing said
+    setTranscribing(true);
+    try {
+      const b64 = encodeWavBase64(rec.chunks, total, rec.ctx.sampleRate || 16000);
+      const r = await fetch("/api/dictate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ audio: b64 }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || `${r.status}`);
+      if (String(j.text || "").trim()) dictApplyRef.current?.(String(j.text).trim());
+      else addLog("info", "Wispr Flow heard nothing usable — try again, a touch closer to the mic.");
+    } catch (e) {
+      addLog("err", `Dictation (Wispr Flow): ${e.message}`);
+    } finally {
+      setTranscribing(false);
+    }
+  };
+  const startWisprDictation = async (target) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } });
+      let ctx;
+      try { ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 }); }
+      catch { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      const src = ctx.createMediaStreamSource(stream);
+      const proc = ctx.createScriptProcessor(4096, 1, 1);
+      const chunks = [];
+      proc.onaudioprocess = (e) => { chunks.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
+      src.connect(proc);
+      proc.connect(ctx.destination);
+      // Hard cap keeps the payload comfortably under serverless body limits.
+      const capTimer = setTimeout(() => { if (wavRecRef.current) { finishWisprDictation(); setDictating(""); } }, 75_000);
+      wavRecRef.current = { stream, ctx, src, proc, chunks, capTimer };
+      setDictating(target);
+    } catch (e) {
+      addLog("err", `Microphone: ${e.message}`);
+    }
+  };
+  const toggleDictation = (target, apply) => {
+    if (dictating) {
+      if (wavRecRef.current) finishWisprDictation();
+      else { try { dictationRef.current?.stop(); } catch { /* already stopped */ } }
+      setDictating("");
+      return;
+    }
+    dictApplyRef.current = apply;
+    if (wisprAvail) { startWisprDictation(target); return; }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { addLog("err", "Dictation isn't available — add WISPR_API_KEY on Vercel for Wispr Flow, or use Chrome/Edge for the built-in engine."); return; }
+    const rec = new SR();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = navigator.language || "en-US";
+    rec.onresult = (e) => {
+      let final = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      if (final.trim()) apply(final.trim());
+    };
+    rec.onend = () => setDictating("");
+    rec.onerror = (e) => { if (e.error !== "aborted" && e.error !== "no-speech") addLog("err", `Dictation: ${e.error}`); };
+    try { rec.start(); } catch { addLog("err", "Couldn't start the microphone — check the browser's mic permission."); return; }
+    dictationRef.current = rec;
+    setDictating(target);
+  };
+  const [spinBusy, setSpinBusy] = useState(false);
+  const [autoDraft, setAutoDraft] = useState(false); // fires generatePersona AFTER spin-up state lands
+  const spinUp = async () => {
+    const dump = String(personaBrief.vibe || "").trim();
+    if (!dump || spinBusy) return;
+    if (dictating) toggleDictation(dictating, () => {});
+    setSpinBusy(true);
+    try {
+      addLog("info", "Spinning up from your dictation — brief, objectives, guardrails…");
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "spinup", vibe: dump, context: { brand: site.brand } }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: spin-up failed`);
+      }
+      const out = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+      if (out.brief && String(out.brief).trim()) setBriefField("vibe", String(out.brief).trim());
+      const gotObj = typeof out.objectives === "string" && out.objectives.trim();
+      const gotGr = typeof out.guardrails === "string" && out.guardrails.trim();
+      if (gotObj) { setObjectivesText(out.objectives.trim()); setObjectivesEnabled(true); }
+      if (gotGr) { setGuardrailsText(out.guardrails.trim()); setGuardrailsEnabled(true); }
+      if (typeof out.greeting === "string" && out.greeting.trim()) setGreeting(out.greeting.trim());
+      addLog("ok", `${out.note || "Spun up."} ${[gotObj && "objectives", gotGr && "guardrails"].filter(Boolean).join(" + ") || "brief"} set — drafting the system prompt on top…`);
+      setAutoDraft(true); // generate AFTER the new state commits, so the prompt reads the fresh objectives/guardrails
+    } catch (e) {
+      addLog("err", `Spin-up: ${e.message}`);
+    } finally {
+      setSpinBusy(false);
+    }
+  };
+  useEffect(() => {
+    if (!autoDraft) return;
+    setAutoDraft(false);
+    generatePersona();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoDraft]);
 
   /* Chat with the demo — the seamless edit path. One instruction edits every
      implicated piece together (prompt, objectives, guardrails, greeting,
@@ -5833,13 +5994,26 @@ export default function TavusExperienceBuilder() {
                 ))}
               </div>
               {personaMode === "brief" && (<>
-              <Field label="Describe it" hint="One box — everything you know, in your own words: the product, who it talks to, what a win looks like, the personality and energy. Flow steps live on Objectives, rules on Guardrails; the generator reads both from there, so you never type them twice.">
+              <Field label="Describe it" hint="One box — type it, or 🎙 talk it out: ramble about the product, who it talks to, the flow you want, the rules, the personality. “Spin it all up” cleans the brain-dump into a brief, writes the Objectives & Guardrails steps from it, and drafts the prompt on top — one breath, whole demo.">
                 <textarea
-                  style={{ minHeight: 110 }}
+                  style={{ minHeight: 110, ...(dictating === "vibe" ? { outline: "2px solid var(--accent)" } : {}) }}
                   value={personaBrief.vibe || ""}
                   onChange={(e) => setBriefField("vibe", e.target.value)}
                   placeholder={"e.g. A warm, sharp intake specialist for Acme Health demoing AI patient intake to clinic ops leads. Wins the call when they see the 5-minute setup and book a follow-up. Confident, a little playful, never salesy — lights up when showing the product."}
                 />
+                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                  <button
+                    className={"pill-btn" + (dictating === "vibe" ? " primary" : "")}
+                    onClick={() => toggleDictation("vibe", (t2) => setPersonaBrief((b) => ({ ...b, vibe: (b.vibe ? b.vibe + " " : "") + t2 })))}
+                    disabled={transcribing}
+                    title={wisprAvail ? "Dictation by Wispr Flow" : "Dictation by the browser's built-in engine"}
+                  >
+                    {dictating === "vibe" ? "⏹ Stop — I'm done talking" : transcribing ? "🎙 Transcribing…" : "🎙 Talk it out"}
+                  </button>
+                  <button className="pill-btn primary" onClick={spinUp} disabled={spinBusy || generating || transcribing || !String(personaBrief.vibe || "").trim()}>
+                    {spinBusy ? "Spinning up…" : "✨ Spin it all up — prompt + objectives + guardrails"}
+                  </button>
+                </div>
               </Field>
               <details style={{ marginBottom: 16, maxWidth: 640 }}>
                 <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>
@@ -7970,6 +8144,15 @@ export default function TavusExperienceBuilder() {
             </div>
           ) : (
             <>
+              <button
+                className={"pill-btn" + (dictating === "edit" ? " primary" : "")}
+                style={{ flexShrink: 0, padding: "6px 12px" }}
+                title={wisprAvail ? "Dictate the change (Wispr Flow)" : "Dictate the change"}
+                disabled={transcribing}
+                onClick={() => toggleDictation("edit", (t2) => setEditAsk((v) => (v ? v + " " : "") + t2))}
+              >
+                {dictating === "edit" ? "⏹" : "🎙"}
+              </button>
               <input
                 value={editAsk}
                 onChange={(e) => setEditAsk(e.target.value)}
