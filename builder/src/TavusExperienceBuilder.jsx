@@ -3254,6 +3254,10 @@ export default function TavusExperienceBuilder() {
     Object.fromEntries(CANVAS_COMPONENTS.map((c) => [c.key, true]))
   );
   const [schedulingUrl, setSchedulingUrl] = useState("");
+  // Verified links the PAL is allowed to share — the ONLY cure for link
+  // cards pointing at invented URLs (the model has no idea what pages exist).
+  const [linkCatalog, setLinkCatalog] = useState([]);
+  const [linkFinder, setLinkFinder] = useState({ url: "", q: "", busy: false, results: null, err: "" });
   const [placement, setPlacement] = useState("auto");
   const [canvasStyle, setCanvasStyle] = useState("balanced");
   const [componentRules, setComponentRules] = useState(
@@ -3706,7 +3710,7 @@ export default function TavusExperienceBuilder() {
     internetSearchEnabled, browserUseEnabled, browserUseConfig, browsePlan,
     presentationEnabled, docIdsRaw, slidesTrigger, presentPrompt, talkTrack,
     objectivesEnabled, objectivesText, confirmationMode, guardrailsEnabled, guardrailsText,
-    canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook,
+    canvasEnabled, components, schedulingUrl, placement, canvasStyle, componentRules, canvasPlaybook, linkCatalog,
     scCards, studioLines,
     duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser,
     duetDeckBeat, duetBrowserBeat, duetBrowserShow, duetLook, duetCaptions, studioPalA, studioPalB,
@@ -3764,6 +3768,7 @@ export default function TavusExperienceBuilder() {
     setCanvasStyle(c.canvasStyle ?? "balanced");
     setComponentRules({ ...Object.fromEntries(CANVAS_COMPONENTS.map((x) => [x.key, ""])), ...(c.componentRules || {}) });
     setCanvasPlaybook(c.canvasPlaybook ?? "");
+    setLinkCatalog(Array.isArray(c.linkCatalog) ? c.linkCatalog : []);
     setPalLlm(c.palLlm ?? "tavus-gemma-4"); // scenarios that chose a model keep it; new/legacy default to Gemma
     setPersonaMode(c.personaMode === "paste" ? "paste" : "brief");
     setDemoIntent(c.demoIntent ?? "");
@@ -4158,6 +4163,17 @@ export default function TavusExperienceBuilder() {
         parts.push(`When you show Magic Canvas cards, always set layout.preferred_slot to "safe-area-${placement}" so cards appear on the ${placement} side of the video.`);
     }
 
+    // Approved links: without ground truth the model invents URLs (or punts
+    // to the homepage) — with a catalog it may only share links that exist.
+    const approvedLinks = linkCatalog.filter((l) => String(l?.url || "").trim());
+    if (approvedLinks.length) {
+      parts.push(
+        "Approved links — the ONLY URLs you may ever share, on cards, in chat, or aloud. Never invent, guess, modify, or shorten a URL:\n" +
+        approvedLinks.map((l) => `- ${String(l.label || "").trim() || String(l.url).trim()}: ${String(l.url).trim()}`).join("\n") +
+        "\nIf what the user wants isn't in this list, share the closest listed page and tell them what to look for from there."
+      );
+    }
+
     if (parts.length) body.conversational_context = parts.join("\n\n");
 
     if (knowledgeIds.length) body.document_ids = knowledgeIds;
@@ -4179,7 +4195,7 @@ export default function TavusExperienceBuilder() {
       if (recS3ExternalId.trim()) body.properties.recording_storage.external_id = recS3ExternalId.trim();
     }
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
@@ -5111,6 +5127,25 @@ export default function TavusExperienceBuilder() {
     } catch (e) {
       setVoiceApply({ busy: false, appliedId: "", err: e.message || "voice apply failed" });
       addLog("err", `Voice: ${e.message}`);
+    }
+  };
+
+  // Link finder: crawl one real page server-side and surface its links, so
+  // the approved-links catalog is built from ground truth, not memory.
+  const findSiteLinks = async () => {
+    const pageUrl = linkFinder.url.trim();
+    if (!pageUrl) return;
+    setLinkFinder((s) => ({ ...s, busy: true, err: "" }));
+    try {
+      const r = await fetch(`/api/site-links?url=${encodeURIComponent(pageUrl)}&q=${encodeURIComponent(linkFinder.q.trim())}`);
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        if (r.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(j.error || "couldn't read that page");
+      }
+      setLinkFinder((s) => ({ ...s, busy: false, results: j.links || [] }));
+    } catch (e) {
+      setLinkFinder((s) => ({ ...s, busy: false, err: e.message }));
     }
   };
 
@@ -7505,6 +7540,63 @@ export default function TavusExperienceBuilder() {
                 <Field label="Calendly URL (activates Scheduling)" hint="Public https link. The Scheduling card stays inactive until this is set.">
                   <input className="mono" style={{ marginTop: 14 }} value={schedulingUrl} onChange={(e) => setSchedulingUrl(e.target.value)} placeholder="https://calendly.com/you/30min" />
                 </Field>
+              )}
+
+              <div className="subhead">🔗 Approved links</div>
+              <p className="field-hint" style={{ maxWidth: 640, marginBottom: 10 }}>
+                Link cards make up URLs — the AI has no idea what pages exist, so it guesses (usually the homepage). List the real pages here and it may <b>only</b> share these, never an invented one. Use the finder to pull links straight off the live site.
+              </p>
+              {canvasEnabled && (
+                <>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                    <input className="mono" style={{ flex: "2 1 260px" }} value={linkFinder.url}
+                      onChange={(e) => setLinkFinder((s) => ({ ...s, url: e.target.value }))}
+                      placeholder="Page to scan — e.g. https://www.brand.com (or its sitemap.xml)" />
+                    <input style={{ flex: "1 1 160px" }} value={linkFinder.q}
+                      onChange={(e) => setLinkFinder((s) => ({ ...s, q: e.target.value }))}
+                      onKeyDown={(e) => e.key === "Enter" && !linkFinder.busy && findSiteLinks()}
+                      placeholder='Filter — e.g. "linen", "outlet"' />
+                    <button className="pill-btn" style={{ flexShrink: 0 }} onClick={findSiteLinks} disabled={linkFinder.busy || !linkFinder.url.trim()}>
+                      {linkFinder.busy ? "Scanning…" : "Find links"}
+                    </button>
+                  </div>
+                  {linkFinder.err && <p className="field-hint" style={{ color: "#c0392b" }}>{linkFinder.err}</p>}
+                  {Array.isArray(linkFinder.results) && (
+                    <div className="kb-list" style={{ marginBottom: 14, maxHeight: 260, overflowY: "auto" }}>
+                      {linkFinder.results.length === 0 && <p className="field-hint" style={{ padding: 8 }}>No links matched — try a broader filter, or scan a category page / sitemap.xml.</p>}
+                      {linkFinder.results.map((l, i) => {
+                        const inCatalog = linkCatalog.some((x) => x.url === l.url);
+                        return (
+                          <div key={i} className="kb-row">
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.text || "(untitled)"}</div>
+                              <div className="mono" style={{ fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.url}</div>
+                            </div>
+                            <button className={"pill-btn" + (inCatalog ? " primary" : "")} style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0 }}
+                              disabled={inCatalog}
+                              onClick={() => setLinkCatalog((c) => [...c, { label: l.text || "", url: l.url }])}>
+                              {inCatalog ? "Added ✓" : "+ Add"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {linkCatalog.length > 0 && (
+                    <div style={{ maxWidth: 680, marginBottom: 16 }}>
+                      {linkCatalog.map((l, i) => (
+                        <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+                          <input style={{ flex: "1 1 140px" }} placeholder="Label — e.g. Linen ensemble" value={l.label || ""}
+                            onChange={(e) => setLinkCatalog((c) => c.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
+                          <input className="mono" style={{ flex: "2 1 240px", fontSize: 12 }} placeholder="https://…" value={l.url || ""}
+                            onChange={(e) => setLinkCatalog((c) => c.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} />
+                          <button className="pill-btn" style={{ padding: "2px 10px", flexShrink: 0 }} onClick={() => setLinkCatalog((c) => c.filter((_, j) => j !== i))}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button className="pill-btn" style={{ marginBottom: 22, fontSize: 12 }} onClick={() => setLinkCatalog((c) => [...c, { label: "", url: "" }])}>+ Add a link by hand</button>
+                </>
               )}
 
               <div className="subhead">How eagerly cards appear</div>

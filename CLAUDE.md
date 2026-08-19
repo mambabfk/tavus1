@@ -186,7 +186,13 @@ non-technical users; ids unchanged):
    (`CANVAS_COMPONENTS`); all on by default. Per-card enable + free-text rule,
    `canvasStyle` (eager/balanced/minimal/on_request), `canvasPlaybook`,
    `placement` (auto/right/left), and `schedulingUrl` (Calendly, activates the
-   Scheduling card).
+   Scheduling card). **Approved links** (`linkCatalog`, rides scenarios +
+   share links): link cards invent URLs without ground truth, so the catalog
+   lists the only URLs the PAL may share (compiled into
+   `conversational_context`); `GET /api/site-links?url&q` (builder session,
+   SSRF-guarded, browser UA) crawls one real page (or sitemap.xml) server-side
+   and returns its same-site links so the catalog is built from the live site,
+   never from memory.
 4.5. **Pronunciation** (`speech`) — `parsePronunciation`: one rule per line,
    `word = how to say it` (also `:` / `->`), `[ipa]` → `type: "ipa"`, `[case]`
    → `case_sensitive`, duplicates dropped. On launch →
