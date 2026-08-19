@@ -5179,6 +5179,44 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  // Protected sites (Akamai/Cloudflare) 403 server visits — but the operator's
+  // browser already has the page, and copying a chunk of it puts HTML with the
+  // <a href>s AND product <img>s on the clipboard. Extract client-side.
+  const onLinkPaste = (e) => {
+    e.preventDefault();
+    const html = e.clipboardData?.getData("text/html") || "";
+    const text = e.clipboardData?.getData("text/plain") || "";
+    const base = linkFinder.url.trim() || undefined;
+    const abs = (href) => { try { const u = new URL(href, base); return /^https?:$/.test(u.protocol) ? u.href : ""; } catch { return ""; } };
+    const results = [];
+    if (html) {
+      try {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        doc.querySelectorAll("a[href]").forEach((a) => {
+          const url = abs(a.getAttribute("href"));
+          if (!url) return;
+          const img = a.querySelector("img");
+          results.push({
+            text: (a.textContent || "").replace(/\s+/g, " ").trim().slice(0, 120) || (img?.getAttribute("alt") || "").trim().slice(0, 120),
+            url,
+            image: img ? abs(img.currentSrc || img.getAttribute("src") || "") : "",
+          });
+        });
+      } catch { /* fall through to plain text */ }
+    }
+    if (!results.length && text) {
+      for (const m of text.matchAll(/https?:\/\/[^\s"'<>]+/g)) results.push({ text: "", url: m[0], image: "" });
+    }
+    const seen = new Set();
+    let links = results.filter((l) => !seen.has(l.url) && seen.add(l.url));
+    const terms = linkFinder.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (terms.length) links = links.filter((l) => terms.every((t) => `${l.text} ${l.url}`.toLowerCase().includes(t)));
+    setLinkFinder((s) => ({
+      ...s, busy: false, results: links.slice(0, 60),
+      err: links.length ? "" : "No links in that paste — on the site, SELECT around the products (or Ctrl/Cmd-A), Copy, then paste here. Pasting a bare URL only works for full https:// links.",
+    }));
+  };
+
   // Pull a catalog row's title + preview photo (og:image) off its live page.
   const fetchLinkMeta = async (i) => {
     const u = String(linkCatalog[i]?.url || "").trim();
@@ -7609,6 +7647,14 @@ export default function TavusExperienceBuilder() {
                       {linkFinder.busy ? "Scanning…" : "Find links"}
                     </button>
                   </div>
+                  <textarea
+                    readOnly
+                    value=""
+                    onPaste={onLinkPaste}
+                    onChange={() => {}}
+                    style={{ minHeight: 44, height: 44, resize: "none", border: "1.5px dashed var(--border)", background: "transparent", marginBottom: 8, fontSize: 12 }}
+                    placeholder="Blocked site? Open the page in YOUR browser, select around the products (or Ctrl/Cmd-A), Copy — then click here and Paste. Links AND product photos come along."
+                  />
                   {linkFinder.err && <p className="field-hint" style={{ color: "#c0392b" }}>{linkFinder.err}</p>}
                   {Array.isArray(linkFinder.results) && (
                     <div className="kb-list" style={{ marginBottom: 14, maxHeight: 260, overflowY: "auto" }}>
@@ -7621,9 +7667,10 @@ export default function TavusExperienceBuilder() {
                               <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.text || "(untitled)"}</div>
                               <div className="mono" style={{ fontSize: 11, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{l.url}</div>
                             </div>
+                            {l.image && <img src={l.image} alt="" style={{ width: 34, height: 34, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />}
                             <button className={"pill-btn" + (inCatalog ? " primary" : "")} style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0 }}
                               disabled={inCatalog}
-                              onClick={() => setLinkCatalog((c) => [...c, { label: l.text || "", url: l.url }])}>
+                              onClick={() => setLinkCatalog((c) => [...c, { label: l.text || "", url: l.url, image: l.image || "" }])}>
                               {inCatalog ? "Added ✓" : "+ Add"}
                             </button>
                           </div>

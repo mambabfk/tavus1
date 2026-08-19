@@ -44,7 +44,14 @@ export default async function handler(req, res) {
       },
     });
     clearTimeout(t);
-    if (!r.ok) { res.status(502).json({ error: `The site answered ${r.status} for that page.` }); return; }
+    if (!r.ok) {
+      res.status(502).json({
+        error: [403, 401, 429, 503].includes(r.status)
+          ? `The site blocks automated visits (${r.status}) — use the paste box instead: open the page in your own browser, select around the products, Copy, and paste.`
+          : `The site answered ${r.status} for that page.`,
+      });
+      return;
+    }
     const base = safeUrl(r.url) || page;
     const body = (await r.text()).slice(0, 3_000_000);
 
