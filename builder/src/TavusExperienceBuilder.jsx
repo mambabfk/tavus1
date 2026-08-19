@@ -333,6 +333,16 @@ const FORMAT_BLUEPRINTS = [
   },
 ];
 
+/* New Demo intents — the altitude that guides a draft. Each carries the
+   guidance line the generator receives, so one chip steers the whole draft
+   without a form. */
+const DEMO_INTENTS = [
+  { v: "sales", label: "🤝 Sales demo", desc: "Pitch a prospect on a product", gen: "This is a SALES DEMO for a prospect: discovery-first objectives (learn their situation before pitching), drive toward a concrete next step (a booked meeting or follow-up), confident on-brand page copy, guardrails against committing to custom pricing." },
+  { v: "assistant", label: "🛎 Customer assistant", desc: "Intake, onboarding, support", gen: "This is a CUSTOMER-FACING ASSISTANT (intake / onboarding / support): objectives complete the visitor's task step by step, the tone is service not sales, page copy is calm and functional, guardrails protect privacy and keep it in scope." },
+  { v: "roleplay", label: "🧑‍💼 Role-play trainer", desc: "Interview practice, training, coaching", gen: "This is a ROLE-PLAY TRAINING PARTNER: the persona plays the counterpart convincingly and stays in character, objectives structure the session (set up → exercise → debrief with feedback), page copy addresses the trainee directly." },
+  { v: "showcase", label: "🧪 Feature showcase", desc: "Show off the tech itself", gen: "This is a CAPABILITY SHOWCASE: the conversation deliberately creates moments that demonstrate features (a visual canvas moment, a deck moment, a perception moment), objectives sequence those moments, page copy invites the visitor to try things live." },
+];
+
 const hex6 = (v) => {
   const s = String(v || "").trim();
   const m3 = s.match(/^#([0-9a-f]{3})$/i);
@@ -3612,6 +3622,7 @@ export default function TavusExperienceBuilder() {
 
   // "Start from an idea" — Claude drafts the entire template
   const [ideaText, setIdeaText] = useState("");
+  const [demoIntent, setDemoIntent] = useState(""); // what kind of demo — sets the draft's altitude
   const [ideating, setIdeating] = useState(false);
 
   // Scenarios (named snapshots of the full builder config).
@@ -3696,7 +3707,7 @@ export default function TavusExperienceBuilder() {
     scCards, studioLines,
     duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser,
     duetDeckBeat, duetBrowserBeat, duetBrowserShow, duetLook, duetCaptions, studioPalA, studioPalB,
-    palLlm, knowledgeIdsRaw, personaMode,
+    palLlm, knowledgeIdsRaw, personaMode, demoIntent,
     site,
     expJourney,
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
@@ -3752,6 +3763,7 @@ export default function TavusExperienceBuilder() {
     setCanvasPlaybook(c.canvasPlaybook ?? "");
     setPalLlm(c.palLlm ?? "tavus-gemma-4"); // scenarios that chose a model keep it; new/legacy default to Gemma
     setPersonaMode(c.personaMode === "paste" ? "paste" : "brief");
+    setDemoIntent(c.demoIntent ?? "");
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
     setScCards(Array.isArray(c.scCards) ? c.scCards : []);
@@ -5625,6 +5637,8 @@ export default function TavusExperienceBuilder() {
       // Anchor the draft to the REAL company when we know it (from the URL /
       // theming) — otherwise Claude invents a plausible fictional brand.
       const parts = [ideaText];
+      const chosenIntent = DEMO_INTENTS.find((x) => x.v === demoIntent);
+      if (chosenIntent) parts.push(chosenIntent.gen);
       const company = String(knownBrand || "").trim() || site.brand.trim();
       if (company) parts.push(`The prospect/company is ${company} — the REAL company. Use its real name and public positioning everywhere (page copy, greeting, persona, goals). Never invent a substitute brand name. Don't invent specific claims or product facts you're not sure of — stay accurate-but-general where unsure.`);
       else if (brandUrl.trim()) parts.push(`The prospect's website is ${brandUrl.trim()} — the REAL company behind that domain. Use its real name; never invent a substitute brand name.`);
@@ -6337,20 +6351,43 @@ export default function TavusExperienceBuilder() {
             <>
               <h1>New Demo</h1>
               <p className="lede">
-                Tell it who the demo is for and what it should do — Claude drafts everything (the AI human's persona, goals, rules, page design in their brand) and you refine from there. Or skip this and build by hand.
+                Three guided beats — what you're making, what winning looks like, and any anchors you have — then Claude drafts everything (persona, goals, rules, page) and you refine. Or skip this and build by hand.
               </p>
 
               <div className="idea-box">
-                <Field label="Who's it for?" hint="The prospect's website. Used to match their brand — colors, logo, and the way they talk.">
-                  <input className="mono" value={brandUrl} onChange={(e) => setBrandUrl(e.target.value)} placeholder="https://prospect.com" />
+                <Field label="1 · What are you making?" hint="One chip sets the altitude — a sales demo discovers and books, an assistant serves, a trainer stays in character, a showcase creates feature moments. Optional, but it's the best guidance you can give.">
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {DEMO_INTENTS.map((it) => (
+                      <button key={it.v} type="button" className={"pill-btn" + (demoIntent === it.v ? " primary" : "")} style={{ padding: "6px 14px", fontSize: 13 }}
+                        onClick={() => setDemoIntent(demoIntent === it.v ? "" : it.v)} title={it.desc}>
+                        {it.label}
+                      </button>
+                    ))}
+                  </div>
                 </Field>
-                <Field label="What should the demo do?" hint="Plain English. The use case shapes everything — an HR demo speaks HR, a sales demo sells.">
+                <Field label="2 · What does a winning conversation do?" hint="One or two plain-English sentences — or 🎙 talk it out. This is the only required part.">
                   <textarea
-                    style={{ minHeight: 84 }}
+                    style={{ minHeight: 84, ...(dictating === "idea" ? { outline: "2px solid var(--accent)" } : {}) }}
                     value={ideaText}
                     onChange={(e) => setIdeaText(e.target.value)}
-                    placeholder={"An HR onboarding assistant for their new employees — walks through week-one setup, benefits enrollment, and who to meet. Friendly, unhurried."}
+                    placeholder={"Walks a new employee through week-one setup, benefits enrollment, and who to meet — friendly, unhurried, books the IT session at the end."}
                   />
+                  <div style={{ marginTop: 8 }}>
+                    <button className={"pill-btn" + (dictating === "idea" ? " primary" : "")} disabled={transcribing}
+                      title={`Dictation by ${dictEngineName}`}
+                      onClick={() => toggleDictation("idea", (t2) => setIdeaText((v) => (v ? v + " " : "") + t2))}>
+                      {dictating === "idea" ? "⏹ Stop — I'm done" : transcribing ? "🎙 Transcribing…" : "🎙 Talk it out"}
+                    </button>
+                  </div>
+                </Field>
+                <Field label="3 · Anchors — all optional" hint="Ground the draft in real things when you have them. Nothing here is a prerequisite.">
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 13, color: "var(--muted)", flexShrink: 0 }}>🌐 Match a brand:</span>
+                    <input className="mono" style={{ flex: "1 1 240px" }} value={brandUrl} onChange={(e) => setBrandUrl(e.target.value)} placeholder="https://prospect.com — colors, logo, their voice (optional)" />
+                  </div>
+                  <p className="field-hint" style={{ margin: "6px 0 0" }}>
+                    Also useful later: a deck on the <b>Knowledge Base</b> step · raw call notes pasted (or 🎙 dictated) into the Persona step, where <b>Spin it all up</b> structures them.
+                  </p>
                 </Field>
                 <button className="pill-btn primary big" onClick={async () => {
                   // Theme FIRST: it reads the real site and returns the real
