@@ -5669,7 +5669,16 @@ export default function TavusExperienceBuilder() {
         tagline: t.tagline || s.tagline,
         cta: t.cta || s.cta,
       }));
-      if (t.personaBrief) setPersonaBrief((b) => ({ ...b, ...t.personaBrief }));
+      // The visible "Describe it" box must carry the brief — the structured
+      // fields live in a collapsed drawer, so filling only them made the
+      // Persona step look empty ("new demo not coupling with persona").
+      if (t.personaBrief || ideaText.trim()) {
+        setPersonaBrief((b) => ({
+          ...b,
+          ...(t.personaBrief || {}),
+          vibe: String(t.personaBrief?.vibe || "").trim() || ideaText.trim() || b.vibe,
+        }));
+      }
       if (Array.isArray(t.objectives) && t.objectives.length) {
         setObjectivesText(t.objectives.join("\n"));
         setObjectivesEnabled(true);
@@ -5681,7 +5690,11 @@ export default function TavusExperienceBuilder() {
       if (t.visionVibe) { setVisionVibe(t.visionVibe); setVisionEnabled(true); }
       if (t.canvasPlaybook) { setCanvasPlaybook(t.canvasPlaybook); setCanvasEnabled(true); }
       setPersonaDraft(""); setPersonaAttached(false); // brief changed → draft is stale
-      addLog("ok", "Demo drafted — every step is filled in. Walk the rail to review and edit, then generate the persona.");
+      // Finish the coupling: generate the persona ON TOP of the fresh brief +
+      // objectives/guardrails (the effect fires after this state commits, so
+      // the generator reads the drafted values, not the stale ones).
+      setAutoDraft(true);
+      addLog("ok", "Demo drafted — brief, goals, rules, and page are in. Drafting the persona prompt on top now…");
     } catch (e) {
       addLog("err", `Draft demo: ${e.name === "AbortError" ? "took too long (90s) and was cancelled — try again; if it keeps happening, shorten the idea text" : e.message}`);
     } finally {
