@@ -3087,6 +3087,7 @@ export default function TavusExperienceBuilder() {
   const [voiceQuery, setVoiceQuery] = useState("");
   const [voiceResults, setVoiceResults] = useState(null);
   const [voiceLoading, setVoiceLoading] = useState(false);
+  const [voiceApply, setVoiceApply] = useState({ busy: false, appliedId: "", err: "" });
 
   // Tavus-authored skills (PUT /pals/{id}/skills/{skill_id}; persist on the PAL)
   const [internetSearchEnabled, setInternetSearchEnabled] = useState(false);
@@ -5013,6 +5014,43 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  // Tavus is strict about external voices: the TTS engine must be cartesia,
+  // and a PAL that never touched its tts layer may not have one to patch
+  // into — so set both fields, falling back to creating the whole layer.
+  const patchPalVoice = async (pal, vid) => {
+    try {
+      await tavusFetch("PATCH", `/pals/${pal}`, [
+        { op: "add", path: "/layers/tts/tts_engine", value: "cartesia" },
+        { op: "add", path: "/layers/tts/external_voice_id", value: vid },
+      ]);
+    } catch (err) {
+      if (/does not exist|not found|invalid path|no such/i.test(String(err?.message || ""))) {
+        await tavusFetch("PATCH", `/pals/${pal}`, [
+          { op: "add", path: "/layers/tts", value: { tts_engine: "cartesia", external_voice_id: vid } },
+        ]);
+      } else {
+        throw err;
+      }
+    }
+  };
+
+  const applyVoiceNow = async (vid, name) => {
+    if (!vid) return;
+    if (!apiKey.trim() || !palId.trim()) {
+      setVoiceApply({ busy: false, appliedId: "", err: "Add your API key and PAL ID on Setup first — the voice attaches to the PAL. (It will still apply automatically at launch.)" });
+      return;
+    }
+    setVoiceApply((s) => ({ ...s, busy: true, err: "" }));
+    try {
+      await patchPalVoice(palId.trim(), vid);
+      setVoiceApply({ busy: false, appliedId: vid, err: "" });
+      addLog("ok", `Voice "${name || vid}" is now on the PAL (persists until you change it).`);
+    } catch (e) {
+      setVoiceApply({ busy: false, appliedId: "", err: e.message || "voice apply failed" });
+      addLog("err", `Voice: ${e.message}`);
+    }
+  };
+
   const renameKbDoc = async (id, name) => {
     try {
       await tavusFetch("PATCH", `/documents/${id}`, { document_name: name });
@@ -5925,9 +5963,7 @@ export default function TavusExperienceBuilder() {
       if (externalVoiceId.trim()) {
         try {
           addLog("info", `Setting the voice to ${externalVoiceName || externalVoiceId}…`);
-          await tavusFetch("PATCH", `/pals/${pal}`, [
-            { op: "add", path: "/layers/tts/external_voice_id", value: externalVoiceId.trim() },
-          ]);
+          await patchPalVoice(pal, externalVoiceId.trim());
           addLog("ok", "Voice applied (persists on the PAL until you change it).");
         } catch (e) {
           addLog("err", `Voice couldn't be applied (continuing launch): ${e.message}`);
@@ -6849,7 +6885,7 @@ export default function TavusExperienceBuilder() {
               </p>
 
               <div className="subhead">Voice &amp; accent</div>
-              <Field label="" hint='Search Cartesia&apos;s voice library by accent, language, or vibe — try "british", "australian male", "warm spanish". The pick applies to the PAL on launch.'>
+              <Field label="" hint='Search Cartesia&apos;s voice library by accent, language, or vibe — try "mexican", "spain", "british female". Picking a voice applies it to the PAL right away (and again at launch, so it never gets lost).'>
                 <div style={{ display: "flex", gap: 8 }}>
                   <input value={voiceQuery} onChange={(e) => setVoiceQuery(e.target.value)} placeholder='e.g. "british female warm"'
                     onKeyDown={(e) => e.key === "Enter" && !voiceLoading && searchVoices()} />
@@ -6858,10 +6894,19 @@ export default function TavusExperienceBuilder() {
                   </button>
                 </div>
                 {externalVoiceId && (
-                  <span className="field-hint" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span className="field-hint" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     Current pick: <b>{externalVoiceName || externalVoiceId}</b>
-                    <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11 }} onClick={() => { setExternalVoiceId(""); setExternalVoiceName(""); }}>Clear</button>
+                    {voiceApply.appliedId === externalVoiceId
+                      ? <span style={{ color: "#1a7f37", fontWeight: 600 }}>on the PAL ✓</span>
+                      : <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11 }} disabled={voiceApply.busy}
+                          onClick={() => applyVoiceNow(externalVoiceId, externalVoiceName)}>
+                          {voiceApply.busy ? "Applying…" : "Apply to PAL now"}
+                        </button>}
+                    <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11 }} onClick={() => { setExternalVoiceId(""); setExternalVoiceName(""); setVoiceApply({ busy: false, appliedId: "", err: "" }); }}>Clear</button>
                   </span>
+                )}
+                {voiceApply.err && (
+                  <span className="field-hint" style={{ color: "#c0392b" }}>Couldn't apply the voice: {voiceApply.err}</span>
                 )}
               </Field>
               {voiceResults && (
@@ -6874,8 +6919,11 @@ export default function TavusExperienceBuilder() {
                         <div style={{ fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.description}</div>
                       </div>
                       <button className={"pill-btn" + (externalVoiceId === v.id ? " primary" : "")} style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0 }}
-                        onClick={() => { setExternalVoiceId(v.id); setExternalVoiceName(v.name); }}>
-                        {externalVoiceId === v.id ? "Selected ✓" : "Use this voice"}
+                        disabled={voiceApply.busy}
+                        onClick={() => { setExternalVoiceId(v.id); setExternalVoiceName(v.name); applyVoiceNow(v.id, v.name); }}>
+                        {voiceApply.busy && externalVoiceId === v.id ? "Applying…"
+                          : voiceApply.appliedId === v.id ? "On the PAL ✓"
+                          : externalVoiceId === v.id ? "Selected ✓" : "Use this voice"}
                       </button>
                     </div>
                   ))}
