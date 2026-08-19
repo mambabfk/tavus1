@@ -773,6 +773,14 @@ const BUILDER_CSS = `
         @media (max-width:820px) { .dz-profile { grid-template-columns:1fr; } }
         .dz-skel { display:flex; flex-direction:column; gap:12px; padding:24px 0 8px; }
         .dz-skel-row { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:9px; }
+        /* Pre-call, the designed stage reads as a VIDEO POSTER — a dark panel
+           with a play affordance — never a giant empty white card. In-call
+           the CVI UI covers it, so this only styles the waiting state. */
+        .demo-designed .demo-stage { background:linear-gradient(160deg, color-mix(in srgb, var(--accent) 22%, #12141a), #101216 62%); border:1px solid var(--border); border-top:none; }
+        .demo-designed .demo-cta::before { content:"▶"; display:flex; align-items:center; justify-content:center; width:64px; height:64px; border-radius:50%; background:var(--accent); color:#fff; font-size:20px; padding-left:5px; box-sizing:border-box; box-shadow:0 14px 40px -12px rgba(0,0,0,.55); }
+        .demo-designed .demo-cta-hint { color:#c7cdd8; }
+        /* Journey / gate / thank-you screens keep a readable light card on the poster. */
+        .demo-designed .exp-screen { background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:0 24px 70px -28px rgba(0,0,0,.5); }
         /* Brand carry-through on themed pages: accent eyebrow + accent CTA +
            a soft accent wash behind the hero. Alto default stays untouched. */
         .demo-eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--accent); margin-bottom:14px; }
@@ -1464,7 +1472,7 @@ function DuetStage({ run, brand, maxTurns, cards = [], labels = null, openerA = 
           }
           if (surfaces?.browserBeat > 0 && nowBeat >= surfaces.browserBeat && !browserCuedRef.current) {
             browserCuedRef.current = true;
-            cue += ` (Stage direction: use your browser now${surfaces.browserShow ? ` — pull up ${surfaces.browserShow}` : ""} and show it while you keep talking.)`;
+            cue += ` (Stage direction: start your guided browser flow${surfaces.browserShow ? ` "${surfaces.browserShow}"` : ""} now and narrate it as it moves.)`;
           }
         }
         if (d.from === "a") {
@@ -3079,32 +3087,6 @@ export default function TavusExperienceBuilder() {
   // OWN config schema pulled from the account's registry (GET /skills), so
   // fields stay correct as Tavus evolves the brand-new skill. Values live in
   // browserUseConfig (JSON string) — one source of truth with the raw box.
-  const [browserSchema, setBrowserSchema] = useState(null); // null=untried, false=no schema published, object=schema
-  const [browserSchemaLoading, setBrowserSchemaLoading] = useState(false);
-  const fetchBrowserSchema = async () => {
-    if (!apiKey.trim()) { addLog("err", "Enter your Tavus API key in Setup first."); return; }
-    setBrowserSchemaLoading(true);
-    try {
-      const d = await tavusFetch("GET", "/skills");
-      const list = Array.isArray(d) ? d : d?.data || d?.skills || [];
-      const sk = list.find((s) => [s.skill_id, s.id, s.name].includes("browser_use"));
-      const schema = sk?.config_schema || sk?.configSchema || sk?.schema || null;
-      if (schema && typeof schema === "object" && schema.properties && typeof schema.properties === "object") {
-        setBrowserSchema(schema);
-        addLog("ok", `Browser Use: loaded ${Object.keys(schema.properties).length} config option${Object.keys(schema.properties).length > 1 ? "s" : ""} straight from Tavus's skill registry.`);
-      } else {
-        setBrowserSchema(false);
-        addLog("info", sk
-          ? "Tavus doesn't publish a config schema for browser_use yet — use the JSON box below; “Validate & attach now” checks it against the live API."
-          : "browser_use isn't in this account's skill registry response — it may need enabling on the account. The JSON box + validate still work.");
-      }
-    } catch (e) {
-      setBrowserSchema(false);
-      addLog("err", `Skill registry: ${e.message} — the JSON box below still works.`);
-    } finally {
-      setBrowserSchemaLoading(false);
-    }
-  };
   const browserCfgObj = useMemo(() => { try { return JSON.parse(browserUseConfig || "{}") || {}; } catch { return {}; } }, [browserUseConfig]);
   const setBrowserCfgField = (k, v) => {
     const next = { ...browserCfgObj };
@@ -3112,11 +3094,55 @@ export default function TavusExperienceBuilder() {
     if (empty) delete next[k]; else next[k] = v;
     setBrowserUseConfig(Object.keys(next).length ? JSON.stringify(next, null, 2) : "");
   };
+  /* ✨ Draft a guided flow: describe the walkthrough → Claude scripts it per
+     Tavus's best practices (small single-action steps, 1-2 sentences of
+     narration each — the narration covers the browser's think time). */
+  const [browserFlowDesc, setBrowserFlowDesc] = useState("");
+  const [browserFlowBusy, setBrowserFlowBusy] = useState(false);
+  const draftBrowserFlow = async () => {
+    const desc = browserFlowDesc.trim();
+    if (!desc || browserFlowBusy) return;
+    setBrowserFlowBusy(true);
+    try {
+      addLog("info", "Scripting the guided flow — small steps, narration per step…");
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: "browserflow", vibe: desc, context: { brand: site.brand, product: personaBrief.product || personaBrief.vibe } }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: scripting failed`);
+      }
+      const flow = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+      if (!flow?.name || !Array.isArray(flow.steps) || !flow.steps.length) throw new Error("The flow came back incomplete — describe the walkthrough more concretely (site, what to show, in what order).");
+      const cur = Array.isArray(browserCfgObj.guided_flows) ? browserCfgObj.guided_flows : [];
+      setBrowserCfgField("guided_flows", [...cur, flow]);
+      setBrowserUseEnabled(true);
+      setBrowserFlowDesc("");
+      addLog("ok", `Flow "${flow.name}" scripted — ${flow.steps.length} steps. Review each step's narration, then 🧪 Validate & attach.`);
+    } catch (e) {
+      addLog("err", `Flow: ${e.message}`);
+    } finally {
+      setBrowserFlowBusy(false);
+    }
+  };
   const validateBrowserUse = async () => {
     if (!palId.trim()) { addLog("err", "Validation needs a PAL ID (Setup step) — Tavus checks the config on attach."); return; }
     let cfg = {};
     if (browserUseConfig.trim()) {
       try { cfg = JSON.parse(browserUseConfig); } catch { addLog("err", "The Browser Use config isn't valid JSON — fix it first."); return; }
+    }
+    if (!Array.isArray(cfg.guided_flows) || !cfg.guided_flows.length) {
+      addLog("err", "Browser Use needs at least one guided flow (it runs pre-authored walkthroughs, never free-browses) — add or ✨ script one first.");
+      return;
+    }
+    if (cfg.guided_flows.some((f) => (Array.isArray(f?.steps) ? f.steps : []).some((st) => st?.slide != null && st.slide !== "")) && !cfg.slide_document_id) {
+      addLog("err", "A flow has 🖼 slide steps but no slide deck — set slide_document_id (Tavus rejects the config without it).");
+      return;
     }
     try {
       addLog("info", "Attaching Browser Use with this config (Tavus validates it server-side)…");
@@ -4609,13 +4635,17 @@ export default function TavusExperienceBuilder() {
       addLog("err", "Browsing inject: draft a persona first (Persona step) — there's no prompt to weave the browsing into.");
       return;
     }
+    const flowsList = (Array.isArray(browserCfgObj.guided_flows) ? browserCfgObj.guided_flows : [])
+      .filter((f) => String(f?.name ?? "").trim())
+      .map((f) => `- "${f.name}"${f.description ? ` — ${f.description}` : ""} (${Array.isArray(f.steps) ? f.steps.length : 0} steps)`)
+      .join("\n");
     const parts = [
-      "The persona can drive a live web browser on the call (Browser Use skill). Weave browsing into the persona: add or adjust a section instructing it to (a) steer the conversation toward each browsing moment below, (b) bring the page up at that moment and speak to what's ON the page, and (c) mirror any new beats in the objectives so the flow reaches them.",
-      "Hard rules to include: never read URLs aloud; never announce mechanics ('let me open a browser', 'I'm navigating to') — the page appears while it talks naturally; if the browser fails or a page won't load, continue the conversation from its own knowledge without comment.",
+      "The persona has the Browser Use skill: it can run PRE-AUTHORED, NAMED guided browser flows — scripted walkthroughs it narrates while a live browser streams to the participant. It cannot free-browse; it can only run these flows. Weave this into the persona: add or adjust a section instructing it to (a) steer the conversation toward each flow's moment, (b) run the right flow BY NAME at that moment and narrate what's on screen, and (c) mirror any new beats in the objectives so the flow gets reached.",
+      "Hard rules to include: never read URLs aloud; never announce mechanics ('let me open a browser', 'I'm starting a flow') — the walkthrough just begins while it talks naturally; if a flow fails or stalls, continue the conversation from its own knowledge without comment.",
     ];
-    if (browsePlan.trim()) parts.push(`Browsing plan (when → which page):\n${browsePlan.trim()}`);
-    else parts.push("No specific pages are planned — add a short section saying it may pull up relevant public pages when showing beats telling.");
-    await revisePersona(parts.join("\n\n"), "Browsing woven into prompt");
+    if (flowsList) parts.push(`Its guided flows:\n${flowsList}`);
+    if (browsePlan.trim()) parts.push(`When to run which flow:\n${browsePlan.trim()}`);
+    await revisePersona(parts.join("\n\n"), "Guided flows woven into prompt");
   };
 
   /* ── Test drive: text-only chat against the PAL (no video, no camera).
@@ -5515,7 +5545,7 @@ export default function TavusExperienceBuilder() {
       const sharedCtx = `This is a recorded on-camera segment. Keep every turn short — one or two sentences, three only when a moment truly needs it. Never monologue. Follow the conversation plan in order:\n${outline}`;
       const surfaceCtx = [
         duetDeck && docIds.length ? "You have a slide deck attached. When the plan reaches material worth showing, present the relevant slide while you talk — don't narrate the mechanics, just bring it up." : "",
-        duetBrowser ? `You have a Browser Use skill.${duetBrowserShow.trim() ? ` When directed (or when the plan calls for it), pull up: ${duetBrowserShow.trim().slice(0, 300)}.` : " When the plan calls for showing something live on the web, pull the page up and talk over it."}` : "",
+        duetBrowser ? `You have the Browser Use skill with pre-authored guided flows.${duetBrowserShow.trim() ? ` When directed (or when the plan calls for it), run the "${duetBrowserShow.trim().slice(0, 200)}" flow and narrate it as it moves.` : " When the plan calls for showing the product live, run the most relevant guided flow and narrate it as it moves."}` : "",
         (duetDeck && docIds.length) || duetBrowser ? "The other speaker's messages may contain a parenthetical note like (Stage direction: …). Those notes are cues for you, not spoken words — act on them immediately and silently; never read them aloud, repeat them, or mention them." : "",
       ].filter(Boolean).join("\n");
       setStudioStatus("Creating both conversations…");
@@ -5919,6 +5949,17 @@ export default function TavusExperienceBuilder() {
         addLog("ok", `Tools attached: ${toolDefs.map((t) => t.function.name).join(", ")}.`);
       }
 
+      // Browser Use runs pre-authored guided flows only — attaching an empty
+      // config would be rejected (or worse, silently useless).
+      if (browserUseEnabled) {
+        let bc = {};
+        try { bc = browserUseConfig.trim() ? JSON.parse(browserUseConfig) : {}; } catch { /* the loop below reports bad JSON */ }
+        if (!Array.isArray(bc.guided_flows) || !bc.guided_flows.length) {
+          addLog("err", "Browser Use is on but has no guided flows — script one on the Presentation step (the skill runs pre-authored walkthroughs; it never free-browses).");
+          setBusy(false);
+          return;
+        }
+      }
       // Tavus-authored skills (internet_search / browser_use) — same PUT
       // pattern as presentation/canvas; they persist on the PAL.
       for (const [on, skillId, cfgText] of [
@@ -7110,88 +7151,128 @@ export default function TavusExperienceBuilder() {
                 </div>
               )}
 
-              <div className="skill-head" style={{ maxWidth: 620, marginTop: 26, marginBottom: 4 }}>
-                <span style={{ fontSize: 15, fontWeight: 700 }}>🌐 Browser Use — live web on stage</span>
+              <div className="skill-head" style={{ maxWidth: 660, marginTop: 26, marginBottom: 4 }}>
+                <span style={{ fontSize: 15, fontWeight: 700 }}>🌐 Browser Use — guided live-browser walkthroughs</span>
                 <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12 }} onClick={() => detachSkill("browser_use")}>Detach</button>
                   <Toggle on={browserUseEnabled} onChange={setBrowserUseEnabled} />
                 </span>
               </div>
-              <p className="field-hint" style={{ maxWidth: 620 }}>
-                The AI human drives a real browser on the call — the page renders in the stage exactly like slides do
-                (same screen track). Steer <i>when</i> it browses with the plan below; configure <i>how</i> with options
-                pulled live from Tavus's skill registry.
+              <p className="field-hint" style={{ maxWidth: 660 }}>
+                The AI human drives a REAL cloud browser and narrates walkthroughs you script ahead of time — pages stream into
+                the stage exactly like slides (same screen track). It only runs your named flows; it never free-browses.
+                Account-enabled: Tavus grants this skill on request via your account team.
               </p>
-              {browserUseEnabled && (
-                <>
-                  <Field label="Browse plan" hint='The "talk track" for browsing — one moment per line, when → which page. Rides each launch (like canvas rules), so different demos can browse differently on the same PAL.'>
-                    <textarea style={{ minHeight: 90, fontSize: 13 }} value={browsePlan}
-                      onChange={(e) => setBrowsePlan(e.target.value)}
-                      placeholder={"When they ask about pricing → pull up tavus.io/pricing\nWhen comparing plans → the plans comparison page\nIf they mention the API → the developer docs homepage"} />
-                  </Field>
-                  <div style={{ display: "flex", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-                    <button className="pill-btn" onClick={injectBrowsingIntoPrompt} disabled={generating || !personaDraft.trim()}
-                      title={personaDraft.trim() ? "Claude weaves the browsing moments into the persona (and goals) so the conversation actually steers there" : "Draft a persona first"}>
-                      {generating ? "Weaving…" : "🪡 Inject into prompt"}
-                    </button>
-                  </div>
-                  <div className="subhead" style={{ marginTop: 14 }}>Skill configuration</div>
-                  <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-                    <button className="pill-btn" onClick={fetchBrowserSchema} disabled={browserSchemaLoading}>
-                      {browserSchemaLoading ? "Loading…" : browserSchema && browserSchema !== false ? "↻ Reload config options" : "⚙️ Load config options from Tavus"}
-                    </button>
-                    <button className="pill-btn primary" onClick={validateBrowserUse} title="PUT the skill to your PAL right now — Tavus validates the config server-side and the log shows the verdict">
-                      🧪 Validate &amp; attach now
-                    </button>
-                  </div>
-                  {browserSchema && browserSchema !== false && (
-                    <div style={{ maxWidth: 620, marginBottom: 10 }}>
-                      {Object.entries(browserSchema.properties).map(([key, p]) => {
-                        const req = Array.isArray(browserSchema.required) && browserSchema.required.includes(key);
-                        const val = browserCfgObj[key];
-                        const label = `${key}${req ? " *" : ""}`;
-                        const type = Array.isArray(p?.enum) ? "enum" : p?.type;
-                        return (
-                          <Field key={key} label={label} hint={String(p?.description || "")}>
-                            {type === "boolean" ? (
-                              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
-                                <input type="checkbox" style={{ width: "auto" }} checked={val === true}
-                                  onChange={(e) => setBrowserCfgField(key, e.target.checked ? true : "")} />
-                                {p?.description ? "on" : key}
-                              </label>
-                            ) : type === "enum" ? (
-                              <select style={{ width: "auto" }} value={val ?? ""} onChange={(e) => setBrowserCfgField(key, e.target.value)}>
-                                <option value="">(default{p?.default !== undefined ? `: ${String(p.default)}` : ""})</option>
-                                {p.enum.map((o) => <option key={String(o)} value={o}>{String(o)}</option>)}
-                              </select>
-                            ) : type === "number" || type === "integer" ? (
-                              <input type="number" style={{ maxWidth: 200 }} value={val ?? ""}
-                                placeholder={p?.default !== undefined ? String(p.default) : ""}
-                                onChange={(e) => setBrowserCfgField(key, e.target.value === "" ? "" : Number(e.target.value))} />
-                            ) : type === "array" ? (
-                              <textarea style={{ minHeight: 60, fontSize: 12.5 }} value={Array.isArray(val) ? val.join("\n") : ""}
-                                placeholder="One entry per line"
-                                onChange={(e) => setBrowserCfgField(key, e.target.value.split("\n").map((s2) => s2.trim()).filter(Boolean))} />
-                            ) : (
-                              <input value={val ?? ""} placeholder={p?.default !== undefined ? String(p.default) : ""}
-                                onChange={(e) => setBrowserCfgField(key, e.target.value)} />
-                            )}
-                          </Field>
-                        );
-                      })}
+              {browserUseEnabled && (() => {
+                const flows = Array.isArray(browserCfgObj.guided_flows) ? browserCfgObj.guided_flows : [];
+                const setFlows = (f) => setBrowserCfgField("guided_flows", f);
+                const patchFlow = (i, patch) => setFlows(flows.map((f, j) => (j === i ? { ...f, ...patch } : f)));
+                const stepsOf = (f) => (Array.isArray(f?.steps) ? f.steps : []);
+                const putStep = (i, j, next) => patchFlow(i, { steps: stepsOf(flows[i]).map((st, k) => (k === j ? next : st)).filter(Boolean) });
+                const stepType = (st) => (st && st.slide != null && st.slide !== "" ? "slide" : st && Object.prototype.hasOwnProperty.call(st, "task") ? "task" : "speak");
+                const inp2 = { fontSize: 12.5 };
+                const hasSlideSteps = flows.some((f) => stepsOf(f).some((st) => st?.slide != null && st.slide !== ""));
+                return (
+                  <>
+                    <div className="subhead" style={{ marginTop: 10 }}>Guided flows</div>
+                    {flows.map((f, i) => (
+                      <div key={i} className="jr-card" style={{ maxWidth: 680, marginBottom: 12 }}>
+                        <div className="jr-head">
+                          <span className="jr-type">🧭 flow {i + 1}{f.name ? ` — ${f.name}` : ""}</span>
+                          <span className="jr-btns"><button className="kb-del" onClick={() => setFlows(flows.filter((_, j) => j !== i))} title="Delete this flow">✕</button></span>
+                        </div>
+                        <div style={{ display: "flex", gap: 6, marginBottom: 6, flexWrap: "wrap" }}>
+                          <input style={{ ...inp2, flex: "1 1 180px" }} placeholder={'Name — e.g. "Onboarding" (the AI picks flows by name)'} value={f.name || ""} onChange={(e) => patchFlow(i, { name: e.target.value })} />
+                          <input style={{ ...inp2, flex: "2 1 260px" }} placeholder="One-line description — what this flow covers" value={f.description || ""} onChange={(e) => patchFlow(i, { description: e.target.value })} />
+                        </div>
+                        <input className="mono" style={{ ...inp2, marginBottom: 8, width: "100%" }} placeholder="Start URL — the page this flow begins on" value={f.start_url || ""} onChange={(e) => patchFlow(i, { start_url: e.target.value })} />
+                        {stepsOf(f).map((st, j) => {
+                          const t3 = stepType(st);
+                          return (
+                            <div key={j} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 8, marginBottom: 6, background: "var(--canvas)" }}>
+                              <div style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+                                <span style={{ fontSize: 11, color: "var(--muted)", width: 16, flexShrink: 0 }}>{j + 1}</span>
+                                <select
+                                  style={{ ...inp2, width: "auto", flexShrink: 0 }}
+                                  value={t3}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    putStep(i, j, v === "task" ? { task: st.task || "", prompt: st.prompt || "" } : v === "slide" ? { slide: st.slide || 1, prompt: st.prompt || "" } : { prompt: st.prompt || "" });
+                                  }}
+                                >
+                                  <option value="task">🌐 Browser action</option>
+                                  <option value="speak">💬 Speak only</option>
+                                  <option value="slide">🖼 Slide</option>
+                                </select>
+                                {t3 === "task" && <input style={{ ...inp2, flex: 1 }} placeholder={'One small action — "Open the Projects tab"'} value={st.task || ""} onChange={(e) => putStep(i, j, { ...st, task: e.target.value })} />}
+                                {t3 === "slide" && <input type="number" min="1" style={{ ...inp2, width: 84 }} title="1-based page of the slide deck" value={st.slide ?? 1} onChange={(e) => putStep(i, j, { ...st, slide: Number(e.target.value) || 1 })} />}
+                                <button className="kb-del" onClick={() => putStep(i, j, null)} title="Remove step">✕</button>
+                              </div>
+                              <input
+                                style={{ ...inp2, marginBottom: t3 === "task" ? 6 : 0, width: "100%" }}
+                                placeholder={t3 === "slide" ? "Narration (optional — omit to narrate from the slide's own summary)" : "Narration — 1-2 sentences it speaks during this step (this covers the browser's think time)"}
+                                value={st.prompt || ""}
+                                onChange={(e) => putStep(i, j, { ...st, prompt: e.target.value })}
+                              />
+                              {t3 === "task" && (
+                                <input className="mono" style={{ ...inp2, width: "100%" }} placeholder="Checkpoint URL (optional — lets the flow jump straight to this step)" value={st.url || ""} onChange={(e) => putStep(i, j, { ...st, url: e.target.value })} />
+                              )}
+                              {t3 === "task" && !String(st.prompt || "").trim() && <span className="field-hint" style={{ color: "#b4552d" }}>⚠ browser steps need narration — silence here reads as dead air</span>}
+                            </div>
+                          );
+                        })}
+                        <button className="pill-btn" style={{ padding: "3px 12px", fontSize: 12 }} onClick={() => patchFlow(i, { steps: [...stepsOf(f), { task: "", prompt: "" }] })}>+ Step</button>
+                        {!stepsOf(f).length && <span className="field-hint" style={{ marginLeft: 8, color: "#b4552d" }}>⚠ a flow needs at least one step</span>}
+                      </div>
+                    ))}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                      <button className="pill-btn" onClick={() => setFlows([...flows, { name: "", description: "", start_url: "", steps: [{ prompt: "" }, { task: "", prompt: "" }] }])}>+ Add flow</button>
+                      <button className="pill-btn primary" onClick={validateBrowserUse} title="PUT the skill to your PAL right now — Tavus validates the config server-side and the log shows the verdict">
+                        🧪 Validate &amp; attach now
+                      </button>
                     </div>
-                  )}
-                  <details style={{ maxWidth: 620, marginBottom: 8 }} {...(browserSchema === false ? { open: true } : {})}>
-                    <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--muted)" }}>{"{ }"} Raw config JSON</summary>
-                    <textarea className="mono" style={{ minHeight: 90, fontSize: 12, marginTop: 8, width: "100%" }} value={browserUseConfig}
-                      onChange={(e) => setBrowserUseConfig(e.target.value)} placeholder='{ }' />
-                    <p className="field-hint" style={{ margin: "6px 0 0" }}>
-                      The form above and this box edit the same config. Passed verbatim as the skill's config at attach;
-                      🧪 Validate gets Tavus's server-side verdict instantly.
-                    </p>
-                  </details>
-                </>
-              )}
+                    <Field label="✨ Script a flow" hint="Describe the walkthrough — the site, what to show, in what order. Claude writes it Tavus-style: a speak-only intro, small single-action steps, and a sentence or two of narration on every step (the narration is what covers the browser's load time).">
+                      <textarea style={{ minHeight: 56 }} value={browserFlowDesc} onChange={(e) => setBrowserFlowDesc(e.target.value)}
+                        placeholder={'e.g. "Walk tavus.io: land on the homepage, open Pricing and point at the starter tier, show the developer quickstart, end back on the homepage"'} />
+                      <div style={{ marginTop: 8 }}>
+                        <button className="pill-btn primary" onClick={draftBrowserFlow} disabled={browserFlowBusy || !browserFlowDesc.trim()}>
+                          {browserFlowBusy ? "Scripting…" : "✨ Script this flow"}
+                        </button>
+                      </div>
+                    </Field>
+                    {(hasSlideSteps || browserCfgObj.slide_document_id) && (
+                      <Field label="Slide deck for 🖼 slide steps" hint="Slide steps show pages from ONE Knowledge Base deck (required whenever any step uses a slide) — the same document type the Presentation skill uses. If the deck isn't display-ready at call time, slide steps gracefully become speak-only.">
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <input className="mono" style={{ flex: "1 1 220px" }} value={browserCfgObj.slide_document_id || ""} onChange={(e) => setBrowserCfgField("slide_document_id", e.target.value)} placeholder="d…" />
+                          {docIds.length > 0 && !browserCfgObj.slide_document_id && (
+                            <button className="pill-btn" style={{ flexShrink: 0, fontSize: 12 }} onClick={() => setBrowserCfgField("slide_document_id", docIds[0])}>Use the Presentation deck</button>
+                          )}
+                        </div>
+                        {hasSlideSteps && !browserCfgObj.slide_document_id && (
+                          <span className="field-hint" style={{ color: "var(--danger)" }}>⚠ You have slide steps but no deck — Tavus rejects the config without slide_document_id.</span>
+                        )}
+                      </Field>
+                    )}
+                    <Field label="When to run which flow" hint="Steering, not configuration — one moment per line, referencing flows BY NAME. 🪡 Inject weaves the flows and these moments into the persona and goals so the conversation actually gets there.">
+                      <textarea style={{ minHeight: 64, fontSize: 13 }} value={browsePlan}
+                        onChange={(e) => setBrowsePlan(e.target.value)}
+                        placeholder={'When they ask how setup works → run the "Onboarding" flow\nAfter pricing is settled → run the "Reporting tour" flow'} />
+                      <div style={{ marginTop: 8 }}>
+                        <button className="pill-btn" onClick={injectBrowsingIntoPrompt} disabled={generating || !personaDraft.trim()}
+                          title={personaDraft.trim() ? "Claude weaves the flows and their moments into the persona (and goals)" : "Draft a persona first"}>
+                          {generating ? "Weaving…" : "🪡 Inject into prompt"}
+                        </button>
+                      </div>
+                    </Field>
+                    <details style={{ maxWidth: 680, marginBottom: 8 }}>
+                      <summary style={{ cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--muted)" }}>{"{ }"} Raw config JSON</summary>
+                      <textarea className="mono" style={{ minHeight: 90, fontSize: 12, marginTop: 8, width: "100%" }} value={browserUseConfig}
+                        onChange={(e) => setBrowserUseConfig(e.target.value)} placeholder={'{ "guided_flows": [] }'} />
+                      <p className="field-hint" style={{ margin: "6px 0 0" }}>The editor above and this box edit the same config — PUT …/skills/browser_use at attach.</p>
+                    </details>
+                  </>
+                );
+              })()}
             </>
           )}
 
@@ -8638,7 +8719,7 @@ export default function TavusExperienceBuilder() {
                           </label>
                           {duetBrowser && (
                             <div style={{ margin: "0 0 4px 26px", display: "flex", flexDirection: "column", gap: 6 }}>
-                              <input style={{ fontSize: 12.5 }} value={duetBrowserShow} onChange={(e) => setDuetBrowserShow(e.target.value)} placeholder="What should it pull up? — a URL or a task, e.g. “tavus.io pricing page”" />
+                              <input style={{ fontSize: 12.5 }} value={duetBrowserShow} onChange={(e) => setDuetBrowserShow(e.target.value)} placeholder='Which guided flow should it run? — the flow NAME from the Presentation step, e.g. "Pricing tour"' />
                               <div>{beatSelect(duetBrowserBeat, setDuetBrowserBeat)}</div>
                             </div>
                           )}

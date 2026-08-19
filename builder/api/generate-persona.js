@@ -234,6 +234,25 @@ function presentationContextLines(pres) {
   return lines;
 }
 
+/* Guided browser flow (browser_use skill): a walkthrough description →
+   Tavus-shaped flow config, per their best practices. */
+const BROWSERFLOW_SYSTEM = `You script a GUIDED BROWSER FLOW for Tavus's browser_use skill: a pre-authored walkthrough the AI human runs on a live cloud browser while narrating — participants watch the pages over screen share. The AI follows these steps exactly; it never free-browses.
+
+Return ONLY JSON (no markdown fences):
+{"name":"short descriptive flow name (the AI picks flows by name)",
+ "description":"one line — what the flow covers",
+ "start_url":"https://… (the page the browser lands on first)",
+ "steps":[3-12 steps, each ONE of:
+   {"prompt":"…"}  — speak-only: the AI says this, no browser action (use one as the intro),
+   {"task":"one small single action in plain language","prompt":"1-2 sentences narrated while it happens","url":"https://… (optional checkpoint — only when the step lands on a stable, directly-addressable page)"}]}
+
+Rules (Tavus's own best practices):
+- SMALL single-action tasks: "Open the Pricing page", never "sign in, create a project and invite a user".
+- EVERY step gets a prompt of a sentence or two. The AI narrates after the action lands, and the browser plans the next step while it speaks — the narration IS the loading cover. Too-short prompts cause dead air.
+- Start with a speak-only intro step framing what's about to be shown.
+- Ground everything in the site/product described; derive start_url and checkpoint urls from it; never invent pages that weren't implied.
+- Narration is spoken aloud: no URLs read out, no UI mechanics ("I'm clicking…") — talk about what the page MEANS.`;
+
 /* Flow: a plain-English (often dictated) scenario description → structured
    objectives DSL, revising any existing steps rather than clobbering them. */
 const FLOW_SYSTEM = `You structure conversation flows for a Tavus PAL from plain-English descriptions — often rambly dictation. Return ONLY JSON (no markdown fences):
@@ -383,6 +402,16 @@ export default async function handler(req, res) {
     system = DUET_SYSTEM;
     const parts = [`Design the duet:\n${String(vibe).trim().slice(0, 2000)}`];
     if (context?.brand) parts.push(`Brand on the demo page: ${context.brand}`);
+    userPrompt = parts.join("\n\n");
+  } else if (kind === "browserflow") {
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Describe the walkthrough first — the site, what to show, in what order." });
+      return;
+    }
+    system = BROWSERFLOW_SYSTEM;
+    const parts = [`Script this walkthrough:\n${String(vibe).trim().slice(0, 4000)}`];
+    if (context?.brand) parts.push(`Brand: ${String(context.brand).slice(0, 200)}`);
+    if (context?.product) parts.push(`Product context: ${String(context.product).slice(0, 800)}`);
     userPrompt = parts.join("\n\n");
   } else if (kind === "flow") {
     if (!String(vibe).trim()) {
