@@ -32,6 +32,20 @@ export default async function handler(req, res) {
   }
   if (req.method !== "POST") { res.status(405).json({ error: "GET or POST only" }); return; }
   if (!isAuthed(req)) { res.status(401).json({ error: "Not signed in — enter the access code first." }); return; }
+
+  // Diagnostic preflight — the @vercel/blob client swallows this endpoint's
+  // error bodies ("Failed to retrieve the client token" hides everything),
+  // so the frontend checks the ground truth here before every upload.
+  if (req.body && req.body.__diag) {
+    const t = process.env.BLOB_READ_WRITE_TOKEN || "";
+    res.status(200).json({
+      ok: true,
+      hasToken: !!t,
+      store: t ? (t.split("_")[3] || "").slice(0, 14) : null, // store id from vercel_blob_rw_<store>_<secret> — not a secret
+    });
+    return;
+  }
+
   if (!process.env.BLOB_READ_WRITE_TOKEN) {
     res.status(500).json({ error: "File uploads aren't set up. In Vercel: Storage → Create Database → Blob (attach to this project), then redeploy." });
     return;
@@ -52,6 +66,7 @@ export default async function handler(req, res) {
     });
     res.status(200).json(jsonResponse);
   } catch (e) {
+    console.error("blob-upload handleUpload failed:", e); // visible in Vercel function logs
     res.status(400).json({ error: e.message || "upload failed" });
   }
 }

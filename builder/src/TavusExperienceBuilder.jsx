@@ -4694,7 +4694,7 @@ export default function TavusExperienceBuilder() {
   // missing Blob store shows as a clear banner instead of a mid-upload error.
   const [blobReady, setBlobReady] = useState(null);
   useEffect(() => {
-    if (step !== "kb" || blobReady !== null) return;
+    if (step !== "kb") return; // re-probe every visit — the store may have just been attached
     fetch("/api/blob-upload")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setBlobReady(d ? !!d.configured : false))
@@ -4731,7 +4731,14 @@ export default function TavusExperienceBuilder() {
     if (file.size > 50 * 1024 * 1024) { addLog("err", "That file is over Tavus's 50MB document limit."); return; }
     setKbAdding(true);
     try {
-      addLog("info", `Uploading "${file.name}" (${(file.size / 1e6).toFixed(1)}MB)…`);
+      // Preflight: the blob client hides the token endpoint's real errors, so
+      // check the ground truth first and fail with a message that names it.
+      const pre = await fetch("/api/blob-upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ __diag: true }) });
+      const pj = await pre.json().catch(() => ({}));
+      if (pre.status === 401) throw new Error("Your builder session expired — sign in again, then retry the upload.");
+      if (!pre.ok) throw new Error(pj.error || `token endpoint returned ${pre.status}`);
+      if (!pj.hasToken) throw new Error("The RUNNING deployment has no BLOB_READ_WRITE_TOKEN. The store may be attached, but env vars only land on NEW deployments — Vercel → Deployments → ⋯ on the latest → Redeploy, then retry. (Also check the store is connected under this project's Storage tab, with Production environment ticked.)");
+      addLog("info", `Storage OK (store ${pj.store}) — uploading "${file.name}" (${(file.size / 1e6).toFixed(1)}MB)…`);
       const blob = await blobUpload(file.name, file, { access: "public", handleUploadUrl: "/api/blob-upload" });
       addLog("info", "Uploaded — adding to the Knowledge Base…");
       const doc = await tavusFetch("POST", "/documents", {
