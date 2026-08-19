@@ -48,6 +48,23 @@ export default async function handler(req, res) {
     const base = safeUrl(r.url) || page;
     const body = (await r.text()).slice(0, 3_000_000);
 
+    // meta=1: page metadata instead of links — title + preview image
+    // (og:image), for product-card rows in the approved-links catalog.
+    if (String(req.query?.meta ?? "") === "1") {
+      const pick = (re) => { const m = body.match(re); return m ? decodeEntities(m[1]).trim() : ""; };
+      const rawImg =
+        pick(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i) ||
+        pick(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i) ||
+        pick(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+      let image = "";
+      try { if (rawImg) image = new URL(rawImg, base.href).href; } catch { /* skip */ }
+      const title =
+        pick(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) ||
+        pick(/<title[^>]*>([^<]+)<\/title>/i);
+      res.status(200).json({ title: title.slice(0, 160), image, page: base.href });
+      return;
+    }
+
     const found = new Map(); // url → label
     const add = (href, label) => {
       try {

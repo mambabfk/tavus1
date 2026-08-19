@@ -2161,6 +2161,7 @@ function compileScriptedCards(arr) {
       title: t(c.title),
       body: t(c.body),
       url: t(c.url),
+      href: t(c.href),
       keywords: t(c.keywords),
       atBeat: Math.max(0, parseInt(c.atBeat, 10) || 0), // duets: 1-indexed talk-track beat
       atSeconds: Math.max(0, Math.round((parseFloat(c.atMinutes) || 0) * 60)),
@@ -2227,7 +2228,9 @@ function ScriptedCard({ card, onAnswer, forcePicked = null }) {
       </div>
     );
   } else if (card.style === "image") {
-    inner = <img className="sc-img" src={card.url || ""} alt={card.title || ""} />;
+    const img = <img className="sc-img" src={card.url || ""} alt={card.title || ""} />;
+    // Product cards: the photo click-throughs to the real product page.
+    inner = card.href ? <a href={card.href} target="_blank" rel="noreferrer">{img}</a> : img;
   } else {
     inner = <div className="sc-note">{lines.map((l, i) => <p key={i}>{l}</p>)}</div>;
   }
@@ -4172,6 +4175,14 @@ export default function TavusExperienceBuilder() {
         approvedLinks.map((l) => `- ${String(l.label || "").trim() || String(l.url).trim()}: ${String(l.url).trim()}`).join("\n") +
         "\nIf what the user wants isn't in this list, share the closest listed page and tell them what to look for from there."
       );
+      const withPhotos = approvedLinks.filter((l) => String(l.image || "").trim());
+      if (withPhotos.length) {
+        parts.push(
+          "Product photos appear automatically beside you when these items come up: " +
+          withPhotos.map((l) => String(l.label || "").trim() || String(l.url).trim()).join("; ") +
+          ". When one appears, refer to it naturally (\"here it is on screen\") — never say you can't show images, and don't try to show these items through other cards."
+        );
+      }
     }
 
     if (parts.length) body.conversational_context = parts.join("\n\n");
@@ -4237,8 +4248,27 @@ export default function TavusExperienceBuilder() {
      silently (missing content or an unusable trigger). */
   const compiledScriptedCards = useMemo(() => compileScriptedCards(scCards), [scCards]);
 
+  /* Approved-links rows with a photo become deterministic image cards: the
+     moment EITHER side says the item's words, the product appears beside the
+     video — no model involved, so it can't show the wrong item (or none). */
+  const productCards = useMemo(() => linkCatalog
+    .filter((l) => String(l?.image || "").trim())
+    .map((l) => {
+      const label = String(l.label || "").trim();
+      const kw = String(l.keywords || "").trim() ||
+        (label || decodeURIComponent(String(l.url || "")).split("/").filter(Boolean).pop() || "")
+          .toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 4).slice(0, 4).join(", ");
+      if (!kw) return null;
+      return {
+        style: "image", trigger: "keyword", title: label, body: "",
+        url: String(l.image).trim(), href: String(l.url || "").trim(),
+        keywords: kw, atBeat: 0, atSeconds: 0, hideAfter: 45, owner: "featured",
+      };
+    })
+    .filter(Boolean), [linkCatalog]);
+
   const controlsConfig = useMemo(() => ({
-    scriptedCards: compiledScriptedCards,
+    scriptedCards: [...compiledScriptedCards, ...productCards].slice(0, 16),
     maxSeconds: parseInt(maxMinutes, 10) > 0 ? parseInt(maxMinutes, 10) * 60 : 0,
     timeWarning: timeWarning.trim(),
     inactivitySeconds: parseInt(inactivitySeconds, 10) > 0 ? parseInt(inactivitySeconds, 10) : 0,
@@ -4251,7 +4281,7 @@ export default function TavusExperienceBuilder() {
     // daily.startRecording() once joined. CallExtras does that when this is set.
     recording: recordingEnabled && !!(recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim()),
     recordingLayout: recLayout,
-  }), [compiledScriptedCards, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout]);
+  }), [compiledScriptedCards, productCards, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout]);
 
   /* Journey editor helpers — steps the builder composes for the guided
      pre-call flow (waiver questions, persona pickers, videos, …). */
@@ -5144,6 +5174,25 @@ export default function TavusExperienceBuilder() {
         throw new Error(j.error || "couldn't read that page");
       }
       setLinkFinder((s) => ({ ...s, busy: false, results: j.links || [] }));
+    } catch (e) {
+      setLinkFinder((s) => ({ ...s, busy: false, err: e.message }));
+    }
+  };
+
+  // Pull a catalog row's title + preview photo (og:image) off its live page.
+  const fetchLinkMeta = async (i) => {
+    const u = String(linkCatalog[i]?.url || "").trim();
+    if (!u) return;
+    setLinkFinder((s) => ({ ...s, busy: true, err: "" }));
+    try {
+      const r = await fetch(`/api/site-links?meta=1&url=${encodeURIComponent(u)}`);
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "couldn't read that page");
+      setLinkCatalog((c) => c.map((x, jx) => (jx === i ? { ...x, image: j.image || x.image || "", label: String(x.label || "").trim() || j.title || "" } : x)));
+      setLinkFinder((s) => ({
+        ...s, busy: false,
+        err: j.image ? "" : "That page doesn't declare a preview image — right-click the product photo in your browser, Copy image address, and paste it into the photo field.",
+      }));
     } catch (e) {
       setLinkFinder((s) => ({ ...s, busy: false, err: e.message }));
     }
@@ -7584,13 +7633,32 @@ export default function TavusExperienceBuilder() {
                   )}
                   {linkCatalog.length > 0 && (
                     <div style={{ maxWidth: 680, marginBottom: 16 }}>
+                      <p className="field-hint" style={{ marginBottom: 8 }}>
+                        Give a row a <b>photo</b> and it becomes a live product card: the moment anyone on the call says its trigger words, the picture appears beside the video (click-through to the page). 📷 pulls the photo off the page automatically.
+                      </p>
                       {linkCatalog.map((l, i) => (
-                        <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-                          <input style={{ flex: "1 1 140px" }} placeholder="Label — e.g. Linen ensemble" value={l.label || ""}
-                            onChange={(e) => setLinkCatalog((c) => c.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
-                          <input className="mono" style={{ flex: "2 1 240px", fontSize: 12 }} placeholder="https://…" value={l.url || ""}
-                            onChange={(e) => setLinkCatalog((c) => c.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} />
-                          <button className="pill-btn" style={{ padding: "2px 10px", flexShrink: 0 }} onClick={() => setLinkCatalog((c) => c.filter((_, j) => j !== i))}>✕</button>
+                        <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 10, padding: "8px 10px", border: "1px solid var(--border)", borderRadius: 12 }}>
+                          {String(l.image || "").trim() && (
+                            <img src={l.image} alt="" style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 8, flexShrink: 0, marginTop: 2 }} />
+                          )}
+                          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              <input style={{ flex: "1 1 140px" }} placeholder="Label — e.g. Merino wool sweater" value={l.label || ""}
+                                onChange={(e) => setLinkCatalog((c) => c.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} />
+                              <input className="mono" style={{ flex: "2 1 220px", fontSize: 12 }} placeholder="https://… (the page)" value={l.url || ""}
+                                onChange={(e) => setLinkCatalog((c) => c.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} />
+                            </div>
+                            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                              <input className="mono" style={{ flex: "2 1 220px", fontSize: 12 }} placeholder="Photo URL — or hit 📷" value={l.image || ""}
+                                onChange={(e) => setLinkCatalog((c) => c.map((x, j) => (j === i ? { ...x, image: e.target.value } : x)))} />
+                              <input style={{ flex: "1 1 150px", fontSize: 12 }} placeholder='Trigger words — e.g. "merino, burgundy"' value={l.keywords || ""}
+                                onChange={(e) => setLinkCatalog((c) => c.map((x, j) => (j === i ? { ...x, keywords: e.target.value } : x)))} />
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                            <button className="pill-btn" title="Pull the photo + title off the page" style={{ padding: "2px 10px" }} disabled={linkFinder.busy || !String(l.url || "").trim()} onClick={() => fetchLinkMeta(i)}>📷</button>
+                            <button className="pill-btn" style={{ padding: "2px 10px" }} onClick={() => setLinkCatalog((c) => c.filter((_, j) => j !== i))}>✕</button>
+                          </div>
                         </div>
                       ))}
                     </div>

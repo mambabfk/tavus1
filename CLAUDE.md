@@ -192,7 +192,13 @@ non-technical users; ids unchanged):
    `conversational_context`); `GET /api/site-links?url&q` (builder session,
    SSRF-guarded, browser UA) crawls one real page (or sitemap.xml) server-side
    and returns its same-site links so the catalog is built from the live site,
-   never from memory.
+   never from memory; `?meta=1&url=` returns a page's og:title/og:image (the
+   📷 button per row). Rows with an `image` compile into `productCards` —
+   deterministic scripted image cards (keyword trigger from `keywords` or
+   derived from the label, click-through `href`, 45s auto-hide) merged into
+   `controlsConfig.scriptedCards`, so saying the item's words shows its photo
+   beside the video with no model involved; the context tells the PAL the
+   photos appear automatically.
 4.5. **Pronunciation** (`speech`) — `parsePronunciation`: one rule per line,
    `word = how to say it` (also `:` / `->`), `[ipa]` → `type: "ipa"`, `[case]`
    → `case_sensitive`, duplicates dropped. On launch →
