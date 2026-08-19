@@ -4697,8 +4697,8 @@ export default function TavusExperienceBuilder() {
     if (step !== "kb") return; // re-probe every visit — the store may have just been attached
     fetch("/api/blob-upload")
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setBlobReady(d ? !!d.configured : false))
-      .catch(() => setBlobReady(false));
+      .then((d) => setBlobReady(d ? { configured: !!d.configured, mode: d.mode || "" } : { configured: false, mode: "" }))
+      .catch(() => setBlobReady({ configured: false, mode: "" }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
@@ -4732,17 +4732,43 @@ export default function TavusExperienceBuilder() {
     setKbAdding(true);
     try {
       // Preflight: the blob client hides the token endpoint's real errors, so
-      // check the ground truth first and fail with a message that names it.
+      // check the ground truth first and pick the right upload path.
       const pre = await fetch("/api/blob-upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ __diag: true }) });
       const pj = await pre.json().catch(() => ({}));
       if (pre.status === 401) throw new Error("Your builder session expired — sign in again, then retry the upload.");
       if (!pre.ok) throw new Error(pj.error || `token endpoint returned ${pre.status}`);
-      if (!pj.hasToken) throw new Error("The RUNNING deployment has no BLOB_READ_WRITE_TOKEN. The store may be attached, but env vars only land on NEW deployments — Vercel → Deployments → ⋯ on the latest → Redeploy, then retry. (Also check the store is connected under this project's Storage tab, with Production environment ticked.)");
-      addLog("info", `Storage OK (store ${pj.store}) — uploading "${file.name}" (${(file.size / 1e6).toFixed(1)}MB)…`);
-      const blob = await blobUpload(file.name, file, { access: "public", handleUploadUrl: "/api/blob-upload" });
+      let blobUrl;
+      if (pj.hasToken) {
+        // Legacy read-write token: browser streams straight to the store (50MB ok).
+        addLog("info", `Storage OK (store ${pj.store}) — uploading "${file.name}" (${(file.size / 1e6).toFixed(1)}MB)…`);
+        const blob = await blobUpload(file.name, file, { access: "public", handleUploadUrl: "/api/blob-upload" });
+        blobUrl = blob.url;
+      } else if (pj.hasStoreId && file.size <= 3.5 * 1024 * 1024) {
+        // OIDC-mode store (new Vercel default): no client tokens, so small
+        // files go through the server function instead.
+        addLog("info", `Storage is in OIDC mode — uploading "${file.name}" (${(file.size / 1e6).toFixed(1)}MB) through the server…`);
+        const b64 = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result).split(",")[1] || "");
+          r.onerror = () => reject(new Error("couldn't read the file"));
+          r.readAsDataURL(file);
+        });
+        const up = await fetch("/api/blob-upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ __direct: true, name: file.name, contentType: file.type || "application/octet-stream", data: b64 }),
+        });
+        const uj = await up.json().catch(() => ({}));
+        if (!up.ok) throw new Error(uj.error || `direct upload failed (${up.status})`);
+        blobUrl = uj.url;
+      } else if (pj.hasStoreId) {
+        throw new Error(`"${file.name}" is ${(file.size / 1e6).toFixed(1)}MB — OIDC-mode storage handles up to ~3.5MB through the server. For bigger files: Vercel → Storage → your store → the tavus1 connection's settings → enable BLOB_READ_WRITE_TOKEN → redeploy. Browser uploads (up to 50MB) light up automatically.`);
+      } else {
+        throw new Error("The RUNNING deployment has no Blob credentials at all — connect the store under the tavus1 project's Storage tab (Production ticked) and redeploy.");
+      }
       addLog("info", "Uploaded — adding to the Knowledge Base…");
       const doc = await tavusFetch("POST", "/documents", {
-        document_url: blob.url,
+        document_url: blobUrl,
         document_name: kbName.trim() || file.name.replace(/\.[^.]+$/, ""),
       });
       addLog("ok", `"${doc.document_name || file.name}" added (${doc.document_id}) — processing takes a few minutes; hit Refresh to check.`);
@@ -6768,10 +6794,16 @@ export default function TavusExperienceBuilder() {
                   {kbAdding ? "Adding…" : "Add to Knowledge Base"}
                 </button>
               </div>
-              {blobReady === false && (
+              {blobReady && !blobReady.configured && (
                 <p className="field-hint" style={{ color: "var(--danger)", maxWidth: 560, marginBottom: 8 }}>
                   ⚠ Direct file upload isn't configured on the server — in Vercel: <b>Storage → Create Database → Blob</b>, attach it to this project, redeploy.
                   Add-by-link (above) works regardless.
+                </p>
+              )}
+              {blobReady?.configured && blobReady.mode === "oidc" && (
+                <p className="field-hint" style={{ maxWidth: 560, marginBottom: 8 }}>
+                  ✓ Storage connected (OIDC mode) — files up to <b>~3.5MB</b> upload through the server. For bigger decks, enable
+                  <b> BLOB_READ_WRITE_TOKEN</b> in the store's project-connection settings and redeploy — browser uploads to 50MB then light up automatically.
                 </p>
               )}
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18, maxWidth: 560 }}>
