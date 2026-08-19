@@ -274,6 +274,45 @@ const parseObjectives = (text, confirmationMode) => {
   return items;
 };
 
+/* ✨ Design studio: fixed vocabulary the designed format renders from. */
+const DZ_FONTS = {
+  inter: "'Inter', system-ui, -apple-system, sans-serif",
+  serif: "Georgia, 'Iowan Old Style', 'Times New Roman', serif",
+  grotesk: "'Space Grotesk', 'Inter', system-ui, sans-serif",
+  mono: "'IBM Plex Mono', ui-monospace, monospace",
+  system: "system-ui, -apple-system, 'Segoe UI', sans-serif",
+};
+/* Hand-tuned, contrast-safe starting directions — picking one is step 1 of
+   the choose-your-own-journey flow; every token stays editable after. */
+const DESIGN_PRESETS = [
+  { name: "Clinical SaaS", font: "inter", radius: 10, hero: "split", palette: { canvas: "#ffffff", surface: "#f7f8fa", text: "#0d1117", muted: "#57606a", accent: "#0969da", border: "#e3e6ea" } },
+  { name: "Dark launch", font: "grotesk", radius: 16, hero: "center", palette: { canvas: "#0b0d10", surface: "#14171c", text: "#f2f4f8", muted: "#9aa3b2", accent: "#3b82f6", border: "rgba(255,255,255,.09)" } },
+  { name: "Editorial", font: "serif", radius: 6, hero: "split", palette: { canvas: "#faf7f2", surface: "#ffffff", text: "#1c1917", muted: "#6b6259", accent: "#9a3412", border: "#e7e0d8" } },
+  { name: "Playful", font: "grotesk", radius: 22, hero: "center", palette: { canvas: "#fff8f0", surface: "#ffffff", text: "#1f2937", muted: "#6b7280", accent: "#f43f5e", border: "#f3e8d8" } },
+  { name: "Luxury dark", font: "serif", radius: 4, hero: "split", palette: { canvas: "#101014", surface: "#17171d", text: "#ece9e2", muted: "#a8a49a", accent: "#c9a45c", border: "rgba(255,255,255,.08)" } },
+  { name: "Mint fintech", font: "inter", radius: 14, hero: "center", palette: { canvas: "#f4faf7", surface: "#ffffff", text: "#0f2e24", muted: "#5d7268", accent: "#0f9d6e", border: "#dcebe3" } },
+];
+const DZ_SECTION_DEFAULTS = {
+  logos: () => ({ type: "logos", items: ["Acme", "Northwind", "Globex", "Initech"] }),
+  features: () => ({ type: "features", items: [
+    { title: "Fast to launch", body: "Live in minutes, not months." },
+    { title: "Always on", body: "Every visitor gets the full conversation, any hour." },
+    { title: "On brand", body: "Your look, your rules, your guardrails." },
+  ] }),
+  stats: () => ({ type: "stats", items: [
+    { value: "98%", label: "visitor satisfaction" },
+    { value: "24/7", label: "availability" },
+    { value: "3 min", label: "average conversation" },
+  ] }),
+  quote: () => ({ type: "quote", text: "It felt like talking to our best rep — at midnight.", name: "A happy customer" }),
+};
+const hex6 = (v) => {
+  const s = String(v || "").trim();
+  const m3 = s.match(/^#([0-9a-f]{3})$/i);
+  if (m3) return `#${m3[1].split("").map((c) => c + c).join("")}`.toLowerCase();
+  return /^#[0-9a-f]{6}$/i.test(s) ? s.toLowerCase() : "";
+};
+
 /* Pass-1 outline of the objectives DSL (same grouping parseObjectives uses)
    — mains with their branches, for the visual decision tree. */
 function flowOutline(text) {
@@ -2524,13 +2563,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
       const s2 = String(v ?? "").trim();
       return /^#[0-9a-f]{3,8}$/i.test(s2) || /^rgba?\([\d\s.,%]+\)$/i.test(s2) ? s2 : null;
     };
-    const fonts = {
-      inter: "'Inter', system-ui, -apple-system, sans-serif",
-      serif: "Georgia, 'Iowan Old Style', 'Times New Roman', serif",
-      grotesk: "'Space Grotesk', 'Inter', system-ui, sans-serif",
-      mono: "'IBM Plex Mono', ui-monospace, monospace",
-      system: "system-ui, -apple-system, 'Segoe UI', sans-serif",
-    };
+    const fonts = DZ_FONTS;
     const vars = {};
     const p = dz.palette || {};
     [["canvas", "--canvas"], ["surface", "--surface"], ["text", "--text"], ["muted", "--muted"], ["accent", "--accent"], ["border", "--border"]]
@@ -7804,37 +7837,155 @@ export default function TavusExperienceBuilder() {
                 ))}
               </div>
 
-              <div className="subhead">✨ Design engine</div>
-              <Field
-                label="Describe the vibe"
-                hint={'Vibe-build the whole page: Claude designs the palette, typography, hero layout, and writes real on-page sections (features, stats, a quote, a logo strip) around the call stage. Preview instantly, tweak the description, re-run — each run is a fresh design. The design rides scenarios and share links.'}
-              >
-                <textarea
-                  style={{ minHeight: 56 }}
-                  value={site.designVibe || ""}
-                  onChange={(e) => setSiteField("designVibe", e.target.value)}
-                  placeholder={'e.g. "Premium health-tech landing — calm, airy off-white, one deep green accent, editorial serif headline" or "dark, cinematic, product-launch energy, electric blue accent"'}
-                />
-                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                  <button className="pill-btn primary" onClick={generateSiteDesign} disabled={designBusy || !String(site.designVibe || "").trim()}>
-                    {designBusy ? "Designing…" : site.design ? "✨ Redesign from this vibe" : "✨ Generate the page design"}
-                  </button>
-                  {site.design && <button className="pill-btn" onClick={() => setSiteMode(true)}>👁 Preview it</button>}
-                  {site.design && (
-                    <button className="pill-btn ghost" onClick={() => setSite((s) => ({ ...s, design: null, format: s.format === "designed" ? "desktop" : s.format }))}>
-                      ✕ Remove design
-                    </button>
-                  )}
-                </div>
-                {site.design?.palette && (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8 }}>
-                    {["canvas", "surface", "accent", "text"].map((k) => site.design.palette[k] && (
-                      <span key={k} title={`${k}: ${site.design.palette[k]}`} style={{ width: 16, height: 16, borderRadius: 5, background: site.design.palette[k], border: "1px solid var(--border)" }} />
-                    ))}
-                    <span className="field-hint" style={{ marginLeft: 4 }}>{site.design.font || "custom"} · {site.design.hero === "split" ? "split hero" : "centered hero"} · {Array.isArray(site.design.sections) ? site.design.sections.length : 0} sections</span>
-                  </span>
-                )}
-              </Field>
+              <div className="subhead">✨ Design studio</div>
+              <p className="field-hint" style={{ maxWidth: 640, marginBottom: 10 }}>
+                Choose your own journey: <b>1</b> pick a direction, <b>2</b> dial in the exact tokens, <b>3</b> toggle and edit the on-page sections.
+                The vibe box at the bottom is a shortcut — Claude fills <i>these same controls</i>, so nothing it decides is hidden or locked.
+              </p>
+              {(() => {
+                const dzn = site.design && typeof site.design === "object" ? site.design : null;
+                const setDesignField = (k, v) => setSite((s) => ({ ...s, format: "designed", design: { ...(s.design || {}), [k]: v } }));
+                const sections = Array.isArray(dzn?.sections) ? dzn.sections : [];
+                const secIdx = (t2) => sections.findIndex((s2) => s2?.type === t2);
+                const toggleSection = (t2) => {
+                  const i = secIdx(t2);
+                  setDesignField("sections", i >= 0 ? sections.filter((_, j) => j !== i) : [...sections, DZ_SECTION_DEFAULTS[t2]()]);
+                };
+                const patchSection = (i, patch) => setDesignField("sections", sections.map((s2, j) => (j === i ? { ...s2, ...patch } : s2)));
+                const inp = { fontSize: 12.5 };
+                return (
+                  <>
+                    <Field label="1 · Direction" hint="A complete, contrast-safe starting look — palette, type, shape, hero. Picking one keeps your sections and copy; everything below stays editable.">
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        {DESIGN_PRESETS.map((p) => (
+                          <button
+                            key={p.name}
+                            type="button"
+                            onClick={() => setSite((s) => ({ ...s, format: "designed", design: { ...(s.design || {}), palette: { ...p.palette }, font: p.font, radius: p.radius, hero: p.hero } }))}
+                            title={`${p.name} — ${p.font}, ${p.hero} hero`}
+                            style={{
+                              width: 106, borderRadius: 12, padding: "10px 10px 8px", cursor: "pointer", font: "inherit", textAlign: "left",
+                              background: p.palette.canvas, color: p.palette.text, border: "1px solid var(--border)",
+                              outline: dzn && hex6(dzn.palette?.accent) === hex6(p.palette.accent) && dzn.font === p.font ? "2px solid var(--accent)" : "none",
+                            }}
+                          >
+                            <span style={{ display: "block", fontSize: 17, fontWeight: 700, fontFamily: DZ_FONTS[p.font] }}>Ag</span>
+                            <span style={{ display: "inline-block", width: 14, height: 14, borderRadius: p.radius >= 16 ? 7 : 4, background: p.palette.accent, margin: "6px 0 4px" }} />
+                            <span style={{ display: "block", fontSize: 11, fontWeight: 600 }}>{p.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </Field>
+                    {dzn && (
+                      <>
+                        <Field label="2 · Tokens" hint="The exact palette, typeface, corner radius, and hero layout.">
+                          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+                            {["canvas", "surface", "text", "muted", "accent"].map((k) => (
+                              <label key={k} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: "var(--muted)" }}>
+                                {k}
+                                <input
+                                  type="color"
+                                  value={hex6(dzn.palette?.[k]) || "#ffffff"}
+                                  onChange={(e) => setDesignField("palette", { ...(dzn.palette || {}), [k]: e.target.value })}
+                                  style={{ width: 46, height: 30, padding: 0, border: "1px solid var(--border)", borderRadius: 8, background: "none", cursor: "pointer" }}
+                                />
+                              </label>
+                            ))}
+                            <label style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: "var(--muted)" }}>
+                              typeface
+                              <select style={{ width: "auto", fontSize: 12.5 }} value={dzn.font || "inter"} onChange={(e) => setDesignField("font", e.target.value)}>
+                                {Object.keys(DZ_FONTS).map((f) => <option key={f} value={f}>{f}</option>)}
+                              </select>
+                            </label>
+                            <label style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: "var(--muted)" }}>
+                              corners · {parseInt(dzn.radius, 10) || 16}px
+                              <input type="range" min="4" max="32" value={parseInt(dzn.radius, 10) || 16} onChange={(e) => setDesignField("radius", Number(e.target.value))} style={{ width: 120 }} />
+                            </label>
+                            <div className="seg" style={{ fontSize: 12 }}>
+                              <button className={dzn.hero !== "split" ? "on" : ""} onClick={() => setDesignField("hero", "center")}>Centered hero</button>
+                              <button className={dzn.hero === "split" ? "on" : ""} onClick={() => setDesignField("hero", "split")}>Split hero</button>
+                            </div>
+                          </div>
+                        </Field>
+                        <Field label="3 · On-page sections" hint="Toggle what exists; edit every word inline. These render below the hero, in this order.">
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+                            {[["logos", "🏢 Logo strip"], ["features", "🧩 Feature cards"], ["stats", "📈 Stats"], ["quote", "❝ Quote"]].map(([t2, l]) => (
+                              <button key={t2} type="button" className={"pill-btn" + (secIdx(t2) >= 0 ? " primary" : "")} style={{ padding: "4px 13px", fontSize: 12.5 }} onClick={() => toggleSection(t2)}>{l}</button>
+                            ))}
+                          </div>
+                          {sections.map((s2, i) => {
+                            if (s2?.type === "logos") return (
+                              <div key={i} style={{ marginBottom: 10 }}>
+                                <span className="field-hint">Logo strip — names, comma-separated</span>
+                                <input style={inp} value={(s2.items || []).join(", ")} onChange={(e) => patchSection(i, { items: e.target.value.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 6) })} />
+                              </div>
+                            );
+                            if (s2?.type === "features") return (
+                              <div key={i} style={{ marginBottom: 10 }}>
+                                <span className="field-hint">Feature cards</span>
+                                {(s2.items || []).map((f, j) => (
+                                  <div key={j} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                                    <input style={{ ...inp, flex: "0 1 200px" }} placeholder="Title" value={f?.title || ""} onChange={(e) => patchSection(i, { items: s2.items.map((x, k2) => (k2 === j ? { ...x, title: e.target.value } : x)) })} />
+                                    <input style={{ ...inp, flex: 1 }} placeholder="One sentence" value={f?.body || ""} onChange={(e) => patchSection(i, { items: s2.items.map((x, k2) => (k2 === j ? { ...x, body: e.target.value } : x)) })} />
+                                    <button className="kb-del" onClick={() => patchSection(i, { items: s2.items.filter((_, k2) => k2 !== j) })}>✕</button>
+                                  </div>
+                                ))}
+                                {(s2.items || []).length < 4 && <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11.5 }} onClick={() => patchSection(i, { items: [...(s2.items || []), { title: "", body: "" }] })}>+ card</button>}
+                              </div>
+                            );
+                            if (s2?.type === "stats") return (
+                              <div key={i} style={{ marginBottom: 10 }}>
+                                <span className="field-hint">Stats</span>
+                                {(s2.items || []).map((f, j) => (
+                                  <div key={j} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                                    <input style={{ ...inp, flex: "0 1 110px" }} placeholder="98%" value={f?.value || ""} onChange={(e) => patchSection(i, { items: s2.items.map((x, k2) => (k2 === j ? { ...x, value: e.target.value } : x)) })} />
+                                    <input style={{ ...inp, flex: 1 }} placeholder="label" value={f?.label || ""} onChange={(e) => patchSection(i, { items: s2.items.map((x, k2) => (k2 === j ? { ...x, label: e.target.value } : x)) })} />
+                                    <button className="kb-del" onClick={() => patchSection(i, { items: s2.items.filter((_, k2) => k2 !== j) })}>✕</button>
+                                  </div>
+                                ))}
+                                {(s2.items || []).length < 4 && <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11.5 }} onClick={() => patchSection(i, { items: [...(s2.items || []), { value: "", label: "" }] })}>+ stat</button>}
+                              </div>
+                            );
+                            if (s2?.type === "quote") return (
+                              <div key={i} style={{ marginBottom: 10 }}>
+                                <span className="field-hint">Quote</span>
+                                <div style={{ display: "flex", gap: 6 }}>
+                                  <input style={{ ...inp, flex: 1 }} placeholder="The quote itself" value={s2.text || ""} onChange={(e) => patchSection(i, { text: e.target.value })} />
+                                  <input style={{ ...inp, flex: "0 1 200px" }} placeholder="Name, role" value={s2.name || ""} onChange={(e) => patchSection(i, { name: e.target.value })} />
+                                </div>
+                              </div>
+                            );
+                            return null;
+                          })}
+                          <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
+                            <span className="field-hint" style={{ margin: 0 }}>Footer line</span>
+                            <input style={{ ...inp, flex: 1, maxWidth: 380 }} value={dzn.footer || ""} onChange={(e) => setDesignField("footer", e.target.value)} placeholder="© Acme — talk to us any time" />
+                          </div>
+                        </Field>
+                      </>
+                    )}
+                    <Field label={dzn ? "…or refill everything from a vibe" : "…or start from a vibe"} hint="Claude designs into the controls above — palette, type, hero, sections, copy — all still yours to override.">
+                      <textarea
+                        style={{ minHeight: 52 }}
+                        value={site.designVibe || ""}
+                        onChange={(e) => setSiteField("designVibe", e.target.value)}
+                        placeholder={'e.g. "Premium health-tech landing — calm, airy off-white, one deep green accent, editorial serif headline"'}
+                      />
+                      <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                        <button className="pill-btn primary" onClick={generateSiteDesign} disabled={designBusy || !String(site.designVibe || "").trim()}>
+                          {designBusy ? "Designing…" : dzn ? "✨ Redesign from this vibe" : "✨ Design from this vibe"}
+                        </button>
+                        {dzn && <button className="pill-btn" onClick={() => setSiteMode(true)}>👁 Preview the page</button>}
+                        {dzn && (
+                          <button className="pill-btn ghost" onClick={() => setSite((s) => ({ ...s, design: null, format: s.format === "designed" ? "desktop" : s.format }))}>
+                            ✕ Remove design
+                          </button>
+                        )}
+                      </div>
+                    </Field>
+                  </>
+                );
+              })()}
 
               <div className="subhead">In-call controls</div>
               <div className="skill-head" style={{ marginBottom: 6 }}>
