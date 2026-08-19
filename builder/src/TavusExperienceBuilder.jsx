@@ -282,17 +282,9 @@ const DZ_FONTS = {
   mono: "'IBM Plex Mono', ui-monospace, monospace",
   system: "system-ui, -apple-system, 'Segoe UI', sans-serif",
 };
-/* Hand-tuned, contrast-safe starting directions — picking one is step 1 of
-   the choose-your-own-journey flow; every token stays editable after. */
-const DESIGN_PRESETS = [
-  { name: "Clinical SaaS", font: "inter", radius: 10, hero: "split", palette: { canvas: "#ffffff", surface: "#f7f8fa", text: "#0d1117", muted: "#57606a", accent: "#0969da", border: "#e3e6ea" } },
-  { name: "Dark launch", font: "grotesk", radius: 16, hero: "center", palette: { canvas: "#0b0d10", surface: "#14171c", text: "#f2f4f8", muted: "#9aa3b2", accent: "#3b82f6", border: "rgba(255,255,255,.09)" } },
-  { name: "Editorial", font: "serif", radius: 6, hero: "split", palette: { canvas: "#faf7f2", surface: "#ffffff", text: "#1c1917", muted: "#6b6259", accent: "#9a3412", border: "#e7e0d8" } },
-  { name: "Playful", font: "grotesk", radius: 22, hero: "center", palette: { canvas: "#fff8f0", surface: "#ffffff", text: "#1f2937", muted: "#6b7280", accent: "#f43f5e", border: "#f3e8d8" } },
-  { name: "Luxury dark", font: "serif", radius: 4, hero: "split", palette: { canvas: "#101014", surface: "#17171d", text: "#ece9e2", muted: "#a8a49a", accent: "#c9a45c", border: "rgba(255,255,255,.08)" } },
-  { name: "Mint fintech", font: "inter", radius: 14, hero: "center", palette: { canvas: "#f4faf7", surface: "#ffffff", text: "#0f2e24", muted: "#5d7268", accent: "#0f9d6e", border: "#dcebe3" } },
-];
 const DZ_SECTION_DEFAULTS = {
+  profile: () => ({ type: "profile", name: "", role: "", bio: "", chips: ["Product expert", "Live Q&A", "Always on"] }),
+  skeleton: () => ({ type: "skeleton", rows: 6 }),
   logos: () => ({ type: "logos", items: ["Acme", "Northwind", "Globex", "Initech"] }),
   features: () => ({ type: "features", items: [
     { title: "Fast to launch", body: "Live in minutes, not months." },
@@ -306,6 +298,41 @@ const DZ_SECTION_DEFAULTS = {
   ] }),
   quote: () => ({ type: "quote", text: "It felt like talking to our best rep — at midnight.", name: "A happy customer" }),
 };
+/* Format building blocks — one click sets the whole SURFACE the demo lives
+   on. Website/Profile/Portal are `designed` blueprints (block stacks the
+   renderer draws); In-app is the existing phone format. */
+const FORMAT_BLUEPRINTS = [
+  {
+    name: "🌐 Website", desc: "Their marketing site — browser chrome, nav, split hero, logos, feature cards.",
+    design: {
+      frame: "browser", hero: "split",
+      nav: { links: ["Product", "Solutions", "Pricing", "Contact"] },
+      palette: { canvas: "#ffffff", surface: "#f7f8fa", text: "#0d1117", muted: "#57606a", accent: "#0969da", border: "#e3e6ea" },
+      font: "inter", radius: 12,
+      sections: [DZ_SECTION_DEFAULTS.logos(), DZ_SECTION_DEFAULTS.features()],
+    },
+  },
+  {
+    name: "👤 Profile page", desc: "A personal page / resume — the live AI human sits where the profile photo would.",
+    design: {
+      frame: "none", hero: "none",
+      palette: { canvas: "#faf7f2", surface: "#ffffff", text: "#1c1917", muted: "#6b6259", accent: "#9a3412", border: "#e7e0d8" },
+      font: "serif", radius: 14,
+      sections: [DZ_SECTION_DEFAULTS.profile(), DZ_SECTION_DEFAULTS.quote()],
+    },
+  },
+  {
+    name: "📚 Portal", desc: "Docs / help-center feel — nav, centered hero over the call, content skeleton below.",
+    design: {
+      frame: "browser", hero: "center",
+      nav: { links: ["Docs", "Guides", "API", "Support"] },
+      palette: { canvas: "#fbfbfa", surface: "#ffffff", text: "#111827", muted: "#6b7280", accent: "#7c3aed", border: "#e5e7eb" },
+      font: "system", radius: 10,
+      sections: [DZ_SECTION_DEFAULTS.skeleton()],
+    },
+  },
+];
+
 const hex6 = (v) => {
   const s = String(v || "").trim();
   const m3 = s.match(/^#([0-9a-f]{3})$/i);
@@ -727,6 +754,25 @@ const BUILDER_CSS = `
         .dz-quote cite { display:block; margin-top:10px; font-style:normal; color:var(--muted); font-size:13.5px; }
         .dz-footer { border-top:1px solid var(--border); margin-top:30px; padding-top:16px; color:var(--muted); font-size:12.5px; text-align:center; }
         @media (max-width:900px) { .dz-hero-split .dz-hero { grid-template-columns:1fr; } }
+        /* Blueprint blocks: browser chrome, nav links, profile block, skeleton */
+        .dz-page.dz-framed { border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-top:14px; background:var(--canvas); box-shadow:0 24px 70px -30px rgba(20,20,20,.25); }
+        .dz-framed .dz-hero, .dz-framed .dz-logos, .dz-framed .dz-features, .dz-framed .dz-stats, .dz-framed .dz-quote, .dz-framed .dz-footer, .dz-framed .dz-skel, .dz-framed .dz-profile { margin-left:26px; margin-right:26px; }
+        .dz-browserbar { display:flex; align-items:center; gap:7px; padding:10px 14px; background:var(--surface); border-bottom:1px solid var(--border); }
+        .dz-browserbar i { width:10px; height:10px; border-radius:50%; background:var(--border); display:inline-block; }
+        .dz-browserbar i:first-child { background:#f26d67; } .dz-browserbar i:nth-child(2) { background:#f2c14f; } .dz-browserbar i:nth-child(3) { background:#5fc46a; }
+        .dz-browserbar span { flex:1; max-width:340px; margin:0 auto; text-align:center; background:var(--canvas); border:1px solid var(--border); border-radius:999px; padding:3px 14px; font-size:11.5px; color:var(--muted); font-family:var(--mono); }
+        .dz-navlinks { display:flex; gap:20px; margin:0 auto 0 30px; color:var(--muted); font-size:13px; font-weight:600; }
+        @media (max-width:760px) { .dz-navlinks { display:none; } }
+        .dz-profile { display:grid; grid-template-columns:330px 1fr; gap:32px; align-items:center; padding:36px 0 10px; }
+        .dz-profile-stage .demo-stage { width:100%; aspect-ratio:3.4/4; }
+        .dz-profile-body h1 { font-size:clamp(26px,3.6vw,40px); letter-spacing:-1px; margin:0 0 4px; color:var(--text); }
+        .dz-role { color:var(--accent); font-weight:600; margin:0 0 10px; }
+        .dz-bio { color:var(--muted); line-height:1.6; margin:0 0 14px; max-width:52ch; }
+        .dz-chips { display:flex; gap:8px; flex-wrap:wrap; }
+        .dz-chips span { border:1px solid var(--border); background:var(--surface); border-radius:999px; padding:5px 12px; font-size:12px; color:var(--muted); }
+        @media (max-width:820px) { .dz-profile { grid-template-columns:1fr; } }
+        .dz-skel { display:flex; flex-direction:column; gap:12px; padding:24px 0 8px; }
+        .dz-skel-row { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:9px; }
         /* Brand carry-through on themed pages: accent eyebrow + accent CTA +
            a soft accent wash behind the hero. Alto default stays untouched. */
         .demo-eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--accent); margin-bottom:14px; }
@@ -2613,6 +2659,11 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
           )}
           {!(site.logoUrl && logoIsWordmark) && <span className="demo-brand">{site.brand || "Your Brand"}</span>}
         </div>
+        {format === "designed" && Array.isArray(site.design?.nav?.links) && site.design.nav.links.length > 0 && (
+          <div className="dz-navlinks" aria-hidden="true">
+            {site.design.nav.links.slice(0, 5).map((l, i) => <span key={i}>{String(l)}</span>)}
+          </div>
+        )}
         {!visitor && (
           <div style={{ display: "flex", gap: 8 }}>
             <button className="pill-btn ghost" onClick={onExit}>← Builder</button>
@@ -2732,21 +2783,57 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
             </div>
           </div>
         ) : format === "designed" && dz ? (
-          /* ✨ Design-engine page: the vibe-built spec rendered as a real
-             site — hero (center or split) framing the call stage, then the
-             sections Claude wrote (logos / features / stats / quote). All
-             content is plain text from the spec; colors/fonts are the
-             sanitized CSS vars applied on the root. */
-          <div className={"dz-page dz-hero-" + (dz.hero === "split" ? "split" : "center")}>
-            <section className="dz-hero">
-              <div className="dz-copy">
-                {(dz.eyebrow || site.brand) && <span className="dz-eyebrow">{String(dz.eyebrow || site.brand)}</span>}
-                <h1>{site.headline || "Talk to our AI human"}</h1>
-                {site.tagline && <p>{site.tagline}</p>}
+          /* ✨ Blueprint page: block stack from the spec — frame (browser
+             chrome or bare), hero or profile block carrying the call stage,
+             then the content blocks (logos / features / stats / quote /
+             skeleton). All content is plain text from the spec; colors and
+             fonts are the sanitized CSS vars applied on the root. */
+          <div className={"dz-page dz-hero-" + (dz.hero === "split" ? "split" : "center") + (dz.frame === "browser" ? " dz-framed" : "")}>
+            {dz.frame === "browser" && (
+              <div className="dz-browserbar" aria-hidden="true">
+                <i /><i /><i />
+                <span>{(site.brand || "demo").toLowerCase().replace(/[^a-z0-9]+/g, "")}.com</span>
               </div>
-              <div className="dz-stage"><div className="demo-stage">{stage()}</div></div>
-            </section>
-            {Array.isArray(dz.sections) && dz.sections.slice(0, 4).map((s2, i) => {
+            )}
+            {!(Array.isArray(dz.sections) && dz.sections.some((s2) => s2?.type === "profile")) && (
+              <section className="dz-hero">
+                <div className="dz-copy">
+                  {(dz.eyebrow || site.brand) && <span className="dz-eyebrow">{String(dz.eyebrow || site.brand)}</span>}
+                  <h1>{site.headline || "Talk to our AI human"}</h1>
+                  {site.tagline && <p>{site.tagline}</p>}
+                </div>
+                <div className="dz-stage"><div className="demo-stage">{stage()}</div></div>
+              </section>
+            )}
+            {Array.isArray(dz.sections) && dz.sections.slice(0, 5).map((s2, i) => {
+              if (s2?.type === "profile") {
+                return (
+                  <section key={i} className="dz-profile">
+                    <div className="dz-profile-stage"><div className="demo-stage">{stage()}</div></div>
+                    <div className="dz-profile-body">
+                      <h1>{String(s2.name || site.brand || "Alex Rivera")}</h1>
+                      <p className="dz-role">{String(s2.role || site.headline || "Your AI specialist")}</p>
+                      {(s2.bio || site.tagline) && <p className="dz-bio">{String(s2.bio || site.tagline)}</p>}
+                      {Array.isArray(s2.chips) && s2.chips.length > 0 && (
+                        <div className="dz-chips" aria-hidden="true">{s2.chips.slice(0, 6).map((c, j) => <span key={j}>{String(c)}</span>)}</div>
+                      )}
+                    </div>
+                  </section>
+                );
+              }
+              if (s2?.type === "skeleton") {
+                const rows = Math.min(10, Math.max(2, parseInt(s2.rows, 10) || 6));
+                return (
+                  <section key={i} className="dz-skel" aria-hidden="true">
+                    {Array.from({ length: rows }, (_, j) => (
+                      <div key={j} className="dz-skel-row">
+                        <div className="app-line" style={{ width: `${34 + ((j * 17) % 32)}%` }} />
+                        <div className="app-line dim" style={{ width: `${58 + ((j * 23) % 30)}%` }} />
+                      </div>
+                    ))}
+                  </section>
+                );
+              }
               if (s2?.type === "logos" && Array.isArray(s2.items)) {
                 return <div key={i} className="dz-logos" aria-hidden="true">{s2.items.slice(0, 6).map((n, j) => <span key={j}>{String(n)}</span>)}</div>;
               }
@@ -7837,10 +7924,9 @@ export default function TavusExperienceBuilder() {
                 ))}
               </div>
 
-              <div className="subhead">✨ Design studio</div>
+              <div className="subhead">🧱 Format blocks</div>
               <p className="field-hint" style={{ maxWidth: 640, marginBottom: 10 }}>
-                Choose your own journey: <b>1</b> pick a direction, <b>2</b> dial in the exact tokens, <b>3</b> toggle and edit the on-page sections.
-                The vibe box at the bottom is a shortcut — Claude fills <i>these same controls</i>, so nothing it decides is hidden or locked.
+                Vibe coding for formats: pick the SURFACE the demo lives on — or describe it in the box and Claude assembles the blocks for you. Every block stays editable in the drawer below.
               </p>
               {(() => {
                 const dzn = site.design && typeof site.design === "object" ? site.design : null;
@@ -7855,65 +7941,77 @@ export default function TavusExperienceBuilder() {
                 const inp = { fontSize: 12.5 };
                 return (
                   <>
-                    <Field label="1 · Direction" hint="A complete, contrast-safe starting look — palette, type, shape, hero. Picking one keeps your sections and copy; everything below stays editable.">
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                        {DESIGN_PRESETS.map((p) => (
-                          <button
-                            key={p.name}
-                            type="button"
-                            onClick={() => setSite((s) => ({ ...s, format: "designed", design: { ...(s.design || {}), palette: { ...p.palette }, font: p.font, radius: p.radius, hero: p.hero } }))}
-                            title={`${p.name} — ${p.font}, ${p.hero} hero`}
-                            style={{
-                              width: 106, borderRadius: 12, padding: "10px 10px 8px", cursor: "pointer", font: "inherit", textAlign: "left",
-                              background: p.palette.canvas, color: p.palette.text, border: "1px solid var(--border)",
-                              outline: dzn && hex6(dzn.palette?.accent) === hex6(p.palette.accent) && dzn.font === p.font ? "2px solid var(--accent)" : "none",
-                            }}
-                          >
-                            <span style={{ display: "block", fontSize: 17, fontWeight: 700, fontFamily: DZ_FONTS[p.font] }}>Ag</span>
-                            <span style={{ display: "inline-block", width: 14, height: 14, borderRadius: p.radius >= 16 ? 7 : 4, background: p.palette.accent, margin: "6px 0 4px" }} />
-                            <span style={{ display: "block", fontSize: 11, fontWeight: 600 }}>{p.name}</span>
+                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12, maxWidth: 720 }}>
+                      {FORMAT_BLUEPRINTS.map((bp) => (
+                        <button key={bp.name} type="button" className="placement-card" style={{ width: 160, textAlign: "left", cursor: "pointer" }}
+                          onClick={() => setSite((s) => ({ ...s, format: "designed", design: JSON.parse(JSON.stringify(bp.design)) }))}
+                          title="Sets the block stack — your headline, copy and brand stay yours">
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>{bp.name}</div>
+                          <div style={{ fontSize: 11, marginTop: 4, lineHeight: 1.45, color: "var(--muted)" }}>{bp.desc}</div>
+                        </button>
+                      ))}
+                      <button type="button" className="placement-card" style={{ width: 160, textAlign: "left", cursor: "pointer" }}
+                        onClick={() => setSiteField("format", "phone")} title="The existing mobile-app format — a phone frame with your app around the call">
+                        <div style={{ fontWeight: 700, fontSize: 13 }}>📱 In-app</div>
+                        <div style={{ fontSize: 11, marginTop: 4, lineHeight: 1.45, color: "var(--muted)" }}>Inside their mobile app — phone frame, app chrome, your call full-bleed.</div>
+                      </button>
+                    </div>
+                    <Field label="…or describe the surface" hint="Claude assembles the blocks — frame, nav, hero or profile, sections, copy — into the same editable structure.">
+                      <textarea
+                        style={{ minHeight: 52 }}
+                        value={site.designVibe || ""}
+                        onChange={(e) => setSiteField("designVibe", e.target.value)}
+                        placeholder={'e.g. "our pricing page with the AI human embedded" · "a recruiter-facing resume page for the AI" · "a help-center portal"'}
+                      />
+                      <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                        <button className="pill-btn primary" onClick={generateSiteDesign} disabled={designBusy || !String(site.designVibe || "").trim()}>
+                          {designBusy ? "Assembling…" : "✨ Assemble the blocks"}
+                        </button>
+                        {dzn && <button className="pill-btn" onClick={() => setSiteMode(true)}>👁 Preview the page</button>}
+                        {dzn && (
+                          <button className="pill-btn ghost" onClick={() => setSite((s) => ({ ...s, design: null, format: s.format === "designed" ? "desktop" : s.format }))}>
+                            ✕ Remove
                           </button>
-                        ))}
+                        )}
                       </div>
                     </Field>
                     {dzn && (
-                      <>
-                        <Field label="2 · Tokens" hint="The exact palette, typeface, corner radius, and hero layout.">
-                          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-                            {["canvas", "surface", "text", "muted", "accent"].map((k) => (
-                              <label key={k} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: "var(--muted)" }}>
-                                {k}
-                                <input
-                                  type="color"
-                                  value={hex6(dzn.palette?.[k]) || "#ffffff"}
-                                  onChange={(e) => setDesignField("palette", { ...(dzn.palette || {}), [k]: e.target.value })}
-                                  style={{ width: 46, height: 30, padding: 0, border: "1px solid var(--border)", borderRadius: 8, background: "none", cursor: "pointer" }}
-                                />
-                              </label>
-                            ))}
-                            <label style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: "var(--muted)" }}>
-                              typeface
-                              <select style={{ width: "auto", fontSize: 12.5 }} value={dzn.font || "inter"} onChange={(e) => setDesignField("font", e.target.value)}>
-                                {Object.keys(DZ_FONTS).map((f) => <option key={f} value={f}>{f}</option>)}
-                              </select>
-                            </label>
-                            <label style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: "var(--muted)" }}>
-                              corners · {parseInt(dzn.radius, 10) || 16}px
-                              <input type="range" min="4" max="32" value={parseInt(dzn.radius, 10) || 16} onChange={(e) => setDesignField("radius", Number(e.target.value))} style={{ width: 120 }} />
-                            </label>
-                            <div className="seg" style={{ fontSize: 12 }}>
-                              <button className={dzn.hero !== "split" ? "on" : ""} onClick={() => setDesignField("hero", "center")}>Centered hero</button>
-                              <button className={dzn.hero === "split" ? "on" : ""} onClick={() => setDesignField("hero", "split")}>Split hero</button>
-                            </div>
-                          </div>
-                        </Field>
-                        <Field label="3 · On-page sections" hint="Toggle what exists; edit every word inline. These render below the hero, in this order.">
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-                            {[["logos", "🏢 Logo strip"], ["features", "🧩 Feature cards"], ["stats", "📈 Stats"], ["quote", "❝ Quote"]].map(([t2, l]) => (
+                      <details style={{ maxWidth: 680, marginBottom: 16 }}>
+                        <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>🧱 Edit the blocks (words, blocks, look)</summary>
+                        <div style={{ paddingTop: 12 }}>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                            <button type="button" className={"pill-btn" + (dzn.frame === "browser" ? " primary" : "")} style={{ padding: "4px 13px", fontSize: 12.5 }}
+                              onClick={() => setDesignField("frame", dzn.frame === "browser" ? "none" : "browser")}>🖥 Browser chrome</button>
+                            <button type="button" className={"pill-btn" + (dzn.nav?.links?.length ? " primary" : "")} style={{ padding: "4px 13px", fontSize: 12.5 }}
+                              onClick={() => setDesignField("nav", dzn.nav?.links?.length ? null : { links: ["Product", "Solutions", "Pricing", "Contact"] })}>🧭 Nav links</button>
+                            {[["profile", "👤 Profile"], ["logos", "🏢 Logos"], ["features", "🧩 Features"], ["stats", "📈 Stats"], ["quote", "❝ Quote"], ["skeleton", "▤ Content skeleton"]].map(([t2, l]) => (
                               <button key={t2} type="button" className={"pill-btn" + (secIdx(t2) >= 0 ? " primary" : "")} style={{ padding: "4px 13px", fontSize: 12.5 }} onClick={() => toggleSection(t2)}>{l}</button>
                             ))}
                           </div>
+                          {dzn.nav?.links && (
+                            <div style={{ marginBottom: 10 }}>
+                              <span className="field-hint">Nav links — comma-separated</span>
+                              <input style={inp} value={dzn.nav.links.join(", ")} onChange={(e) => setDesignField("nav", { links: e.target.value.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5) })} />
+                            </div>
+                          )}
                           {sections.map((s2, i) => {
+                            if (s2?.type === "profile") return (
+                              <div key={i} style={{ marginBottom: 10 }}>
+                                <span className="field-hint">Profile — the AI human is the photo</span>
+                                <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+                                  <input style={{ ...inp, flex: 1 }} placeholder="Name" value={s2.name || ""} onChange={(e) => patchSection(i, { name: e.target.value })} />
+                                  <input style={{ ...inp, flex: 1 }} placeholder="Role / title" value={s2.role || ""} onChange={(e) => patchSection(i, { role: e.target.value })} />
+                                </div>
+                                <input style={{ ...inp, marginBottom: 6 }} placeholder="One-line bio" value={s2.bio || ""} onChange={(e) => patchSection(i, { bio: e.target.value })} />
+                                <input style={inp} placeholder="Chips, comma-separated" value={(s2.chips || []).join(", ")} onChange={(e) => patchSection(i, { chips: e.target.value.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 6) })} />
+                              </div>
+                            );
+                            if (s2?.type === "skeleton") return (
+                              <div key={i} style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                                <span className="field-hint" style={{ margin: 0 }}>Content skeleton rows</span>
+                                <input type="number" min="2" max="10" style={{ ...inp, maxWidth: 90 }} value={parseInt(s2.rows, 10) || 6} onChange={(e) => patchSection(i, { rows: Number(e.target.value) })} />
+                              </div>
+                            );
                             if (s2?.type === "logos") return (
                               <div key={i} style={{ marginBottom: 10 }}>
                                 <span className="field-hint">Logo strip — names, comma-separated</span>
@@ -7957,32 +8055,30 @@ export default function TavusExperienceBuilder() {
                             );
                             return null;
                           })}
-                          <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 4 }}>
-                            <span className="field-hint" style={{ margin: 0 }}>Footer line</span>
-                            <input style={{ ...inp, flex: 1, maxWidth: 380 }} value={dzn.footer || ""} onChange={(e) => setDesignField("footer", e.target.value)} placeholder="© Acme — talk to us any time" />
+                          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginTop: 4 }}>
+                            {["canvas", "surface", "text", "muted", "accent"].map((k) => (
+                              <label key={k} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: "var(--muted)" }}>
+                                {k}
+                                <input type="color" value={hex6(dzn.palette?.[k]) || "#ffffff"} onChange={(e) => setDesignField("palette", { ...(dzn.palette || {}), [k]: e.target.value })}
+                                  style={{ width: 44, height: 28, padding: 0, border: "1px solid var(--border)", borderRadius: 8, background: "none", cursor: "pointer" }} />
+                              </label>
+                            ))}
+                            <label style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: "var(--muted)" }}>
+                              typeface
+                              <select style={{ width: "auto", fontSize: 12.5 }} value={dzn.font || "inter"} onChange={(e) => setDesignField("font", e.target.value)}>
+                                {Object.keys(DZ_FONTS).map((f) => <option key={f} value={f}>{f}</option>)}
+                              </select>
+                            </label>
+                            {!sections.some((s2) => s2?.type === "profile") && (
+                              <div className="seg" style={{ fontSize: 12 }}>
+                                <button className={dzn.hero !== "split" ? "on" : ""} onClick={() => setDesignField("hero", "center")}>Centered hero</button>
+                                <button className={dzn.hero === "split" ? "on" : ""} onClick={() => setDesignField("hero", "split")}>Split hero</button>
+                              </div>
+                            )}
                           </div>
-                        </Field>
-                      </>
+                        </div>
+                      </details>
                     )}
-                    <Field label={dzn ? "…or refill everything from a vibe" : "…or start from a vibe"} hint="Claude designs into the controls above — palette, type, hero, sections, copy — all still yours to override.">
-                      <textarea
-                        style={{ minHeight: 52 }}
-                        value={site.designVibe || ""}
-                        onChange={(e) => setSiteField("designVibe", e.target.value)}
-                        placeholder={'e.g. "Premium health-tech landing — calm, airy off-white, one deep green accent, editorial serif headline"'}
-                      />
-                      <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                        <button className="pill-btn primary" onClick={generateSiteDesign} disabled={designBusy || !String(site.designVibe || "").trim()}>
-                          {designBusy ? "Designing…" : dzn ? "✨ Redesign from this vibe" : "✨ Design from this vibe"}
-                        </button>
-                        {dzn && <button className="pill-btn" onClick={() => setSiteMode(true)}>👁 Preview the page</button>}
-                        {dzn && (
-                          <button className="pill-btn ghost" onClick={() => setSite((s) => ({ ...s, design: null, format: s.format === "designed" ? "desktop" : s.format }))}>
-                            ✕ Remove design
-                          </button>
-                        )}
-                      </div>
-                    </Field>
                   </>
                 );
               })()}

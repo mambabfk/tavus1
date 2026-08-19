@@ -279,26 +279,35 @@ Rules:
 /* Design engine: a plain-English vibe → a constrained page-design spec the
    demo page renders (tokens + text only — never HTML/CSS, so nothing can
    break the call stage or inject markup). */
-const DESIGN_SYSTEM = `You design the look of a live demo web page whose centerpiece is a face-to-face AI video call. From a plain-English vibe description, return ONLY JSON (no markdown fences):
+const DESIGN_SYSTEM = `You assemble the SURFACE a live AI-video-call demo lives on — website, in-app page, personal profile/resume, docs portal — from fixed building blocks. From a plain-English description, return ONLY JSON (no markdown fences):
 
-{"palette":{"canvas":"#...","surface":"#...","text":"#...","muted":"#...","accent":"#...","border":"#... or rgba(...)"},
+{"frame":"none"|"browser",
+ "nav":null|{"links":["...", up to 5]},
+ "palette":{"canvas":"#...","surface":"#...","text":"#...","muted":"#...","accent":"#...","border":"#... or rgba(...)"},
  "font":"inter"|"serif"|"grotesk"|"mono"|"system",
  "radius":<number 4-32>,
- "hero":"center"|"split",
+ "hero":"center"|"split"|"none",
  "eyebrow":"...", "headline":"...", "tagline":"...", "cta":"...",
- "sections":[up to 4, in display order, chosen from:
+ "sections":[up to 5, in display order, chosen from:
+   {"type":"profile","name":"...","role":"...","bio":"one sentence","chips":["..." x3-5]},
    {"type":"logos","items":["Plausible Customer Name", ... up to 6]},
    {"type":"features","items":[{"title":"...","body":"one sentence"} x3]},
    {"type":"stats","items":[{"value":"98%","label":"..."} x3]},
-   {"type":"quote","text":"...","name":"Name, role"}],
+   {"type":"quote","text":"...","name":"Name, role"},
+   {"type":"skeleton","rows":<4-8>}],
  "footer":"one short line"}
 
+Block semantics — choose blocks to EMULATE the surface described:
+- Marketing website → frame "browser" + nav + hero "split" + logos/features.
+- Personal page / resume → a "profile" block (the live AI human renders where the profile photo would) + hero "none"; quote optional. name/role/bio describe the AI human as a person.
+- Docs portal / help center / in-app web page → frame "browser" + nav + hero "center" + a "skeleton" block (grey placeholder rows that read as the host product's own content).
+- Product launch / consumer → frame "none" + hero "center" + stats.
+
 Rules:
-- Colors are real CSS hex or rgba() values ONLY. The palette must be readable: text on canvas at high contrast (aim ≥ 7:1), muted on canvas ≥ 4.5:1, surface subtly distinct from canvas, accent strong enough for a button fill. Dark vibes get true dark canvases; light vibes stay airy.
-- Copy is grounded in the brand/product context provided and written like THEIR site — confident marketing voice, never "demo tool" language, no lorem ipsum, no placeholder brackets. Headline ≤ 9 words. cta ≤ 4 words.
-- The video call stage is the hero's centerpiece — pick "split" when the copy deserves a column (B2B, editorial), "center" for launch/consumer energy.
-- Follow the vibe faithfully over any default taste: "dark editorial" → near-black canvas + serif; "clinical SaaS" → white + inter + small radius; "playful" → bigger radius + brighter accent.
-- Sections should sell the product in the context given — a stats section only if numbers plausibly exist, logos only for B2B vibes.`;
+- Colors are real CSS hex or rgba() values ONLY, readable: text on canvas ≥ 7:1, muted ≥ 4.5:1, surface subtly distinct from canvas, accent strong enough for a button fill.
+- Copy is grounded in the brand/product context and written like THEIR site — never "demo tool" language, no lorem ipsum, no placeholder brackets. Headline ≤ 9 words. cta ≤ 4 words.
+- Exactly ONE home for the call stage: the hero (center/split) OR a profile block with hero "none" — never both, never neither.
+- Follow the description faithfully over default taste.`;
 
 /* "Promote": one side of a scripted duet becomes a live demo persona a real
    human talks to — the sales handoff. Same character, no set dressing. */
