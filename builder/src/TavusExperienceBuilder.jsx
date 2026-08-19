@@ -7418,6 +7418,27 @@ export default function TavusExperienceBuilder() {
                 your talk track), at a set time, or at call start. The AI is never consulted. Shows on desktop and
                 live-kiosk pages; an interactive Magic Canvas card takes the panel over while it needs input.
               </p>
+              <Field label="✨ Vibe-build the card set" hint="Type or 🎙 talk out what should appear and when — Claude designs the cards (real content, trigger words that match your talk track) straight into the editors below, all yours to tweak.">
+                <textarea
+                  style={{ minHeight: 56, ...(dictating === "cards" ? { outline: "2px solid var(--accent)" } : {}) }}
+                  value={cardsPrompt}
+                  onChange={(e) => setCardsPrompt(e.target.value)}
+                  placeholder={'e.g. "a pricing chart when tiers come up, our three headline stats early on, and a which-package-fits question near the end"'}
+                />
+                <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                  <button
+                    className={"pill-btn" + (dictating === "cards" ? " primary" : "")}
+                    disabled={transcribing}
+                    title={`Dictation by ${dictEngineName}`}
+                    onClick={() => toggleDictation("cards", (t2) => setCardsPrompt((v) => (v ? v + " " : "") + t2))}
+                  >
+                    {dictating === "cards" ? "⏹ Stop — I'm done" : transcribing ? "🎙 Transcribing…" : "🎙 Talk it out"}
+                  </button>
+                  <button className="pill-btn primary" onClick={generateScriptedCards} disabled={cardsBusy || !cardsPrompt.trim()}>
+                    {cardsBusy ? "Designing…" : scCards.length ? "✨ Regenerate the card set" : "✨ Generate the card set"}
+                  </button>
+                </div>
+              </Field>
               {scCards.length > 0 && (
                 <div className="jr-list">
                   {scCards.map((c, i) => (
