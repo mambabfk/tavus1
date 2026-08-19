@@ -3088,6 +3088,8 @@ export default function TavusExperienceBuilder() {
   const [voiceResults, setVoiceResults] = useState(null);
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [voiceApply, setVoiceApply] = useState({ busy: false, appliedId: "", err: "" });
+  const [voiceOnPal, setVoiceOnPal] = useState(null); // {engine, voiceId} readback | {err}
+  const [voicePreviewing, setVoicePreviewing] = useState("");
 
   // Tavus-authored skills (PUT /pals/{id}/skills/{skill_id}; persist on the PAL)
   const [internetSearchEnabled, setInternetSearchEnabled] = useState(false);
@@ -5034,6 +5036,62 @@ export default function TavusExperienceBuilder() {
     }
   };
 
+  // Ground truth: read the PAL back and show what its TTS layer actually
+  // holds — the only way to be sure the attached voice is the one in use.
+  const checkPalVoice = async () => {
+    if (!apiKey.trim() || !palId.trim()) {
+      setVoiceOnPal({ err: "Add your API key and PAL ID on Setup first." });
+      return null;
+    }
+    try {
+      const p = await tavusFetch("GET", `/pals/${palId.trim()}`);
+      const tts = p?.layers?.tts || {};
+      const read = { engine: tts.tts_engine || "(replica default)", voiceId: tts.external_voice_id || "" };
+      setVoiceOnPal(read);
+      return read;
+    } catch (e) {
+      setVoiceOnPal({ err: e.message || "couldn't read the PAL" });
+      return null;
+    }
+  };
+
+  // Audition a voice before (or after) picking it — Cartesia renders a
+  // sample line server-side; nothing touches the PAL.
+  const previewVoice = async (v) => {
+    const lang = String(v.language || "").slice(0, 2).toLowerCase();
+    const samples = {
+      es: "¡Hola! Así es como sueno. ¿Comenzamos la demostración?",
+      de: "Hallo! So klinge ich. Sollen wir mit der Demo beginnen?",
+      fr: "Bonjour ! Voici ma voix. On commence la démo ?",
+      pt: "Olá! É assim que eu soo. Vamos começar a demonstração?",
+      it: "Ciao! Questa è la mia voce. Iniziamo la demo?",
+    };
+    setVoicePreviewing(v.id);
+    try {
+      const r = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: samples[lang] || "Hi there! This is how I sound. Shall we start the demo?",
+          voice: v.id,
+          language: lang,
+        }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        throw new Error(j.error || "preview failed");
+      }
+      const url = URL.createObjectURL(await r.blob());
+      const audio = new Audio(url);
+      audio.onended = () => { URL.revokeObjectURL(url); setVoicePreviewing(""); };
+      audio.onerror = () => { URL.revokeObjectURL(url); setVoicePreviewing(""); };
+      await audio.play();
+    } catch (e) {
+      addLog("err", `Voice preview: ${e.message}`);
+      setVoicePreviewing("");
+    }
+  };
+
   const applyVoiceNow = async (vid, name) => {
     if (!vid) return;
     if (!apiKey.trim() || !palId.trim()) {
@@ -5043,8 +5101,13 @@ export default function TavusExperienceBuilder() {
     setVoiceApply((s) => ({ ...s, busy: true, err: "" }));
     try {
       await patchPalVoice(palId.trim(), vid);
+      // Don't trust the 200 — read the PAL back and confirm the voice stuck.
+      const read = await checkPalVoice();
+      if (read && read.voiceId && read.voiceId !== vid) {
+        throw new Error(`Tavus accepted the patch but the PAL still reports voice ${read.voiceId} — it may take a moment, hit "Check the PAL" to re-read.`);
+      }
       setVoiceApply({ busy: false, appliedId: vid, err: "" });
-      addLog("ok", `Voice "${name || vid}" is now on the PAL (persists until you change it).`);
+      addLog("ok", `Voice "${name || vid}" is now on the PAL (verified — persists until you change it).`);
     } catch (e) {
       setVoiceApply({ busy: false, appliedId: "", err: e.message || "voice apply failed" });
       addLog("err", `Voice: ${e.message}`);
@@ -6908,6 +6971,22 @@ export default function TavusExperienceBuilder() {
                 {voiceApply.err && (
                   <span className="field-hint" style={{ color: "#c0392b" }}>Couldn't apply the voice: {voiceApply.err}</span>
                 )}
+                <span className="field-hint" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11 }} onClick={checkPalVoice}>
+                    🔎 Check the PAL
+                  </button>
+                  {voiceOnPal && (voiceOnPal.err
+                    ? <span style={{ color: "#c0392b" }}>{voiceOnPal.err}</span>
+                    : voiceOnPal.voiceId
+                      ? <span>
+                          PAL voice right now: <b>{voiceOnPal.voiceId}</b> ({voiceOnPal.engine})
+                          {externalVoiceId && (voiceOnPal.voiceId === externalVoiceId
+                            ? <b style={{ color: "#1a7f37" }}> — matches your pick ✓</b>
+                            : <b style={{ color: "#c0392b" }}> — does NOT match your pick</b>)}
+                        </span>
+                      : <span style={{ color: "#c0392b" }}>No external voice on the PAL — it's using the face's default voice. Click a voice below to attach one.</span>)}
+                </span>
+                <span className="field-hint">A voice change only affects <b>new</b> conversations — end the current call and launch again to hear it.</span>
               </Field>
               {voiceResults && (
                 <div className="kb-list" style={{ marginBottom: 20 }}>
@@ -6918,6 +6997,11 @@ export default function TavusExperienceBuilder() {
                         <div style={{ fontSize: 13, fontWeight: 600 }}>{v.name} {v.language && <span className="kb-status" style={{ marginLeft: 6 }}>{v.language}</span>}</div>
                         <div style={{ fontSize: 12, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.description}</div>
                       </div>
+                      <button className="pill-btn" title="Hear a sample" style={{ padding: "4px 10px", fontSize: 12, flexShrink: 0 }}
+                        disabled={!!voicePreviewing}
+                        onClick={() => previewVoice(v)}>
+                        {voicePreviewing === v.id ? "🔊…" : "▶"}
+                      </button>
                       <button className={"pill-btn" + (externalVoiceId === v.id ? " primary" : "")} style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0 }}
                         disabled={voiceApply.busy}
                         onClick={() => { setExternalVoiceId(v.id); setExternalVoiceName(v.name); applyVoiceNow(v.id, v.name); }}>

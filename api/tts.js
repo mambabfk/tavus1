@@ -64,7 +64,10 @@ export default async function handler(req, res) {
   if (!text) { res.status(400).json({ error: "Nothing to say — text is required." }); return; }
 
   try {
-    const voiceId = await resolveVoiceId();
+    // Optional voice override — lets the Voice step audition catalog voices.
+    const reqVoice = String(req.body?.voice || "").trim();
+    const voiceId = /^[\w-]{8,64}$/.test(reqVoice) ? reqVoice : await resolveVoiceId();
+    const lang = String(req.body?.language || "").trim().toLowerCase().slice(0, 2);
     const r = await fetch(`${API_BASE}/tts/bytes`, {
       method: "POST",
       headers: headers(),
@@ -72,6 +75,7 @@ export default async function handler(req, res) {
         model_id: process.env.CARTESIA_MODEL || "sonic-2",
         transcript: text,
         voice: { mode: "id", id: voiceId },
+        ...(/^[a-z]{2}$/.test(lang) ? { language: lang } : {}),
         output_format: { container: "mp3", bit_rate: 128000, sample_rate: 44100 },
       }),
     });
