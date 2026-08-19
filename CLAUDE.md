@@ -192,12 +192,24 @@ non-technical users; ids unchanged):
    → `case_sensitive`, duplicates dropped. On launch →
    `POST /pronunciation-dictionaries` then `PATCH /pals/{id}`
    `/layers/tts/pronunciation_dictionary_id`. Persists on the PAL.
-4.55. **Tavus skills** (bottom of `tools` step) — `internet_search` (no
-   config) and `browser_use` (optional raw-JSON config textarea; the skill is
-   brand-new and its config schema wasn't in the docs mirror at build time) —
-   on launch `PUT /pals/{id}/skills/{skill_id}` `{config}`; per-skill Detach
-   buttons (`DELETE …/skills/{id}`). Browser view arrives as the replica's
-   screenVideo track — same path as slides, already rendered by the custom UI.
+4.55. **Tavus skills** — `internet_search` (no config; bottom of `tools`
+   step) and `browser_use` (**Presentation step** — account-enabled skill).
+   Browser Use runs PRE-AUTHORED NAMED GUIDED FLOWS (`config.guided_flows`,
+   ≤20; each `{name, description, start_url, steps[≤50]}`; steps are
+   🌐 `{task, prompt, url?}` / 💬 `{prompt}` speak-only / 🖼 `{slide, prompt?}`
+   pages of `config.slide_document_id`) — it NEVER free-browses. Builder has
+   a first-class flow editor + ✨ "Script a flow" (`kind: "browserflow"`,
+   Tavus best practices: speak-only intro, small single-action tasks,
+   1-2 sentence narration per step — narration covers browser think time),
+   🧪 Validate-&-attach (PUT now, server-side verdict), a
+   when-to-run-which-flow steering box (🪡 inject teaches the persona its
+   flows BY NAME), and a raw-JSON drawer over the same `browserUseConfig`.
+   Launch + validate refuse empty `guided_flows` / slide steps without a
+   deck. On launch `PUT /pals/{id}/skills/{skill_id}` `{config}`; per-skill
+   Detach buttons (`DELETE …/skills/{id}`). Browser view arrives as the
+   replica's screenVideo track — same path as slides, already rendered by
+   the custom UI (and the duet joiner's side panel; the duet beat cue says
+   "start your guided browser flow \"X\"").
 4.6. **Integrations** (`tools`) — plain-English ability rows
    ({name, desc, fields}) → `toolDefs` (OpenAI function shape, slugged names,
    comma fields → required string params) → on launch
