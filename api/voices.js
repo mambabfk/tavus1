@@ -24,12 +24,45 @@ export default async function handler(req, res) {
     indonesian: "id", hungarian: "hu", romanian: "ro", bulgarian: "bg",
   };
 
+  // Accents/locales live in the voice DESCRIPTION, not the language code —
+  // "es" covers both Spain and Mexico. Map locale words to the keywords
+  // curated voices actually use, plus the language code they imply.
+  const ACCENTS = {
+    mexico: { lang: "es", kw: ["mexic"] },
+    mexican: { lang: "es", kw: ["mexic"] },
+    spain: { lang: "es", kw: ["spain", "castilian", "peninsular", "spaniard", "madrid"] },
+    castilian: { lang: "es", kw: ["castilian", "spain"] },
+    latam: { lang: "es", kw: ["latin", "mexic", "colombia", "argentin", "chile", "peru"] },
+    colombian: { lang: "es", kw: ["colombia"] },
+    argentinian: { lang: "es", kw: ["argentin"] },
+    brazil: { lang: "pt", kw: ["brazil"] },
+    brazilian: { lang: "pt", kw: ["brazil"] },
+    portugal: { lang: "pt", kw: ["portug", "lisbon"] },
+    british: { lang: "en", kw: ["brit", "uk", "london", "english accent"] },
+    uk: { lang: "en", kw: ["brit", "uk", "london"] },
+    american: { lang: "en", kw: ["american", "us "] },
+    australian: { lang: "en", kw: ["australia", "aussie"] },
+    indian: { lang: "en", kw: ["india"] },
+    irish: { lang: "en", kw: ["irish", "ireland"] },
+    scottish: { lang: "en", kw: ["scot"] },
+    parisian: { lang: "fr", kw: ["paris"] },
+    quebec: { lang: "fr", kw: ["quebec", "canadian"] },
+  };
+
+  // The catalog is flooded with machine-generated localized clones
+  // ("189449_58930_cartesia_es", "Cartesia localized voice") — real curated
+  // voices have human names and descriptions. Rank the clones last.
+  const isClone = (name, desc) =>
+    /cartesia localized voice/i.test(desc || "") ||
+    /cartesia/i.test(name || "") ||
+    /^v?[0-9a-f_]{10,}(_[a-z]{2})?$/i.test(String(name || "").trim());
+
   try {
-    // The catalog paginates on newer accounts — walk up to 5 pages so a
-    // search actually covers the library, not just the first slice.
+    // The catalog paginates on newer accounts — walk up to 10 pages so a
+    // search actually covers the library (localized clones inflate it a lot).
     let list = [];
     let url = "https://api.cartesia.ai/voices/?limit=100";
-    for (let page = 0; page < 5; page++) {
+    for (let page = 0; page < 10; page++) {
       const r = await fetch(url, {
         headers: {
           "X-API-Key": process.env.CARTESIA_API_KEY,
@@ -50,20 +83,43 @@ export default async function handler(req, res) {
 
     const q = String(req.query?.q ?? "").trim().toLowerCase();
     const terms = q.split(/\s+/).filter(Boolean);
-    const voices = list
-      .map((v) => ({
+    const scored = [];
+    for (const v of list) {
+      const name = v.name || "";
+      const description = v.description || "";
+      const language = v.language || "";
+      const hay = `${name} ${description}`.toLowerCase();
+      const lang = language.toLowerCase();
+      let score = 0;
+      let ok = true;
+      for (const t of terms) {
+        const acc = ACCENTS[t];
+        if (acc && lang.startsWith(acc.lang) && acc.kw.some((k) => hay.includes(k))) {
+          score += 4; // accent named in the description — the strongest signal
+        } else if (hay.includes(t)) {
+          score += 3;
+        } else if (acc && lang.startsWith(acc.lang)) {
+          score += 1; // right language, accent unstated — keep as weak match
+        } else if (LANG_CODES[t] && lang.startsWith(LANG_CODES[t])) {
+          score += 2;
+        } else {
+          ok = false;
+          break;
+        }
+      }
+      if (!ok) continue;
+      scored.push({
         id: v.id,
-        name: v.name || "",
-        description: v.description || "",
-        language: v.language || "",
-      }))
-      .filter((v) => {
-        if (!terms.length) return true;
-        const hay = `${v.name} ${v.description} ${v.language}`.toLowerCase();
-        const lang = String(v.language || "").toLowerCase();
-        return terms.every((t) => hay.includes(t) || (LANG_CODES[t] && lang.startsWith(LANG_CODES[t])));
-      })
-      .slice(0, 40);
+        name,
+        description,
+        language,
+        _clone: isClone(name, description) ? 1 : 0,
+        _score: score,
+      });
+    }
+    // Curated voices first, best matches first; localized clones sink.
+    scored.sort((a, b) => a._clone - b._clone || b._score - a._score);
+    const voices = scored.slice(0, 40).map(({ _clone, _score, ...v }) => v);
     res.status(200).json({ voices, total: voices.length });
   } catch (e) {
     res.status(502).json({ error: e.message || "voice search failed" });
