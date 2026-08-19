@@ -7519,7 +7519,7 @@ export default function TavusExperienceBuilder() {
                                 onChange={(e) => putStep(i, j, { ...st, prompt: e.target.value })}
                               />
                               {t3 === "task" && (
-                                <input className="mono" style={{ ...inp2, width: "100%" }} placeholder="Checkpoint URL (optional — lets the flow jump straight to this step)" value={st.url || ""} onChange={(e) => putStep(i, j, { ...st, url: e.target.value })} />
+                                <input className="mono" style={{ ...inp2, width: "100%" }} placeholder="⚡ Page URL — paste from your browser's address bar and the browser JUMPS here instantly (no URL = it scrolls & clicks its way there, slow)" value={st.url || ""} onChange={(e) => putStep(i, j, { ...st, url: e.target.value })} />
                               )}
                               {t3 === "task" && !String(st.prompt || "").trim() && <span className="field-hint" style={{ color: "#b4552d" }}>⚠ browser steps need narration — silence here reads as dead air</span>}
                             </div>
