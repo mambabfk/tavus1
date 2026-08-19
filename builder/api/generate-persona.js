@@ -248,7 +248,10 @@ Return ONLY JSON (no markdown fences):
 
 Rules (Tavus's own best practices):
 - SMALL single-action tasks: "Open the Pricing page", never "sign in, create a project and invite a user".
-- EVERY step gets a prompt of a sentence or two. The AI narrates after the action lands, and the browser plans the next step while it speaks — the narration IS the loading cover. Too-short prompts cause dead air.
+- SPEED: every browser action costs real seconds — the worker has to find elements and act. When the destination page has a stable URL, give the step that "url" and a trivial task ("Open the store's page") so the browser jumps instead of clicking through. NEVER write search/type/filter tasks ("search for X in the directory") when a direct URL to the result exists — typing into search boxes is the slowest thing a flow can do.
+- FEWER steps beat granular steps: if two steps land on the same page, merge them into one with longer narration. 3-6 browser steps is the sweet spot.
+- EVERY step gets a prompt of a sentence or two. The AI narrates after the action lands, and the browser plans the next step while it speaks — the narration IS the loading cover. Too-short prompts cause dead air; give heavier steps (navigation, page loads) the LONGEST narration.
+- Tasks must name ONE concrete visible action ("Scroll to the address and opening hours"), never a vague outcome ("Show the address block") that makes the worker hunt around the page.
 - Start with a speak-only intro step framing what's about to be shown.
 - Ground everything in the site/product described; derive start_url and checkpoint urls from it; never invent pages that weren't implied.
 - Narration is spoken aloud: no URLs read out, no UI mechanics ("I'm clicking…") — talk about what the page MEANS.`;
