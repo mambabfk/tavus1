@@ -254,8 +254,13 @@ non-technical users; ids unchanged):
    top bar + speaker grilles, glowing blue 9:16 screen the call renders
    into — bright and physical, per explicit user direction; NOT dark
    sci-fi).
-   ... | `designed` (**✨ design engine**: a plain-English vibe on the site
-   step → `kind: "design"` on generate-persona returns a constrained spec —
+   ... | `designed` (**✨ design studio** — choose-your-own-journey with
+   guardrails: 1· `DESIGN_PRESETS` direction swatches, 2· exact token
+   controls (color pickers/`DZ_FONTS` typeface/radius slider/hero toggle),
+   3· section toggles with inline copy editors (`DZ_SECTION_DEFAULTS`);
+   the vibe box is a shortcut that fills these same controls —
+   a plain-English vibe → `kind: "design"` on generate-persona returns a
+   constrained spec —
    palette/font-key/radius/hero center|split + real on-page sections
    (logos/features/stats/quote) + headline/tagline/cta — stored in
    `site.design` (rides scenarios AND share-link snapshots), applied as
