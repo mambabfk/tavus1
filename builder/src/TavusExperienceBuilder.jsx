@@ -828,6 +828,38 @@ const BUILDER_CSS = `
         .demo-desktop .cvi-wrap:not(.canvas-split) video[class*="mainVideo"] { object-fit: contain !important; }
         .canvas-split-right .cvi-video-pane { right:var(--canvas-panel-w); }
         .canvas-split-left .cvi-video-pane { left:var(--canvas-panel-w); }
+
+        /* ── Coach mode: persistent dark scorecard sidebar (Rilla-style) ── */
+        .cvi-wrap { --coach-w: 320px; }
+        .coach-split .cvi-video-pane { right:var(--coach-w); }
+        .coach-panel { position:absolute; top:0; right:0; bottom:0; width:var(--coach-w); background:#131417; color:#e8e8ea; padding:18px 18px 14px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; font-size:13px; z-index:6; }
+        .coach-rec { display:flex; align-items:center; gap:7px; font-size:12px; letter-spacing:.04em; color:#c9c9ce; padding-bottom:8px; border-bottom:1px solid #26272c; }
+        .coach-rec b { color:#fff; font-variant-numeric:tabular-nums; }
+        .coach-total { color:#8b8b92; }
+        .coach-dot { width:9px; height:9px; border-radius:50%; background:#ff4d4d; animation:coachblink 1.4s ease-in-out infinite; }
+        @keyframes coachblink { 50% { opacity:.35; } }
+        .coach-title { margin-left:auto; color:#9a9aa2; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%; }
+        .coach-sec { font-size:10.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#8b8b92; margin-top:6px; display:flex; align-items:baseline; gap:8px; }
+        .coach-pct { margin-left:auto; color:#fff; font-size:12px; font-variant-numeric:tabular-nums; }
+        .coach-list { display:flex; flex-direction:column; gap:6px; }
+        .coach-item { display:flex; gap:9px; align-items:flex-start; background:#1c1d22; border:1px solid #26272c; border-radius:10px; padding:9px 11px; line-height:1.35; color:#b9b9c0; transition:all .3s; }
+        .coach-item.on { background:#15241a; border-color:#2e5b3c; color:#dff3e4; }
+        .coach-check { width:16px; height:16px; border-radius:50%; border:1.5px solid #4a4b52; flex-shrink:0; margin-top:1px; font-size:10px; line-height:13px; text-align:center; color:#7be495; }
+        .coach-item.on .coach-check { border-color:#3fae5f; background:#1f4a2c; }
+        .coach-meter { height:5px; border-radius:3px; background:#26272c; overflow:hidden; }
+        .coach-meter span { display:block; height:100%; background:#f5d90a; border-radius:3px; transition:width .6s; }
+        .coach-hint { font-size:11.5px; color:#8b8b92; }
+        .coach-transcript { flex:1; min-height:80px; overflow-y:auto; display:flex; flex-direction:column; gap:7px; }
+        .coach-line { color:#c4c4ca; line-height:1.4; font-size:12.5px; }
+        .coach-line b { color:#8b8b92; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; margin-right:5px; }
+        .coach-line.you b { color:#f5d90a; }
+        .coach-scene { position:absolute; inset:0; z-index:7; background:#0d0e10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:24px; }
+        .coach-scene-badge { width:84px; height:84px; border-radius:50%; background:#f5a623; border:6px solid #7a6a1e; color:#1a1a1a; font-weight:800; font-size:26px; display:flex; align-items:center; justify-content:center; }
+        .coach-scene-title { color:#fff; font-size:26px; font-weight:800; letter-spacing:.02em; text-transform:uppercase; }
+        .coach-scene-sub { color:#9a9aa2; font-size:13.5px; max-width:420px; }
+        .coach-scene-bar { width:220px; height:5px; border-radius:3px; background:#26272c; overflow:hidden; }
+        .coach-scene-bar span { display:block; height:100%; width:38%; background:#f5d90a; border-radius:3px; animation:coachload 1.6s ease-in-out infinite alternate; }
+        @keyframes coachload { from { margin-left:0; width:22%; } to { margin-left:62%; width:38%; } }
         /* A light sheet (site canvas color), not a dark strip — it should read as
            the card's own screen, matching the page, never as a dead black region. */
         .canvas-panel { position:absolute; top:0; bottom:0; width:var(--canvas-panel-w); background:var(--canvas,#F5F4F1); opacity:0; transition:opacity .45s ease; pointer-events:none; }
@@ -1765,8 +1797,25 @@ const getStudioRuntime = () => STUDIO_RUNTIME;
 /* ── In-call extras: timers, wake reminders, interrupt button, guardrail echo.
       Lives INSIDE CVIProvider so it can use the Daily call object; these
       features need the custom call UI (they're inert in the iframe fallback). */
-function CallExtras({ controls, conversationId, onForceLeave, visitor = false, onScriptedCard = null }) {
+function CallExtras({ controls, conversationId, onForceLeave, visitor = false, onScriptedCard = null, onCoachSpeech = null }) {
   const daily = useDaily();
+
+  // Coach mode: stream both sides' utterances up to the coach panel
+  // (scorecard, talk/listen meter, transcript). Raw cumulative text — the
+  // panel handles Tavus's re-emit semantics.
+  useEffect(() => {
+    if (!daily || !onCoachSpeech) return;
+    const onMsg = (e) => {
+      const d = e?.data;
+      if (!d?.event_type || !/^conversation\.utterance$/i.test(d.event_type)) return;
+      const text = String(d.properties?.speech ?? d.properties?.text ?? "").trim();
+      if (!text) return;
+      const role = String(d.properties?.role ?? (/\.user\./i.test(d.event_type) ? "user" : "replica")).toLowerCase();
+      onCoachSpeech({ role: role === "user" ? "user" : "replica", text });
+    };
+    daily.on("app-message", onMsg);
+    return () => daily.off("app-message", onMsg);
+  }, [daily, onCoachSpeech]);
 
   // Scripted cards — deterministic, SE-authored canvas content. Triggers are
   // hard rules (spoken keyword, elapsed time, call start); the model is never
@@ -2176,6 +2225,127 @@ function compileScriptedCards(arr) {
   }).filter(Boolean).slice(0, 12);
 }
 
+/* ── Coach panel: live roleplay scorecard beside the call. Criteria tick
+      two ways — instantly on trainee keywords, and every ~25s a fast Claude
+      judge reads the transcript for the judgment-call behaviors. Plus a
+      talk/listen meter, live transcript, and a REC countdown. ── */
+function CoachPanel({ coach, events, conversationId, slug, maxSeconds }) {
+  const [ticked, setTicked] = useState(() => new Set());
+  const [elapsed, setElapsed] = useState(0);
+  const tickedRef = useRef(ticked); tickedRef.current = ticked;
+  const eventsRef = useRef(events); eventsRef.current = events;
+  const judgeBusy = useRef(false);
+  const lastJudged = useRef(0);
+  const transcriptEnd = useRef(null);
+  const criteria = coach.criteria || [];
+
+  useEffect(() => {
+    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Instant ticks: trainee said a criterion's keyword.
+  useEffect(() => {
+    const userText = events.filter((e) => e.role === "user").map((e) => e.text).join(" ").toLowerCase();
+    if (!userText) return;
+    setTicked((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      criteria.forEach((c, i) => {
+        if (next.has(i)) return;
+        const kws = String(c.keywords || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+        if (kws.length && kws.some((k) => userText.includes(k))) { next.add(i); changed = true; }
+      });
+      return changed ? next : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events]);
+
+  // Judged ticks: every 25s, if the trainee said something new, a fast model
+  // reads the transcript and rules on the still-unmet criteria.
+  useEffect(() => {
+    const t = setInterval(async () => {
+      if (judgeBusy.current) return;
+      const evs = eventsRef.current;
+      const userTurns = evs.filter((e) => e.role === "user").length;
+      if (!userTurns || userTurns === lastJudged.current) return;
+      const unmet = criteria.map((c, i) => ({ c, i })).filter((x) => !tickedRef.current.has(x.i) && !String(x.c.keywords || "").trim());
+      if (!unmet.length) return;
+      judgeBusy.current = true;
+      lastJudged.current = userTurns;
+      try {
+        const transcript = evs.map((e) => `${e.role === "user" ? "TRAINEE" : "CHARACTER"}: ${e.text}`).join("\n").slice(-11000);
+        const r = await fetch("/api/generate-persona", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ kind: "score", vibe: transcript, ...(slug ? { slug } : {}), context: { criteria: unmet.map((x) => x.c.label) } }),
+        });
+        const text = await r.text();
+        if (!r.ok || text.startsWith("[error]")) return;
+        const j = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+        const hits = (Array.isArray(j?.hit) ? j.hit : []).map((k) => unmet[k]?.i).filter((i) => i !== undefined);
+        if (hits.length) setTicked((prev) => new Set([...prev, ...hits]));
+      } catch { /* next round */ } finally { judgeBusy.current = false; }
+    }, 25000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Final score lands on the call's experience record (Results / webhook).
+  useEffect(() => () => {
+    const got = [...tickedRef.current].map((i) => criteria[i]?.label).filter(Boolean);
+    if (!conversationId) return;
+    fetch("/api/experience", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        kind: "attend", conversation_id: conversationId, ...(slug ? { slug } : {}),
+        answers: [{ q: "Scorecard", a: `${got.length}/${criteria.length}${got.length ? " — " + got.join("; ") : ""}` }],
+      }),
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => { transcriptEnd.current?.scrollIntoView({ block: "nearest" }); }, [events]);
+
+  const words = (role) => events.filter((e) => e.role === role).reduce((n, e) => n + e.text.split(/\s+/).filter(Boolean).length, 0);
+  const you = words("user");
+  const them = words("replica");
+  const talkPct = you + them ? Math.round((you / (you + them)) * 100) : 0;
+  const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+  return (
+    <div className="coach-panel">
+      <div className="coach-rec">
+        <span className="coach-dot" /> REC <b>{mmss(elapsed)}</b>{maxSeconds > 0 && <span className="coach-total"> / {mmss(maxSeconds)}</span>}
+        {coach.title && <span className="coach-title">{coach.title}</span>}
+      </div>
+      <div className="coach-sec">Live scorecard</div>
+      <div className="coach-list">
+        {criteria.map((c, i) => (
+          <div key={i} className={"coach-item" + (ticked.has(i) ? " on" : "")}>
+            <span className="coach-check">{ticked.has(i) ? "✓" : ""}</span>
+            <span>{c.label}</span>
+          </div>
+        ))}
+      </div>
+      <div className="coach-sec">Talk / Listen <span className="coach-pct">{talkPct} / 100</span></div>
+      <div className="coach-meter"><span style={{ width: `${Math.max(2, talkPct)}%` }} /></div>
+      {coach.talkHint && <div className="coach-hint">{coach.talkHint}</div>}
+      <div className="coach-sec">Transcript</div>
+      <div className="coach-transcript">
+        {events.length === 0 && <div className="coach-hint">Everything either of you says lands here.</div>}
+        {events.map((e, i) => (
+          <div key={i} className={"coach-line" + (e.role === "user" ? " you" : "")}>
+            <b>{e.role === "user" ? "You" : "Them"}</b> {e.text}
+          </div>
+        ))}
+        <div ref={transcriptEnd} />
+      </div>
+    </div>
+  );
+}
+
 /* ── Scripted card renderer: SE-authored content, rendered verbatim.
       Styles: note (text), chart (one "Label: value" bar per line),
       stat (big value + label), image (URL). No model involved. ── */
@@ -2329,6 +2499,18 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
   // Scripted card currently on screen (deterministic canvas — see CallExtras).
   const [scCard, setScCard] = useState(null);
   useEffect(() => { if (!conversationUrl) setScCard(null); }, [conversationUrl]);
+  // Coach mode: rolling utterance feed for the scorecard panel. Tavus
+  // re-emits a turn's text cumulatively — replace, never stack.
+  const [coachEvents, setCoachEvents] = useState([]);
+  useEffect(() => { if (!conversationUrl) setCoachEvents([]); }, [conversationUrl]);
+  const pushCoachEvent = useCallback((e) => setCoachEvents((list) => {
+    const last = list[list.length - 1];
+    if (last && last.role === e.role) {
+      if (last.text === e.text || last.text.startsWith(e.text)) return list;
+      if (e.text.startsWith(last.text)) return [...list.slice(0, -1), e];
+    }
+    return [...list.slice(-299), e];
+  }), []);
   const onCanvasLayout = useCallback((l) => {
     setCanvasPanel((prev) => ({ active: Boolean(l?.active), side: (l?.active && l.side) || prev.side }));
   }, []);
@@ -2503,16 +2685,28 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
       // panel; an interactive Magic Canvas card wins when both are active.
       const wide = format === "desktop" || (format === "kiosk" && kioskLive);
       const split = (canvasPanel.active || !!scCard) && wide;
+      // Coach mode claims a persistent right sidebar on wide stages; the
+      // canvas/card panel then uses the left side so the two never collide.
+      const coach = wide && controls.coach && Array.isArray(controls.coach.criteria) && controls.coach.criteria.length ? controls.coach : null;
+      const cardSide = coach ? "left" : canvasPanel.side;
       return (
         <CVIProvider>
-          <div className={"cvi-wrap" + (split ? ` canvas-split canvas-split-${canvasPanel.side}` : "")}>
+          <div className={"cvi-wrap" + (split ? ` canvas-split canvas-split-${cardSide}` : "") + (coach ? " coach-split" : "")}>
             {/* The video pane resizes into the space the canvas panel doesn't
                 claim, so active cards get their own screen region beside the
                 video instead of cutting into it. */}
             <div className="cvi-video-pane">
               <Conversation conversationUrl={conversationUrl} onLeave={handleLeave} />
+              {coach && coachEvents.length === 0 && (
+                <div className="coach-scene">
+                  <div className="coach-scene-badge">{(coach.title || "GO").split(/[\s·]+/).filter(Boolean).slice(-2).map((w) => w[0]).join("").toUpperCase()}</div>
+                  <div className="coach-scene-title">{coach.scene || "They're about to pick up…"}</div>
+                  <div className="coach-scene-sub">Allow your camera and microphone when the browser asks.</div>
+                  <div className="coach-scene-bar"><span /></div>
+                </div>
+              )}
             </div>
-            <div className={`canvas-panel canvas-panel-${canvasPanel.side}`} aria-hidden={scCard && !canvasPanel.active ? undefined : "true"}>
+            <div className={`canvas-panel canvas-panel-${cardSide}`} aria-hidden={scCard && !canvasPanel.active ? undefined : "true"}>
               {scCard && !canvasPanel.active && wide && (
                 <ScriptedCard
                   key={scCard.seq}
@@ -2537,8 +2731,9 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
               )}
             </div>
             {/* Contained inside the stage instead of a full-viewport overlay */}
+            {coach && <CoachPanel coach={coach} events={coachEvents} conversationId={conversationId} slug={slug} maxSeconds={Number(controls.maxSeconds) || 0} />}
             <MagicCanvas className="canvas-contained" onError={(e) => console.error("canvas error", e)} onLayoutEffectChange={onCanvasLayout} />
-            <CallExtras controls={controls} conversationId={conversationId} onForceLeave={handleLeave} visitor={visitor} onScriptedCard={setScCard} />
+            <CallExtras controls={controls} conversationId={conversationId} onForceLeave={handleLeave} visitor={visitor} onScriptedCard={setScCard} onCoachSpeech={coach ? pushCoachEvent : null} />
           </div>
         </CVIProvider>
       );
@@ -3146,6 +3341,46 @@ export default function TavusExperienceBuilder() {
       setBrowserFlowBusy(false);
     }
   };
+  const draftCoach = async () => {
+    if (coachBusy) return;
+    setCoachBusy(true);
+    try {
+      addLog("info", "Drafting the roleplay scorecard…");
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "coach",
+          vibe: coachVibe.trim(),
+          context: {
+            brand: site.brand,
+            personaSummary: personaDraft.slice(0, 3000),
+            objectives: objectivesText,
+          },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: drafting failed`);
+      }
+      const j = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+      if (!Array.isArray(j?.criteria) || !j.criteria.length) throw new Error("The scorecard came back empty — describe what the trainee should practice.");
+      setCoachTitle(j.title || "");
+      setCoachScene(j.scene || "");
+      if (j.talkHint) setCoachTalkHint(j.talkHint);
+      setCoachCriteriaText(j.criteria.map((c) => `${String(c.label || "").trim()}${String(c.keywords || "").trim() ? ` | ${String(c.keywords).trim()}` : ""}`).filter((l) => l.trim()).join("\n"));
+      setCoachEnabled(true);
+      addLog("ok", `Scorecard drafted — ${j.criteria.length} behaviors. Edit any line, then launch.`);
+    } catch (e) {
+      addLog("err", `Scorecard: ${e.message}`);
+    } finally {
+      setCoachBusy(false);
+    }
+  };
+
   const validateBrowserUse = async () => {
     if (!palId.trim()) { addLog("err", "Validation needs a PAL ID (Setup step) — Tavus checks the config on attach."); return; }
     let cfg = {};
@@ -3618,6 +3853,16 @@ export default function TavusExperienceBuilder() {
   const [expBooking, setExpBooking] = useState(false);
   const [expTalkAgain, setExpTalkAgain] = useState(false);
   const [expThanks, setExpThanks] = useState("");
+  // Coach mode — a live roleplay scorecard beside the call (Rilla-style):
+  // criteria tick as the trainee demonstrates them, talk/listen meter,
+  // transcript, REC countdown, scene line while connecting.
+  const [coachEnabled, setCoachEnabled] = useState(false);
+  const [coachTitle, setCoachTitle] = useState("");
+  const [coachScene, setCoachScene] = useState("");
+  const [coachTalkHint, setCoachTalkHint] = useState("Keep them talking.");
+  const [coachCriteriaText, setCoachCriteriaText] = useState("");
+  const [coachVibe, setCoachVibe] = useState("");
+  const [coachBusy, setCoachBusy] = useState(false);
 
   // Launch
   const [busy, setBusy] = useState(false);
@@ -3722,6 +3967,7 @@ export default function TavusExperienceBuilder() {
     expJourney,
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
     expRating, expBooking, expTalkAgain, expThanks,
+    coachEnabled, coachTitle, coachScene, coachTalkHint, coachCriteriaText, coachVibe,
   });
 
   const applyConfig = (c) => {
@@ -3802,6 +4048,10 @@ export default function TavusExperienceBuilder() {
     setExpBooking(!!c.expBooking);
     setExpTalkAgain(!!c.expTalkAgain);
     setExpThanks(c.expThanks ?? "");
+    setCoachEnabled(!!c.coachEnabled);
+    setCoachTitle(c.coachTitle ?? ""); setCoachScene(c.coachScene ?? "");
+    setCoachTalkHint(c.coachTalkHint ?? "Keep them talking.");
+    setCoachCriteriaText(c.coachCriteriaText ?? ""); setCoachVibe(c.coachVibe ?? "");
   };
 
   /* Push one scenario to the account's cloud store. Throws on failure so
@@ -4267,8 +4517,21 @@ export default function TavusExperienceBuilder() {
     })
     .filter(Boolean), [linkCatalog]);
 
+  /* Coach criteria: one per line, "behavior label | instant-tick keywords"
+     (keywords optional — the live Claude judge covers the rest). */
+  const parsedCoachCriteria = useMemo(() => coachCriteriaText
+    .split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 8)
+    .map((l) => { const [label, kw = ""] = l.split("|"); return { label: label.trim(), keywords: kw.trim() }; })
+    .filter((c) => c.label), [coachCriteriaText]);
+
   const controlsConfig = useMemo(() => ({
     scriptedCards: [...compiledScriptedCards, ...productCards].slice(0, 16),
+    coach: coachEnabled && parsedCoachCriteria.length ? {
+      title: coachTitle.trim(),
+      scene: coachScene.trim(),
+      talkHint: coachTalkHint.trim(),
+      criteria: parsedCoachCriteria,
+    } : undefined,
     maxSeconds: parseInt(maxMinutes, 10) > 0 ? parseInt(maxMinutes, 10) * 60 : 0,
     timeWarning: timeWarning.trim(),
     inactivitySeconds: parseInt(inactivitySeconds, 10) > 0 ? parseInt(inactivitySeconds, 10) : 0,
@@ -4281,7 +4544,7 @@ export default function TavusExperienceBuilder() {
     // daily.startRecording() once joined. CallExtras does that when this is set.
     recording: recordingEnabled && !!(recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim()),
     recordingLayout: recLayout,
-  }), [compiledScriptedCards, productCards, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout]);
+  }), [compiledScriptedCards, productCards, coachEnabled, parsedCoachCriteria, coachTitle, coachScene, coachTalkHint, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout]);
 
   /* Journey editor helpers — steps the builder composes for the guided
      pre-call flow (waiver questions, persona pickers, videos, …). */
@@ -8737,6 +9000,41 @@ export default function TavusExperienceBuilder() {
               <Field label="Thank-you message" hint="Headline of the post-call screen.">
                 <input value={expThanks} onChange={(e) => setExpThanks(e.target.value)} placeholder="Thanks for the conversation!" />
               </Field>
+
+              <div className="skill-head" style={{ marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>🎯 Coach mode — live scorecard</span>
+                <Toggle on={coachEnabled} onChange={setCoachEnabled} />
+              </div>
+              <p className="field-hint" style={{ maxWidth: 640, marginBottom: 10 }}>
+                Turns the call into a roleplay trainer: a dark coach sidebar with behaviors that <b>tick off live</b> as the visitor demonstrates them, a talk/listen meter, the running transcript, and a REC timer. Great when the AI plays a tough customer and the visitor practices on them. The final score lands in Results.
+              </p>
+              {coachEnabled && (
+                <>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10, maxWidth: 680 }}>
+                    <input style={{ flex: "2 1 240px" }} value={coachVibe} onChange={(e) => setCoachVibe(e.target.value)}
+                      placeholder='What should they practice? — e.g. "door-to-door roof sales, homeowner burned by a storm chaser"' />
+                    <button className="pill-btn primary" style={{ flexShrink: 0 }} onClick={draftCoach} disabled={coachBusy}>
+                      {coachBusy ? "Drafting…" : "✨ Draft the scorecard"}
+                    </button>
+                  </div>
+                  <Field label="Scenario title" hint='Shown on the REC bar — character-forward reads best: "The Storm-Chaser Shadow · Mark Whitaker".'>
+                    <input value={coachTitle} onChange={(e) => setCoachTitle(e.target.value)} placeholder="The Storm-Chaser Shadow · Mark Whitaker" />
+                  </Field>
+                  <Field label="Scene line (shown while connecting)" hint="One tense line over the black screen before the character appears.">
+                    <input value={coachScene} onChange={(e) => setCoachScene(e.target.value)} placeholder="Mark Whitaker is about to open the door." />
+                  </Field>
+                  <Field label="Scorecard behaviors" hint={'One per line. Optional "| word1, word2" after a line = instant tick when the visitor says one; lines without keywords are judged live by Claude every ~25s (conservative — a near-miss stays unticked).'}>
+                    <textarea style={{ minHeight: 120 }} value={coachCriteriaText} onChange={(e) => setCoachCriteriaText(e.target.value)}
+                      placeholder={"Acknowledged the bad experience before responding\nAsked what happened instead of pitching over it\nOffered something they can independently verify | license, reviews, references\nAsked for a specific inspection time | inspection"} />
+                  </Field>
+                  <Field label="Talk-meter nudge" hint="Coaching line under the talk/listen bar.">
+                    <input value={coachTalkHint} onChange={(e) => setCoachTalkHint(e.target.value)} placeholder="Keep them talking." />
+                  </Field>
+                  <p className="field-hint" style={{ maxWidth: 640 }}>
+                    Coach mode shows on desktop and live-kiosk formats. Tip: make the persona a hard character on the Persona step and keep Magic Canvas minimal — the scorecard <i>is</i> the visual.
+                  </p>
+                </>
+              )}
 
               <button className="pill-btn" onClick={() => setSiteMode(true)}>Preview the page</button>
             </>

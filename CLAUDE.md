@@ -321,6 +321,19 @@ non-technical users; ids unchanged):
    page). Attend/feedback POST to `/api/experience`; the Results step shows
    a "Visitors & feedback" list, 👤/★ row badges, and a Visitor panel on
    call detail (`expMap`, fetched alongside recordings).
+   **Coach mode** (same step; Rilla-style roleplay trainer): `coachEnabled` +
+   `coachTitle/Scene/TalkHint/CriteriaText` ("label | keywords" per line, ≤8)
+   → `controlsConfig.coach`; `CoachPanel` in DemoSite (desktop + live kiosk;
+   `.coach-split` right sidebar, canvas/card panel auto-moves left) renders a
+   live scorecard — keyword lines tick instantly off the visitor's speech
+   (utterance feed via `onCoachSpeech` on CallExtras), keyword-less lines are
+   judged every ~25s by `kind: "score"` on generate-persona (Haiku,
+   conservative; the ONE unauthed kind — a real demo slug is the credential,
+   rate-capped per slug like /api/experience) — plus a talk/listen meter,
+   live transcript, REC countdown, and a `coach-scene` overlay (scene line)
+   until the first utterance. ✨ "Draft the scorecard" = `kind: "coach"`
+   (title/scene/talkHint/criteria from persona + objectives). The final
+   score posts to the exp record as a "Scorecard" answer on panel unmount.
 5.8. **Studio** (`studio`) — records scripted takes as MP4 feature demos.
    `studioLines` (saved with scenarios) script the visitor — hand-written or
    Claude-drafted (`kind: "script"` on generate-persona: lines engineered

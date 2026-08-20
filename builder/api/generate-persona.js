@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { isAuthed } from "./_auth.js";
+import { kvAvailable, kvGet, kvIncr } from "./_kv.js";
 
 /* Vercel serverless function: drafts a Tavus persona system prompt with Claude.
    The Anthropic key lives server-side (ANTHROPIC_API_KEY env var on Vercel) —
@@ -257,6 +258,28 @@ Rules (Tavus's own best practices):
 - Ground everything in the site/product described; never invent pages that weren't implied.
 - Narration is spoken aloud: no URLs read out, no UI mechanics ("I'm clicking…") — talk about what the page MEANS.`;
 
+/* Coach mode: a live roleplay scorecard beside the call — the human trainee
+   talks to the AI character and behaviors tick off as they're demonstrated. */
+const COACH_SYSTEM = `You design a LIVE ROLEPLAY SCORECARD for a Tavus demo: a human trainee talks to an AI character on video, and a coach panel beside the call ticks off behaviors the moment the trainee demonstrates them.
+
+Return ONLY JSON (no markdown fences):
+{"title":"scenario title, character-forward like a movie card — e.g. \\"The Storm-Chaser Shadow · Mark Whitaker\\"",
+ "scene":"one tense scene-setting line shown while the call connects — e.g. \\"Mark Whitaker is about to open the door.\\"",
+ "talkHint":"a 3-6 word coaching nudge under the talk/listen meter — e.g. \\"Keep them talking.\\"",
+ "criteria":[5-7 of {"label":"short past-tense behavior, ≤10 words, judgeable from the transcript alone — e.g. \\"Asked what happened instead of pitching over it\\"","keywords":"comma-separated literal words that make it instantly tickable when the trainee says one — ONLY truly discriminative words (\\"inspection\\", \\"warranty\\"); empty string when no unambiguous words exist (a live judge handles those)"}]}
+
+Rules:
+- Criteria grade the HUMAN trainee's technique, never the AI character: acknowledging feelings, discovery questions before pitching, offering verifiable proof, killing specific fears, concrete next steps.
+- Every label must be checkable from speech alone — no body language, no outcomes the transcript can't show.
+- Most criteria should have keywords:"" — over-eager keyword ticks feel fake; reserve keywords for words that only occur when the behavior happens.`;
+
+/* Score: the live judge — transcript so far + unmet criteria → which are now met. */
+const SCORE_SYSTEM = `You are the live judge behind a roleplay scorecard. You get the transcript so far and the criteria not yet met. Decide which criteria the TRAINEE (the human, lines marked TRAINEE) has now clearly demonstrated.
+
+Return ONLY JSON (no markdown fences): {"hit":[0-based indices of criteria now met]}
+
+Be conservative: tick only when the transcript plainly shows the behavior. A near-miss stays unticked. No partial credit. An empty array is a common correct answer.`;
+
 /* Flow: a plain-English (often dictated) scenario description → structured
    objectives DSL, revising any existing steps rather than clobbering them. */
 const FLOW_SYSTEM = `You structure conversation flows for a Tavus PAL from plain-English descriptions — often rambly dictation. Return ONLY JSON (no markdown fences):
@@ -352,8 +375,21 @@ export default async function handler(req, res) {
   }
 
   if (!isAuthed(req)) {
-    res.status(401).json({ error: "Not signed in — enter the access code first." });
-    return;
+    // One public-with-credential exception: live scorecard judging from a
+    // shared demo — a real demo slug is the credential (the /api/experience
+    // pattern), hourly rate-capped per slug.
+    let ok = false;
+    if (req.body?.kind === "score" && kvAvailable()) {
+      const slug = String(req.body?.slug ?? "").trim().toLowerCase();
+      if (/^[a-z0-9-]{3,48}$/.test(slug) && (await kvGet(`demo:${slug}`))) {
+        const hour = new Date().toISOString().slice(0, 13);
+        ok = (await kvIncr(`scorecap:${slug}:${hour}`, 3900)) <= 150;
+      }
+    }
+    if (!ok) {
+      res.status(401).json({ error: "Not signed in — enter the access code first." });
+      return;
+    }
   }
 
   const { brief = {}, context = {}, kind = "persona", vibe = "", draft = "" } = req.body ?? {};
@@ -417,6 +453,22 @@ export default async function handler(req, res) {
     if (context?.brand) parts.push(`Brand: ${String(context.brand).slice(0, 200)}`);
     if (context?.product) parts.push(`Product context: ${String(context.product).slice(0, 800)}`);
     userPrompt = parts.join("\n\n");
+  } else if (kind === "coach") {
+    system = COACH_SYSTEM;
+    const c = context || {};
+    const parts = [`Design the scorecard for this roleplay:\n${String(vibe).trim().slice(0, 2000) || "(derive it from the demo config below)"}`];
+    if (c.personaSummary) parts.push(`The AI character (persona summary):\n${String(c.personaSummary).slice(0, 3000)}`);
+    if (c.objectives) parts.push(`Conversation flow objectives:\n${String(c.objectives).slice(0, 1500)}`);
+    if (c.brand) parts.push(`Brand: ${String(c.brand).slice(0, 200)}`);
+    userPrompt = parts.join("\n\n");
+  } else if (kind === "score") {
+    const crit = (Array.isArray(context?.criteria) ? context.criteria : []).map((s) => String(s).slice(0, 200)).slice(0, 12);
+    if (!crit.length || !String(vibe).trim()) {
+      res.status(400).json({ error: "Scoring needs a transcript and unmet criteria." });
+      return;
+    }
+    system = SCORE_SYSTEM;
+    userPrompt = `CRITERIA NOT YET MET (0-based index):\n${crit.map((s, i) => `${i}. ${s}`).join("\n")}\n\nTRANSCRIPT SO FAR:\n${String(vibe).trim().slice(0, 12000)}`;
   } else if (kind === "flow") {
     if (!String(vibe).trim()) {
       res.status(400).json({ error: "Describe the flow first — the steps, and any if/then forks." });
@@ -554,10 +606,13 @@ export default async function handler(req, res) {
     // Reads ANTHROPIC_API_KEY from the environment; constructed per-request so a
     // missing key surfaces as the clean 500 above, not an import-time crash.
     const client = new Anthropic();
+    // Live scoring fires every ~25s mid-call — latency and cost matter more
+    // than depth there, so it runs on Haiku with no extended thinking.
+    const isScore = kind === "score";
     const stream = client.messages.stream({
-      model: "claude-opus-4-8",
-      max_tokens: 16000,
-      thinking: { type: "adaptive" },
+      model: isScore ? "claude-haiku-4-5-20251001" : "claude-opus-4-8",
+      max_tokens: isScore ? 300 : 16000,
+      ...(isScore ? {} : { thinking: { type: "adaptive" } }),
       system,
       messages: [{ role: "user", content: userPrompt }],
     });
