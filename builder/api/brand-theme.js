@@ -23,7 +23,8 @@ Return ONLY valid JSON — no code fences, no commentary:
     "accent": "#hex — the brand's primary accent color"
   },
   "font": "CSS font-family stack matching the site's typographic feel (fall back to system fonts)",
-  "logoUrl": "absolute URL of the company's logo image, or null if none found"
+  "logoUrl": "absolute URL of the company's logo image, or null if none found",
+  "note": "3-8 words on where the palette came from — 'colors from the live site', 'from brand knowledge', or 'neutral industry palette'"
 }
 
 Copy rules — this matters most:
@@ -31,7 +32,13 @@ Copy rules — this matters most:
 - Never bolt on unrelated product lines: if the use case is HR onboarding, do not pitch their sales products.
 - If the site's HTML is missing or gives little signal, take the safe route: use polished, neutral language typical of the company's industry and the stated use case. Never invent specific claims, product names, or statistics.
 
-For logoUrl prefer, in order: an <img> whose src/alt/class mentions logo, og:image if it looks like a logo (not a photo), apple-touch-icon, a rel=icon that isn't a tiny .ico. Never invent a URL — null when unsure. All colors must be real hex values actually grounded in the site's palette; with no usable palette, choose tasteful industry-appropriate colors.`;
+For logoUrl prefer, in order: an <img> whose src/alt/class mentions logo, og:image if it looks like a logo (not a photo), apple-touch-icon, a rel=icon that isn't a tiny .ico. Never invent a URL — null when unsure.
+
+Color rules — accuracy over taste:
+- With usable HTML, ground every color in the site's actual palette.
+- With NO usable HTML: if you recognize the company (and most established companies you do — Dayforce, Salesforce, HubSpot, banks, retailers), use its REAL brand identity from your own knowledge: the actual logo color and marketing-site palette. Do not water it down.
+- Only for a company you genuinely don't recognize: neutral, industry-appropriate colors.
+- NEVER default to generic purple-gradient "AI startup" styling — if purple isn't demonstrably the company's brand color, it must not appear.`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -71,13 +78,18 @@ export default async function handler(req, res) {
     const r = await fetch(target.href, {
       signal: ctrl.signal,
       redirect: "follow",
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; TavusExperienceBuilder/1.0)", Accept: "text/html" },
+      headers: {
+        // Big corporate sites 403 bot UAs (learned from Dayforce) — look like a browser.
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en,es;q=0.9",
+      },
     });
     clearTimeout(t);
     if (r.ok) html = await r.text();
-    else fetchNote = `The site answered ${r.status} — no public HTML available.`;
+    else fetchNote = `The site answered ${r.status} — no public HTML available. Use your own knowledge of this company's real brand identity.`;
   } catch (e) {
-    fetchNote = `The site couldn't be fetched (${e.name === "AbortError" ? "timed out" : e.message}) — no public HTML available.`;
+    fetchNote = `The site couldn't be fetched (${e.name === "AbortError" ? "timed out" : e.message}) — no public HTML available. Use your own knowledge of this company's real brand identity.`;
   }
 
   // Trim to what matters for branding: full <head>, then body with scripts

@@ -6218,17 +6218,27 @@ export default function TavusExperienceBuilder() {
         if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
         throw new Error(j.error || `${res.status}: theming failed`);
       }
-      setSite((s) => ({
-        ...s,
-        brand: j.brand || s.brand,
-        headline: j.headline || s.headline,
-        tagline: j.tagline || s.tagline,
-        cta: j.cta || s.cta,
-        logoUrl: s.logoUrl || j.logoUrl || "",
-        theme: { ...(j.colors || {}), font: j.font || "" },
-      }));
+      setSite((s) => {
+        const colors = j.colors || {};
+        const next = {
+          ...s,
+          brand: j.brand || s.brand,
+          headline: j.headline || s.headline,
+          tagline: j.tagline || s.tagline,
+          cta: j.cta || s.cta,
+          logoUrl: s.logoUrl || j.logoUrl || "",
+          theme: { ...colors, font: j.font || "" },
+        };
+        // A designed page must inherit the brand too — push the colors into
+        // the design palette, or theming after picking a blueprint is invisible.
+        if (s.design && typeof s.design === "object") {
+          const brand = ["canvas", "surface", "text", "muted", "accent", "border"].reduce((o, k2) => (colors[k2] ? { ...o, [k2]: colors[k2] } : o), {});
+          next.design = { ...s.design, palette: { ...(s.design.palette || {}), ...brand } };
+        }
+        return next;
+      });
       if (j.greeting && !greeting.trim()) setGreeting(j.greeting);
-      addLog("ok", `Demo page themed to ${j.brand || url} — colors, copy${j.greeting && !greeting.trim() ? ", greeting" : ""} drafted for this use case. Tweak anything below.`);
+      addLog("ok", `Demo page themed to ${j.brand || url} — colors, copy${j.greeting && !greeting.trim() ? ", greeting" : ""} drafted for this use case.${j.note ? ` (${j.note})` : ""} Tweak anything below.`);
       return j; // so callers (Draft my demo) can hand the real brand to draftDemo
     } catch (e) {
       addLog("err", `Brand theme: ${e.name === "AbortError" ? "took too long (75s) and was skipped — draft continues; theme the page later from Page & Brand" : e.message}`);
@@ -8698,8 +8708,17 @@ export default function TavusExperienceBuilder() {
                     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12, maxWidth: 720 }}>
                       {FORMAT_BLUEPRINTS.map((bp) => (
                         <button key={bp.name} type="button" className="placement-card" style={{ width: 160, textAlign: "left", cursor: "pointer" }}
-                          onClick={() => setSite((s) => ({ ...s, format: "designed", design: JSON.parse(JSON.stringify(bp.design)) }))}
-                          title="Sets the block stack — your headline, copy and brand stay yours">
+                          onClick={() => setSite((s) => {
+                            const design = JSON.parse(JSON.stringify(bp.design));
+                            // Blueprints set the BLOCK STACK — colors stay the
+                            // brand's whenever a brand theme exists; the stock
+                            // palette is only for unthemed demos.
+                            const t2 = s.theme || {};
+                            const brand = ["canvas", "surface", "text", "muted", "accent", "border"].reduce((o, k2) => (t2[k2] ? { ...o, [k2]: t2[k2] } : o), {});
+                            design.palette = { ...design.palette, ...brand };
+                            return { ...s, format: "designed", design };
+                          })}
+                          title="Sets the block stack — your headline, copy and brand colors stay yours">
                           <div style={{ fontWeight: 700, fontSize: 13 }}>{bp.name}</div>
                           <div style={{ fontSize: 11, marginTop: 4, lineHeight: 1.45, color: "var(--muted)" }}>{bp.desc}</div>
                         </button>
