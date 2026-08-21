@@ -21,6 +21,7 @@ Who they are (a name helps), who they're talking to, what this conversation is f
 
 ## Core Behaviors
 Opening move, active listening (brief acknowledgment before answering), topic steering, clarification (one clear question at a time), off-topic handling with a redirect line, and the closing move.
+IMPORTANT — when a SCRIPTED GREETING is provided in the config: that exact line is spoken automatically as the call's first words. The Opening move (and Conversation Flow) must CONTINUE from that line — never write a different self-introduction, never repeat what the greeting already said (name, role, purpose), and never contradict its tone.
 
 ## Response Style Rules
 1–3 sentences per turn, contractions, no markdown or lists in speech, one question at a time, listen more than talk.
@@ -50,12 +51,15 @@ CRITICAL: objectives drive the conversation flow mechanically — the PAL works 
 
 When a CURRENT PRESENTATION SETUP is provided, the PAL presents a slide deck via a separate skill: the skill shares the slides, but the PROMPT drives when the deck starts, the pacing (one slide at a time, check-in questions), how interruptions resume, and how the deck closes. Feedback about presenting/slides lands in the prompt's presenting section (create one if missing), and the prompt must stay consistent with the setup's trigger mode and talk track. If the flow never reaches the deck, that's an objectives problem too — mirror the deck walk in the objectives.
 
+When a SCRIPTED GREETING is provided, that exact line plays automatically as the call's first words — the prompt's opening must continue from it. If the feedback changes how the call OPENS, revise the greeting too (return it in "greeting"); otherwise return greeting: null and keep the prompt consistent with the existing one.
+
 Apply the feedback precisely and return ONLY valid JSON (no code fences, no commentary):
 {
   "prompt": "the complete revised system prompt",
   "objectives": ["Goal 1 in plain English", "Goal 2", "..."] or null when unchanged,
   "guardrails": ["Rule 1 in plain English", "..."] or null when unchanged,
-  "note": "One short sentence: what changed and where (prompt / goals / rules)"
+  "greeting": "the revised scripted first line" or null when unchanged,
+  "note": "One short sentence: what changed and where (prompt / goals / rules / greeting)"
 }
 
 Rules:
@@ -204,6 +208,7 @@ function briefToPrompt(brief, context) {
   add("Must avoid", brief.avoid);
 
   add("Brand name on the demo page", context.brand);
+  if (context.greeting) lines.push(`SCRIPTED GREETING — the call's first words, spoken automatically: "${String(context.greeting).slice(0, 400)}". The prompt's Opening move and Conversation Flow must continue from this exact line (no second self-introduction, no repeated name/role/purpose, no tonal clash).`);
   if (context.objectives) lines.push(`The PAL has structured objectives attached (one per line, in order; indented "if <condition> -> <detour>" lines are conditional branches):\n${context.objectives}`);
   if (context.guardrails) lines.push(`The PAL has guardrails attached (one per line):\n${context.guardrails}`);
   lines.push(...presentationContextLines(context.presentation));
@@ -411,6 +416,7 @@ export default async function handler(req, res) {
     parts.push(`CURRENT GUARDRAILS (one per line):\n${String(context.guardrails ?? "").trim().slice(0, 4000) || "(none configured)"}`);
     const presLines = presentationContextLines(context.presentation);
     if (presLines.length) parts.push(`CURRENT PRESENTATION SETUP:\n${presLines.join("\n\n")}`);
+    if (String(context.greeting ?? "").trim()) parts.push(`SCRIPTED GREETING (the call's automatic first words):\n"${String(context.greeting).trim().slice(0, 400)}"`);
     parts.push(`OPERATOR FEEDBACK — apply this:\n${String(vibe).trim().slice(0, 4000)}`);
     userPrompt = parts.join("\n\n");
   } else if (kind === "script") {

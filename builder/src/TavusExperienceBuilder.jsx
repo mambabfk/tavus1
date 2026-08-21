@@ -194,7 +194,11 @@ function applyJourneyPrefs(payload, journeyArr, prefs) {
       if (!o) return;
       lines.push(`- Chosen experience: ${o.label}`);
       if (o.context) lines.push(String(o.context));
-      if (o.greeting) out.custom_greeting = String(o.greeting);
+      if (o.greeting) {
+        out.custom_greeting = String(o.greeting);
+        // The model must know its (overridden) first line, or it re-introduces itself.
+        lines.push(`- Your first spoken line is already scripted and plays automatically: "${String(o.greeting).slice(0, 300)}" — continue naturally from it; never introduce yourself a second time.`);
+      }
       if (o.palId && /^p[a-z0-9_-]{3,60}$/i.test(String(o.palId))) out.pal_id = String(o.palId);
     }
   });
@@ -4364,6 +4368,13 @@ export default function TavusExperienceBuilder() {
 
     const parts = [];
 
+    // The scripted greeting plays automatically — without this line the model
+    // doesn't know what it "said" first and re-introduces itself (the classic
+    // greeting-vs-prompt mismatch).
+    if (greeting.trim()) {
+      parts.push(`Your first spoken line is already scripted and plays automatically at the start of the call: "${greeting.trim()}" — never introduce yourself a second time; continue naturally from that line.`);
+    }
+
     if (wakePhrase.trim()) {
       parts.push(
         `Wake phrase: after greeting the user once, stay quiet and do not respond to speech until someone says "${wakePhrase.trim()}" (or a close variation). Once you hear it, engage normally for the rest of the conversation. If people talk among themselves without saying it, remain silent.`
@@ -4749,6 +4760,7 @@ export default function TavusExperienceBuilder() {
           brief: personaBrief,
           context: {
             brand: site.brand,
+            greeting: greeting.trim(), // the scripted first line — the prompt's opening must continue from it, not fight it
             objectives: objectivesEnabled ? objectivesText.trim() : "",
             guardrails: guardrailsEnabled ? guardrailsText.trim() : "",
             presentation: presentationContext(),
@@ -4851,6 +4863,7 @@ export default function TavusExperienceBuilder() {
             objectives: objectivesEnabled ? objectivesText : "",
             guardrails: guardrailsEnabled ? guardrailsText : "",
             presentation: presentationContext(),
+            greeting: greeting.trim(),
           },
         }),
       });
@@ -4886,6 +4899,12 @@ export default function TavusExperienceBuilder() {
         setGuardrailsText(rev.guardrails.join("\n"));
         setGuardrailsEnabled(true);
         changed.push("guardrails");
+      }
+      // A feedback like "open by asking who they are" changes the OPENING —
+      // the scripted greeting must move with the prompt or they contradict.
+      if (typeof rev.greeting === "string" && rev.greeting.trim()) {
+        setGreeting(rev.greeting.trim());
+        changed.push("greeting");
       }
       setPersonaFeedback("");
       if (rev.note) addLog("info", `Revision: ${rev.note}`);
@@ -6125,7 +6144,10 @@ export default function TavusExperienceBuilder() {
       const parts = [ideaText];
       const chosenIntent = DEMO_INTENTS.find((x) => x.v === demoIntent);
       if (chosenIntent) parts.push(chosenIntent.gen);
-      const company = String(knownBrand || "").trim() || site.brand.trim();
+      // Anchor ONLY to fresh signals (the theming result or the typed URL) —
+      // site.brand at this point is the PREVIOUS demo's company, and using it
+      // drafted new demos for the old brand.
+      const company = String(knownBrand || "").trim();
       if (company) parts.push(`The prospect/company is ${company} — the REAL company. Use its real name and public positioning everywhere (page copy, greeting, persona, goals). Never invent a substitute brand name. Don't invent specific claims or product facts you're not sure of — stay accurate-but-general where unsure.`);
       else if (brandUrl.trim()) parts.push(`The prospect's website is ${brandUrl.trim()} — the REAL company behind that domain. Use its real name; never invent a substitute brand name.`);
       // Hard timeout: a hung serverless call must not freeze the wizard.
@@ -6145,6 +6167,19 @@ export default function TavusExperienceBuilder() {
         throw new Error(msg || "drafting failed");
       }
       const t = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim());
+
+      // ── NET-NEW MEANS NET-NEW. Before applying the template, reset every
+      // demo-content field to its default — a new demo must not inherit the
+      // previous one's cards, catalog, vision, coach, journey, tools, deck,
+      // duet plan, pronunciation, voice, or PAL. applyConfig({}) already
+      // yields correct defaults for everything and preserves this browser's
+      // recording/webhook settings; only true account-level values ride
+      // through. (Reset happens AFTER the fetch succeeds, so a failed draft
+      // never wipes the current demo.)
+      const intentNow = demoIntent;
+      applyConfig({ faceId, studioPalA, studioPalB });
+      setDemoIntent(intentNow); // picked on this very step — part of the new demo
+      setActiveScenario(""); // saving must create a new library entry, not overwrite the old demo
 
       if (t.conversationName) setConversationName(t.conversationName);
       if (t.greeting) setGreeting(t.greeting);
@@ -6237,7 +6272,9 @@ export default function TavusExperienceBuilder() {
         }
         return next;
       });
-      if (j.greeting && !greeting.trim()) setGreeting(j.greeting);
+      // Updater form: the fetch takes up to 75s — a greeting typed (or drafted)
+      // meanwhile must win over the theme's suggestion, not get clobbered.
+      if (j.greeting) setGreeting((g) => (g.trim() ? g : j.greeting));
       addLog("ok", `Demo page themed to ${j.brand || url} — colors, copy${j.greeting && !greeting.trim() ? ", greeting" : ""} drafted for this use case.${j.note ? ` (${j.note})` : ""} Tweak anything below.`);
       return j; // so callers (Draft my demo) can hand the real brand to draftDemo
     } catch (e) {
@@ -6358,6 +6395,92 @@ export default function TavusExperienceBuilder() {
     setBusy(true);
     try {
       const pal = palId.trim();
+
+      // ── PAL hygiene. A PAL keeps EVERYTHING ever attached to it, so a
+      // section that's OFF in this demo must be actively cleared or the
+      // previous demo bleeds through (stale objectives, rules, vision
+      // checks, dictionary, tools, decks — all confirmed leak paths).
+      // Read the PAL once and clear only what's actually there; every
+      // clear is non-fatal.
+      if (personaDraft.trim() && !personaAttached) {
+        // The #1 greeting-vs-persona mismatch: a drafted prompt that never
+        // got attached — this demo's greeting plays while the PAL speaks
+        // the previous demo's persona.
+        addLog("info", "The persona draft was never attached — attaching it now so the PAL speaks THIS demo's persona…");
+        await tavusFetch("PATCH", `/pals/${pal}`, [
+          { op: "add", path: "/system_prompt", value: personaDraft },
+        ]);
+        setPersonaAttached(true);
+        addLog("ok", "Persona prompt attached.");
+      }
+      let palState = null;
+      try { palState = await tavusFetch("GET", `/pals/${pal}`); } catch { addLog("info", "Couldn't read the PAL's current state — skipping the stale-config sweep."); }
+      const clearPatch = async (label, ops, fallbackOps) => {
+        try {
+          await tavusFetch("PATCH", `/pals/${pal}`, ops);
+          addLog("ok", `Cleared the previous demo's ${label} from the PAL (that section is off in this demo).`);
+        } catch (err) {
+          if (fallbackOps) {
+            try {
+              await tavusFetch("PATCH", `/pals/${pal}`, fallbackOps);
+              addLog("ok", `Cleared the previous demo's ${label} from the PAL (that section is off in this demo).`);
+              return;
+            } catch { /* fall through to the error log */ }
+          }
+          addLog("err", `Couldn't clear old ${label} (continuing): ${err.message}`);
+        }
+      };
+      if (palState) {
+        if ((!objectivesEnabled || !objectivesPayload.data.length) && palState.objectives_id) {
+          await clearPatch("objectives",
+            [{ op: "remove", path: "/objectives_id" }],
+            [{ op: "replace", path: "/objectives_id", value: null }]);
+        }
+        if ((!guardrailsEnabled || !guardrailsParsed.length) && Array.isArray(palState.guardrail_ids) && palState.guardrail_ids.length) {
+          await clearPatch("guardrails",
+            [{ op: "replace", path: "/guardrail_ids", value: [] }],
+            [{ op: "add", path: "/guardrail_ids", value: [] }]);
+        }
+        const perc = palState.layers?.perception;
+        if ((!visionEnabled || !(visionPayload.visual_awareness_queries || visionPayload.audio_awareness_queries)) && perc?.perception_model && perc.perception_model !== "off") {
+          await clearPatch("vision checks",
+            [{ op: "add", path: "/layers/perception", value: { perception_model: "off" } }]);
+        }
+        if ((!speechEnabled || (!pronunciationRules.length && !pronDictId)) && palState.layers?.tts?.pronunciation_dictionary_id) {
+          await clearPatch("pronunciation dictionary",
+            [{ op: "remove", path: "/layers/tts/pronunciation_dictionary_id" }],
+            [{ op: "add", path: "/layers/tts/pronunciation_dictionary_id", value: null }]);
+        }
+        if ((!toolsEnabled || !toolDefs.length) && Array.isArray(palState.layers?.llm?.tools) && palState.layers.llm.tools.length) {
+          await clearPatch("custom tools",
+            [{ op: "replace", path: "/layers/llm/tools", value: [] }],
+            [{ op: "add", path: "/layers/llm/tools", value: [] }]);
+        }
+        // Asymmetric bleed: an old demo that turned expressive delivery OFF
+        // left it off forever — turn it back on when this demo wants it on.
+        if (emotionControl && palState.layers?.tts?.tts_emotion_control === false) {
+          await clearPatch("expressive-delivery OFF setting",
+            [{ op: "add", path: "/layers/tts/tts_emotion_control", value: true }]);
+        }
+      }
+      // Skills the PAL carries but this demo has off — detach (the duet path
+      // proved this pattern: the reusable PAL must not carry a stale deck).
+      const palSkills = Array.isArray(palState?.skills)
+        ? palState.skills.map((s) => String(s?.skill_id || s?.id || s?.name || s)).filter(Boolean)
+        : null; // unknown shape/missing → attempt blind detach, ignore failures
+      for (const [on2, skillId2, label2] of [
+        [presentationEnabled && docIds.length > 0, "presentation", "presentation deck"],
+        [canvasEnabled, "magic_canvas", "Magic Canvas"],
+        [browserUseEnabled, "browser_use", "Browser Use flows"],
+        [internetSearchEnabled, "internet_search", "internet search"],
+      ]) {
+        if (on2) continue;
+        if (palSkills && !palSkills.includes(skillId2)) continue;
+        try {
+          await tavusFetch("DELETE", `/pals/${pal}/skills/${skillId2}`);
+          addLog("ok", `Detached the previous demo's ${label2} from the PAL (off in this demo).`);
+        } catch { /* wasn't attached — nothing to clear */ }
+      }
 
       // Objectives: create the set, attach to the PAL (replaces any existing set).
       if (objectivesEnabled && objectivesPayload.data.length) {

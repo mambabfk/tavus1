@@ -33,7 +33,12 @@ function applyJourneyPrefs(payload, journeyArr, prefs) {
       if (!o) return;
       lines.push(`- Chosen experience: ${o.label}`);
       if (o.context) lines.push(String(o.context));
-      if (o.greeting) out.custom_greeting = String(o.greeting);
+      if (o.greeting) {
+        out.custom_greeting = String(o.greeting);
+        // Keep in sync with applyJourneyPrefs in TavusExperienceBuilder.jsx:
+        // the model must know its (overridden) first line.
+        lines.push(`- Your first spoken line is already scripted and plays automatically: "${String(o.greeting).slice(0, 300)}" — continue naturally from it; never introduce yourself a second time.`);
+      }
       if (o.palId && /^p[a-z0-9_-]{3,60}$/i.test(String(o.palId))) out.pal_id = String(o.palId);
     }
   });

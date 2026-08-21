@@ -108,7 +108,22 @@ alongside objectives/guardrails/presentation/canvas. Every step ends with a `flo
 "Next: X →" / a 🚀 Launch shortcut gated on `canLaunch`). The default step
 is `start` — a hero step combining the prospect URL + use-case idea into
 one "Draft my demo" action (runs `draftDemo()` then `themeFromUrl()`,
-lands on Persona). The right-hand curl panel is titled "Under the hood"
+lands on Persona). **Net-new means net-new**: after the template fetch
+succeeds, `draftDemo` runs `applyConfig({faceId, studioPalA, studioPalB})`
+— a full reset of every demo-content field to defaults (recording/webhook
+ride through via their store fallbacks) — clears `activeScenario`, and
+anchors the draft only to fresh signals (theming result / typed URL),
+never the previous demo's `site.brand`. **Launch runs a PAL-hygiene
+sweep** first: auto-attaches a never-attached persona draft, GETs the PAL,
+and clears whatever the PAL carries that this demo has OFF (objectives,
+guardrails→[], perception→off, pronunciation id, llm tools→[],
+emotion-control back on, DELETE for disabled skills) — a PAL keeps
+everything ever attached, so disabled≠detached was the big bleed channel.
+**Greeting cohesion**: the scripted greeting is passed to persona
+generate/revise context (revise may return `greeting`), pushed into
+`conversational_context` at launch ("your first line already played —
+don't re-introduce"), and journey per-option greeting overrides append the
+same note (duplicated in `api/demo-launch.js` — keep in sync). The right-hand curl panel is titled "Under the hood"
 and is collapsible (persisted via `SHOWAPI_KEY`).
 
 Categorization rules learned the hard way: the ✋ interrupt-button toggle
