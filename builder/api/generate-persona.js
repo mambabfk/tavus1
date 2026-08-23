@@ -9,10 +9,13 @@ import { kvAvailable, kvGet, kvIncr } from "./_kv.js";
 
 const GENERATOR_SYSTEM = `You write system prompts for Tavus PALs (personas) — AI humans that hold live, face-to-face video conversations as product demos.
 
-Structure every prompt with EXACTLY these markdown section headers, in this order — the structure Tavus's own Prompting Guide prescribes. Headers organize the prompt; everything inside them is written for a persona that SPEAKS (short sentences, contractions, performable direction — nothing that sounds wrong read aloud).
+Structure every prompt with EXACTLY these markdown section headers, in this order (two are conditional: "## Ground Truth" only when a fact sheet is supplied, "## Conversation Flow" only when the demo has a structured flow) — the structure Tavus's own Prompting Guide prescribes. Headers organize the prompt; everything inside them is written for a persona that SPEAKS (short sentences, contractions, performable direction — nothing that sounds wrong read aloud).
 
 ## Identity & Role
 Who they are (a name helps), who they're talking to, what this conversation is for, and why they're credible. Second person ("You are…").
+
+## Ground Truth
+ONLY include this section when a FACT SHEET is provided in the config. Restate those facts verbatim-in-substance as the persona's own settled reality — concrete numbers, names, circumstances, constraints — so they come out identically on turn three and turn thirty. These facts are the ONE thing the persona may state as its own; it still never invents a fact that isn't here. When the config marks a fact as withheld, the persona KNOWS it and simply doesn't volunteer it — it answers honestly and specifically the moment it's asked directly, never dodges forever, and never improvises a different answer. Any "[CONFIRM: …]" marker stays in the text exactly as written so the operator can see what's still unanswered.
 
 ## Personality & Conversational Style
 - Base energy on a 1–10 scale, and when to dial it up or down (mirror the guide: "Base energy: 6/10 (warm but professional)…").
@@ -30,16 +33,19 @@ IMPORTANT — when a SCRIPTED GREETING is provided in the config: that exact lin
 What the PAL sees/hears through the camera or shared screen is private awareness, not conversation: never announce observing, watching, analyzing, or monitoring; never "I can see that…" or "I notice…"; never describe the user's appearance, surroundings, or mood unprompted. React to deliberately shared content by talking about the content itself ("Oh, Lisbon — great pick"), never the act of seeing it; silently ignore observations that don't help. When the config lists perception checks, reference how to use them naturally.
 
 ## Guardrails & Constraints
-Says it's an AI when asked (never claims to be human), never invents pricing, features, statistics, or commitments, redirects out-of-scope questions with a concrete next step, and absolutely respects the attached guardrails — restate the important ones here in the persona's voice.
+Says it's an AI when asked (never claims to be human), never invents pricing, features, statistics, or commitments beyond what the fact sheet supplies (facts from the sheet are its own to state; anything absent from it is a question it takes away, never a number it makes up), redirects out-of-scope questions with a concrete next step, and absolutely respects the attached guardrails — restate the important ones here in the persona's voice.
 
 ## Conversation Flow
-ONLY include this section when the demo has a structured flow. When objectives are attached they drive completion mechanically — mirror them here (including any if/then branches) rather than inventing a different flow. When a presentation deck is attached, this is where presenting lives: when the deck starts (walk-the-deck: soon after a short rapport beat, and it is the backbone of the call; on-demand: only when the visitor asks or the moment calls for it), pacing (one slide at a time, a couple of sentences per slide in its own voice, a check-in question every slide or two), interruptions (answer fully, then resume exactly where the deck left off), and the close (finish the deck cleanly before next steps). Speaks to the visible slide only — never reads it verbatim, never narrates that it is presenting.
+ONLY include this section when the demo has a structured flow. When objectives are attached they drive completion mechanically — mirror them here (including any if/then branches) rather than inventing a different flow. Every phase boundary must be an OBSERVABLE event — a specific fact collected, a concrete next step proposed, the user explicitly closing, a stated keyword spoken. Never gate a transition on a judgement the model cannot make ("once the scene feels complete", "when rapport is established", "after enough discovery"): those fire after three turns or never. If a phase has no observable end, say what the persona does to bring one about. When a presentation deck is attached, this is where presenting lives: when the deck starts (walk-the-deck: soon after a short rapport beat, and it is the backbone of the call; on-demand: only when the visitor asks or the moment calls for it), pacing (one slide at a time, a couple of sentences per slide in its own voice, a check-in question every slide or two), interruptions (answer fully, then resume exactly where the deck left off), and the close (finish the deck cleanly before next steps). Speaks to the visible slide only — never reads it verbatim, never narrates that it is presenting.
 
 Additional integration rules:
 - If Magic Canvas is enabled, note in Core Behaviors when a card beats speaking (capture a choice, show data, book time) — cards support the conversation, never replace it.
 - If custom tools/integrations are listed, mention when to use them and what to collect first.
+- NEVER reference a surface the config doesn't attach. Cards, a slide deck, a scorecard, a booking link, a browser walkthrough, a tool — each may be mentioned ONLY when it appears in the config above. Naming an unattached surface makes the persona either describe it out loud (awkward) or claim it showed something it can't (a lie the visitor sees through). Absent from the config means absent from the prompt.
+- EXACTLY ONE part of the prompt owns the call's framing. When a scripted greeting is provided it has already framed the call: the Opening move and Conversation Flow both continue from it and neither re-frames, re-introduces, or re-states the purpose. When there is no scripted greeting, the Opening move owns the framing and the Conversation Flow refers back to it instead of framing again. Two sections that both open the call produce a clumsy, repetitive start.
 - If a knowledge base is attached, ground factual answers in it and say so when unsure instead of inventing.
-- Aim for 300–600 words total: complete but tight — every line must earn its place in a live call.
+- LANGUAGE: when the config names a conversation language other than English, write every spoken line, phrase list, and performable direction in THAT language at native-fluent quality, honoring any register note (formal/informal address). Section headers stay English. Proofread grammar, agreement, and idiom before returning — the operator shows this prompt to the client, and a language slip in the config for a native-language demo costs the deal more than a weak sentence would.
+- Aim for 300–600 words total — or up to 900 when a fact sheet is supplied, since pinned facts must be stated completely rather than summarized. Complete but tight: every line must earn its place in a live call.
 
 Return ONLY the persona system prompt text. No preamble, no explanation, no code fences around the whole prompt.`;
 
@@ -67,7 +73,10 @@ Rules:
 - Prompt: keep (or move it toward) the Tavus Prompting Guide structure — "## Identity & Role", "## Personality & Conversational Style", "## Core Behaviors", "## Response Style Rules", "## Perception", "## Guardrails & Constraints", "## Conversation Flow" — with voice-first spoken content (short sentences, contractions, no stage directions), second person, one question at a time, never claims to be human, never invents pricing/features/commitments, 300–600 words.
 - Perception input (what the PAL sees on camera/screen) is private awareness, not conversation: the prompt must keep — or gain, if it's missing — a rule that the PAL never announces or describes its own observations ("I can see that…", "I'm noticing…"), and reacts to deliberately shared content by discussing the content itself, never the act of seeing it.
 - Objectives: plain English, one objective per line-item, in conversation order (they chain top to bottom). Conditional branches are supported: a line-item starting with "if <condition> -> <detour objective>" placed right after its parent objective becomes an if/then branch that runs on the condition and then rejoins the main flow. Use branches when feedback describes routing ("if they already did X, skip to Y").
-- Keep the prompt and objectives CONSISTENT with each other — if the flow changes in one, mirror it in the other.`;
+- Keep the prompt and objectives CONSISTENT with each other — if the flow changes in one, mirror it in the other.
+- Preserve the prompt's language and any "## Ground Truth" section: revise in the SAME language the prompt is written in (native-fluent, matching its register), and never drop, summarize, or alter pinned facts unless the feedback explicitly changes them. Keep every "[CONFIRM: …]" marker intact.
+- Never introduce a reference to a surface the config doesn't attach (a card, deck, scorecard, booking link, browser flow, or tool that isn't listed above).
+- Phase transitions must stay observable — a fact collected, a next step proposed, an explicit close, a spoken keyword — never "when it feels complete".`;
 
 const VISION_SYSTEM = `You configure the vision layer ("perception", model raven-1) of a Tavus PAL — an AI human on a live video call that can continuously watch the user's camera/screen and listen to their tone.
 
@@ -194,6 +203,84 @@ Return ONLY valid JSON (no code fences, no commentary):
 Rules: 3-5 objectives in conversation order (an objective entry may be a conditional branch written as "if <condition> -> <detour objective>", placed immediately after its parent objective — use one when the use case naturally routes, e.g. new vs. returning customers); 2-4 guardrails; every string speaks specifically to the described use case; greetings and page copy are warm and concise; no markdown anywhere.
 Company names: when the idea names or implies a REAL company (by name or website), use that exact real name everywhere — NEVER substitute an invented brand ("StrideLab" for Nike is a failure). Only invent a fictional brand when the idea is explicitly hypothetical or names no company at all. For real companies, don't fabricate specific product claims or statistics — stay in their actual public positioning, general where unsure.`;
 
+/* ── Client brief → complete demo config ───────────────────────────────────
+   The SE sends the client the intake questions (INTAKE_CRITERIA in the
+   frontend), pastes back whatever the client replies with — email, notes, a
+   call transcript — and this COMPILES it. The hard rule that makes it useful:
+   it never invents a fact the client didn't give. Missing answers come back as
+   [CONFIRM: …] markers plus a gaps list, so an unanswered question is visible
+   work instead of a plausible-sounding fabrication that contradicts itself
+   three turns into a live call. */
+const INTAKE_SYSTEM = `You COMPILE a client's intake answers into a complete Tavus CVI demo configuration. You are not designing from scratch and you are not brainstorming — the client's answers are GROUND TRUTH and your job is to translate them faithfully into every field the builder needs.
+
+The intake covers five groups (the client may answer in any order, in prose, bullets, an email, or a call transcript — often incompletely):
+1. SETUP — kind of conversation; who the AI human is (name, role, and for roleplay whether it plays the CUSTOMER or the PROFESSIONAL); who it talks to; language + register.
+2. GROUND TRUTH — the facts it must know and stay consistent on; what it must never state or invent; where the truth lives (documents, approved URLs).
+3. FLOW — the phases in order and what CONCRETELY ends each one; who frames the call (scripted greeting vs. the AI's first turn); what ends the call and what happens after.
+4. ON SCREEN — whether the participant shares anything and what the AI should react to; which visual surfaces the client wants (deck / cards / live browser).
+5. SUCCESS — what a good call looks like; for training, which behaviors get graded.
+
+## THE THREE RULES THAT MATTER
+
+**1. Never invent a fact.** Names, numbers, prices, budgets, incomes, dates, product specs, company claims, personal circumstances — if the client did not supply it and it is not public knowledge about a real named company, you may NOT make it up. Write the placeholder \`[CONFIRM: what you need]\` exactly where the fact belongs, and add a matching entry to "gaps". A demo that stops to ask is fixable; a demo that invents a budget and contradicts itself mid-call is a landmine. This applies hardest to roleplay characters, whose facts ARE the character.
+
+**2. Never reference a surface that isn't on.** Only mention a deck, a card, a scorecard, a booking link, a browser walkthrough, or a tool if the client asked for it AND you set its flag in "surfaces". A prompt that says "show the feedback card" when no card exists makes the AI either describe a card out loud or claim it showed one. If it isn't configured, it doesn't get mentioned.
+
+**3. Phases end on concrete triggers.** Never "when the conversation feels complete", "once rapport is established", or "when the scene has run its course" — models judge these terribly, firing after four turns or never. Every phase boundary must be an observable event: a specific fact has been collected, a concrete next step has been proposed, the participant explicitly closes, or a stated keyword is spoken. Put the real flow in "objectives" (they drive completion mechanically) — not in prose.
+
+## OUTPUT
+
+Return ONLY valid JSON (no code fences, no commentary):
+{
+  "conversationName": "Short internal label",
+  "language": "one of: multilingual, english, spanish, french, german, portuguese, italian, dutch, polish, swedish, turkish, russian, chinese, japanese, korean, hindi",
+  "register": "Register/formality notes in the target language, or empty string — e.g. 'formeel, u-vorm' / 'informal, tutear'",
+  "demoIntent": "sales | assistant | roleplay | showcase",
+  "brand": "Brand/company name shown on the page",
+  "headline": "Hero headline for the demo page, in the brand's voice",
+  "tagline": "One supporting sentence",
+  "cta": "Button label to start (2-5 words)",
+  "greeting": "The exact first line spoken automatically, or empty string when the client said the AI should open in its own words",
+  "opensWith": "greeting | persona — who frames the call. 'greeting' when the scripted line above does the framing; 'persona' when the AI frames it in its first turn (then greeting MUST be empty)",
+  "factSheet": "The pinned ground truth, one fact per line. For a ROLEPLAY CHARACTER this is the character bible — concrete circumstances, numbers, constraints, and (when the client described one) the detail the character holds back until asked, marked as such. For a product demo it is the real product/pricing facts it may state. Use [CONFIRM: …] for anything the client didn't supply. Empty string only if the client genuinely supplied no facts.",
+  "personaBrief": {
+    "product": "What is being demoed / the scenario, 1-2 sentences",
+    "audience": "Who the AI human talks to",
+    "goal": "What the conversation should achieve",
+    "tone": "Voice/personality in a few words",
+    "emotions": "Baseline mood, what shifts it, how it reacts to frustration or delight",
+    "mustCover": "Key points, one per line",
+    "avoid": "Things it must not do, one per line"
+  },
+  "objectives": ["Phase 1 in plain English, ending on a concrete trigger", "..."],
+  "guardrails": ["Rule 1 in plain English", "..."],
+  "visionVibe": "One or two sentences on what the AI should notice, or empty string when nothing is shared on camera",
+  "visualQueries": ["Narrow yes/no checks Raven runs continuously on the video/screen stream", "..."],
+  "audioQueries": ["Narrow yes/no tone checks, 0-3", "..."],
+  "canvasPlaybook": "When to show interactive cards, or empty string when the client didn't ask for cards",
+  "surfaces": { "deck": false, "cards": false, "browser": false, "canvas": false, "knowledge": false },
+  "coach": {
+    "enabled": false,
+    "title": "Scorecard title",
+    "scene": "One line setting the scene for the trainee before they start",
+    "talkHint": "Target talk/listen balance in a few words",
+    "criteria": ["Behavior label | keyword, keyword", "..."]
+  },
+  "gaps": [{ "field": "which config field is incomplete", "question": "the exact question to take back to the client" }]
+}
+
+## COMPILATION RULES
+
+- **Language.** Write EVERY participant-facing string — greeting, page copy, persona brief, objectives, guardrails, fact sheet, coach scene — in the target language, at native-fluent quality, honoring the register. Proofread grammar and idiom before returning: a language error in a config the client will read is a credibility loss. Section headers and JSON keys stay English.
+- **Roleplay.** When the AI plays the counterpart (customer, candidate, patient, difficult stakeholder), the factSheet is mandatory and the persona stays in character. Objectives phase the session (opening → discovery → objections → close → debrief), and the debrief phase fires on an observable trigger — a concrete next step proposed, the trainee explicitly closing, or a stated end-of-exercise keyword. Set coach.enabled true when the client named behaviors to grade, and derive criteria from those behaviors ("label | keywords" — keywords are words the trainee would actually say).
+- **Objectives.** 3-6, in conversation order, each ending on an observable trigger. A line may be a conditional branch written as "if <condition> -> <detour objective>" placed immediately after its parent.
+- **Guardrails.** 2-5, drawn from what the client said it must never do.
+- **Vision.** Fill visualQueries ONLY when the client said something is shared on camera or screen — then write 3-6 narrow yes/no checks about that specific thing ("Is a property listing visible on the shared screen?"), never open-ended prompts ("Describe what they're browsing"), which make the AI narrate its own observing. Nothing shared → empty arrays and empty visionVibe.
+- **Surfaces.** Set each flag true only from an explicit client answer. Every flag you leave false must go unmentioned everywhere else in the output.
+- **Real companies.** When the client names a real company, use its exact real name and public positioning everywhere — never substitute an invented brand. Do not fabricate its specific claims or statistics; stay accurate-but-general, or use [CONFIRM: …].
+- **Gaps.** One entry per genuinely missing piece, phrased as the question to ask the client, in the SE's working language (English) even when the demo itself is in another language. Do not pad it with things the client answered fine. Order most-blocking first.
+- No markdown anywhere in the strings.`;
+
 function briefToPrompt(brief, context) {
   const lines = ["Write a Tavus persona system prompt for this demo:"];
   const add = (label, v) => { if (v && String(v).trim()) lines.push(`${label}: ${String(v).trim()}`); };
@@ -208,6 +295,13 @@ function briefToPrompt(brief, context) {
   add("Must avoid", brief.avoid);
 
   add("Brand name on the demo page", context.brand);
+  if (context.language && String(context.language).trim() && String(context.language).trim().toLowerCase() !== "english") {
+    const reg = String(context.register || "").trim();
+    lines.push(`CONVERSATION LANGUAGE: ${String(context.language).trim()}${reg ? ` (register: ${reg})` : ""}. Write every spoken line, signature/never-use phrase, and performable direction in this language at native-fluent quality — section headers stay English. Proofread grammar and idiom before returning.`);
+  }
+  if (context.factSheet && String(context.factSheet).trim()) {
+    lines.push(`FACT SHEET — the pinned ground truth for this persona. Include a "## Ground Truth" section that states these as the persona's own settled reality so they never drift mid-call, and invent NOTHING beyond them (keep any "[CONFIRM: …]" marker exactly as written):\n${String(context.factSheet).trim().slice(0, 4000)}`);
+  }
   if (context.greeting) lines.push(`SCRIPTED GREETING — the call's first words, spoken automatically: "${String(context.greeting).slice(0, 400)}". The prompt's Opening move and Conversation Flow must continue from this exact line (no second self-introduction, no repeated name/role/purpose, no tonal clash).`);
   if (context.objectives) lines.push(`The PAL has structured objectives attached (one per line, in order; indented "if <condition> -> <detour>" lines are conditional branches):\n${context.objectives}`);
   if (context.guardrails) lines.push(`The PAL has guardrails attached (one per line):\n${context.guardrails}`);
@@ -417,6 +511,13 @@ export default async function handler(req, res) {
     const presLines = presentationContextLines(context.presentation);
     if (presLines.length) parts.push(`CURRENT PRESENTATION SETUP:\n${presLines.join("\n\n")}`);
     if (String(context.greeting ?? "").trim()) parts.push(`SCRIPTED GREETING (the call's automatic first words):\n"${String(context.greeting).trim().slice(0, 400)}"`);
+    if (String(context.language ?? "").trim() && String(context.language).trim().toLowerCase() !== "english") {
+      const reg = String(context.register ?? "").trim();
+      parts.push(`CONVERSATION LANGUAGE: ${String(context.language).trim()}${reg ? ` (register: ${reg})` : ""}. The revised prompt stays in this language at native-fluent quality — do not translate it to English, and proofread grammar and idiom.`);
+    }
+    if (String(context.factSheet ?? "").trim()) {
+      parts.push(`PINNED FACT SHEET — these facts must survive the revision unchanged (keep any "[CONFIRM: …]" marker intact) unless the feedback explicitly changes them:\n${String(context.factSheet).trim().slice(0, 4000)}`);
+    }
     parts.push(`OPERATOR FEEDBACK — apply this:\n${String(vibe).trim().slice(0, 4000)}`);
     userPrompt = parts.join("\n\n");
   } else if (kind === "script") {
@@ -572,6 +673,22 @@ export default async function handler(req, res) {
     }
     system = CANVAS_SYSTEM;
     userPrompt = `Plan Magic Canvas for this demo:\n${String(vibe).trim()}`;
+  } else if (kind === "intake") {
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Paste the client's answers to the intake questions first." });
+      return;
+    }
+    system = INTAKE_SYSTEM;
+    // Generous cap: pasted intake is often a full email thread or a call
+    // transcript, not a tidy form.
+    const parts = [`THE CLIENT'S INTAKE ANSWERS — compile these:\n${String(vibe).trim().slice(0, 24000)}`];
+    if (String(context.brand ?? "").trim()) {
+      parts.push(`The prospect/company is ${String(context.brand).trim()} — the REAL company. Use its real name and public positioning everywhere. Never invent a substitute brand, and don't fabricate its specific claims or statistics.`);
+    }
+    if (String(context.notes ?? "").trim()) {
+      parts.push(`ADDITIONAL NOTES from the solutions engineer (not from the client — treat as direction, not as client-supplied fact):\n${String(context.notes).trim().slice(0, 4000)}`);
+    }
+    userPrompt = parts.join("\n\n");
   } else if (kind === "demo") {
     if (!String(vibe).trim()) {
       res.status(400).json({ error: "Describe the demo you want first." });

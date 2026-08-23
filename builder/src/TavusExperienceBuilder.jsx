@@ -347,6 +347,68 @@ const DEMO_INTENTS = [
   { v: "showcase", label: "🧪 Feature showcase", desc: "Show off the tech itself", gen: "This is a CAPABILITY SHOWCASE: the conversation deliberately creates moments that demonstrate features (a visual canvas moment, a deck moment, a perception moment), objectives sequence those moments, page copy invites the visitor to try things live." },
 ];
 
+/* The client-brief intake. These 14 questions exist because each one, left
+   unanswered, produced a specific failure in generated demos: no genre → a
+   trainer written as a product pitch; no fact sheet → a roleplay character who
+   improvises a different budget every run; no completion triggers → a debrief
+   that fires after four turns or never; no language field → a grammar slip in
+   the config the client reads; no surface list → a prompt promising a card that
+   was never attached. Send them, paste the answers back, compile.
+   Keep in sync with INTAKE_SYSTEM in api/generate-persona.js. */
+const INTAKE_CRITERIA = [
+  {
+    group: "1 · The setup",
+    qs: [
+      "What kind of conversation is this — a product demo, roleplay training, support, screening, or a guided tour?",
+      "Who is the AI human? Give it a name and a role. For roleplay: does it play the customer, or the professional?",
+      "Who is on the other side — a prospect, a trainee, an existing customer?",
+      "Which language should it speak, and how formal? (e.g. Dutch, formal u-vorm)",
+    ],
+  },
+  {
+    group: "2 · Ground truth",
+    qs: [
+      "Which facts must it know and stay consistent on? For a roleplay character: their situation, budget, constraints — and anything they'd hold back until asked directly. For a product demo: real specs and pricing it's allowed to state.",
+      "What must it never state, promise, or invent?",
+      "Where does the truth live — documents we should upload, or approved links it may share?",
+    ],
+  },
+  {
+    group: "3 · The flow",
+    qs: [
+      "What are the phases of the conversation, in order — and what concretely ends each one? (a fact collected, a next step proposed, a keyword spoken)",
+      "Who frames the call: a scripted opening line we write, or the AI introducing itself in its own words?",
+      "What ends the conversation, and what should happen after — a debrief, a booking, a score, nothing?",
+    ],
+  },
+  {
+    group: "4 · What's on screen",
+    qs: [
+      "Will the participant share anything — their screen, a document, a product? What specifically should the AI react to?",
+      "Which visuals do you want beside the video — a slide deck, interactive cards, a live browser walkthrough?",
+    ],
+  },
+  {
+    group: "5 · Success",
+    qs: [
+      "What does a good call look like, in your words?",
+      "For training: which behaviors are we grading the trainee on?",
+    ],
+  },
+];
+
+/* Plain-text questionnaire the SE pastes into an email to the client. */
+const intakeQuestionnaire = () =>
+  [
+    "A few questions so we can build your demo accurately — answer in whatever detail you have; anything you skip we'll flag rather than guess.",
+    "",
+    ...INTAKE_CRITERIA.flatMap((g) => [
+      g.group.replace(/^\d+ · /, "").toUpperCase(),
+      ...g.qs.map((q, i) => `${i + 1}. ${q}`),
+      "",
+    ]),
+  ].join("\n").trim();
+
 const hex6 = (v) => {
   const s = String(v || "").trim();
   const m3 = s.match(/^#([0-9a-f]{3})$/i);
@@ -690,13 +752,21 @@ const BUILDER_CSS = `
         .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:200; display:flex; align-items:center; gap:12px; background:#17181A; color:#fff; border-radius:999px; padding:11px 20px; font-size:13px; line-height:1.45; max-width:min(760px,92vw); box-shadow:0 8px 28px rgba(0,0,0,.28); }
         .toast-err { background:#B93B3B; }
         .toast-ok { background:#1D7A4C; }
+        .toast-warn { background:#8A5A16; }
+        .gaps-card { padding:14px 16px; margin:0 0 18px; border-color:#E0C89A; background:#FFFBF3; }
+        .gaps-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:6px; font-size:14px; }
+        .gaps-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; }
+        .gaps-list li { display:flex; align-items:flex-start; gap:9px; font-size:13px; line-height:1.5; }
+        .gap-tick { flex-shrink:0; width:20px; height:20px; border-radius:6px; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:11px; line-height:1; cursor:pointer; padding:0; }
+        .gap-tick:hover { background:var(--ok); border-color:var(--ok); color:#fff; }
+        .gap-field { color:var(--muted); font-family:var(--mono); font-size:11.5px; }
         .toast button { background:none; border:none; color:#fff; opacity:.7; font-size:16px; cursor:pointer; padding:0 2px; line-height:1; }
         .toast button:hover { opacity:1; }
 
         .log { max-width:640px; margin-top:20px; display:flex; flex-direction:column; gap:6px; }
         .log-row { font-family:var(--mono); font-size:12px; display:flex; gap:10px; line-height:1.5; }
         .log-t { color:var(--muted); flex-shrink:0; }
-        .log-ok { color:var(--ok); } .log-err { color:var(--danger); } .log-info { color:var(--text); }
+        .log-ok { color:var(--ok); } .log-err { color:var(--danger); } .log-info { color:var(--text); } .log-warn { color:#8A5A16; }
 
         /* right preview */
         .preview { width:360px; flex-shrink:0; display:flex; flex-direction:column; gap:12px; padding-top:8px; }
@@ -3882,6 +3952,15 @@ export default function TavusExperienceBuilder() {
   // "Start from an idea" — Claude drafts the entire template
   const [ideaText, setIdeaText] = useState("");
   const [demoIntent, setDemoIntent] = useState(""); // what kind of demo — sets the draft's altitude
+  // Client-brief intake: the pasted answers, the compiler's unanswered-question
+  // list, and the pinned facts it extracted (fed to every persona generate/revise
+  // so a roleplay character can't improvise a different budget each run).
+  const [briefText, setBriefText] = useState("");
+  const [intakeGaps, setIntakeGaps] = useState([]);
+  const [factSheet, setFactSheet] = useState("");
+  const [register, setRegister] = useState("");
+  const [intaking, setIntaking] = useState(false);
+  const [showQs, setShowQs] = useState(false);
   const [ideating, setIdeating] = useState(false);
 
   // Scenarios (named snapshots of the full builder config).
@@ -3967,6 +4046,7 @@ export default function TavusExperienceBuilder() {
     duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser,
     duetDeckBeat, duetBrowserBeat, duetBrowserShow, duetLook, duetCaptions, studioPalA, studioPalB,
     palLlm, knowledgeIdsRaw, personaMode, demoIntent,
+    briefText, intakeGaps, factSheet, register,
     site,
     expJourney,
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
@@ -4025,6 +4105,9 @@ export default function TavusExperienceBuilder() {
     setPalLlm(c.palLlm ?? "tavus-gemma-4"); // scenarios that chose a model keep it; new/legacy default to Gemma
     setPersonaMode(c.personaMode === "paste" ? "paste" : "brief");
     setDemoIntent(c.demoIntent ?? "");
+    setBriefText(c.briefText ?? "");
+    setIntakeGaps(Array.isArray(c.intakeGaps) ? c.intakeGaps : []);
+    setFactSheet(c.factSheet ?? ""); setRegister(c.register ?? "");
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
     setScCards(Array.isArray(c.scCards) ? c.scCards : []);
@@ -4760,6 +4843,13 @@ export default function TavusExperienceBuilder() {
           brief: personaBrief,
           context: {
             brand: site.brand,
+            // Language was missing here for a long time: the generator inferred
+            // it from the vibe text under an all-English system prompt, which is
+            // how a grammar slip reached a native-language demo config.
+            language, register: register.trim(),
+            // Pinned facts from the client brief — without these a roleplay
+            // character improvises a different budget every run.
+            factSheet: factSheet.trim(),
             greeting: greeting.trim(), // the scripted first line — the prompt's opening must continue from it, not fight it
             objectives: objectivesEnabled ? objectivesText.trim() : "",
             guardrails: guardrailsEnabled ? guardrailsText.trim() : "",
@@ -4864,6 +4954,10 @@ export default function TavusExperienceBuilder() {
             guardrails: guardrailsEnabled ? guardrailsText : "",
             presentation: presentationContext(),
             greeting: greeting.trim(),
+            // A revision must not translate the prompt back to English or drop
+            // the pinned facts on its way through.
+            language, register: register.trim(),
+            factSheet: factSheet.trim(),
           },
         }),
       });
@@ -6134,6 +6228,153 @@ export default function TavusExperienceBuilder() {
 
   /* ── "Start from an idea": Claude drafts the whole template, all editable ── */
 
+  /* ── Client brief → the whole demo ──────────────────────────────────────
+     The intake path. Unlike draftDemo (which takes an idea and invents a
+     plausible template), this COMPILES client-supplied ground truth: it invents
+     no facts, writes "[CONFIRM: …]" where an answer is missing, and returns the
+     unanswered questions as `gaps` so an incomplete brief is visible work
+     rather than a fabrication that contradicts itself mid-call. */
+  const draftFromBrief = async (knownBrand = "") => {
+    const raw = briefText.trim();
+    if (!raw) return;
+    setIntaking(true);
+    try {
+      addLog("info", "Compiling the client brief into a demo config…");
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 120_000);
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "intake",
+          vibe: raw,
+          context: { brand: String(knownBrand || "").trim(), notes: ideaText.trim() },
+        }),
+        signal: ctrl.signal,
+      }).finally(() => clearTimeout(timer));
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || "compiling failed");
+      }
+      const t = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, "").trim());
+
+      // Net-new means net-new (same contract as draftDemo) — but the pasted
+      // brief itself must survive the reset, it's the source document.
+      applyConfig({ faceId, studioPalA, studioPalB, briefText: raw });
+      setActiveScenario("");
+
+      if (t.conversationName) setConversationName(t.conversationName);
+      if (t.language && LANGUAGES.includes(String(t.language).trim().toLowerCase())) {
+        setLanguage(String(t.language).trim().toLowerCase());
+      }
+      if (t.register) setRegister(String(t.register).trim());
+      if (t.demoIntent && DEMO_INTENTS.some((x) => x.v === t.demoIntent)) setDemoIntent(t.demoIntent);
+      // "opensWith: persona" means the AI frames the call itself — leaving the
+      // scripted greeting empty is the whole point, so don't backfill one.
+      if (t.opensWith !== "persona" && t.greeting) setGreeting(t.greeting);
+      setSite((sx) => ({
+        ...sx,
+        brand: t.brand || sx.brand,
+        headline: t.headline || sx.headline,
+        tagline: t.tagline || sx.tagline,
+        cta: t.cta || sx.cta,
+      }));
+      if (t.factSheet) setFactSheet(String(t.factSheet).trim());
+      setPersonaBrief((b2) => ({
+        ...b2,
+        ...(t.personaBrief || {}),
+        vibe: String(t.personaBrief?.vibe || "").trim() || String(t.personaBrief?.product || "").trim() || b2.vibe,
+      }));
+      if (Array.isArray(t.objectives) && t.objectives.length) {
+        setObjectivesText(t.objectives.join("\n")); setObjectivesEnabled(true);
+      }
+      if (Array.isArray(t.guardrails) && t.guardrails.length) {
+        setGuardrailsText(t.guardrails.join("\n")); setGuardrailsEnabled(true);
+      }
+      // Vision only when the client said something is actually shared — the
+      // compiler returns empty arrays otherwise, and an empty perception layer
+      // is better than a defensive one with nothing to watch.
+      const vq = Array.isArray(t.visualQueries) ? t.visualQueries.filter((x) => String(x).trim()) : [];
+      const aq = Array.isArray(t.audioQueries) ? t.audioQueries.filter((x) => String(x).trim()) : [];
+      if (vq.length || aq.length) {
+        setVisualQueriesText(vq.join("\n")); setAudioQueriesText(aq.join("\n"));
+        if (t.visionVibe) setVisionVibe(t.visionVibe);
+        setVisionEnabled(true);
+      } else if (t.visionVibe) {
+        setVisionVibe(t.visionVibe); // described but not queried — the Vision step can draft them
+      }
+      // Surfaces: only what the client explicitly asked for gets enabled, so the
+      // persona is never told about a card or deck that isn't attached.
+      const surf = t.surfaces && typeof t.surfaces === "object" ? t.surfaces : {};
+      if (surf.canvas || t.canvasPlaybook) {
+        if (t.canvasPlaybook) setCanvasPlaybook(t.canvasPlaybook);
+        setCanvasEnabled(true);
+      }
+      if (surf.deck) setPresentationEnabled(true);
+      if (surf.browser) setBrowserUseEnabled(true);
+      const co = t.coach && typeof t.coach === "object" ? t.coach : null;
+      if (co?.enabled) {
+        setCoachEnabled(true);
+        if (co.title) setCoachTitle(co.title);
+        if (co.scene) setCoachScene(co.scene);
+        if (co.talkHint) setCoachTalkHint(co.talkHint);
+        if (Array.isArray(co.criteria) && co.criteria.length) {
+          setCoachCriteriaText(co.criteria.map((c) => String(c).trim()).filter(Boolean).join("\n"));
+        }
+      }
+      const gaps = Array.isArray(t.gaps)
+        ? t.gaps.filter((g) => g && (g.question || g.field)).slice(0, 24)
+        : [];
+      setIntakeGaps(gaps);
+      setPersonaDraft(""); setPersonaAttached(false);
+      setAutoDraft(true); // draft the persona on top of the compiled brief
+      addLog(
+        gaps.length ? "warn" : "ok",
+        gaps.length
+          ? `Brief compiled — ${gaps.length} unanswered question${gaps.length > 1 ? "s" : ""} flagged. Drafting the persona now; check the gaps list before you demo.`
+          : "Brief compiled with no gaps — drafting the persona prompt on top now…"
+      );
+    } catch (e) {
+      addLog("err", `Client brief: ${e.name === "AbortError" ? "took too long (120s) and was cancelled — try again, or trim the pasted text" : e.message}`);
+    } finally {
+      setIntaking(false);
+    }
+  };
+
+  /* Unanswered intake questions, surfaced where the operator reviews (Persona)
+     and again before they launch. Each row is dismissible — tick it once you've
+     got the answer in and the config no longer says [CONFIRM: …]. */
+  const gapsPanel = (where) => {
+    if (!intakeGaps.length) return null;
+    return (
+      <div className="card gaps-card">
+        <div className="gaps-head">
+          <b>⚠ {intakeGaps.length} unanswered question{intakeGaps.length > 1 ? "s" : ""} from the client brief</b>
+          <button className="pill-btn" style={{ padding: "3px 10px", fontSize: 12 }} onClick={() => setIntakeGaps([])}>Clear all</button>
+        </div>
+        <p className="field-hint" style={{ margin: "0 0 10px" }}>
+          {where === "launch"
+            ? "The config still carries [CONFIRM: …] placeholders for these. The demo will run, but the AI has no real answer here — get them from the client or edit the values by hand first."
+            : "Nothing here was invented. Take these back to the client, then search the config for [CONFIRM: …] and fill them in."}
+        </p>
+        <ul className="gaps-list">
+          {intakeGaps.map((g, i) => (
+            <li key={i}>
+              <button className="gap-tick" title="Got this answer in" onClick={() => setIntakeGaps((gs) => gs.filter((_, j) => j !== i))}>✓</button>
+              <span>
+                {g.question || g.field}
+                {g.question && g.field ? <span className="gap-field"> — {g.field}</span> : null}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
+
   const draftDemo = async (knownBrand = "") => {
     if (!ideaText.trim()) return;
     setIdeating(true);
@@ -7035,6 +7276,59 @@ export default function TavusExperienceBuilder() {
                 </p>
               </div>
 
+              <div className="idea-box" style={{ marginTop: 18 }}>
+                <h2 style={{ margin: "0 0 6px", fontSize: 18 }}>📋 Or paste the client brief</h2>
+                <p className="field-hint" style={{ margin: "0 0 14px" }}>
+                  For real prospect work. Send the client the questions, paste their answers back in any shape — email, notes, a call transcript — and Claude <b>compiles</b> them instead of guessing. It invents no facts: anything they didn't answer comes back as <span className="mono">[CONFIRM: …]</span> plus a list of what to go ask.
+                </p>
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                  <button className="pill-btn" onClick={() => {
+                    copy(intakeQuestionnaire(), "intakeqs");
+                    addLog("ok", "Intake questions copied — paste them into an email to the client.");
+                  }}>📋 Copy the questions</button>
+                  <button className="pill-btn" onClick={() => setShowQs((v) => !v)}>
+                    {showQs ? "Hide the questions" : "👁 See the questions"}
+                  </button>
+                </div>
+
+                {showQs && (
+                  <div className="card" style={{ padding: 14, marginBottom: 14 }}>
+                    {INTAKE_CRITERIA.map((g) => (
+                      <div key={g.group} style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 6 }}>{g.group}</div>
+                        <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13, lineHeight: 1.6 }}>
+                          {g.qs.map((q) => <li key={q}>{q}</li>)}
+                        </ol>
+                      </div>
+                    ))}
+                    <p className="field-hint" style={{ margin: 0 }}>
+                      Each question exists because leaving it unanswered broke a real demo — no fact sheet gave a roleplay character a different budget every run; no completion trigger made the debrief fire after four turns.
+                    </p>
+                  </div>
+                )}
+
+                <Field label="The client's answers" hint="Paste it raw — partial answers are fine and are exactly what the gaps list is for.">
+                  <textarea
+                    style={{ minHeight: 200, fontSize: 13 }}
+                    value={briefText}
+                    onChange={(e) => setBriefText(e.target.value)}
+                    placeholder={"1. Roleplay training for our mortgage advisors.\n2. The AI plays the customer — Thomas, 34.\n3. Trainee advisors.\n4. Dutch, formal (u-vorm).\n5. Looking in Utrecht around 425k with his partner, joint income ~95k, 18k student debt he'd rather not bring up…"}
+                  />
+                </Field>
+
+                <button className="pill-btn primary big" onClick={async () => {
+                  const theme = brandUrl.trim() ? await themeFromUrl() : null;
+                  await draftFromBrief(theme?.brand || "");
+                  setStep("persona");
+                }} disabled={intaking || theming || !briefText.trim()}>
+                  {theming ? "Matching their brand…" : intaking ? "Compiling the brief…" : "🧩 Compile the brief"}
+                </button>
+                <p className="field-hint" style={{ marginTop: 10 }}>
+                  Fills every step — persona, goals with real completion triggers, rules, language, vision, page copy, and a scorecard when it's a training demo. You land on Persona to review.
+                </p>
+              </div>
+
               <p className="field-hint" style={{ maxWidth: 560 }}>
                 Returning to a demo you saved? Open <b>📁 Demos</b> in the top bar and load it from your library instead.
               </p>
@@ -7071,6 +7365,11 @@ export default function TavusExperienceBuilder() {
                   {LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
               </Field>
+              {language !== "english" && (
+                <Field label="Register / formality" hint="Optional, but it reaches the persona generator — write it in the target language. Without it a non-English draft picks a register at random and the client reads the config.">
+                  <input value={register} onChange={(e) => setRegister(e.target.value)} placeholder="e.g. formeel, u-vorm · informal, tutear · keigo" />
+                </Field>
+              )}
               <Field label="Conversation name" hint="Optional label for your dashboard.">
                 <input value={conversationName} onChange={(e) => setConversationName(e.target.value)} placeholder="e.g. Acme demo — presentation" />
               </Field>
@@ -7130,6 +7429,7 @@ export default function TavusExperienceBuilder() {
           {step === "persona" && (
             <>
               <h1>Persona</h1>
+              {gapsPanel("persona")}
               <p className="lede">
                 {personaMode === "paste"
                   ? "Bring your own system prompt — written in Claude, another tool, or by hand. Paste it below and attach; that exact text becomes the persona. Revise-with-feedback and prompt history work on it just like a generated draft."
@@ -7161,6 +7461,23 @@ export default function TavusExperienceBuilder() {
                     {spinBusy ? "Spinning up…" : "✨ Spin it all up — prompt + objectives + guardrails"}
                   </button>
                 </div>
+              </Field>
+              <Field
+                label="Pinned facts (ground truth)"
+                hint="One fact per line — the things the persona must state identically on turn three and turn thirty. For a roleplay character this is the character bible: their situation, numbers, constraints, and anything they hold back until asked. The generator states these and invents nothing beyond them, so a blank box means every run improvises."
+              >
+                <textarea
+                  className="mono"
+                  style={{ minHeight: 100, fontSize: 12.5 }}
+                  value={factSheet}
+                  onChange={(e) => setFactSheet(e.target.value)}
+                  placeholder={"Zoekt een appartement in Utrecht, rond €425.000\nKoopt samen met partner, gezamenlijk inkomen ~€95.000\nStudieschuld van €18.000 — noemt dit niet spontaan, wel eerlijk als er direct naar gevraagd wordt"}
+                />
+                {/\[CONFIRM:/i.test(factSheet) && (
+                  <p className="field-hint" style={{ margin: "6px 0 0", color: "#8A5A16" }}>
+                    ⚠ Still carries <span className="mono">[CONFIRM: …]</span> placeholders — the client hasn't answered these, so the persona has no real fact to give.
+                  </p>
+                )}
               </Field>
               <details style={{ marginBottom: 16, maxWidth: 640 }}>
                 <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>
@@ -9606,6 +9923,7 @@ export default function TavusExperienceBuilder() {
           {step === "launch" && (
             <>
               <h1>Launch &amp; Share</h1>
+              {gapsPanel("launch")}
               <p className="lede">
                 On launch: {[
                   objectivesEnabled && objectivesPayload.data.length && "creates & attaches objectives",
