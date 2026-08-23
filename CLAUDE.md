@@ -63,6 +63,36 @@ Anthropic key.
   Claude returns a full template JSON (site copy, greeting, personaBrief,
   objectives, guardrails, visionVibe, canvasPlaybook) applied across all
   steps; everything stays hand-editable, persona draft is cleared as stale.
+- `kind: "intake"` on `generate-persona` — **client-brief intake** ("Or paste
+  the client brief", Start step, beside the idea path). `INTAKE_CRITERIA` (14
+  questions in 5 groups, copyable as a plain-text questionnaire via
+  `intakeQuestionnaire()`) is what the SE sends the client; their reply —
+  email, notes, a call transcript — is pasted back and `draftFromBrief()`
+  COMPILES it into the whole config (brief, objectives, guardrails,
+  `factSheet`, language + `register`, vision queries, `surfaces` gating,
+  coach scorecard, page copy). **It invents nothing**: a missing answer
+  becomes a `[CONFIRM: …]` marker where the fact belongs plus a `gaps` entry,
+  rendered by `gapsPanel()` on the Persona and Launch steps (dismissible per
+  row). Each of the 14 questions exists because leaving it unanswered caused
+  a specific live failure — keep `INTAKE_CRITERIA` in sync with
+  `INTAKE_SYSTEM`, and don't "simplify" the criteria away.
+- **The generator's anti-drift rules** (`GENERATOR_SYSTEM`, mirrored in
+  `REVISE_SYSTEM`) — each one is a fixed bug, not a style preference:
+  a conditional `## Ground Truth` section pins the `factSheet` as the
+  persona's settled reality (a withheld fact is KNOWN and answered honestly
+  when asked directly, never re-improvised — a factless roleplay character
+  invents a different budget every run); the "never invents" guardrail
+  **carves out the fact sheet** (it previously forbade a roleplay character
+  from stating its own budget); phase boundaries must be OBSERVABLE events
+  (never "once the scene feels complete"); a surface absent from the config
+  is absent from the prompt (a prompt promising an unattached card makes the
+  PAL describe it aloud or claim it showed one); exactly ONE section owns the
+  call's framing (a scripted greeting plus an opening move that re-frames =
+  a double introduction). `language`/`register`/`factSheet` are passed in
+  `context` on generate AND revise — language was missing for a long time,
+  so non-English drafts were written under an all-English system prompt with
+  no fluency or proofread instruction, and grammar slips reached configs the
+  client reads.
 - `builder/vercel.json` — bumps the function's `maxDuration` to 60s; rewrite
   for `/d/:slug`.
 - `builder/tools/walkthroughs.mjs` — **auto-built video walkthroughs**
