@@ -383,13 +383,6 @@ const DEMO_FEATURES = [
 ];
 const defaultDemoFeatures = () => Object.fromEntries(DEMO_FEATURES.map((f) => [f.k, f.def]));
 
-const DEMO_INTENTS = [
-  { v: "sales", label: "🤝 Sales demo", desc: "Pitch a prospect on a product", gen: "This is a SALES DEMO for a prospect: discovery-first objectives (learn their situation before pitching), drive toward a concrete next step (a booked meeting or follow-up), confident on-brand page copy, guardrails against committing to custom pricing." },
-  { v: "assistant", label: "🛎 Customer assistant", desc: "Intake, onboarding, support", gen: "This is a CUSTOMER-FACING ASSISTANT (intake / onboarding / support): objectives complete the visitor's task step by step, the tone is service not sales, page copy is calm and functional, guardrails protect privacy and keep it in scope." },
-  { v: "roleplay", label: "🧑‍💼 Role-play trainer", desc: "Interview practice, training, coaching", gen: "This is a ROLE-PLAY TRAINING PARTNER: the persona plays the counterpart convincingly and stays in character, objectives structure the session (set up → exercise → debrief with feedback), page copy addresses the trainee directly." },
-  { v: "showcase", label: "🧪 Feature showcase", desc: "Show off the tech itself", gen: "This is a CAPABILITY SHOWCASE: the conversation deliberately creates moments that demonstrate features (a visual canvas moment, a deck moment, a perception moment), objectives sequence those moments, page copy invites the visitor to try things live." },
-];
-
 const hex6 = (v) => {
   const s = String(v || "").trim();
   const m3 = s.match(/^#([0-9a-f]{3})$/i);
@@ -3979,9 +3972,11 @@ export default function TavusExperienceBuilder() {
 
   // "Start from an idea" — Claude drafts the entire template
   const [ideaText, setIdeaText] = useState("");
-  const [demoIntent, setDemoIntent] = useState(""); // what kind of demo — sets the draft's altitude
+  const [demoIntent, setDemoIntent] = useState(""); // legacy scenarios only — no longer asked
   const [demoAudience, setDemoAudience] = useState(""); // who the AI human talks to
-  const [demoOutcome, setDemoOutcome] = useState(""); // what should be true by the end
+  const [demoOutcome, setDemoOutcome] = useState(""); // the win — what's true by the end
+  const [demoAvoid, setDemoAvoid] = useState(""); // off-limits — seeds guardrails
+  const [demoTone, setDemoTone] = useState(""); // how it should sound — seeds the persona's voice
   const [demoFeatures, setDemoFeatures] = useState(defaultDemoFeatures); // feature checklist → toggles
   const [draftReport, setDraftReport] = useState(null); // what the last draft set up, shown on the start step
   const [ideating, setIdeating] = useState(false);
@@ -4068,7 +4063,7 @@ export default function TavusExperienceBuilder() {
     scCards, studioLines,
     duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser,
     duetDeckBeat, duetBrowserBeat, duetBrowserShow, duetLook, duetCaptions, studioPalA, studioPalB,
-    palLlm, knowledgeIdsRaw, personaMode, demoIntent, demoAudience, demoOutcome, demoFeatures,
+    palLlm, knowledgeIdsRaw, personaMode, demoIntent, demoAudience, demoOutcome, demoAvoid, demoTone, demoFeatures,
     site,
     expJourney,
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
@@ -4128,6 +4123,7 @@ export default function TavusExperienceBuilder() {
     setPersonaMode(c.personaMode === "paste" ? "paste" : "brief");
     setDemoIntent(c.demoIntent ?? "");
     setDemoAudience(c.demoAudience ?? ""); setDemoOutcome(c.demoOutcome ?? "");
+    setDemoAvoid(c.demoAvoid ?? ""); setDemoTone(c.demoTone ?? "");
     setDemoFeatures({ ...defaultDemoFeatures(), ...(c.demoFeatures || {}) });
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
@@ -6246,10 +6242,10 @@ export default function TavusExperienceBuilder() {
       // Anchor the draft to the REAL company when we know it (from the URL /
       // theming) — otherwise Claude invents a plausible fictional brand.
       const parts = [ideaText];
-      const chosenIntent = DEMO_INTENTS.find((x) => x.v === demoIntent);
-      if (chosenIntent) parts.push(chosenIntent.gen);
-      if (demoAudience.trim()) parts.push(`They'll be talking to: ${demoAudience.trim()}`);
-      if (demoOutcome.trim()) parts.push(`By the end of a great conversation: ${demoOutcome.trim()}`);
+      if (demoAudience.trim()) parts.push(`AUDIENCE — who the AI human talks to: ${demoAudience.trim()}`);
+      if (demoOutcome.trim()) parts.push(`SUCCESS — what must be true by the end: ${demoOutcome.trim()}`);
+      if (demoAvoid.trim()) parts.push(`OFF-LIMITS — things it must never do or discuss (turn these into guardrails, near-verbatim): ${demoAvoid.trim()}`);
+      if (demoTone.trim()) parts.push(`TONE — how it should sound: ${demoTone.trim()}`);
       const featureNames = { canvas: "magic canvas", vision: "vision", coach: "coach mode", presentation: "presentation deck", browseruse: "browser use", emailGate: "email gate" };
       const picked = DEMO_FEATURES.filter((f) => demoFeatures[f.k]).map((f) => featureNames[f.k]);
       parts.push(`FEATURES SELECTED: ${picked.join(", ") || "none"}`);
@@ -6294,7 +6290,7 @@ export default function TavusExperienceBuilder() {
       applyConfig({
         faceId, palId, studioPalA, studioPalB,
         site: freshSite,
-        demoIntent, demoAudience, demoOutcome, demoFeatures,
+        demoIntent, demoAudience, demoOutcome, demoAvoid, demoTone, demoFeatures,
       });
       setActiveScenario(""); // saving must create a new library entry, not overwrite the old demo
 
@@ -7181,12 +7177,12 @@ export default function TavusExperienceBuilder() {
               </p>
 
               <div className="idea-box">
-                <Field label="1 · What should the AI human pull off?" hint="One or two plain sentences — or 🎙 talk it out. The only required answer.">
+                <Field label="1 · Who is the AI human, and what should the conversation accomplish?" hint="Role + mission in one or two sentences — or 🎙 talk it out. The only required answer.">
                   <textarea
                     style={{ minHeight: 84, ...(dictating === "idea" ? { outline: "2px solid var(--accent)" } : {}) }}
                     value={ideaText}
                     onChange={(e) => setIdeaText(e.target.value)}
-                    placeholder={"Walks a new employee through week-one setup, benefits enrollment, and who to meet — friendly, unhurried, books the IT session at the end."}
+                    placeholder={"An onboarding buddy for new employees — walks them through week-one setup and benefits enrollment, answers the awkward questions, and books their IT session at the end."}
                   />
                   <div style={{ marginTop: 8 }}>
                     <button className={"pill-btn" + (dictating === "idea" ? " primary" : "")} disabled={transcribing}
@@ -7196,21 +7192,18 @@ export default function TavusExperienceBuilder() {
                     </button>
                   </div>
                 </Field>
-                <Field label="2 · A little context — optional" hint="Anything you skip, Claude infers from the idea.">
+                <Field label="2 · The discovery questions — each one you answer makes the demo sharper" hint="These map straight onto how a Tavus demo is built: audience → who the persona speaks to · the win → the flow's final step and the page's call-to-action · off-limits → real guardrails · tone → the persona's voice. Skip any and Claude infers.">
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <input style={{ flex: "1 1 220px" }} value={demoAudience} onChange={(e) => setDemoAudience(e.target.value)}
-                      placeholder="Who are they talking to? — e.g. new hires, day one" />
+                      placeholder="Who do they talk to? — e.g. new hires on day one" />
                     <input style={{ flex: "1 1 220px" }} value={demoOutcome} onChange={(e) => setDemoOutcome(e.target.value)}
-                      placeholder="What's true by the end? — e.g. IT session booked" />
+                      placeholder="The win — e.g. IT session booked, email captured" />
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
-                    <span style={{ fontSize: 12, color: "var(--muted)" }}>Kind of demo:</span>
-                    {DEMO_INTENTS.map((it) => (
-                      <button key={it.v} type="button" className={"pill-btn" + (demoIntent === it.v ? " primary" : "")} style={{ padding: "4px 12px", fontSize: 12 }}
-                        onClick={() => setDemoIntent(demoIntent === it.v ? "" : it.v)} title={it.desc}>
-                        {it.label}
-                      </button>
-                    ))}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                    <input style={{ flex: "1 1 220px" }} value={demoAvoid} onChange={(e) => setDemoAvoid(e.target.value)}
+                      placeholder="Off-limits — e.g. no salary talk, never promise dates" />
+                    <input style={{ flex: "1 1 220px" }} value={demoTone} onChange={(e) => setDemoTone(e.target.value)}
+                      placeholder="Sounds like — e.g. warm, unhurried, a bit playful" />
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
                     <span style={{ fontSize: 13, color: "var(--muted)", flexShrink: 0 }}>🌐 Their website:</span>

@@ -194,6 +194,11 @@ Return ONLY valid JSON (no code fences, no commentary):
 
 Rules: 3-5 objectives in conversation order (an objective entry may be a conditional branch written as "if <condition> -> <detour objective>", placed immediately after its parent objective — use one when the use case naturally routes, e.g. new vs. returning customers); 2-4 guardrails; every string speaks specifically to the described use case; greetings and page copy are warm and concise; no markdown anywhere.
 FEATURES: the request lists FEATURES SELECTED. Fill a feature's field ONLY when it is selected; unselected features get "" / null. Never push card/vision/coach content into the persona brief or objectives when the feature is off.
+DISCOVERY ANSWERS: the request may carry labeled answers — treat each as authoritative over your own invention:
+- AUDIENCE → personaBrief.audience and the register of all copy.
+- SUCCESS → the FINAL objective drives exactly this outcome, and the page cta invites it.
+- OFF-LIMITS → each item becomes a guardrail, kept near-verbatim (split on commas/"and"); also reflect the important ones in personaBrief.avoid.
+- TONE → personaBrief.tone (and the greeting/page copy must sound like it).
 GREETING vs FLOW: the greeting must NOT ask the question the first objective covers — it plays automatically, then the objectives drive the steps; a greeting that pre-asks step one made the AI ask it twice. Open warm, at most a soft invitation ("tell me what brings you in" is step one's job, not the greeting's).
 Company names: when the idea names or implies a REAL company (by name or website), use that exact real name everywhere — NEVER substitute an invented brand ("StrideLab" for Nike is a failure). Only invent a fictional brand when the idea is explicitly hypothetical or names no company at all. For real companies, don't fabricate specific product claims or statistics — stay in their actual public positioning, general where unsure.`;
 
