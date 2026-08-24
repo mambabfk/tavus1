@@ -6408,6 +6408,15 @@ export default function TavusExperienceBuilder() {
     try {
       const pal = palId.trim();
 
+      // NOTHING before the conversation POST may abort the launch: one bad
+      // section used to kill the whole thing and read as "nothing works".
+      // Each section attaches inside its own guard and logs its own failure.
+      const section = async (label, fn) => {
+        try { await fn(); } catch (e) {
+          addLog("err", `${label} failed (launching without it): ${e.message}`);
+        }
+      };
+
       // ── PAL hygiene. A PAL keeps EVERYTHING ever attached to it, so a
       // section that's OFF in this demo must be actively cleared or the
       // previous demo bleeds through (stale objectives, rules, vision
@@ -6418,12 +6427,14 @@ export default function TavusExperienceBuilder() {
         // The #1 greeting-vs-persona mismatch: a drafted prompt that never
         // got attached — this demo's greeting plays while the PAL speaks
         // the previous demo's persona.
-        addLog("info", "The persona draft was never attached — attaching it now so the PAL speaks THIS demo's persona…");
-        await tavusFetch("PATCH", `/pals/${pal}`, [
-          { op: "add", path: "/system_prompt", value: personaDraft },
-        ]);
-        setPersonaAttached(true);
-        addLog("ok", "Persona prompt attached.");
+        await section("Persona attach", async () => {
+          addLog("info", "The persona draft was never attached — attaching it now so the PAL speaks THIS demo's persona…");
+          await tavusFetch("PATCH", `/pals/${pal}`, [
+            { op: "add", path: "/system_prompt", value: personaDraft },
+          ]);
+          setPersonaAttached(true);
+          addLog("ok", "Persona prompt attached.");
+        });
       }
       let palState = null;
       try { palState = await tavusFetch("GET", `/pals/${pal}`); } catch { addLog("info", "Couldn't read the PAL's current state — skipping the stale-config sweep."); }
@@ -6495,7 +6506,7 @@ export default function TavusExperienceBuilder() {
       }
 
       // Objectives: create the set, attach to the PAL (replaces any existing set).
-      if (objectivesEnabled && objectivesPayload.data.length) {
+      if (objectivesEnabled && objectivesPayload.data.length) await section("Objectives", async () => {
         addLog("info", `Creating objectives (${objectivesPayload.data.length} step${objectivesPayload.data.length > 1 ? "s" : ""})…`);
         const obj = await tavusFetch("POST", "/objectives", objectivesPayload);
         const objectivesId = obj.objectives_id || obj.uuid || obj.id;
@@ -6505,12 +6516,12 @@ export default function TavusExperienceBuilder() {
           { op: "add", path: "/objectives_id", value: objectivesId },
         ]);
         addLog("ok", "Objectives attached (persists on the PAL until you remove it).");
-      }
+      });
 
       // Guardrails: create each, then REPLACE the PAL's set with exactly these.
       // (Merging accumulated near-duplicates across relaunches until the PAL
       // hit Tavus's 50-guardrail cap and launches 400'd.)
-      if (guardrailsEnabled && guardrailsParsed.length) {
+      if (guardrailsEnabled && guardrailsParsed.length) await section("Guardrails", async () => {
         addLog("info", `Creating ${guardrailsParsed.length} guardrail${guardrailsParsed.length > 1 ? "s" : ""}…`);
         const newIds = [];
         for (const g of guardrailsParsed) {
@@ -6538,10 +6549,10 @@ export default function TavusExperienceBuilder() {
           }
         }
         addLog("ok", `Guardrails set — the PAL now has exactly these ${newIds.length} rule${newIds.length > 1 ? "s" : ""}.`);
-      }
+      });
 
       // Vision: attach the perception layer to the PAL (persists like objectives).
-      if (visionEnabled && (visionPayload.visual_awareness_queries || visionPayload.audio_awareness_queries)) {
+      if (visionEnabled && (visionPayload.visual_awareness_queries || visionPayload.audio_awareness_queries)) await section("Vision", async () => {
         const v = visionPayload.visual_awareness_queries?.length || 0;
         const a = visionPayload.audio_awareness_queries?.length || 0;
         addLog("info", `Attaching vision (${v} visual, ${a} audio checks)…`);
@@ -6549,7 +6560,7 @@ export default function TavusExperienceBuilder() {
           { op: "add", path: "/layers/perception", value: visionPayload },
         ]);
         addLog("ok", "Vision attached (persists on the PAL until you change it).");
-      }
+      });
 
       // Voice + expressive delivery: nice-to-haves — a failure here must never
       // stop the conversation from launching (some PALs reject TTS-layer ops).
@@ -6576,7 +6587,7 @@ export default function TavusExperienceBuilder() {
       }
 
       // Pronunciation: create a dictionary, attach it to the PAL's voice.
-      if (speechEnabled && (pronunciationRules.length || pronDictId)) {
+      if (speechEnabled && (pronunciationRules.length || pronDictId)) await section("Pronunciation", async () => {
         // Editor rules win: they become a fresh dictionary. With an empty
         // editor, the saved dictionary picked on the Voice step attaches.
         let dictId = pronDictId;
@@ -6594,57 +6605,64 @@ export default function TavusExperienceBuilder() {
           { op: "add", path: "/layers/tts/pronunciation_dictionary_id", value: dictId },
         ]);
         addLog("ok", "Pronunciation attached (persists on the PAL until you change it).");
-      }
+      });
 
       // Integrations: attach custom tools to the PAL's LLM (persists on the PAL).
-      if (toolsEnabled && toolDefs.length) {
+      if (toolsEnabled && toolDefs.length) await section("Tools", async () => {
         addLog("info", `Attaching ${toolDefs.length} custom tool${toolDefs.length > 1 ? "s" : ""} to the PAL…`);
         await tavusFetch("PATCH", `/pals/${pal}`, [
           { op: "add", path: "/layers/llm/tools", value: toolDefs },
         ]);
         addLog("ok", `Tools attached: ${toolDefs.map((t) => t.function.name).join(", ")}.`);
-      }
+      });
 
-      // Browser Use runs pre-authored guided flows only — attaching an empty
-      // config would be rejected (or worse, silently useless).
+      // Browser Use runs pre-authored guided flows only — with no flows we
+      // SKIP it (never abort the whole launch over one section).
+      let browserUseReady = false;
       if (browserUseEnabled) {
         let bc = {};
-        try { bc = browserUseConfig.trim() ? JSON.parse(browserUseConfig) : {}; } catch { /* the loop below reports bad JSON */ }
-        if (!Array.isArray(bc.guided_flows) || !bc.guided_flows.length) {
-          addLog("err", "Browser Use is on but has no guided flows — script one on the Presentation step (the skill runs pre-authored walkthroughs; it never free-browses).");
-          setBusy(false);
-          return;
+        try { bc = browserUseConfig.trim() ? JSON.parse(browserUseConfig) : {}; } catch { /* bad JSON — reported below */ }
+        browserUseReady = Array.isArray(bc.guided_flows) && bc.guided_flows.length > 0;
+        if (!browserUseReady) {
+          addLog("err", "Browser Use is on but has no guided flows — SKIPPING it this launch. Script one on the Presentation step (the skill runs pre-authored walkthroughs; it never free-browses).");
         }
       }
       // Tavus-authored skills (internet_search / browser_use) — same PUT
       // pattern as presentation/canvas; they persist on the PAL.
       for (const [on, skillId, cfgText] of [
         [internetSearchEnabled, "internet_search", ""],
-        [browserUseEnabled, "browser_use", browserUseConfig],
+        [browserUseEnabled && browserUseReady, "browser_use", browserUseConfig],
       ]) {
         if (!on) continue;
-        let cfg = {};
-        if (String(cfgText).trim()) {
-          try { cfg = JSON.parse(cfgText); }
-          catch { throw new Error(`The ${skillId} config isn't valid JSON — fix or clear it (browser_use lives on the Presentation step now).`); }
-        }
-        addLog("info", `Attaching the ${skillId.replace("_", " ")} skill…`);
-        await tavusFetch("PUT", `/pals/${pal}/skills/${skillId}`, { config: cfg });
-        addLog("ok", `${skillId.replace("_", " ")} attached (persists on the PAL until detached).`);
+        await section(skillId.replace("_", " "), async () => {
+          let cfg = {};
+          if (String(cfgText).trim()) {
+            try { cfg = JSON.parse(cfgText); }
+            catch { throw new Error(`the ${skillId} config isn't valid JSON — fix or clear it (browser_use lives on the Presentation step now).`); }
+          }
+          addLog("info", `Attaching the ${skillId.replace("_", " ")} skill…`);
+          await tavusFetch("PUT", `/pals/${pal}/skills/${skillId}`, { config: cfg });
+          addLog("ok", `${skillId.replace("_", " ")} attached (persists on the PAL until detached).`);
+        });
       }
 
       if (presentationEnabled) {
-        if (!docIds.length) { addLog("err", "Presentation is on but has no document IDs."); setBusy(false); return; }
-        addLog("info", `Attaching presentation skill (${slidesTrigger}, ${docIds.length} doc${docIds.length > 1 ? "s" : ""})…`);
-        await tavusFetch("PUT", `/pals/${palId.trim()}/skills/presentation`, presentationPayload);
-        addLog("ok", "Presentation skill attached.");
+        if (!docIds.length) {
+          addLog("err", "Presentation is on but has no document IDs — SKIPPING the deck this launch. Add your Knowledge Base doc IDs on the Presentation step (a fresh demo starts with none).");
+        } else {
+          await section("Presentation", async () => {
+            addLog("info", `Attaching presentation skill (${slidesTrigger}, ${docIds.length} doc${docIds.length > 1 ? "s" : ""})…`);
+            await tavusFetch("PUT", `/pals/${pal}/skills/presentation`, presentationPayload);
+            addLog("ok", "Presentation skill attached.");
+          });
+        }
       }
-      if (canvasEnabled) {
+      if (canvasEnabled) await section("Magic Canvas", async () => {
         const on = Object.values(components).filter(Boolean).length;
         addLog("info", `Attaching Magic Canvas (${on}/7 components on${placement !== "auto" ? `, prefer ${placement} rail` : ""})…`);
-        await tavusFetch("PUT", `/pals/${palId.trim()}/skills/magic_canvas`, canvasPayload);
+        await tavusFetch("PUT", `/pals/${pal}/skills/magic_canvas`, canvasPayload);
         addLog("ok", "Magic Canvas skill attached.");
-      }
+      });
       if (recordingEnabled) {
         if (conversationPayload.properties?.recording_storage) {
           addLog("info", `Recording is on — the call will record to s3://${conversationPayload.properties.recording_storage.bucket_name} once Tavus finishes it.`);
