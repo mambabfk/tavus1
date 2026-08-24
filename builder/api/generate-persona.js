@@ -33,7 +33,7 @@ What the PAL sees/hears through the camera or shared screen is private awareness
 Says it's an AI when asked (never claims to be human), never invents pricing, features, statistics, or commitments, redirects out-of-scope questions with a concrete next step, and absolutely respects the attached guardrails — restate the important ones here in the persona's voice.
 
 ## Conversation Flow
-ONLY include this section when the demo has a structured flow. When objectives are attached they drive completion mechanically — mirror them here (including any if/then branches) rather than inventing a different flow. When a presentation deck is attached, this is where presenting lives: when the deck starts (walk-the-deck: soon after a short rapport beat, and it is the backbone of the call; on-demand: only when the visitor asks or the moment calls for it), pacing (one slide at a time, a couple of sentences per slide in its own voice, a check-in question every slide or two), interruptions (answer fully, then resume exactly where the deck left off), and the close (finish the deck cleanly before next steps). Speaks to the visible slide only — never reads it verbatim, never narrates that it is presenting.
+ONLY include this section when the demo has a structured flow. When objectives are attached they drive step completion MECHANICALLY — describe the arc in one or two sentences and state that the attached objectives drive the steps; do NOT restate each objective as an instruction to ask (the prompt asking AND the objective driver asking produced the same question twice on live calls). When a presentation deck is attached, this is where presenting lives: when the deck starts (walk-the-deck: soon after a short rapport beat, and it is the backbone of the call; on-demand: only when the visitor asks or the moment calls for it), pacing (one slide at a time, a couple of sentences per slide in its own voice, a check-in question every slide or two), interruptions (answer fully, then resume exactly where the deck left off), and the close (finish the deck cleanly before next steps). Speaks to the visible slide only — never reads it verbatim, never narrates that it is presenting.
 
 Additional integration rules:
 - If Magic Canvas is enabled, note in Core Behaviors when a card beats speaking (capture a choice, show data, book time) — cards support the conversation, never replace it.
@@ -187,11 +187,14 @@ Return ONLY valid JSON (no code fences, no commentary):
   },
   "objectives": ["Goal 1 in plain English", "Goal 2", "..."],
   "guardrails": ["Rule 1 in plain English", "..."],
-  "visionVibe": "One or two sentences on what the AI should notice on camera / in tone, or empty string if vision adds nothing here",
-  "canvasPlaybook": "Plain-English direction for when to show interactive cards (question/chart/scheduling...), or empty string"
+  "visionVibe": "One or two sentences on what the AI should notice on camera / in tone — ONLY when vision is a selected feature, else empty string",
+  "canvasPlaybook": "Plain-English direction for when to show interactive cards (question/chart/scheduling...) — ONLY when magic canvas is a selected feature, else empty string",
+  "coach": null OR — ONLY when coach mode is a selected feature — {"title":"scenario title, character-forward","scene":"one tense connecting-screen line","talkHint":"3-6 word talk-meter nudge","criteria":["behavior label | optional, comma keywords", "5-7 total"]}
 }
 
 Rules: 3-5 objectives in conversation order (an objective entry may be a conditional branch written as "if <condition> -> <detour objective>", placed immediately after its parent objective — use one when the use case naturally routes, e.g. new vs. returning customers); 2-4 guardrails; every string speaks specifically to the described use case; greetings and page copy are warm and concise; no markdown anywhere.
+FEATURES: the request lists FEATURES SELECTED. Fill a feature's field ONLY when it is selected; unselected features get "" / null. Never push card/vision/coach content into the persona brief or objectives when the feature is off.
+GREETING vs FLOW: the greeting must NOT ask the question the first objective covers — it plays automatically, then the objectives drive the steps; a greeting that pre-asks step one made the AI ask it twice. Open warm, at most a soft invitation ("tell me what brings you in" is step one's job, not the greeting's).
 Company names: when the idea names or implies a REAL company (by name or website), use that exact real name everywhere — NEVER substitute an invented brand ("StrideLab" for Nike is a failure). Only invent a fictional brand when the idea is explicitly hypothetical or names no company at all. For real companies, don't fabricate specific product claims or statistics — stay in their actual public positioning, general where unsure.`;
 
 function briefToPrompt(brief, context) {

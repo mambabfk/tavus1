@@ -196,7 +196,11 @@ function applyJourneyPrefs(payload, journeyArr, prefs) {
       if (o.context) lines.push(String(o.context));
       if (o.greeting) {
         out.custom_greeting = String(o.greeting);
-        // The model must know its (overridden) first line, or it re-introduces itself.
+        // REPLACE the base greeting instruction, never append a second one —
+        // two "your first line is…" claims with different quotes made the
+        // model hedge by re-greeting.
+        out.conversational_context = String(out.conversational_context || "")
+          .split("\n\n").filter((p) => !/^Your first spoken line is already scripted/.test(p)).join("\n\n");
         lines.push(`- Your first spoken line is already scripted and plays automatically: "${String(o.greeting).slice(0, 300)}" — continue naturally from it; never introduce yourself a second time.`);
       }
       if (o.palId && /^p[a-z0-9_-]{3,60}$/i.test(String(o.palId))) out.pal_id = String(o.palId);
@@ -205,7 +209,10 @@ function applyJourneyPrefs(payload, journeyArr, prefs) {
   if (prefs.email) lines.push(`- Email they provided: ${String(prefs.email).trim().slice(0, 200)}`);
   if (lines.length) {
     const intro = "Pre-call setup from this visitor (personalize with it naturally — never recite it back as a list):";
-    out.conversational_context = [out.conversational_context, `${intro}\n${lines.join("\n")}`].filter(Boolean).join("\n\n");
+    // Journey-captured facts are SETTLED — without this the objectives graph
+    // still mechanically re-asks questions the visitor answered pre-call.
+    const settled = "Anything already answered above is settled: confirm briefly if useful, never ask for it again — skip or fast-complete any objective step that asks for it.";
+    out.conversational_context = [out.conversational_context, `${intro}\n${lines.join("\n")}\n${settled}`].filter(Boolean).join("\n\n");
   }
   return out;
 }
@@ -234,19 +241,26 @@ const parseObjectives = (text, confirmationMode) => {
   const slugCore = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 32) || "item";
 
   // Pass 1: group lines into main steps + their branches.
+  // Branches require INDENTATION (or an explicit -> prefix): a top-level step
+  // that happens to start with "If…" must stay a step — swallowing it as a
+  // branch collapsed two steps into one and made the parent re-ask.
   const mains = [];
+  const seenPrompts = new Set(); // duplicate lines compiled into two identical objectives → asked twice
   for (const raw of text.split("\n")) {
     if (!raw.trim()) continue;
-    const indented = /^\s/.test(raw);
+    const indented = /^\s/.test(raw) || /^(?:->|→)/.test(raw.trim());
     const line = raw.trim().replace(/^(?:->|→)\s*/, "");
-    const branch = line.match(/^if\s+(.+?)\s*(?:->|→|:)\s*(.+)$/i);
-    if (branch && (indented || mains.length) && mains.length) {
+    const branch = indented && mains.length ? line.match(/^if\s+(.+?)\s*(?:->|→|:)\s*(.+)$/i) : null;
+    if (branch) {
       const [p, v] = branch[2].split("|").map((s) => s.trim());
       if (p) mains[mains.length - 1].branches.push({ condition: branch[1].trim(), prompt: p.slice(0, 1000), vars: v });
       continue;
     }
     const [p, v] = line.split("|").map((s) => s.trim());
-    if (p) mains.push({ prompt: p.slice(0, 1000), vars: v, branches: [] });
+    if (p && !seenPrompts.has(p.toLowerCase())) {
+      seenPrompts.add(p.toLowerCase());
+      mains.push({ prompt: p.slice(0, 1000), vars: v, branches: [] });
+    }
   }
 
   // Pass 2: emit the graph — branches sit right after their parent step.
@@ -262,7 +276,14 @@ const parseObjectives = (text, confirmationMode) => {
         b.name = `obj_${i + 1}_if${k + 1}_${slugCore(b.prompt)}`;
         cond[b.name] = `If ${b.condition}`;
       });
+      // A conditional map must ALWAYS have a catch-all — on the last step the
+      // old code emitted none, leaving a dead-end the PAL sat on (re-asking).
       if (nextMain) cond[nextMain.name] = "In any other case";
+      else {
+        const wrapName = `${m.name}_wrap`;
+        cond[wrapName] = "In any other case";
+        m.wrapName = wrapName;
+      }
       item.next_conditional_objectives = cond; // mutually exclusive with next_required
     } else if (nextMain) {
       item.next_required_objective = nextMain.name;
@@ -271,9 +292,19 @@ const parseObjectives = (text, confirmationMode) => {
     m.branches.forEach((b) => {
       const bItem = { objective_name: b.name, objective_prompt: b.prompt, confirmation_mode: confirmationMode };
       applyVars(bItem, b.vars);
-      if (nextMain) bItem.next_required_objective = nextMain.name; // detour rejoins the flow
+      // Detour rejoins the flow — at the next step, or the synthetic wrap-up
+      // node when the branch hangs off the final step.
+      if (nextMain) bItem.next_required_objective = nextMain.name;
+      else if (m.wrapName) bItem.next_required_objective = m.wrapName;
       items.push(bItem);
     });
+    if (m.wrapName) {
+      items.push({
+        objective_name: m.wrapName,
+        objective_prompt: "Wrap up the conversation warmly: summarize what was covered and offer a clear next step.",
+        confirmation_mode: confirmationMode,
+      });
+    }
   });
   return items;
 };
@@ -340,6 +371,18 @@ const FORMAT_BLUEPRINTS = [
 /* New Demo intents — the altitude that guides a draft. Each carries the
    guidance line the generator receives, so one chip steers the whole draft
    without a form. */
+/* New Demo feature checklist — each pick maps 1:1 to a builder toggle and a
+   section the template drafts. Defaults mirror what a good first demo wants. */
+const DEMO_FEATURES = [
+  { k: "canvas", label: "🪄 Magic Canvas", desc: "Interactive cards beside the video", def: true },
+  { k: "emailGate", label: "✉️ Email gate", desc: "Capture an email before the call starts", def: true },
+  { k: "vision", label: "👁 Vision", desc: "Notices what's on camera and in their tone", def: false },
+  { k: "coach", label: "🎯 Coach scorecard", desc: "Roleplay trainer panel with live scoring", def: false },
+  { k: "presentation", label: "📽 Slide deck", desc: "Walks a deck (you add the doc ID after)", def: false },
+  { k: "browseruse", label: "🌐 Browser Use", desc: "Drives a live browser (you script the flow after)", def: false },
+];
+const defaultDemoFeatures = () => Object.fromEntries(DEMO_FEATURES.map((f) => [f.k, f.def]));
+
 const DEMO_INTENTS = [
   { v: "sales", label: "🤝 Sales demo", desc: "Pitch a prospect on a product", gen: "This is a SALES DEMO for a prospect: discovery-first objectives (learn their situation before pitching), drive toward a concrete next step (a booked meeting or follow-up), confident on-brand page copy, guardrails against committing to custom pricing." },
   { v: "assistant", label: "🛎 Customer assistant", desc: "Intake, onboarding, support", gen: "This is a CUSTOMER-FACING ASSISTANT (intake / onboarding / support): objectives complete the visitor's task step by step, the tone is service not sales, page copy is calm and functional, guardrails protect privacy and keep it in scope." },
@@ -1804,6 +1847,8 @@ const getStudioRuntime = () => STUDIO_RUNTIME;
       features need the custom call UI (they're inert in the iframe fallback). */
 function CallExtras({ controls, conversationId, onForceLeave, visitor = false, onScriptedCard = null, onCoachSpeech = null }) {
   const daily = useDaily();
+  const timeWarnedRef = useRef(false); // the 2-minute warning speaks once per call, across effect re-runs
+  const firedCardsRef = useRef(new Set()); // scripted cards fire once per call — effect re-runs must not replay them
 
   // Coach mode: stream both sides' utterances up to the coach panel
   // (scorecard, talk/listen meter, transcript). Raw cumulative text — the
@@ -1828,7 +1873,7 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
   useEffect(() => {
     const cards = Array.isArray(controls.scriptedCards) ? controls.scriptedCards : [];
     if (!daily || !cards.length || !onScriptedCard) return;
-    const fired = new Set();
+    const fired = firedCardsRef.current; // survives effect re-runs (a reset replayed start/time cards)
     const timers = [];
     let current = -1;
     let armed = false;
@@ -2080,32 +2125,68 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
     if (!daily) return;
 
     const timers = [];
-    // Time-limit warning, spoken with 2 minutes left.
-    if (controls.maxSeconds && controls.timeWarning) {
+    // Time-limit warning, spoken with 2 minutes left — once, ever: the effect
+    // can re-run on a daily reconnect and used to schedule a second warning.
+    if (controls.maxSeconds && controls.timeWarning && !timeWarnedRef.current) {
       const fireAt = (controls.maxSeconds - 120) * 1000;
-      if (fireAt > 5000) timers.push(setTimeout(() => say(controls.timeWarning), fireAt));
+      if (fireAt > 5000) timers.push(setTimeout(() => { if (!timeWarnedRef.current) { timeWarnedRef.current = true; say(controls.timeWarning); } }, fireAt));
     }
 
     // Inactivity: quiet for N seconds → spoken reminder → 10s grace → leave.
+    // The nudge is ONE-SHOT: the reminder's own speech comes back as
+    // utterance/speaker events, and re-arming on those cleared the grace
+    // timer — the call never ended and the same line repeated forever.
     let inactivityTimer;
     let graceTimer;
+    let nudged = false;
     const armInactivity = () => {
+      if (nudged) return; // grace period owns the rest of the call
       clearTimeout(inactivityTimer);
-      clearTimeout(graceTimer);
       if (!controls.inactivitySeconds || !controls.inactivityUtterance) return;
       inactivityTimer = setTimeout(() => {
+        nudged = true;
         say(controls.inactivityUtterance);
         graceTimer = setTimeout(() => onForceLeave?.(), 10_000);
       }, controls.inactivitySeconds * 1000);
     };
+    // A real human response after the nudge cancels the countdown (their
+    // speech only — the PAL's own echo must not).
+    const onHumanSpeech = (d) => {
+      if (!nudged) return;
+      const role = String(d?.properties?.role ?? "").toLowerCase();
+      if (role === "user" || /\.user\./i.test(String(d?.event_type))) {
+        nudged = false;
+        clearTimeout(graceTimer);
+        armInactivity();
+      }
+    };
 
+    const lastGuardrailEcho = { at: 0 };
     const onAppMessage = (e) => {
       const d = e?.data;
       if (!d?.event_type) return;
       // Anyone talking (user utterances, PAL speech events) counts as engagement.
-      if (/utterance|speaking|respond/i.test(d.event_type)) armInactivity();
-      // Guardrail fired → optional spoken acknowledgement.
-      if (/guardrail/i.test(d.event_type) && controls.guardrailEcho) say(controls.guardrailEcho);
+      if (/utterance|speaking|respond/i.test(d.event_type)) { armInactivity(); onHumanSpeech(d); }
+      // Manual objective confirmation: Tavus emits objective.pending and waits
+      // for a client confirm — without this reply the flow never advances and
+      // the PAL loops on step one.
+      if (/objective\.pending/i.test(d.event_type)) {
+        try {
+          daily.sendAppMessage({
+            message_type: "conversation",
+            event_type: "conversation.objective.confirm",
+            conversation_id: conversationId,
+            properties: { objective_name: d.properties?.objective_name },
+          }, "*");
+        } catch { /* room gone */ }
+      }
+      // Guardrail fired → optional spoken acknowledgement. Debounced: multiple
+      // guardrail events per violation (or per pushy turn) each replayed the
+      // same canned line back to back.
+      if (/guardrail/i.test(d.event_type) && controls.guardrailEcho && Date.now() - lastGuardrailEcho.at > 30_000) {
+        lastGuardrailEcho.at = Date.now();
+        say(controls.guardrailEcho);
+      }
       // Custom tool call → forward to the configured webhook (Zapier/Make/…).
       // text/plain body avoids a CORS preflight so any catch-hook accepts it.
       if (/tool_?call/i.test(d.event_type) && !/result/i.test(d.event_type) && controls.toolWebhook) {
@@ -2120,7 +2201,12 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
             at: new Date().toISOString(),
           }),
         }).catch(() => {});
-        if (controls.toolEcho) say(controls.toolEcho);
+        // Same debounce rationale as the guardrail echo — one confirmation
+        // line per burst of tool calls, not one per event.
+        if (controls.toolEcho && Date.now() - (lastGuardrailEcho.toolAt || 0) > 15_000) {
+          lastGuardrailEcho.toolAt = Date.now();
+          say(controls.toolEcho);
+        }
       }
     };
     const onSpeaker = () => armInactivity();
@@ -3894,6 +3980,10 @@ export default function TavusExperienceBuilder() {
   // "Start from an idea" — Claude drafts the entire template
   const [ideaText, setIdeaText] = useState("");
   const [demoIntent, setDemoIntent] = useState(""); // what kind of demo — sets the draft's altitude
+  const [demoAudience, setDemoAudience] = useState(""); // who the AI human talks to
+  const [demoOutcome, setDemoOutcome] = useState(""); // what should be true by the end
+  const [demoFeatures, setDemoFeatures] = useState(defaultDemoFeatures); // feature checklist → toggles
+  const [draftReport, setDraftReport] = useState(null); // what the last draft set up, shown on the start step
   const [ideating, setIdeating] = useState(false);
 
   // Scenarios (named snapshots of the full builder config).
@@ -3978,7 +4068,7 @@ export default function TavusExperienceBuilder() {
     scCards, studioLines,
     duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser,
     duetDeckBeat, duetBrowserBeat, duetBrowserShow, duetLook, duetCaptions, studioPalA, studioPalB,
-    palLlm, knowledgeIdsRaw, personaMode, demoIntent,
+    palLlm, knowledgeIdsRaw, personaMode, demoIntent, demoAudience, demoOutcome, demoFeatures,
     site,
     expJourney,
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
@@ -4037,6 +4127,8 @@ export default function TavusExperienceBuilder() {
     setPalLlm(c.palLlm ?? "tavus-gemma-4"); // scenarios that chose a model keep it; new/legacy default to Gemma
     setPersonaMode(c.personaMode === "paste" ? "paste" : "brief");
     setDemoIntent(c.demoIntent ?? "");
+    setDemoAudience(c.demoAudience ?? ""); setDemoOutcome(c.demoOutcome ?? "");
+    setDemoFeatures({ ...defaultDemoFeatures(), ...(c.demoFeatures || {}) });
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
     setScCards(Array.isArray(c.scCards) ? c.scCards : []);
@@ -4384,12 +4476,14 @@ export default function TavusExperienceBuilder() {
     // doesn't know what it "said" first and re-introduces itself (the classic
     // greeting-vs-prompt mismatch).
     if (greeting.trim()) {
-      parts.push(`Your first spoken line is already scripted and plays automatically at the start of the call: "${greeting.trim()}" — never introduce yourself a second time; continue naturally from that line.`);
+      parts.push(`Your first spoken line is already scripted and plays automatically at the start of the call: "${greeting.trim()}" — never introduce yourself a second time. If that line already asked a question, treat it as asked: don't repeat it, work with whatever they answer.`);
     }
 
     if (wakePhrase.trim()) {
       parts.push(
-        `Wake phrase: after greeting the user once, stay quiet and do not respond to speech until someone says "${wakePhrase.trim()}" (or a close variation). Once you hear it, engage normally for the rest of the conversation. If people talk among themselves without saying it, remain silent.`
+        (greeting.trim()
+          ? `Wake phrase: your scripted opening line has already played. After it, stay quiet and do not respond to speech until someone says "${wakePhrase.trim()}" (or a close variation) — then engage normally for the rest of the conversation.`
+          : `Wake phrase: after greeting the user once, stay quiet and do not respond to speech until someone says "${wakePhrase.trim()}" (or a close variation) — then engage normally for the rest of the conversation.`)
       );
     }
 
@@ -4416,16 +4510,13 @@ export default function TavusExperienceBuilder() {
       }[canvasStyle];
       if (styleText) parts.push(styleText);
 
-      // Always-on formatting contract for card content. Without it models pack
-      // whole lists into one run-on paragraph with inline dashes — unreadable
-      // on the card (seen in live demos).
+      // Card contract, imperative and tight — the default PAL model is small
+      // (gemma-4) and long justificatory prose degrades into ignored rules.
       parts.push(
-        "Magic Canvas card formatting (every card, no exceptions):\n" +
-        "- Cards render markdown. Any list goes one item per line as real markdown bullets (\"- item\") — never chained into a single paragraph with dashes, commas, or semicolons.\n" +
-        "- Status checklists are bullets too — one bullet per row, like \"- First name — CONFIRMED\" then \"- Date of birth — IN PROCESS\"; never several statuses on one line.\n" +
-        "- Keep cards scannable: title of 2-5 words, at most 6 bullets, each bullet under 8 words. Say the detail out loud instead of cramming it onto the card.\n" +
-        "- One idea per card; show a new card for a new topic instead of appending to an old one.\n" +
-        "- Prefer the structured card for the job — Question for choices, Input for capturing details, Calendar for dates — over a Text card describing the same thing."
+        "Magic Canvas cards:\n" +
+        "- Format: cards render markdown; every list = one \"- item\" per line (never a run-on paragraph); title 2-5 words; ≤6 bullets; ≤8 words per bullet — say detail aloud instead.\n" +
+        "- One idea per card; new topic = new card.\n" +
+        "- Prefer the structured card for the job (Question for choices, Input for details, Calendar for dates) over a Text card."
       );
 
       const rules = CANVAS_COMPONENTS
@@ -4443,17 +4534,16 @@ export default function TavusExperienceBuilder() {
     // to the homepage) — with a catalog it may only share links that exist.
     const approvedLinks = linkCatalog.filter((l) => String(l?.url || "").trim());
     if (approvedLinks.length) {
+      // No fallback-push clause: "share the closest page instead" turned every
+      // off-catalog ask into a link offer — the same 2-3 URLs on repeat.
       parts.push(
-        "Approved links — the ONLY URLs you may ever share, on cards, in chat, or aloud. Never invent, guess, modify, or shorten a URL:\n" +
-        approvedLinks.map((l) => `- ${String(l.label || "").trim() || String(l.url).trim()}: ${String(l.url).trim()}`).join("\n") +
-        "\nIf what the user wants isn't in this list, share the closest listed page and tell them what to look for from there."
+        "Approved links — the ONLY URLs you may share, and only when the user asks or it clearly helps. Never invent, modify, or shorten a URL; if it isn't listed, say so:\n" +
+        approvedLinks.map((l) => `- ${String(l.label || "").trim() || String(l.url).trim()}: ${String(l.url).trim()}`).join("\n")
       );
       const withPhotos = approvedLinks.filter((l) => String(l.image || "").trim());
       if (withPhotos.length) {
         parts.push(
-          "Product photos appear automatically beside you when these items come up: " +
-          withPhotos.map((l) => String(l.label || "").trim() || String(l.url).trim()).join("; ") +
-          ". When one appears, refer to it naturally (\"here it is on screen\") — never say you can't show images, and don't try to show these items through other cards."
+          `Photos of these items appear beside you automatically when they come up: ${withPhotos.map((l) => String(l.label || "").trim() || String(l.url).trim()).join("; ")}. Refer to them naturally when they do.`
         );
       }
     }
@@ -4479,7 +4569,7 @@ export default function TavusExperienceBuilder() {
       if (recS3ExternalId.trim()) body.properties.recording_storage.external_id = recS3ExternalId.trim();
     }
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
@@ -4903,7 +4993,8 @@ export default function TavusExperienceBuilder() {
       pushPromptVersion(sourceLabel || `Revised: "${feedback.slice(0, 48)}${feedback.length > 48 ? "…" : ""}"`, String(rev.prompt));
       const changed = ["prompt"];
       if (Array.isArray(rev.objectives)) {
-        setObjectivesText(rev.objectives.join("\n"));
+        // Branch entries need indentation or they compile as literal steps.
+        setObjectivesText(rev.objectives.map((o) => (/^if\s/i.test(String(o).trim()) ? `  ${String(o).trim()}` : String(o).trim())).join("\n"));
         setObjectivesEnabled(true);
         changed.push("objectives");
       }
@@ -6146,16 +6237,22 @@ export default function TavusExperienceBuilder() {
 
   /* ── "Start from an idea": Claude drafts the whole template, all editable ── */
 
-  const draftDemo = async (knownBrand = "") => {
+  const draftDemo = async (knownBrand = "", themeJ = null) => {
     if (!ideaText.trim()) return;
     setIdeating(true);
+    setDraftReport(null);
     try {
-      addLog("info", "Drafting the whole demo from your idea…");
+      addLog("info", "Drafting the whole demo from your answers…");
       // Anchor the draft to the REAL company when we know it (from the URL /
       // theming) — otherwise Claude invents a plausible fictional brand.
       const parts = [ideaText];
       const chosenIntent = DEMO_INTENTS.find((x) => x.v === demoIntent);
       if (chosenIntent) parts.push(chosenIntent.gen);
+      if (demoAudience.trim()) parts.push(`They'll be talking to: ${demoAudience.trim()}`);
+      if (demoOutcome.trim()) parts.push(`By the end of a great conversation: ${demoOutcome.trim()}`);
+      const featureNames = { canvas: "magic canvas", vision: "vision", coach: "coach mode", presentation: "presentation deck", browseruse: "browser use", emailGate: "email gate" };
+      const picked = DEMO_FEATURES.filter((f) => demoFeatures[f.k]).map((f) => featureNames[f.k]);
+      parts.push(`FEATURES SELECTED: ${picked.join(", ") || "none"}`);
       // Anchor ONLY to fresh signals (the theming result or the typed URL) —
       // site.brand at this point is the PREVIOUS demo's company, and using it
       // drafted new demos for the old brand.
@@ -6183,14 +6280,22 @@ export default function TavusExperienceBuilder() {
       // ── NET-NEW MEANS NET-NEW. Before applying the template, reset every
       // demo-content field to its default — a new demo must not inherit the
       // previous one's cards, catalog, vision, coach, journey, tools, deck,
-      // duet plan, pronunciation, voice, or PAL. applyConfig({}) already
-      // yields correct defaults for everything and preserves this browser's
-      // recording/webhook settings; only true account-level values ride
-      // through. (Reset happens AFTER the fetch succeeds, so a failed draft
-      // never wipes the current demo.)
-      const intentNow = demoIntent;
-      applyConfig({ faceId, studioPalA, studioPalB });
-      setDemoIntent(intentNow); // picked on this very step — part of the new demo
+      // duet plan, or pronunciation. Rides through the reset:
+      // - palId + faceId: the PAL-hygiene sweep at launch makes reuse safe;
+      //   wiping palId dead-ended every draft→launch at the canLaunch gate.
+      // - the JUST-FETCHED brand theme (themeJ) — resetting it shipped the
+      //   default look while the log claimed "themed to <brand>".
+      // - account-level studio PALs; recording/webhook via store fallbacks.
+      // (Reset happens AFTER the fetch succeeds, so a failed draft never
+      // wipes the current demo.)
+      const freshSite = themeJ
+        ? { theme: themeJ.colors ? { ...(themeJ.colors || {}), font: themeJ.font || "" } : null, logoUrl: themeJ.logoUrl || "" }
+        : {};
+      applyConfig({
+        faceId, palId, studioPalA, studioPalB,
+        site: freshSite,
+        demoIntent, demoAudience, demoOutcome, demoFeatures,
+      });
       setActiveScenario(""); // saving must create a new library entry, not overwrite the old demo
 
       if (t.conversationName) setConversationName(t.conversationName);
@@ -6212,22 +6317,63 @@ export default function TavusExperienceBuilder() {
           vibe: String(t.personaBrief?.vibe || "").trim() || ideaText.trim() || b.vibe,
         }));
       }
+      const report = [];
+      report.push({ ok: true, text: `Page copy + greeting drafted${t.brand ? ` for ${t.brand}` : ""}` });
+      report.push({ ok: true, text: "Persona brief filled — the prompt drafts on top automatically" });
       if (Array.isArray(t.objectives) && t.objectives.length) {
-        setObjectivesText(t.objectives.join("\n"));
+        // Branch entries ("if X -> Y") must be INDENTED or the parser treats
+        // them as literal top-level steps (the PAL then asks "if returning
+        // customer…" out loud — seen on live calls).
+        setObjectivesText(t.objectives.map((o) => (/^if\s/i.test(String(o).trim()) ? `  ${String(o).trim()}` : String(o).trim())).join("\n"));
         setObjectivesEnabled(true);
+        report.push({ ok: true, text: `Objectives: ${t.objectives.length} steps chained` });
       }
       if (Array.isArray(t.guardrails) && t.guardrails.length) {
         setGuardrailsText(t.guardrails.join("\n"));
         setGuardrailsEnabled(true);
+        report.push({ ok: true, text: `Guardrails: ${t.guardrails.length} rules` });
       }
-      if (t.visionVibe) { setVisionVibe(t.visionVibe); setVisionEnabled(true); }
-      if (t.canvasPlaybook) { setCanvasPlaybook(t.canvasPlaybook); setCanvasEnabled(true); }
+      // Feature picks drive the toggles 1:1 — never the template's whim
+      // (canvas keyed on a model field the template may leave empty made
+      // canvas randomly on/off per draft).
+      setCanvasEnabled(!!demoFeatures.canvas);
+      if (demoFeatures.canvas) {
+        if (t.canvasPlaybook) setCanvasPlaybook(t.canvasPlaybook);
+        report.push({ ok: true, text: `Magic Canvas on${t.canvasPlaybook ? " — card plan drafted" : ""}` });
+      }
+      if (demoFeatures.vision) {
+        setVisionEnabled(true);
+        if (t.visionVibe) setVisionVibe(t.visionVibe);
+        report.push({ ok: true, text: "Vision on — generate the checks on the Vision step (one click)" });
+      }
+      if (demoFeatures.coach && t.coach && Array.isArray(t.coach.criteria) && t.coach.criteria.length) {
+        setCoachEnabled(true);
+        setCoachTitle(String(t.coach.title || ""));
+        setCoachScene(String(t.coach.scene || ""));
+        if (t.coach.talkHint) setCoachTalkHint(String(t.coach.talkHint));
+        setCoachCriteriaText(t.coach.criteria.map((c) => String(c).trim()).filter(Boolean).join("\n"));
+        report.push({ ok: true, text: `Coach scorecard drafted — ${t.coach.criteria.length} behaviors` });
+      } else if (demoFeatures.coach) {
+        setCoachEnabled(true);
+        report.push({ ok: false, text: "Coach on — ✨ draft the scorecard on the Experience step" });
+      }
+      setExpEmailGate(!!demoFeatures.emailGate);
+      if (demoFeatures.presentation) {
+        setPresentationEnabled(true);
+        report.push({ ok: false, text: "Slide deck on — add your Knowledge Base doc ID on the Presentation step before launch" });
+      }
+      if (demoFeatures.browseruse) {
+        setBrowserUseEnabled(true);
+        report.push({ ok: false, text: "Browser Use on — ✨ script a guided flow on the Presentation step before launch" });
+      }
+      setDraftReport(report);
+      report.forEach((r) => addLog(r.ok ? "ok" : "info", r.text));
       setPersonaDraft(""); setPersonaAttached(false); // brief changed → draft is stale
       // Finish the coupling: generate the persona ON TOP of the fresh brief +
       // objectives/guardrails (the effect fires after this state commits, so
       // the generator reads the drafted values, not the stale ones).
       setAutoDraft(true);
-      addLog("ok", "Demo drafted — brief, goals, rules, and page are in. Drafting the persona prompt on top now…");
+      addLog("ok", "Demo drafted — drafting the persona prompt on top now…");
     } catch (e) {
       addLog("err", `Draft demo: ${e.name === "AbortError" ? "took too long (90s) and was cancelled — try again; if it keeps happening, shorten the idea text" : e.message}`);
     } finally {
@@ -6411,9 +6557,14 @@ export default function TavusExperienceBuilder() {
       // NOTHING before the conversation POST may abort the launch: one bad
       // section used to kill the whole thing and read as "nothing works".
       // Each section attaches inside its own guard and logs its own failure.
-      const section = async (label, fn) => {
+      // onFail: fail-SAFE, not fail-stale — when attaching new objectives or
+      // guardrails fails, the PAL still carries the PREVIOUS demo's set, and
+      // launching on those is the "keeps repeating itself" pathology. Clear
+      // the old counterpart before continuing.
+      const section = async (label, fn, onFail) => {
         try { await fn(); } catch (e) {
           addLog("err", `${label} failed (launching without it): ${e.message}`);
+          if (onFail) { try { await onFail(); } catch { /* best effort */ } }
         }
       };
 
@@ -6486,23 +6637,30 @@ export default function TavusExperienceBuilder() {
             [{ op: "add", path: "/layers/tts/tts_emotion_control", value: true }]);
         }
       }
-      // Skills the PAL carries but this demo has off — detach (the duet path
-      // proved this pattern: the reusable PAL must not carry a stale deck).
-      const palSkills = Array.isArray(palState?.skills)
-        ? palState.skills.map((s) => String(s?.skill_id || s?.id || s?.name || s)).filter(Boolean)
-        : null; // unknown shape/missing → attempt blind detach, ignore failures
-      for (const [on2, skillId2, label2] of [
-        [presentationEnabled && docIds.length > 0, "presentation", "presentation deck"],
-        [canvasEnabled, "magic_canvas", "Magic Canvas"],
-        [browserUseEnabled, "browser_use", "Browser Use flows"],
-        [internetSearchEnabled, "internet_search", "internet search"],
-      ]) {
-        if (on2) continue;
-        if (palSkills && !palSkills.includes(skillId2)) continue;
-        try {
-          await tavusFetch("DELETE", `/pals/${pal}/skills/${skillId2}`);
-          addLog("ok", `Detached the previous demo's ${label2} from the PAL (off in this demo).`);
-        } catch { /* wasn't attached — nothing to clear */ }
+      // Skills the PAL carries but this demo TURNED OFF — detach (the duet
+      // path proved this pattern). Two safety rules learned the hard way:
+      // - detach keys on the operator's toggle alone, never on "toggle on but
+      //   not configured yet" (presentation-on-with-no-deck used to strip the
+      //   PAL's working deck) — unconfigured sections just skip their attach;
+      // - if the PAL couldn't be read, do NOT blind-delete: a transient GET
+      //   failure must not mutate the PAL.
+      if (palState) {
+        const palSkills = Array.isArray(palState.skills)
+          ? palState.skills.map((s) => String(s?.skill_id || s?.id || s?.name || s)).filter(Boolean)
+          : null; // shape unknown → attempt detach for off-toggles, ignore failures
+        for (const [on2, skillId2, label2] of [
+          [presentationEnabled, "presentation", "presentation deck"],
+          [canvasEnabled, "magic_canvas", "Magic Canvas"],
+          [browserUseEnabled, "browser_use", "Browser Use flows"],
+          [internetSearchEnabled, "internet_search", "internet search"],
+        ]) {
+          if (on2) continue;
+          if (palSkills && !palSkills.includes(skillId2)) continue;
+          try {
+            await tavusFetch("DELETE", `/pals/${pal}/skills/${skillId2}`);
+            addLog("ok", `Detached the previous demo's ${label2} from the PAL (off in this demo).`);
+          } catch { /* wasn't attached — nothing to clear */ }
+        }
       }
 
       // Objectives: create the set, attach to the PAL (replaces any existing set).
@@ -6516,6 +6674,10 @@ export default function TavusExperienceBuilder() {
           { op: "add", path: "/objectives_id", value: objectivesId },
         ]);
         addLog("ok", "Objectives attached (persists on the PAL until you remove it).");
+      }, async () => {
+        await clearPatch("objectives (stale set — new one failed to attach)",
+          [{ op: "remove", path: "/objectives_id" }],
+          [{ op: "replace", path: "/objectives_id", value: null }]);
       });
 
       // Guardrails: create each, then REPLACE the PAL's set with exactly these.
@@ -6549,6 +6711,10 @@ export default function TavusExperienceBuilder() {
           }
         }
         addLog("ok", `Guardrails set — the PAL now has exactly these ${newIds.length} rule${newIds.length > 1 ? "s" : ""}.`);
+      }, async () => {
+        await clearPatch("guardrails (stale set — new ones failed to attach)",
+          [{ op: "replace", path: "/guardrail_ids", value: [] }],
+          [{ op: "add", path: "/guardrail_ids", value: [] }]);
       });
 
       // Vision: attach the perception layer to the PAL (persists like objectives).
@@ -7011,21 +7177,11 @@ export default function TavusExperienceBuilder() {
             <>
               <h1>New Demo</h1>
               <p className="lede">
-                Three guided beats — what you're making, what winning looks like, and any anchors you have — then Claude drafts everything (persona, goals, rules, page) and you refine. Or skip this and build by hand.
+                Answer a few questions, check off the features you want, and Claude builds the whole demo — persona, goals, rules, page, features — all editable afterwards. Only the first question is required.
               </p>
 
               <div className="idea-box">
-                <Field label="1 · What are you making?" hint="One chip sets the altitude — a sales demo discovers and books, an assistant serves, a trainer stays in character, a showcase creates feature moments. Optional, but it's the best guidance you can give.">
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {DEMO_INTENTS.map((it) => (
-                      <button key={it.v} type="button" className={"pill-btn" + (demoIntent === it.v ? " primary" : "")} style={{ padding: "6px 14px", fontSize: 13 }}
-                        onClick={() => setDemoIntent(demoIntent === it.v ? "" : it.v)} title={it.desc}>
-                        {it.label}
-                      </button>
-                    ))}
-                  </div>
-                </Field>
-                <Field label="2 · What does a winning conversation do?" hint="One or two plain-English sentences — or 🎙 talk it out. This is the only required part.">
+                <Field label="1 · What should the AI human pull off?" hint="One or two plain sentences — or 🎙 talk it out. The only required answer.">
                   <textarea
                     style={{ minHeight: 84, ...(dictating === "idea" ? { outline: "2px solid var(--accent)" } : {}) }}
                     value={ideaText}
@@ -7040,29 +7196,67 @@ export default function TavusExperienceBuilder() {
                     </button>
                   </div>
                 </Field>
-                <Field label="3 · Anchors — all optional" hint="Ground the draft in real things when you have them. Nothing here is a prerequisite.">
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 13, color: "var(--muted)", flexShrink: 0 }}>🌐 Match a brand:</span>
-                    <input className="mono" style={{ flex: "1 1 240px" }} value={brandUrl} onChange={(e) => setBrandUrl(e.target.value)} placeholder="https://prospect.com — colors, logo, their voice (optional)" />
+                <Field label="2 · A little context — optional" hint="Anything you skip, Claude infers from the idea.">
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <input style={{ flex: "1 1 220px" }} value={demoAudience} onChange={(e) => setDemoAudience(e.target.value)}
+                      placeholder="Who are they talking to? — e.g. new hires, day one" />
+                    <input style={{ flex: "1 1 220px" }} value={demoOutcome} onChange={(e) => setDemoOutcome(e.target.value)}
+                      placeholder="What's true by the end? — e.g. IT session booked" />
                   </div>
-                  <p className="field-hint" style={{ margin: "6px 0 0" }}>
-                    Also useful later: a deck on the <b>Knowledge Base</b> step · raw call notes pasted (or 🎙 dictated) into the Persona step, where <b>Spin it all up</b> structures them.
-                  </p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+                    <span style={{ fontSize: 12, color: "var(--muted)" }}>Kind of demo:</span>
+                    {DEMO_INTENTS.map((it) => (
+                      <button key={it.v} type="button" className={"pill-btn" + (demoIntent === it.v ? " primary" : "")} style={{ padding: "4px 12px", fontSize: 12 }}
+                        onClick={() => setDemoIntent(demoIntent === it.v ? "" : it.v)} title={it.desc}>
+                        {it.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+                    <span style={{ fontSize: 13, color: "var(--muted)", flexShrink: 0 }}>🌐 Their website:</span>
+                    <input className="mono" style={{ flex: "1 1 240px" }} value={brandUrl} onChange={(e) => setBrandUrl(e.target.value)} placeholder="https://prospect.com — real name, colors, logo (optional)" />
+                  </div>
+                </Field>
+                <Field label="3 · Check off the features" hint="Each one becomes a working part of the demo — drafted now, tuned on its own step later.">
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {DEMO_FEATURES.map((f) => (
+                      <button key={f.k} type="button"
+                        className={"pill-btn" + (demoFeatures[f.k] ? " primary" : "")}
+                        style={{ padding: "6px 14px", fontSize: 13 }}
+                        title={f.desc}
+                        onClick={() => setDemoFeatures((d) => ({ ...d, [f.k]: !d[f.k] }))}>
+                        {demoFeatures[f.k] ? "✓ " : ""}{f.label}
+                      </button>
+                    ))}
+                  </div>
                 </Field>
                 <button className="pill-btn primary big" onClick={async () => {
                   // Theme FIRST: it reads the real site and returns the real
-                  // company name, which the demo draft then builds around —
-                  // otherwise the draft invents a fictional brand ("StrideLab"
-                  // for a sneaker idea) that soaks into greeting/goals/persona.
+                  // company name + colors, which the draft builds around AND
+                  // keeps through the net-new reset.
                   const theme = brandUrl.trim() ? await themeFromUrl() : null;
-                  if (ideaText.trim()) await draftDemo(theme?.brand || "");
-                  setStep("persona");
-                }} disabled={ideating || theming || (!ideaText.trim() && !brandUrl.trim())}>
-                  {theming ? "Matching their brand…" : ideating ? "Drafting the demo…" : "✨ Draft my demo"}
+                  if (ideaText.trim()) await draftDemo(theme?.brand || "", theme);
+                }} disabled={ideating || theming || !ideaText.trim()}>
+                  {theming ? "Matching their brand…" : ideating ? "Drafting the demo…" : "✨ Build my demo"}
                 </button>
                 <p className="field-hint" style={{ marginTop: 10 }}>
-                  Takes ~30 seconds. You land on the Persona step to review — every word stays editable.
+                  Takes ~30 seconds. The checklist below shows everything it set up; review the persona next — every word stays editable.
                 </p>
+                {Array.isArray(draftReport) && draftReport.length > 0 && (
+                  <div style={{ marginTop: 14, padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 12, maxWidth: 640 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8 }}>What got built</div>
+                    {draftReport.map((r, i) => (
+                      <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, marginBottom: 5 }}>
+                        <span style={{ flexShrink: 0 }}>{r.ok ? "✅" : "🔶"}</span>
+                        <span>{r.text}</span>
+                      </div>
+                    ))}
+                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                      <button className="pill-btn primary" onClick={() => setStep("persona")}>Review the persona →</button>
+                      <button className="pill-btn" onClick={() => setStep("launch")}>Straight to Launch</button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <p className="field-hint" style={{ maxWidth: 560 }}>

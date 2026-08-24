@@ -36,7 +36,10 @@ function applyJourneyPrefs(payload, journeyArr, prefs) {
       if (o.greeting) {
         out.custom_greeting = String(o.greeting);
         // Keep in sync with applyJourneyPrefs in TavusExperienceBuilder.jsx:
-        // the model must know its (overridden) first line.
+        // REPLACE the base greeting instruction (two conflicting "your first
+        // line is…" claims made the model re-greet), then state the new one.
+        out.conversational_context = String(out.conversational_context || "")
+          .split("\n\n").filter((p) => !/^Your first spoken line is already scripted/.test(p)).join("\n\n");
         lines.push(`- Your first spoken line is already scripted and plays automatically: "${String(o.greeting).slice(0, 300)}" — continue naturally from it; never introduce yourself a second time.`);
       }
       if (o.palId && /^p[a-z0-9_-]{3,60}$/i.test(String(o.palId))) out.pal_id = String(o.palId);
@@ -46,7 +49,8 @@ function applyJourneyPrefs(payload, journeyArr, prefs) {
   if (email) lines.push(`- Email they provided: ${email}`);
   if (lines.length) {
     const intro = "Pre-call setup from this visitor (personalize with it naturally — never recite it back as a list):";
-    out.conversational_context = [out.conversational_context, `${intro}\n${lines.join("\n")}`].filter(Boolean).join("\n\n");
+    const settled = "Anything already answered above is settled: confirm briefly if useful, never ask for it again — skip or fast-complete any objective step that asks for it.";
+    out.conversational_context = [out.conversational_context, `${intro}\n${lines.join("\n")}\n${settled}`].filter(Boolean).join("\n\n");
   }
   return out;
 }

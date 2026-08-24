@@ -106,14 +106,36 @@ structure: `## Identity & Role`, `## Personality & Conversational Style`
 `## Conversation Flow` — and receives perception/knowledge/tools context
 alongside objectives/guardrails/presentation/canvas. Every step ends with a `flow-nav` footer (Back /
 "Next: X →" / a 🚀 Launch shortcut gated on `canLaunch`). The default step
-is `start` — a hero step combining the prospect URL + use-case idea into
-one "Draft my demo" action (runs `draftDemo()` then `themeFromUrl()`,
-lands on Persona). **Net-new means net-new**: after the template fetch
-succeeds, `draftDemo` runs `applyConfig({faceId, studioPalA, studioPalB})`
-— a full reset of every demo-content field to defaults (recording/webhook
-ride through via their store fallbacks) — clears `activeScenario`, and
-anchors the draft only to fresh signals (theming result / typed URL),
-never the previous demo's `site.brand`. **Launch runs a PAL-hygiene
+is `start` — questions + optional website + a **feature checklist**
+(`DEMO_FEATURES`: canvas/emailGate default ON; vision/coach/presentation/
+browseruse default OFF; each pick maps 1:1 to a builder toggle and a
+template section — `FEATURES SELECTED:` line in the kind:"demo" request,
+DEMO_SYSTEM gates canvasPlaybook/visionVibe/coach on it). "✨ Build my
+demo" runs `themeFromUrl()` then `draftDemo(brand, themeJ)`; a
+**draft report** card lists what got built (✅) and what needs one manual
+step (🔶 deck ID / guided flow). **Net-new means net-new**: after the
+template fetch succeeds, `draftDemo` runs `applyConfig({faceId, palId,
+studioPalA, studioPalB, site: freshSite, demoIntent/Audience/Outcome/
+Features})` — a full reset of every other demo-content field (recording/
+webhook ride through via store fallbacks; palId is KEPT — the launch
+hygiene sweep makes PAL reuse safe, and wiping it dead-ended launch; the
+just-fetched theme rides in via `freshSite`), clears `activeScenario`,
+and anchors the draft only to fresh signals, never the previous demo's
+`site.brand`. Feature toggles are set from the PICKS, never from whether
+the template filled a field. Template objectives starting with "if " are
+indented on apply (branch lines require indentation in `parseObjectives`
+— which also dedupes lines and always emits a catch-all, adding a
+synthetic `…_wrap` objective when the last step has branches).
+**Anti-repetition invariants** (learned from live calls): the inactivity
+nudge is one-shot (its own speech must not re-arm it; only real user
+speech cancels the grace timer); guardrail/tool echoes are debounced;
+scripted-card fired-set and the time warning live in refs (effect re-runs
+must not replay); CallExtras answers `objective.pending` with
+`objective.confirm` (manual confirmation mode stalls forever otherwise);
+launch section failures are fail-SAFE (objectives/guardrails onFail
+clears the PAL's stale set rather than launching on the old demo's
+brain); skill detaches key on the operator's toggle alone and are skipped
+entirely when the PAL couldn't be read. **Launch runs a PAL-hygiene
 sweep** first: auto-attaches a never-attached persona draft, GETs the PAL,
 and clears whatever the PAL carries that this demo has OFF (objectives,
 guardrails→[], perception→off, pronunciation id, llm tools→[],
