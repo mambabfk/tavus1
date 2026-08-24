@@ -524,6 +524,9 @@ export default async function handler(req, res) {
     system = DESIGN_SYSTEM;
     const parts = [`Design the page for this vibe:\n${String(vibe).trim().slice(0, 2000)}`];
     if (context?.brand) parts.push(`Brand: ${String(context.brand).slice(0, 200)}`);
+    if (context?.brandColors && typeof context.brandColors === "object") {
+      parts.push(`BRAND COLORS (ground truth from the company's own site — the palette MUST be built from these, especially the accent; adjust only for contrast/legibility, never swap the hue):\n${JSON.stringify(context.brandColors).slice(0, 600)}`);
+    }
     if (context?.product) parts.push(`Product being demoed: ${String(context.product).slice(0, 500)}`);
     if (context?.audience) parts.push(`Audience: ${String(context.audience).slice(0, 300)}`);
     if (context?.headline) parts.push(`Current headline (improve or keep the spirit): ${String(context.headline).slice(0, 200)}`);

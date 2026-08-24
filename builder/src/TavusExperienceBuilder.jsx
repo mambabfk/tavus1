@@ -288,7 +288,7 @@ const DZ_FONTS = {
 };
 const DZ_SECTION_DEFAULTS = {
   profile: () => ({ type: "profile", name: "", role: "", bio: "", chips: ["Product expert", "Live Q&A", "Always on"] }),
-  skeleton: () => ({ type: "skeleton", rows: 6 }),
+  skeleton: () => ({ type: "skeleton", rows: 4 }),
   logos: () => ({ type: "logos", items: ["Acme", "Northwind", "Globex", "Initech"] }),
   features: () => ({ type: "features", items: [
     { title: "Fast to launch", body: "Live in minutes, not months." },
@@ -785,8 +785,9 @@ const BUILDER_CSS = `
         .dz-chips { display:flex; gap:8px; flex-wrap:wrap; }
         .dz-chips span { border:1px solid var(--border); background:var(--surface); border-radius:999px; padding:5px 12px; font-size:12px; color:var(--muted); }
         @media (max-width:820px) { .dz-profile { grid-template-columns:1fr; } }
-        .dz-skel { display:flex; flex-direction:column; gap:12px; padding:24px 0 8px; }
-        .dz-skel-row { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:9px; }
+        .dz-skel { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:18px 0 6px; }
+        .dz-skel-row { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; opacity:.75; }
+        @media (max-width:820px) { .dz-skel { grid-template-columns:1fr; } }
         /* Pre-call, the designed stage reads as a VIDEO POSTER — a dark panel
            with a play affordance — never a giant empty white card. In-call
            the CVI UI covers it, so this only styles the waiting state. */
@@ -3042,7 +3043,9 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
                 );
               }
               if (s2?.type === "skeleton") {
-                const rows = Math.min(10, Math.max(2, parseInt(s2.rows, 10) || 6));
+                // Hard cap + compact grid: a tall stack of empty bars read as
+                // "the page is broken", not "content placeholder".
+                const rows = Math.min(4, Math.max(2, parseInt(s2.rows, 10) || 3));
                 return (
                   <section key={i} className="dz-skel" aria-hidden="true">
                     {Array.from({ length: rows }, (_, j) => (
@@ -3816,7 +3819,16 @@ export default function TavusExperienceBuilder() {
         body: JSON.stringify({
           kind: "design",
           vibe,
-          context: { brand: site.brand, headline: site.headline, tagline: site.tagline, product: personaBrief.product, audience: personaBrief.audience },
+          context: {
+            brand: site.brand,
+            headline: site.headline,
+            tagline: site.tagline,
+            product: personaBrief.product,
+            audience: personaBrief.audience,
+            // Without the real brand colors Claude invents a palette from the
+            // vibe (USAA came out green) — the theme is ground truth.
+            brandColors: site.theme ? ["canvas", "surface", "text", "muted", "accent", "border"].reduce((o, k) => (site.theme[k] ? { ...o, [k]: site.theme[k] } : o), {}) : null,
+          },
         }),
       });
       const text = await res.text();
