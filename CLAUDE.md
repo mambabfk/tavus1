@@ -561,6 +561,17 @@ non-technical users; ids unchanged):
    `test_mode: true` (Tavus validates the full payload incl. recording
    storage; conversation is created pre-ended — no PAL joins, no cost).
 
+## Feature walkthroughs (`/api/walkthroughs`)
+
+App-level (not per-demo) video library: one Redis hash `walkthroughs`
+mapping `stepId → {url, narration}`. Managed on the Account step (pick a
+step, ⬆ upload via `blobUploadSmart` — the shared Blob uploader extracted
+from the KB path — or paste an https URL, write narration, save). Steps
+with a video get a ▶ in the rail; the player is a modal `<video>` with the
+narration rendered LIVE by `/api/tts` (Cartesia) and synced to
+play/pause/seek — recordings are swapped without ever editing audio in.
+Built for live-call footage (Studio takes / S3 recordings).
+
 ## Chat with the demo (`kind: "edit"`)
 
 A fixed bottom-center **edit bar** (`.editbar`, hidden on demo/duet overlays
