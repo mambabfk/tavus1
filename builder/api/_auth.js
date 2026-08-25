@@ -82,12 +82,24 @@ export async function createAccount(email, password, invite) {
   if (personal?.usedBy) throw new Error("That invite code has already been used — ask for a fresh one.");
   if (!personal && !safeEqual(invite, process.env.BUILDER_PASSWORD)) throw new Error("Wrong invite code.");
 
-  if (await kvGet(`user:${email}`)) throw new Error("That account already exists — sign in instead.");
+  const existing = await kvGet(`user:${email}`);
+  if (existing && !personal) {
+    // The shared team code must NOT reset an existing account (too widely
+    // known — that would be account takeover with one leaked string).
+    throw new Error("That account already exists — sign in instead. Lost your password? Any signed-in teammate can mint you a fresh invite code (Account → Team access); sign up again with your email + that code to set a new password. Your demos stay attached to your email.");
+  }
   const salt = crypto.randomBytes(16).toString("base64url");
-  await kvSet(`user:${email}`, { salt, hash: hashPassword(password, salt), createdAt: new Date().toISOString() });
+  if (existing) {
+    // Lost-password recovery: a fresh single-use PERSONAL code — deliberately
+    // minted by a signed-in teammate — is proof enough to set a new password.
+    // Scenarios are keyed by email, so everything comes back on sign-in.
+    await kvSet(`user:${email}`, { ...existing, salt, hash: hashPassword(password, salt), resetAt: new Date().toISOString() });
+  } else {
+    await kvSet(`user:${email}`, { salt, hash: hashPassword(password, salt), createdAt: new Date().toISOString() });
+  }
   if (personal) {
     // Burn the code; keep the used record around for the team list.
-    await kvSetEx(`invite:${normInviteCode(invite)}`, { ...personal, usedBy: email, usedAt: new Date().toISOString() }, 90 * 86400);
+    await kvSetEx(`invite:${normInviteCode(invite)}`, { ...personal, usedBy: existing ? `${email} (password reset)` : email, usedAt: new Date().toISOString() }, 90 * 86400);
   }
   return email;
 }

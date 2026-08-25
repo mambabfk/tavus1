@@ -4021,6 +4021,21 @@ export default function TavusExperienceBuilder() {
     addLog(localOk ? "ok" : "info", localOk ? `Scenario "${name}" saved in this browser.` : `Scenario "${name}" saved for this session only — storage is blocked in this environment. Use Export for a file.`);
   };
 
+  /* One-click blank slate. The autosave draft restores the previous demo on
+     every visit, so "New Demo" used to show the old demo's ghost until a
+     draft ran — this makes starting clean an explicit, safe action. */
+  const startFresh = async (saveFirst = true) => {
+    const hadWork = isConfigDirty() && !!(personaDraft.trim() || objectivesText.trim() || site.brand || conversationName || activeScenario);
+    if (saveFirst && hadWork) await saveScenario();
+    applyConfig({ faceId, studioPalA, studioPalB });
+    setActiveScenario("");
+    setIdeaText(""); setBrandUrl(""); setDemoReplacing(""); setDemoHandoff("");
+    setDraftReport(null);
+    setRehearsal({ busy: false, turns: null, note: "", err: "" });
+    setStep("start");
+    addLog("ok", saveFirst && hadWork ? "Previous demo saved to the library — you're on a fresh slate." : "Fresh slate.");
+  };
+
   const loadScenario = async (name) => {
     if (!name) { setActiveScenario(""); return; }
     const local = scenarios[name] || null;
@@ -7097,6 +7112,16 @@ export default function TavusExperienceBuilder() {
               <p className="lede">
                 Answer a few questions, check off the features you want, and Claude builds the whole demo — persona, goals, rules, page, features — all editable afterwards. Only the first question is required.
               </p>
+
+              {(activeScenario || site.brand || personaDraft.trim() || conversationName) && (
+                <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", padding: "10px 14px", border: "1px solid var(--border)", borderRadius: 12, marginBottom: 16, maxWidth: 680, background: "var(--surface)" }}>
+                  <span style={{ fontSize: 13 }}>
+                    📝 On the bench: <b>{activeScenario || conversationName || site.brand || "an unsaved demo"}</b> — building below starts NEW and won't touch it, but the other steps still show it until you build or clear.
+                  </span>
+                  <button className="pill-btn" style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0 }} onClick={() => startFresh(true)}>💾 Save it & clear the bench</button>
+                  <button className="pill-btn ghost" style={{ padding: "4px 12px", fontSize: 12, flexShrink: 0 }} onClick={() => startFresh(false)}>Clear without saving</button>
+                </div>
+              )}
 
               <div className="idea-box">
                 <Field label="1 · What conversation is this replacing?" hint="Every good demo replaces something a human does today — name it.">
