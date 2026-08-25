@@ -3973,10 +3973,10 @@ export default function TavusExperienceBuilder() {
   // "Start from an idea" — Claude drafts the entire template
   const [ideaText, setIdeaText] = useState("");
   const [demoIntent, setDemoIntent] = useState(""); // legacy scenarios only — no longer asked
-  const [demoAudience, setDemoAudience] = useState(""); // who the AI human talks to
-  const [demoOutcome, setDemoOutcome] = useState(""); // the win — what's true by the end
-  const [demoAvoid, setDemoAvoid] = useState(""); // off-limits — seeds guardrails
-  const [demoTone, setDemoTone] = useState(""); // how it should sound — seeds the persona's voice
+  const [demoReplacing, setDemoReplacing] = useState(""); // the conversation this demo replaces
+  const [demoHandoff, setDemoHandoff] = useState(""); // when a human must take over — seeds guardrails + escalation
+  // Rehearsal refinement loop — ephemeral (not saved with scenarios).
+  const [rehearsal, setRehearsal] = useState({ busy: false, turns: null, note: "", err: "" });
   const [demoFeatures, setDemoFeatures] = useState(defaultDemoFeatures); // feature checklist → toggles
   const [draftReport, setDraftReport] = useState(null); // what the last draft set up, shown on the start step
   const [ideating, setIdeating] = useState(false);
@@ -4063,7 +4063,7 @@ export default function TavusExperienceBuilder() {
     scCards, studioLines,
     duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser,
     duetDeckBeat, duetBrowserBeat, duetBrowserShow, duetLook, duetCaptions, studioPalA, studioPalB,
-    palLlm, knowledgeIdsRaw, personaMode, demoIntent, demoAudience, demoOutcome, demoAvoid, demoTone, demoFeatures,
+    palLlm, knowledgeIdsRaw, personaMode, demoIntent, demoReplacing, demoHandoff, demoFeatures,
     site,
     expJourney,
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
@@ -4122,8 +4122,7 @@ export default function TavusExperienceBuilder() {
     setPalLlm(c.palLlm ?? "tavus-gemma-4"); // scenarios that chose a model keep it; new/legacy default to Gemma
     setPersonaMode(c.personaMode === "paste" ? "paste" : "brief");
     setDemoIntent(c.demoIntent ?? "");
-    setDemoAudience(c.demoAudience ?? ""); setDemoOutcome(c.demoOutcome ?? "");
-    setDemoAvoid(c.demoAvoid ?? ""); setDemoTone(c.demoTone ?? "");
+    setDemoReplacing(c.demoReplacing ?? ""); setDemoHandoff(c.demoHandoff ?? "");
     setDemoFeatures({ ...defaultDemoFeatures(), ...(c.demoFeatures || {}) });
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
@@ -6233,6 +6232,61 @@ export default function TavusExperienceBuilder() {
 
   /* ── "Start from an idea": Claude drafts the whole template, all editable ── */
 
+  /* ── Rehearsal loop: Claude plays BOTH sides of a short call against the
+     current config, faithfully — flaws included — so the operator refines by
+     giving coach notes on a transcript instead of digging through steps. ── */
+  const rehearsalText = () =>
+    (rehearsal.turns || []).map((t) => `${t.role === "visitor" ? "VISITOR" : "AI"}: ${t.text}`).join("\n");
+
+  const runRehearsal = async () => {
+    if (!personaDraft.trim() || rehearsal.busy) return;
+    setRehearsal((r) => ({ ...r, busy: true, err: "" }));
+    try {
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "rehearse",
+          context: {
+            personaSummary: personaDraft.slice(0, 8000),
+            greeting: greeting.trim(),
+            objectives: objectivesEnabled ? objectivesText : "",
+            guardrails: guardrailsEnabled ? guardrailsText : "",
+            replacing: demoReplacing.trim(),
+          },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || "rehearsal failed");
+      }
+      const j = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+      const turns = (Array.isArray(j?.transcript) ? j.transcript : [])
+        .map((t) => ({ role: t.role === "visitor" ? "visitor" : "ai", text: String(t.text || "").trim() }))
+        .filter((t) => t.text)
+        .slice(0, 24);
+      if (!turns.length) throw new Error("empty rehearsal — try again");
+      setRehearsal((r) => ({ ...r, busy: false, turns }));
+    } catch (e) {
+      setRehearsal((r) => ({ ...r, busy: false, err: `Rehearsal: ${e.message}` }));
+    }
+  };
+
+  const applyRehearsalNotes = async () => {
+    const note = rehearsal.note.trim();
+    if (!note) return;
+    // Route through the revise machinery with the transcript as evidence —
+    // it already knows flow notes → objectives, rule notes → guardrails.
+    await revisePersona(
+      `These notes are about the REHEARSAL TRANSCRIPT below — fix the config so the next run plays right.\n\nNOTES:\n${note}\n\nREHEARSAL TRANSCRIPT:\n${rehearsalText().slice(0, 6000)}`,
+      `Rehearsal notes: "${note.slice(0, 40)}${note.length > 40 ? "…" : ""}"`
+    );
+    setRehearsal((r) => ({ ...r, note: "" }));
+  };
+
   const draftDemo = async (knownBrand = "", themeJ = null) => {
     if (!ideaText.trim()) return;
     setIdeating(true);
@@ -6241,11 +6295,10 @@ export default function TavusExperienceBuilder() {
       addLog("info", "Drafting the whole demo from your answers…");
       // Anchor the draft to the REAL company when we know it (from the URL /
       // theming) — otherwise Claude invents a plausible fictional brand.
-      const parts = [ideaText];
-      if (demoAudience.trim()) parts.push(`AUDIENCE — who the AI human talks to: ${demoAudience.trim()}`);
-      if (demoOutcome.trim()) parts.push(`SUCCESS — what must be true by the end: ${demoOutcome.trim()}`);
-      if (demoAvoid.trim()) parts.push(`OFF-LIMITS — things it must never do or discuss (turn these into guardrails, near-verbatim): ${demoAvoid.trim()}`);
-      if (demoTone.trim()) parts.push(`TONE — how it should sound: ${demoTone.trim()}`);
+      const parts = [];
+      if (demoReplacing.trim()) parts.push(`THE CONVERSATION THIS DEMO REPLACES: ${demoReplacing.trim()}`);
+      parts.push(`HOW A GOOD ONE GOES TODAY (derive the objectives from these steps, in this order; audience, tone, and the closing outcome live in here too):\n${ideaText}`);
+      if (demoHandoff.trim()) parts.push(`HUMAN HANDOFF — moments a real person must take over: ${demoHandoff.trim()} (turn these into guardrails AND an escalation behavior in the flow — offer the handoff gracefully, never bluff past it).`);
       const featureNames = { canvas: "magic canvas", vision: "vision", coach: "coach mode", presentation: "presentation deck", browseruse: "browser use", emailGate: "email gate" };
       const picked = DEMO_FEATURES.filter((f) => demoFeatures[f.k]).map((f) => featureNames[f.k]);
       parts.push(`FEATURES SELECTED: ${picked.join(", ") || "none"}`);
@@ -6290,7 +6343,7 @@ export default function TavusExperienceBuilder() {
       applyConfig({
         faceId, palId, studioPalA, studioPalB,
         site: freshSite,
-        demoIntent, demoAudience, demoOutcome, demoAvoid, demoTone, demoFeatures,
+        demoIntent, demoReplacing, demoHandoff, demoFeatures,
       });
       setActiveScenario(""); // saving must create a new library entry, not overwrite the old demo
 
@@ -7177,12 +7230,16 @@ export default function TavusExperienceBuilder() {
               </p>
 
               <div className="idea-box">
-                <Field label="1 · Who is the AI human, and what should the conversation accomplish?" hint="Role + mission in one or two sentences — or 🎙 talk it out. The only required answer.">
+                <Field label="1 · What conversation is this replacing?" hint="Every good demo replaces something a human does today — name it.">
+                  <input value={demoReplacing} onChange={(e) => setDemoReplacing(e.target.value)}
+                    placeholder='e.g. "the first call our SDRs have with inbound leads" · "front-desk check-in at our clinics"' />
+                </Field>
+                <Field label="2 · Walk me through how a good one goes" hint="Talk like you're training a new hire — the steps, what gets asked, how it ends. 🎙 works best here. The only required answer.">
                   <textarea
-                    style={{ minHeight: 84, ...(dictating === "idea" ? { outline: "2px solid var(--accent)" } : {}) }}
+                    style={{ minHeight: 96, ...(dictating === "idea" ? { outline: "2px solid var(--accent)" } : {}) }}
                     value={ideaText}
                     onChange={(e) => setIdeaText(e.target.value)}
-                    placeholder={"An onboarding buddy for new employees — walks them through week-one setup and benefits enrollment, answers the awkward questions, and books their IT session at the end."}
+                    placeholder={"They come in nervous on day one. We say hi, figure out what team they're on, get their laptop sorted, walk benefits enrollment together — people always ask about the healthcare options — and before they leave we book their IT setup session."}
                   />
                   <div style={{ marginTop: 8 }}>
                     <button className={"pill-btn" + (dictating === "idea" ? " primary" : "")} disabled={transcribing}
@@ -7192,25 +7249,15 @@ export default function TavusExperienceBuilder() {
                     </button>
                   </div>
                 </Field>
-                <Field label="2 · The discovery questions — each one you answer makes the demo sharper" hint="These map straight onto how a Tavus demo is built: audience → who the persona speaks to · the win → the flow's final step and the page's call-to-action · off-limits → real guardrails · tone → the persona's voice. Skip any and Claude infers.">
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <input style={{ flex: "1 1 220px" }} value={demoAudience} onChange={(e) => setDemoAudience(e.target.value)}
-                      placeholder="Who do they talk to? — e.g. new hires on day one" />
-                    <input style={{ flex: "1 1 220px" }} value={demoOutcome} onChange={(e) => setDemoOutcome(e.target.value)}
-                      placeholder="The win — e.g. IT session booked, email captured" />
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-                    <input style={{ flex: "1 1 220px" }} value={demoAvoid} onChange={(e) => setDemoAvoid(e.target.value)}
-                      placeholder="Off-limits — e.g. no salary talk, never promise dates" />
-                    <input style={{ flex: "1 1 220px" }} value={demoTone} onChange={(e) => setDemoTone(e.target.value)}
-                      placeholder="Sounds like — e.g. warm, unhurried, a bit playful" />
-                  </div>
+                <Field label="3 · When should a real person take over?" hint="The one safety question that matters — it becomes the demo's guardrails and a graceful hand-off. Claude drafts the rest of the rules for you to prune.">
+                  <input value={demoHandoff} onChange={(e) => setDemoHandoff(e.target.value)}
+                    placeholder='e.g. "anything about salary or visas" · "if they mention fraud or want to cancel"' />
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
                     <span style={{ fontSize: 13, color: "var(--muted)", flexShrink: 0 }}>🌐 Their website:</span>
                     <input className="mono" style={{ flex: "1 1 240px" }} value={brandUrl} onChange={(e) => setBrandUrl(e.target.value)} placeholder="https://prospect.com — real name, colors, logo (optional)" />
                   </div>
                 </Field>
-                <Field label="3 · Check off the features" hint="Each one becomes a working part of the demo — drafted now, tuned on its own step later.">
+                <Field label="4 · Check off the features" hint="Each one becomes a working part of the demo — drafted now, tuned on its own step later.">
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {DEMO_FEATURES.map((f) => (
                       <button key={f.k} type="button"
@@ -7244,10 +7291,65 @@ export default function TavusExperienceBuilder() {
                         <span>{r.text}</span>
                       </div>
                     ))}
-                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                      <button className="pill-btn primary" onClick={() => setStep("persona")}>Review the persona →</button>
+                    {guardrailsText.trim() && (
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 6 }}>Rules it drafted — kill any that don't fit</div>
+                        {guardrailsText.split("\n").map((l) => l.trim()).filter(Boolean).map((rule, i) => (
+                          <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, marginBottom: 4 }}>
+                            <button className="pill-btn" title="Remove this rule" style={{ padding: "1px 9px", fontSize: 11, flexShrink: 0 }}
+                              onClick={() => setGuardrailsText((t2) => t2.split("\n").filter((x) => x.trim() !== rule).join("\n"))}>✕</button>
+                            <span>{rule}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                      <button className="pill-btn primary" disabled={!personaDraft.trim() || generating || rehearsal.busy} onClick={runRehearsal}>
+                        {rehearsal.busy ? "Rehearsing…" : generating ? "Persona drafting…" : "🎬 Rehearse the conversation"}
+                      </button>
+                      <button className="pill-btn" onClick={() => setStep("persona")}>Review the persona →</button>
                       <button className="pill-btn" onClick={() => setStep("launch")}>Straight to Launch</button>
                     </div>
+                  </div>
+                )}
+                {rehearsal.err && <p className="field-hint" style={{ color: "#c0392b", marginTop: 8 }}>{rehearsal.err}</p>}
+                {Array.isArray(rehearsal.turns) && (
+                  <div style={{ marginTop: 14, padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 12, maxWidth: 680 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8 }}>
+                      Rehearsal — how this demo would play out
+                    </div>
+                    <div style={{ maxHeight: 320, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
+                      {rehearsal.turns.map((t2, i) => (
+                        <div key={i} style={{
+                          alignSelf: t2.role === "visitor" ? "flex-end" : "flex-start",
+                          maxWidth: "82%", padding: "8px 12px", borderRadius: 12, fontSize: 13, lineHeight: 1.45,
+                          background: t2.role === "visitor" ? "var(--accent)" : "var(--surface)",
+                          border: "1px solid var(--border)",
+                        }}>
+                          <b style={{ fontSize: 10.5, letterSpacing: ".06em", textTransform: "uppercase", opacity: .65, display: "block", marginBottom: 2 }}>
+                            {t2.role === "visitor" ? "Visitor" : "AI human"}
+                          </b>
+                          {t2.text}
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <input style={{ flex: "1 1 260px", ...(dictating === "rehearse" ? { outline: "2px solid var(--accent)" } : {}) }}
+                        value={rehearsal.note} onChange={(e) => setRehearsal((r) => ({ ...r, note: e.target.value }))}
+                        onKeyDown={(e) => e.key === "Enter" && rehearsal.note.trim() && !generating && applyRehearsalNotes()}
+                        placeholder='Give notes like a coach — "too pushy at the start", "ask about team size before benefits"…' />
+                      <button className={"pill-btn" + (dictating === "rehearse" ? " primary" : "")} disabled={transcribing}
+                        onClick={() => toggleDictation("rehearse", (t3) => setRehearsal((r) => ({ ...r, note: (r.note ? r.note + " " : "") + t3 })))}>
+                        {dictating === "rehearse" ? "⏹ Stop" : "🎙"}
+                      </button>
+                      <button className="pill-btn primary" disabled={!rehearsal.note.trim() || generating || rehearsal.busy} onClick={applyRehearsalNotes}>
+                        {generating ? "Applying…" : "Apply the notes"}
+                      </button>
+                      <button className="pill-btn" disabled={rehearsal.busy || generating} onClick={runRehearsal}>↻ Rehearse again</button>
+                    </div>
+                    <p className="field-hint" style={{ margin: "8px 0 0" }}>
+                      Notes route to the right place automatically — flow notes reshape the objectives, rule notes the guardrails, tone notes the persona. Rehearse again after applying to see the difference.
+                    </p>
                   </div>
                 )}
               </div>

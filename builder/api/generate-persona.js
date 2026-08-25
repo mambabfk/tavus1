@@ -64,6 +64,7 @@ Apply the feedback precisely and return ONLY valid JSON (no code fences, no comm
 
 Rules:
 - Change exactly what the feedback asks for; keep everything else as close to the original as possible. This is an edit, not a rewrite.
+- Feedback may include a REHEARSAL TRANSCRIPT — a simulated run of this config. Treat it as evidence of how the config plays (find WHERE in the prompt/objectives the flagged behavior comes from and fix the cause); never copy transcript lines into the prompt.
 - Prompt: keep (or move it toward) the Tavus Prompting Guide structure — "## Identity & Role", "## Personality & Conversational Style", "## Core Behaviors", "## Response Style Rules", "## Perception", "## Guardrails & Constraints", "## Conversation Flow" — with voice-first spoken content (short sentences, contractions, no stage directions), second person, one question at a time, never claims to be human, never invents pricing/features/commitments, 300–600 words.
 - Perception input (what the PAL sees on camera/screen) is private awareness, not conversation: the prompt must keep — or gain, if it's missing — a rule that the PAL never announces or describes its own observations ("I can see that…", "I'm noticing…"), and reacts to deliberately shared content by discussing the content itself, never the act of seeing it.
 - Objectives: plain English, one objective per line-item, in conversation order (they chain top to bottom). Conditional branches are supported: a line-item starting with "if <condition> -> <detour objective>" placed right after its parent objective becomes an if/then branch that runs on the condition and then rejoins the main flow. Use branches when feedback describes routing ("if they already did X, skip to Y").
@@ -194,11 +195,11 @@ Return ONLY valid JSON (no code fences, no commentary):
 
 Rules: 3-5 objectives in conversation order (an objective entry may be a conditional branch written as "if <condition> -> <detour objective>", placed immediately after its parent objective — use one when the use case naturally routes, e.g. new vs. returning customers); 2-4 guardrails; every string speaks specifically to the described use case; greetings and page copy are warm and concise; no markdown anywhere.
 FEATURES: the request lists FEATURES SELECTED. Fill a feature's field ONLY when it is selected; unselected features get "" / null. Never push card/vision/coach content into the persona brief or objectives when the feature is off.
-DISCOVERY ANSWERS: the request may carry labeled answers — treat each as authoritative over your own invention:
-- AUDIENCE → personaBrief.audience and the register of all copy.
-- SUCCESS → the FINAL objective drives exactly this outcome, and the page cta invites it.
-- OFF-LIMITS → each item becomes a guardrail, kept near-verbatim (split on commas/"and"); also reflect the important ones in personaBrief.avoid.
-- TONE → personaBrief.tone (and the greeting/page copy must sound like it).
+DISCOVERY ANSWERS: the request carries labeled answers — treat each as authoritative over your own invention:
+- THE CONVERSATION THIS DEMO REPLACES → the demo's whole frame: the persona plays the person who has this conversation today, and page copy speaks to whoever walks into it.
+- HOW A GOOD ONE GOES TODAY → the objectives ARE these steps, in this order (branch where the description routes); audience, tone, and the closing outcome are read from it — the final objective lands the same ending the human version does, and the cta invites it.
+- HUMAN HANDOFF → guardrails + behavior: each named moment becomes a guardrail AND the persona offers the hand-off gracefully ("let me get a specialist on this") instead of bluffing past it.
+- GUARDRAILS BEYOND THE HANDOFF: draft 3-5 more that a careful operator in this industry would want (privacy, no invented pricing/claims, scope) — the operator prunes them afterwards, so err on including a rule they might kill over missing one they needed.
 GREETING vs FLOW: the greeting must NOT ask the question the first objective covers — it plays automatically, then the objectives drive the steps; a greeting that pre-asks step one made the AI ask it twice. Open warm, at most a soft invitation ("tell me what brings you in" is step one's job, not the greeting's).
 Company names: when the idea names or implies a REAL company (by name or website), use that exact real name everywhere — NEVER substitute an invented brand ("StrideLab" for Nike is a failure). Only invent a fictional brand when the idea is explicitly hypothetical or names no company at all. For real companies, don't fabricate specific product claims or statistics — stay in their actual public positioning, general where unsure.`;
 
@@ -292,6 +293,20 @@ const SCORE_SYSTEM = `You are the live judge behind a roleplay scorecard. You ge
 Return ONLY JSON (no markdown fences): {"hit":[0-based indices of criteria now met]}
 
 Be conservative: tick only when the transcript plainly shows the behavior. A near-miss stays unticked. No partial credit. An empty array is a common correct answer.`;
+
+/* Rehearse: play BOTH sides of a short call against the current config so
+   the operator can refine by giving notes on a transcript. Faithfulness over
+   flattery — if the config would misbehave, the transcript must show it. */
+const REHEARSE_SYSTEM = `You simulate a Tavus CVI call so a demo builder can see how their configuration would ACTUALLY play. You play both sides: the AI human (driven by the system prompt, scripted greeting, objectives, and guardrails provided) and a realistic visitor.
+
+Return ONLY JSON (no markdown fences):
+{"transcript":[{"role":"ai"|"visitor","text":"…"} — 12-18 turns, alternating, starting with the ai speaking the scripted greeting VERBATIM when one is provided]}
+
+Rules:
+- Play the config AS WRITTEN, not as it should be. If the objectives would make the AI re-ask something, show the re-ask. If the greeting pre-asks step one, show the awkward double question. If a guardrail is vague, show the AI wobbling. The transcript is a diagnostic, not a commercial.
+- The visitor is a plausible member of the audience with real texture: one moment of friction (an off-script question, a hesitation, a pushback) and at least one question that tests a guardrail or the handoff.
+- AI turns follow the prompt's style rules (1-3 sentences, contractions, one question at a time). Visitor turns are casual and human.
+- Run the flow to its natural close (the final objective / handoff / booking) within the turn budget.`;
 
 /* Flow: a plain-English (often dictated) scenario description → structured
    objectives DSL, revising any existing steps rather than clobbering them. */
@@ -466,6 +481,19 @@ export default async function handler(req, res) {
     const parts = [`Script this walkthrough:\n${String(vibe).trim().slice(0, 4000)}`];
     if (context?.brand) parts.push(`Brand: ${String(context.brand).slice(0, 200)}`);
     if (context?.product) parts.push(`Product context: ${String(context.product).slice(0, 800)}`);
+    userPrompt = parts.join("\n\n");
+  } else if (kind === "rehearse") {
+    const c = context || {};
+    if (!String(c.personaSummary ?? "").trim()) {
+      res.status(400).json({ error: "Rehearsal needs a persona prompt — draft the demo first." });
+      return;
+    }
+    system = REHEARSE_SYSTEM;
+    const parts = [`SYSTEM PROMPT the AI human runs on:\n${String(c.personaSummary).slice(0, 8000)}`];
+    if (String(c.greeting ?? "").trim()) parts.push(`SCRIPTED GREETING (the ai's first turn, verbatim):\n"${String(c.greeting).trim().slice(0, 400)}"`);
+    if (String(c.objectives ?? "").trim()) parts.push(`OBJECTIVES (drive the flow mechanically, in order; indented "if" lines are branches):\n${String(c.objectives).slice(0, 2500)}`);
+    if (String(c.guardrails ?? "").trim()) parts.push(`GUARDRAILS:\n${String(c.guardrails).slice(0, 1500)}`);
+    if (String(c.replacing ?? "").trim()) parts.push(`This demo replaces: ${String(c.replacing).slice(0, 300)} — the visitor is whoever walks into that conversation.`);
     userPrompt = parts.join("\n\n");
   } else if (kind === "coach") {
     system = COACH_SYSTEM;

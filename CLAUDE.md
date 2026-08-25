@@ -106,7 +106,20 @@ structure: `## Identity & Role`, `## Personality & Conversational Style`
 `## Conversation Flow` — and receives perception/knowledge/tools context
 alongside objectives/guardrails/presentation/canvas. Every step ends with a `flow-nav` footer (Back /
 "Next: X →" / a 🚀 Launch shortcut gated on `canLaunch`). The default step
-is `start` — questions + optional website + a **feature checklist**
+is `start` — the **replace-a-flow arc**: 1· what conversation is this
+replacing (`demoReplacing`), 2· "walk me through how a good one goes"
+(`ideaText`, the only required answer — objectives/audience/tone/outcome
+all derive from it), 3· "when should a real person take over?"
+(`demoHandoff` → guardrails + graceful escalation; DEMO_SYSTEM drafts 3-5
+more rails which the draft report renders as a **prune list** — ✕ removes
+the line from guardrailsText), 4· feature checklist. After the draft +
+auto persona: **🎬 Rehearse the conversation** (`kind: "rehearse"` —
+Claude plays BOTH sides faithfully, flaws included, starting from the
+scripted greeting; renders as chat bubbles) with a coach-notes box
+(typed or 🎙) that routes through `revisePersona` with the transcript as
+evidence — flow notes → objectives, rule notes → guardrails, tone → the
+prompt; then rehearse again. Rehearsal state is ephemeral (not saved).
+Plus optional website + the **feature checklist**
 (`DEMO_FEATURES`: canvas/emailGate default ON; vision/coach/presentation/
 browseruse default OFF; each pick maps 1:1 to a builder toggle and a
 template section — `FEATURES SELECTED:` line in the kind:"demo" request,
