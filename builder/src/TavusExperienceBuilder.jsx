@@ -33,6 +33,7 @@ const STEPS = [
   { id: "start", label: "New Demo", group: "Start" },
   { id: "demos", label: "Demo library", group: "Start" },
   { id: "setup", label: "Account", group: "Start" },
+  { id: "human", label: "Your AI human", group: "The AI human" },
   { id: "persona", label: "Persona", group: "The AI human" },
   { id: "guide", label: "Objectives & Guardrails", group: "The AI human" },
   { id: "vision", label: "Perception", group: "The AI human" },
@@ -719,6 +720,24 @@ const BUILDER_CSS = `
         /* ✨ Designed pages — spec-driven look from the design engine. The
            spec only supplies tokens + text; layout is these fixed classes. */
         /* Blueprint blocks: browser chrome, nav links, profile block, skeleton */
+        /* ── Anatomy hub: the AI human as navigation ── */
+        .human-hub { display:flex; gap:22px; align-items:center; max-width:860px; }
+        .human-col { flex:1 1 240px; display:flex; flex-direction:column; gap:10px; }
+        .human-fig { position:relative; flex:0 0 300px; }
+        .human-fig svg { display:block; width:100%; height:auto; }
+        .human-dot { position:absolute; width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%; border:2px solid var(--accent); background:var(--surface); cursor:pointer; padding:0; transition:transform .2s, box-shadow .2s; }
+        .human-dot.on { background:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
+        .human-dot.hot, .human-dot:hover { transform:scale(1.45); z-index:2; }
+        .human-dot:not(.on) { animation:humanpulse 2.4s ease-in-out infinite; }
+        @keyframes humanpulse { 50% { box-shadow:0 0 0 6px color-mix(in srgb, var(--accent) 14%, transparent); } }
+        .human-card { display:flex; gap:10px; align-items:flex-start; text-align:left; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 14px; cursor:pointer; font:inherit; transition:border-color .2s, transform .2s, box-shadow .2s; }
+        .human-card:hover, .human-card.hot { border-color:var(--accent); transform:translateY(-1px); box-shadow:0 10px 30px -18px color-mix(in srgb, var(--accent) 45%, transparent); }
+        .human-card-icon { font-size:20px; line-height:1.2; flex-shrink:0; }
+        .human-card b { display:block; font-size:13.5px; }
+        .human-card small { display:block; color:var(--muted); font-size:12px; line-height:1.4; margin-top:2px; }
+        .human-card em { display:block; font-style:normal; font-size:11.5px; color:var(--muted); margin-top:5px; }
+        .human-card em.ok { color:#1a7f37; font-weight:600; }
+        @media (max-width:860px) { .human-hub { flex-direction:column; } .human-fig { flex-basis:auto; width:min(300px,80%); } }
         .dz-navlinks { display:flex; gap:20px; margin:0 auto 0 30px; color:var(--muted); font-size:13px; font-weight:600; }
         @media (max-width:760px) { .dz-navlinks { display:none; } }
         /* 📸 Screenshot facade: their real site as the page, the call floating
@@ -3032,6 +3051,7 @@ export default function TavusExperienceBuilder() {
   });
 
   const [step, setStep] = useState("start");
+  const [humanHover, setHumanHover] = useState(""); // anatomy-hub hotspot sync
 
   // Login gate. Accounts mode (email+password, invite-code signup) when the
   // server has BUILDER_PASSWORD + Redis; shared-code mode without Redis;
@@ -7277,6 +7297,76 @@ export default function TavusExperienceBuilder() {
               )}
             </>
           )}
+
+          {step === "human" && (() => {
+            /* The anatomy hub: the AI human as the navigation. Each body part
+               is a live hotspot — shows what's configured, routes to its step.
+               Built for showing the APP itself: "click the eyes to give it
+               sight" lands better than any settings list. */
+            const parts = [
+              { k: "mind", icon: "🧠", label: "Mind", desc: "Who they are and how they talk — the persona prompt.", target: "persona", on: !!personaDraft.trim(), status: personaDraft.trim() ? (personaAttached ? "written & attached" : "written — attach on Persona") : "not written yet", x: 50, y: 5.5, side: "left" },
+              { k: "memory", icon: "📚", label: "Memory", desc: "Knowledge Base documents it grounds answers in.", target: "kb", on: !!knowledgeIdsRaw.trim(), status: knowledgeIdsRaw.trim() ? "documents attached" : "nothing attached", x: 36, y: 9, side: "left" },
+              { k: "eyes", icon: "👁", label: "Eyes", desc: "Perception — what it notices on camera and in tone.", target: "vision", on: visionEnabled, status: visionEnabled ? "watching" : "off", x: 40, y: 14.5, side: "left" },
+              { k: "voice", icon: "🗣", label: "Voice", desc: "The voice, its accent, and pronunciation rules.", target: "speech", on: !!(externalVoiceId.trim() || pronunciationText.trim()), status: externalVoiceId.trim() ? (externalVoiceName || "voice picked") : "face's default voice", x: 50, y: 24, side: "left" },
+              { k: "face", icon: "👤", label: "Face", desc: "The human face on the call.", target: "setup", on: !!faceId.trim(), status: faceId.trim() ? (FACE_PRESETS.find((f) => f.id === faceId.trim())?.name || "custom face") : "not picked", x: 62, y: 14.5, side: "right" },
+              { k: "compass", icon: "🧭", label: "Compass", desc: "Objectives it drives toward, guardrails it won't cross.", target: "guide", on: objectivesEnabled || guardrailsEnabled, status: objectivesEnabled ? `${parseObjectives(objectivesText, confirmationMode).length} steps` : "no flow yet", x: 50, y: 44, side: "right" },
+              { k: "hands", icon: "🛠", label: "Hands", desc: "What it can do: present a deck, drive a browser, show cards.", target: "presentation", on: presentationEnabled || browserUseEnabled || canvasEnabled, status: [presentationEnabled && "deck", browserUseEnabled && "browser", canvasEnabled && "canvas"].filter(Boolean).join(" + ") || "none yet", x: 77, y: 53, side: "right" },
+            ];
+            const card = (p) => (
+              <button key={p.k} type="button"
+                className={"human-card" + (p.on ? " on" : "") + (humanHover === p.k ? " hot" : "")}
+                onMouseEnter={() => setHumanHover(p.k)} onMouseLeave={() => setHumanHover("")}
+                onClick={() => setStep(p.target)}>
+                <span className="human-card-icon">{p.icon}</span>
+                <span style={{ minWidth: 0 }}>
+                  <b>{p.label}</b>
+                  <small>{p.desc}</small>
+                  <em className={p.on ? "ok" : ""}>{p.on ? "●" : "○"} {p.status}</em>
+                </span>
+              </button>
+            );
+            return (
+              <>
+                <h1>Your AI human</h1>
+                <p className="lede">
+                  Everything that makes the AI human, on the human. Click a part — of the figure or the cards — to open that feature. Filled dots are already configured for this demo.
+                </p>
+                <div className="human-hub">
+                  <div className="human-col">{parts.filter((p) => p.side === "left").map(card)}</div>
+                  <div className="human-fig">
+                    <svg viewBox="0 0 200 340" aria-hidden="true">
+                      <defs>
+                        <radialGradient id="hglow" cx="50%" cy="30%" r="70%">
+                          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" />
+                          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+                        </radialGradient>
+                        <linearGradient id="hbody" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#2a2d36" />
+                          <stop offset="100%" stopColor="#171920" />
+                        </linearGradient>
+                      </defs>
+                      <ellipse cx="100" cy="120" rx="96" ry="110" fill="url(#hglow)" />
+                      <circle cx="100" cy="38" r="26" fill="url(#hbody)" />
+                      <path d="M100 70 C 78 70 64 80 58 96 C 52 112 50 126 44 150 C 40 166 36 186 40 190 C 44 194 52 190 56 176 L 66 140 C 64 190 62 230 66 268 C 68 296 72 318 78 332 L 92 332 C 90 300 92 268 96 240 L 104 240 C 108 268 110 300 108 332 L 122 332 C 128 318 132 296 134 268 C 138 230 136 190 134 140 L 144 176 C 148 190 156 194 160 190 C 164 186 160 166 156 150 C 150 126 148 112 142 96 C 136 80 122 70 100 70 Z" fill="url(#hbody)" />
+                      <ellipse cx="100" cy="336" rx="52" ry="5" fill="rgba(10,12,16,.25)" />
+                    </svg>
+                    {parts.map((p) => (
+                      <button key={p.k} type="button"
+                        className={"human-dot" + (p.on ? " on" : "") + (humanHover === p.k ? " hot" : "")}
+                        style={{ left: `${p.x}%`, top: `${p.y}%` }}
+                        title={`${p.label} — ${p.status}`}
+                        onMouseEnter={() => setHumanHover(p.k)} onMouseLeave={() => setHumanHover("")}
+                        onClick={() => setStep(p.target)} />
+                    ))}
+                  </div>
+                  <div className="human-col">{parts.filter((p) => p.side === "right").map(card)}</div>
+                </div>
+                <p className="field-hint" style={{ maxWidth: 620, marginTop: 14 }}>
+                  The figure is your demo's state at a glance — a great screen to leave up while you talk through what an AI human is made of.
+                </p>
+              </>
+            );
+          })()}
 
           {step === "persona" && (
             <>
