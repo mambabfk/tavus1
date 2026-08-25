@@ -375,6 +375,18 @@ non-technical users; ids unchanged):
    page). Attend/feedback POST to `/api/experience`; the Results step shows
    a "Visitors & feedback" list, 👤/★ row badges, and a Visitor panel on
    call detail (`expMap`, fetched alongside recordings).
+   **Memories** (Tavus `memory_stores`, configured on the Knowledge Base
+   step — Knowledge is what it knows, Memory is what it remembers about
+   the person): `memoryEnabled`/`memoryMode`("visitor"|"demo")/`memoryKey`.
+   Builder launches send a demo-level store on the payload (visitor mode
+   uses a separate `…_operator` store so tests don't pollute visitors);
+   share links carry `experience.memory` in the snapshot (STRIPPED from
+   the public GET like notifyWebhook) and `demo-launch` derives the key
+   server-side — visitor mode keys to the gate email scoped per demo
+   (`{key}_{email-slug}`; no email → memory_stores deleted), demo mode is
+   one shared store. Keys are slugged [a-z0-9_]; changing the key starts
+   a blank memory. The anatomy hub shows 💭 Memory separate from
+   📚 Knowledge.
    **Coach mode** (same step; Rilla-style roleplay trainer): `coachEnabled` +
    `coachTitle/Scene/TalkHint/CriteriaText` ("label | keywords" per line, ≤8)
    → `controlsConfig.coach`; `CoachPanel` in DemoSite (desktop + live kiosk;

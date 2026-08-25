@@ -3052,6 +3052,11 @@ export default function TavusExperienceBuilder() {
 
   const [step, setStep] = useState("start");
   const [humanHover, setHumanHover] = useState(""); // anatomy-hub hotspot sync
+  // Tavus Memories: persistent cross-conversation memory via memory_stores
+  // on the conversation — separate from (and on top of) the Knowledge Base.
+  const [memoryEnabled, setMemoryEnabled] = useState(false);
+  const [memoryMode, setMemoryMode] = useState("visitor"); // visitor: per-email store | demo: one shared store
+  const [memoryKey, setMemoryKey] = useState("");
 
   // Login gate. Accounts mode (email+password, invite-code signup) when the
   // server has BUILDER_PASSWORD + Redis; shared-code mode without Redis;
@@ -3869,6 +3874,7 @@ export default function TavusExperienceBuilder() {
     duetDesc, duetPlan, duetFaceA, duetFaceB, duetOpener, duetOpenerB, duetNarrIntro, duetNarrFeatures, duetTurns, duetDeck, duetBrowser,
     duetDeckBeat, duetBrowserBeat, duetBrowserShow, duetLook, duetCaptions, studioPalA, studioPalB,
     palLlm, knowledgeIdsRaw, personaMode, demoIntent, demoReplacing, demoHandoff, demoFeatures,
+    memoryEnabled, memoryMode, memoryKey,
     site,
     expJourney,
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
@@ -3928,6 +3934,7 @@ export default function TavusExperienceBuilder() {
     setPersonaMode(c.personaMode === "paste" ? "paste" : "brief");
     setDemoIntent(c.demoIntent ?? "");
     setDemoReplacing(c.demoReplacing ?? ""); setDemoHandoff(c.demoHandoff ?? "");
+    setMemoryEnabled(!!c.memoryEnabled); setMemoryMode(c.memoryMode === "demo" ? "demo" : "visitor"); setMemoryKey(c.memoryKey ?? "");
     setDemoFeatures({ ...defaultDemoFeatures(), ...(c.demoFeatures || {}) });
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     {
@@ -4362,6 +4369,16 @@ export default function TavusExperienceBuilder() {
       }
     }
 
+    // Tavus Memories: the store key must be STABLE to remember across calls.
+    // Builder launches use the demo-level store; per-visitor stores (keyed by
+    // the gate email) are injected server-side by demo-launch — the email
+    // isn't known at build time.
+    if (memoryEnabled) {
+      const memSlug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
+      const key = memSlug(memoryKey || conversationName || "demo") || "demo";
+      body.memory_stores = [memoryMode === "visitor" ? `${key}_operator` : key];
+    }
+
     if (parts.length) body.conversational_context = parts.join("\n\n");
 
     if (knowledgeIds.length) body.document_ids = knowledgeIds;
@@ -4383,7 +4400,7 @@ export default function TavusExperienceBuilder() {
       if (recS3ExternalId.trim()) body.properties.recording_storage.external_id = recS3ExternalId.trim();
     }
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan, memoryEnabled, memoryMode, memoryKey]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
@@ -4537,7 +4554,10 @@ export default function TavusExperienceBuilder() {
     schedulingUrl: schedulingUrl.trim(),
     talkAgain: expTalkAgain,
     thanks: expThanks.trim(),
-  }), [compiledJourney, expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook, expRating, expBooking, schedulingUrl, expTalkAgain, expThanks]);
+    // Memories config rides the snapshot server-side (stripped from the
+    // public GET); demo-launch derives the per-visitor store key from it.
+    memory: memoryEnabled ? { enabled: true, mode: memoryMode, key: memoryKey.trim() } : undefined,
+  }), [compiledJourney, expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook, expRating, expBooking, schedulingUrl, expTalkAgain, expThanks, memoryEnabled, memoryMode, memoryKey]);
 
   const pronunciationRules = useMemo(() => parsePronunciation(pronunciationText), [pronunciationText]);
   const pronunciationPayload = useMemo(
@@ -7305,7 +7325,8 @@ export default function TavusExperienceBuilder() {
                sight" lands better than any settings list. */
             const parts = [
               { k: "mind", icon: "🧠", label: "Mind", desc: "Who they are and how they talk — the persona prompt.", target: "persona", on: !!personaDraft.trim(), status: personaDraft.trim() ? (personaAttached ? "written & attached" : "written — attach on Persona") : "not written yet", x: 50, y: 5.5, side: "left" },
-              { k: "memory", icon: "📚", label: "Memory", desc: "Knowledge Base documents it grounds answers in.", target: "kb", on: !!knowledgeIdsRaw.trim(), status: knowledgeIdsRaw.trim() ? "documents attached" : "nothing attached", x: 36, y: 9, side: "left" },
+              { k: "knowledge", icon: "📚", label: "Knowledge", desc: "Knowledge Base documents it grounds answers in.", target: "kb", on: !!knowledgeIdsRaw.trim(), status: knowledgeIdsRaw.trim() ? "documents attached" : "nothing attached", x: 36, y: 9, side: "left" },
+              { k: "memory", icon: "💭", label: "Memory", desc: "Remembers people across calls — returning visitors pick up where they left off.", target: "kb", on: memoryEnabled, status: memoryEnabled ? (memoryMode === "visitor" ? "per visitor (by email)" : "one shared store") : "forgets after each call", x: 64, y: 8, side: "right" },
               { k: "eyes", icon: "👁", label: "Eyes", desc: "Perception — what it notices on camera and in tone.", target: "vision", on: visionEnabled, status: visionEnabled ? "watching" : "off", x: 44, y: 12, side: "left" },
               { k: "voice", icon: "🗣", label: "Voice", desc: "The voice, its accent, and pronunciation rules.", target: "speech", on: !!(externalVoiceId.trim() || pronunciationText.trim()), status: externalVoiceId.trim() ? (externalVoiceName || "voice picked") : "face's default voice", x: 50, y: 24, side: "left" },
               { k: "face", icon: "👤", label: "Face", desc: "The human face on the call.", target: "setup", on: !!faceId.trim(), status: faceId.trim() ? (FACE_PRESETS.find((f) => f.id === faceId.trim())?.name || "custom face") : "not picked", x: 61, y: 14, side: "right" },
@@ -7980,6 +8001,35 @@ export default function TavusExperienceBuilder() {
                   ? `${knowledgeIds.length} document${knowledgeIds.length > 1 ? "s" : ""} will be available to the PAL in this demo's conversations.`
                   : "Nothing selected yet — the PAL won't reference the Knowledge Base in this demo."} To have the PAL present a deck as slides, pick it in the Presentation step.
               </p>
+
+              <div className="skill-head" style={{ marginTop: 26, marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>💭 Memory — remembers across calls</span>
+                <Toggle on={memoryEnabled} onChange={setMemoryEnabled} />
+              </div>
+              <p className="field-hint" style={{ maxWidth: 640, marginBottom: 10 }}>
+                Knowledge is what it <b>knows</b>; Memory is what it <b>remembers about the person</b>. With Memories on
+                (Tavus <span className="mono">memory_stores</span>), a returning caller picks up where they left off —
+                "welcome back, how did the rollout go?" is the single most jaw-dropping beat in a second demo call.
+              </p>
+              {memoryEnabled && (
+                <>
+                  <div className="seg" style={{ marginBottom: 8 }}>
+                    <button type="button" className={memoryMode === "visitor" ? "on" : ""} onClick={() => setMemoryMode("visitor")}>Per visitor</button>
+                    <button type="button" className={memoryMode === "demo" ? "on" : ""} onClick={() => setMemoryMode("demo")}>One shared memory</button>
+                  </div>
+                  <p className="field-hint" style={{ maxWidth: 620, marginBottom: 10 }}>
+                    {memoryMode === "visitor"
+                      ? "Each visitor gets their own memory, keyed by the email they enter at the gate (scoped to this demo — never shared across demos). Anonymous visitors — no email gate, or gate skipped — get no cross-call memory. Your own builder launches use a separate operator store so your tests don't pollute a visitor's memory."
+                      : "Every conversation on this demo shares ONE memory — good for kiosk/event setups where the AI accumulates context across the day."}
+                  </p>
+                  <Field label="Store name (optional)" hint="Stable identifier for the memory store — defaults to the demo name. Changing it later starts a fresh, blank memory.">
+                    <input className="mono" value={memoryKey} onChange={(e) => setMemoryKey(e.target.value)} placeholder="acme_onboarding" />
+                  </Field>
+                  <p className="field-hint" style={{ maxWidth: 620 }}>
+                    Heads up (Tavus early release): what's stored isn't viewable or editable yet — the memory shows up in how the conversation picks up, not in a dashboard.
+                  </p>
+                </>
+              )}
             </>
           )}
 

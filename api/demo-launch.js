@@ -79,6 +79,22 @@ export default async function handler(req, res) {
 
     const payload = applyJourneyPrefs(demo.payload, demo.experience?.journey, req.body?.prefs);
 
+    // Tavus Memories: derive the store key server-side. "visitor" mode keys
+    // the memory to the gate email (scoped to this demo, so different demos
+    // never share a store); no email → no cross-call memory for that caller.
+    const mem = demo.experience?.memory;
+    if (mem?.enabled) {
+      const memSlug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
+      const base = memSlug(mem.key || slug) || memSlug(slug);
+      const email = String(req.body?.prefs?.email ?? "").trim().toLowerCase();
+      if (mem.mode === "visitor") {
+        if (email) payload.memory_stores = [`${base}_${memSlug(email)}`.slice(0, 120)];
+        else delete payload.memory_stores;
+      } else {
+        payload.memory_stores = [base];
+      }
+    }
+
     const r = await fetch("https://tavusapi.com/v2/conversations", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": process.env.TAVUS_API_KEY },

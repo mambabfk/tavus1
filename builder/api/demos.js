@@ -24,8 +24,9 @@ export default async function handler(req, res) {
       if (!demo) { res.status(404).json({ error: "This demo link doesn't exist (or was created before storage was set up)." }); return; }
       const { payload, ...pub } = demo; // visitors don't need the raw Tavus payload
       if (pub.experience && typeof pub.experience === "object") {
-        // The attendance-alert webhook stays server-side (used by /api/experience).
-        const { notifyWebhook, ...expPub } = pub.experience;
+        // The attendance-alert webhook and the memory store key stay
+        // server-side (used by /api/experience and /api/demo-launch).
+        const { notifyWebhook, memory, ...expPub } = pub.experience;
         pub.experience = expPub;
       }
       res.status(200).json(pub);
