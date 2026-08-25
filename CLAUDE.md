@@ -341,11 +341,15 @@ non-technical users; ids unchanged):
    the ✨ design studio / `designed` format / `kind:"design"` were DELETED
    as bells-and-whistles; `applyConfig` coerces legacy `designed`→`desktop`
    and drops `site.design`). Two fidelity mechanisms, screenshot wins:
-   - **📸 Screenshot facade** (`site.shot`, JPEG data URL ≤1600px wide,
-     upload or clipboard-paste on the site step): on `desktop` the
-     screenshot IS the page (scrolls naturally) with the call stage
-     floating over its hero (`.demo-shot`/`.shot-*`); on `phone` it's the
-     app screen with a sticky CTA sheet. Kiosk/holo ignore it. Rides
+   - **📸 Screenshot facade** (`site.shot`, JPEG data URL auto-compressed
+     to ≤300KB, upload or clipboard-paste on the site step): on `desktop`
+     it's a "their site comes alive" treatment (`.demo-shot`/`.shot-*`) —
+     the screenshot's top ~118px stays crisp as their real header
+     (`.shot-topbar`), the rest becomes a blurred/dimmed full-bleed
+     backdrop (`.shot-backdrop`, animated dim), and the call rises on a
+     clean centered stage with white headline/tagline over it (replaced
+     the flat card-over-busy-page overlay, which read as an iframe on
+     clutter); on `phone` it's the app screen with a sticky CTA sheet. Kiosk/holo ignore it. Rides
      scenarios + share links; the CLOUD DRAFT strips `shot` when the
      payload exceeds ~380KB (the draft slot caps at 400KB) — local
      autosave and scenario saves keep it.

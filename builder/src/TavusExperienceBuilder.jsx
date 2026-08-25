@@ -758,21 +758,30 @@ const BUILDER_CSS = `
         @media (max-width:860px) { .human-hub { flex-direction:column; } .human-fig { flex-basis:auto; width:min(300px,80%); } }
         .dz-navlinks { display:flex; gap:20px; margin:0 auto 0 30px; color:var(--muted); font-size:13px; font-weight:600; }
         @media (max-width:760px) { .dz-navlinks { display:none; } }
-        /* 📸 Screenshot facade: their real site as the page, the call floating
-           over its hero. Selectors are two-class on purpose — a bare
+        /* 📸 Screenshot facade — "their site comes alive". Their real header
+           crisp on top, their page as a blurred dimmed backdrop, the call on
+           a clean centered stage. Selectors are two-class on purpose — a bare
            .shot-stage loses every property to the later .demo-stage rule. */
         .demo-desktop.demo-shot .demo-main { padding:0; max-width:none; }
-        .shot-wrap { position:relative; width:100%; min-height:72vh; background:#0d0e10; }
-        .shot-img { display:block; width:100%; height:auto; user-select:none; }
-        .shot-overlay { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-start; pointer-events:none; background:linear-gradient(180deg, rgba(10,12,16,.18), rgba(10,12,16,.05) 40%, transparent 70%); }
-        .demo-shot .shot-overlay .demo-stage { pointer-events:auto; position:sticky; top:min(9vw,110px); margin-top:min(12vw,150px); width:min(880px,86%); box-shadow:0 40px 120px -30px rgba(8,10,14,.55); border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,.35); }
-        .demo-desktop.demo-shot .demo-powered { position:fixed; right:16px; bottom:12px; }
+        .shot-wrap { position:relative; width:100%; height:calc(100vh - 0px); min-height:640px; background:#0d0e10; overflow:hidden; display:flex; flex-direction:column; }
+        .shot-topbar { flex-shrink:0; max-height:118px; overflow:hidden; box-shadow:0 10px 40px -10px rgba(8,10,14,.5); position:relative; z-index:2; }
+        .shot-topbar img { display:block; width:100%; height:auto; user-select:none; }
+        .shot-backdrop { position:absolute; inset:0; top:0; overflow:hidden; }
+        .shot-backdrop img { width:104%; height:104%; margin:-1%; object-fit:cover; object-position:top center; user-select:none; animation:shotdim 1.1s ease-out .25s both; }
+        @keyframes shotdim { from { filter:none; } to { filter:blur(16px) brightness(.48) saturate(1.15); } }
+        .shot-overlay { position:relative; z-index:1; flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; padding:26px 20px 40px; }
+        .shot-head { text-align:center; color:#fff; animation:shotrise .8s ease-out .55s both; max-width:760px; }
+        .shot-head h2 { margin:0; font-size:clamp(24px,3.2vw,38px); letter-spacing:-.8px; text-shadow:0 2px 24px rgba(0,0,0,.45); }
+        .shot-head p { margin:8px 0 0; color:rgba(255,255,255,.82); font-size:15.5px; text-shadow:0 1px 14px rgba(0,0,0,.45); }
+        .demo-shot .shot-overlay .demo-stage { width:min(860px,92%); max-height:100%; box-shadow:0 50px 140px -30px rgba(0,0,0,.7); border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,.22); animation:shotrise .8s ease-out .45s both; }
+        @keyframes shotrise { from { opacity:0; transform:translateY(26px); } to { opacity:1; transform:none; } }
+        .demo-desktop.demo-shot .demo-powered { position:fixed; right:16px; bottom:12px; color:rgba(255,255,255,.55); z-index:3; }
         /* The screenshot already contains THEIR header — our brand bar floats
            transparent with just the operator buttons, never a second nav. */
         .demo-desktop.demo-shot .demo-nav { position:absolute; top:0; left:0; right:0; z-index:6; background:transparent; border-bottom:none; justify-content:flex-end; }
         .demo-desktop.demo-shot .demo-nav .demo-brand, .demo-desktop.demo-shot .demo-nav img, .demo-desktop.demo-shot .dz-navlinks { display:none; }
         .shot-phone { position:relative; height:100%; overflow-y:auto; }
-        .shot-phone .shot-img { min-height:100%; object-fit:cover; }
+        .shot-phone .shot-img { display:block; width:100%; height:auto; min-height:100%; object-fit:cover; user-select:none; }
         .shot-phone-cta { position:sticky; bottom:14px; display:flex; justify-content:center; padding:0 14px; }
         .shot-phone-cta .pill-btn { box-shadow:0 18px 50px -12px rgba(8,10,14,.55); }
         /* Brand carry-through on themed pages: accent eyebrow + accent CTA +
@@ -3026,12 +3035,21 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
             </div>
           </div>
         ) : shot ? (
-          /* 📸 Their real site IS the page: the screenshot scrolls like the
-             site would, and the call stage floats over its hero area. No
-             headline/copy of ours — the screenshot already says everything. */
+          /* 📸 "Their site comes alive": the screenshot's real header stays
+             crisp at the top (instant that's-OUR-site recognition), the rest
+             of their page becomes a blurred, dimmed backdrop, and the call
+             rises out of it on a clean centered stage — theirs everywhere,
+             nothing competing. (Replaced the flat overlay-on-busy-page look.) */
           <div className="shot-wrap">
-            <img className="shot-img" src={shot} alt="" draggable={false} />
+            <div className="shot-topbar"><img src={shot} alt="" draggable={false} /></div>
+            <div className="shot-backdrop"><img src={shot} alt="" draggable={false} /></div>
             <div className="shot-overlay">
+              {(site.headline || site.tagline) && !conversationUrl && (
+                <div className="shot-head">
+                  {site.headline && <h2>{site.headline}</h2>}
+                  {site.tagline && <p>{site.tagline}</p>}
+                </div>
+              )}
               <div className="demo-stage shot-stage">{stage()}</div>
             </div>
           </div>
