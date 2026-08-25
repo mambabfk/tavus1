@@ -668,6 +668,39 @@ real local Vite app.
   BEFORE opening the demo page, and `siteMode` pushes a history entry so the
   browser Back button closes the demo overlay instead of leaving the SPA.
 
+## Keeping it simple — the anti-overengineering process
+
+This tool nearly died of feature accretion once (each feature fine alone;
+their interactions broke the paste-a-link golden path). Three standing
+rules, in force for EVERY change:
+
+1. **The golden path is executable.** `cd builder && npm run smoke` runs
+   the objectives-compiler invariant tests + a real-browser drive of the
+   New Demo flow (mocked backend) asserting intake → build → apply →
+   settings, PAL-id survival, greeting cohesion, and feature toggles.
+   Run it before pushing anything that touches draftDemo, launch,
+   parseObjectives, conversationPayload, or the start step — and extend
+   it when adding an intake field or feature pick. RED = don't ship.
+2. **Complexity budget on the PAL's standing instructions.** The default
+   PAL model is tavus-gemma-4 (small): `conversational_context` stays
+   ≤ ~450 words fully loaded, no rule stated twice across prompt and
+   context, no negated instructions ("never say you can't…"), and every
+   context part is gated on its feature toggle. A new instruction must
+   displace or merge with an old one, not stack.
+3. **Features default OFF and never touch the minimal path.** The minimal
+   demo (idea → build → launch) must work with every optional feature
+   unchecked; a feature's code must be inert (no context parts, no
+   payload fields, no PAL attachments) when its toggle is off. Launch
+   detaches what's off; failures fail-safe (clear stale PAL state),
+   never fail-stale.
+
+Periodic deep audit (monthly, or after any multi-feature sprint): three
+parallel subagents — repetition mechanics (everything that can make the
+PAL say the same thing twice), context bloat vs the word budget, and a
+regression diff-review of recent commits — then fix what's confirmed.
+The prompts for these live in the session history pattern: symptom-first,
+line-refs required, ranked by likelihood.
+
 ## Conventions when editing
 
 - It's one component; add UI as a new `step` in `STEPS` and a `{step === "…"}`

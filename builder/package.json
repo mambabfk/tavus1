@@ -7,7 +7,9 @@
     "dev:ui": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "walkthroughs": "npm run build && node tools/walkthroughs.mjs"
+    "walkthroughs": "npm run build && node tools/walkthroughs.mjs",
+    "smoke": "node tools/run-smoke.mjs",
+    "test:objectives": "node tools/parse-objectives.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0",
