@@ -328,19 +328,23 @@ non-technical users; ids unchanged):
    top bar + speaker grilles, glowing blue 9:16 screen the call renders
    into — bright and physical, per explicit user direction; NOT dark
    sci-fi).
-   ... | `designed` (**✨ design studio** — choose-your-own-journey with
-   guardrails: 1· `DESIGN_PRESETS` direction swatches, 2· exact token
-   controls (color pickers/`DZ_FONTS` typeface/radius slider/hero toggle),
-   3· section toggles with inline copy editors (`DZ_SECTION_DEFAULTS`);
-   the vibe box is a shortcut that fills these same controls —
-   a plain-English vibe → `kind: "design"` on generate-persona returns a
-   constrained spec —
-   palette/font-key/radius/hero center|split + real on-page sections
-   (logos/features/stats/quote) + headline/tagline/cta — stored in
-   `site.design` (rides scenarios AND share-link snapshots), applied as
-   sanitized CSS vars (hex/rgba regex, fixed font map) merged over
-   `themeVars`, rendered by the `dz-*` classes. NEVER render spec HTML/CSS
-   raw — tokens + text only. "Remove design" falls back to desktop).
+   **The design goal is "that's OUR site"** (per explicit user direction —
+   the ✨ design studio / `designed` format / `kind:"design"` were DELETED
+   as bells-and-whistles; `applyConfig` coerces legacy `designed`→`desktop`
+   and drops `site.design`). Two fidelity mechanisms, screenshot wins:
+   - **📸 Screenshot facade** (`site.shot`, JPEG data URL ≤1600px wide,
+     upload or clipboard-paste on the site step): on `desktop` the
+     screenshot IS the page (scrolls naturally) with the call stage
+     floating over its hero (`.demo-shot`/`.shot-*`); on `phone` it's the
+     app screen with a sticky CTA sheet. Kiosk/holo ignore it. Rides
+     scenarios + share links; the CLOUD DRAFT strips `shot` when the
+     payload exceeds ~380KB (the draft slot caps at 400KB) — local
+     autosave and scenario saves keep it.
+   - **Auto-facade from the URL**: `brand-theme` also returns `navLabels`
+     (the site's real top-nav labels, rendered via `.dz-navlinks` — the
+     one surviving dz class) and `heroImage` (og:image → the desktop
+     stage's pre-call poster background, sanitized http(s) only), stored
+     as `site.nav` / `site.heroImage`.
    `DemoSite` switches on `site.format` via `demo-{format}` CSS classes.
    Canvas split-layout only engages on `desktop` and live kiosk — phone,
    framed kiosk, and hologram keep the card overlay behavior.

@@ -24,6 +24,8 @@ Return ONLY valid JSON — no code fences, no commentary:
   },
   "font": "CSS font-family stack matching the site's typographic feel (fall back to system fonts)",
   "logoUrl": "absolute URL of the company's logo image, or null if none found",
+  "navLabels": ["the site's REAL top-navigation labels, in their order, up to 6 — exactly as written on the site (\"Nuestras Tiendas\", not a translation). [] when no HTML"],
+  "heroImage": "absolute URL of the site's hero/og image (og:image, or the hero <img>), or null — a real photo, never an icon/logo",
   "note": "3-8 words on where the palette came from — 'colors from the live site', 'from brand knowledge', or 'neutral industry palette'"
 }
 
@@ -128,6 +130,12 @@ export default async function handler(req, res) {
       try { parsed.logoUrl = new URL(parsed.logoUrl, target.href).href; }
       catch { parsed.logoUrl = null; }
     }
+    if (parsed.heroImage) {
+      try { parsed.heroImage = new URL(parsed.heroImage, target.href).href; }
+      catch { parsed.heroImage = null; }
+    }
+    if (!Array.isArray(parsed.navLabels)) parsed.navLabels = [];
+    parsed.navLabels = parsed.navLabels.map((x) => String(x).trim().slice(0, 30)).filter(Boolean).slice(0, 6);
     res.status(200).json(parsed);
   } catch (e) {
     if (e instanceof Anthropic.APIError) {

@@ -350,38 +350,6 @@ Rules:
 - Page copy (headline/tagline/cta) changes only when the instruction is about the page.
 - Never invent content for a piece that was provided as "(empty)" unless the instruction explicitly asks for it.`;
 
-/* Design engine: a plain-English vibe → a constrained page-design spec the
-   demo page renders (tokens + text only — never HTML/CSS, so nothing can
-   break the call stage or inject markup). */
-const DESIGN_SYSTEM = `You assemble the SURFACE a live AI-video-call demo lives on — website, in-app page, personal profile/resume, docs portal — from fixed building blocks. From a plain-English description, return ONLY JSON (no markdown fences):
-
-{"frame":"none"|"browser",
- "nav":null|{"links":["...", up to 5]},
- "palette":{"canvas":"#...","surface":"#...","text":"#...","muted":"#...","accent":"#...","border":"#... or rgba(...)"},
- "font":"inter"|"serif"|"grotesk"|"mono"|"system",
- "radius":<number 4-32>,
- "hero":"center"|"split"|"none",
- "eyebrow":"...", "headline":"...", "tagline":"...", "cta":"...",
- "sections":[up to 5, in display order, chosen from:
-   {"type":"profile","name":"...","role":"...","bio":"one sentence","chips":["..." x3-5]},
-   {"type":"logos","items":["Plausible Customer Name", ... up to 6]},
-   {"type":"features","items":[{"title":"...","body":"one sentence"} x3]},
-   {"type":"stats","items":[{"value":"98%","label":"..."} x3]},
-   {"type":"quote","text":"...","name":"Name, role"},
-   {"type":"skeleton","rows":<4-8>}],
- "footer":"one short line"}
-
-Block semantics — choose blocks to EMULATE the surface described:
-- Marketing website → frame "browser" + nav + hero "split" + logos/features.
-- Personal page / resume → a "profile" block (the live AI human renders where the profile photo would) + hero "none"; quote optional. name/role/bio describe the AI human as a person.
-- Docs portal / help center / in-app web page → frame "browser" + nav + hero "center" + a "skeleton" block (grey placeholder rows that read as the host product's own content).
-- Product launch / consumer → frame "none" + hero "center" + stats.
-
-Rules:
-- Colors are real CSS hex or rgba() values ONLY, readable: text on canvas ≥ 7:1, muted ≥ 4.5:1, surface subtly distinct from canvas, accent strong enough for a button fill.
-- Copy is grounded in the brand/product context and written like THEIR site — never "demo tool" language, no lorem ipsum, no placeholder brackets. Headline ≤ 9 words. cta ≤ 4 words.
-- Exactly ONE home for the call stage: the hero (center/split) OR a profile block with hero "none" — never both, never neither.
-- Follow the description faithfully over default taste.`;
 
 /* "Promote": one side of a scripted duet becomes a live demo persona a real
    human talks to — the sales handoff. Same character, no set dressing. */
@@ -552,22 +520,6 @@ export default async function handler(req, res) {
       piece("CURRENT MAGIC CANVAS PLAYBOOK", String(c.canvasPlaybook ?? "").slice(0, 2000)),
       c.brand ? `Brand: ${String(c.brand).slice(0, 200)}` : "",
     ].filter(Boolean).join("\n\n");
-  } else if (kind === "design") {
-    if (!String(vibe).trim()) {
-      res.status(400).json({ error: "Describe the vibe first — what should the page feel like?" });
-      return;
-    }
-    system = DESIGN_SYSTEM;
-    const parts = [`Design the page for this vibe:\n${String(vibe).trim().slice(0, 2000)}`];
-    if (context?.brand) parts.push(`Brand: ${String(context.brand).slice(0, 200)}`);
-    if (context?.brandColors && typeof context.brandColors === "object") {
-      parts.push(`BRAND COLORS (ground truth from the company's own site — the palette MUST be built from these, especially the accent; adjust only for contrast/legibility, never swap the hue):\n${JSON.stringify(context.brandColors).slice(0, 600)}`);
-    }
-    if (context?.product) parts.push(`Product being demoed: ${String(context.product).slice(0, 500)}`);
-    if (context?.audience) parts.push(`Audience: ${String(context.audience).slice(0, 300)}`);
-    if (context?.headline) parts.push(`Current headline (improve or keep the spirit): ${String(context.headline).slice(0, 200)}`);
-    if (context?.tagline) parts.push(`Current tagline: ${String(context.tagline).slice(0, 300)}`);
-    userPrompt = parts.join("\n\n");
   } else if (kind === "promote") {
     const plan = req.body?.plan || {};
     if (!String(plan?.prompt ?? "").trim()) {

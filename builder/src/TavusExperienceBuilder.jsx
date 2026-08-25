@@ -150,7 +150,6 @@ const SITE_FORMATS = [
   { v: "phone", label: "Mobile app", desc: "A scrollable in-app screen inside a real phone frame — how it feels living in your app." },
   { v: "kiosk", label: "Kiosk", desc: "A freestanding kiosk totem with a touch-to-start attract screen. Go live for real kiosk hardware." },
   { v: "hologram", label: "Hologram", desc: "A Proto-style holobox — white enclosure, glowing life-size screen the AI beams into." },
-  { v: "designed", label: "✨ Designed", desc: "A vibe-built page from the design engine below — palette, type, hero and on-page sections, generated to your description." },
 ];
 
 /* Video URL → embeddable source for journey video steps. YouTube/Loom/Vimeo
@@ -309,68 +308,6 @@ const parseObjectives = (text, confirmationMode) => {
   return items;
 };
 
-/* ✨ Design studio: fixed vocabulary the designed format renders from. */
-const DZ_FONTS = {
-  inter: "'Inter', system-ui, -apple-system, sans-serif",
-  serif: "Georgia, 'Iowan Old Style', 'Times New Roman', serif",
-  grotesk: "'Space Grotesk', 'Inter', system-ui, sans-serif",
-  mono: "'IBM Plex Mono', ui-monospace, monospace",
-  system: "system-ui, -apple-system, 'Segoe UI', sans-serif",
-};
-const DZ_SECTION_DEFAULTS = {
-  profile: () => ({ type: "profile", name: "", role: "", bio: "", chips: ["Product expert", "Live Q&A", "Always on"] }),
-  skeleton: () => ({ type: "skeleton", rows: 4 }),
-  logos: () => ({ type: "logos", items: ["Acme", "Northwind", "Globex", "Initech"] }),
-  features: () => ({ type: "features", items: [
-    { title: "Fast to launch", body: "Live in minutes, not months." },
-    { title: "Always on", body: "Every visitor gets the full conversation, any hour." },
-    { title: "On brand", body: "Your look, your rules, your guardrails." },
-  ] }),
-  stats: () => ({ type: "stats", items: [
-    { value: "98%", label: "visitor satisfaction" },
-    { value: "24/7", label: "availability" },
-    { value: "3 min", label: "average conversation" },
-  ] }),
-  quote: () => ({ type: "quote", text: "It felt like talking to our best rep — at midnight.", name: "A happy customer" }),
-};
-/* Format building blocks — one click sets the whole SURFACE the demo lives
-   on. Website/Profile/Portal are `designed` blueprints (block stacks the
-   renderer draws); In-app is the existing phone format. */
-const FORMAT_BLUEPRINTS = [
-  {
-    name: "🌐 Website", desc: "Their marketing site — browser chrome, nav, split hero, logos, feature cards.",
-    design: {
-      frame: "browser", hero: "split",
-      nav: { links: ["Product", "Solutions", "Pricing", "Contact"] },
-      palette: { canvas: "#ffffff", surface: "#f7f8fa", text: "#0d1117", muted: "#57606a", accent: "#0969da", border: "#e3e6ea" },
-      font: "inter", radius: 12,
-      sections: [DZ_SECTION_DEFAULTS.logos(), DZ_SECTION_DEFAULTS.features()],
-    },
-  },
-  {
-    name: "👤 Profile page", desc: "A personal page / resume — the live AI human sits where the profile photo would.",
-    design: {
-      frame: "none", hero: "none",
-      palette: { canvas: "#faf7f2", surface: "#ffffff", text: "#1c1917", muted: "#6b6259", accent: "#9a3412", border: "#e7e0d8" },
-      font: "serif", radius: 14,
-      sections: [DZ_SECTION_DEFAULTS.profile(), DZ_SECTION_DEFAULTS.quote()],
-    },
-  },
-  {
-    name: "📚 Portal", desc: "Docs / help-center feel — nav, centered hero over the call, content skeleton below.",
-    design: {
-      frame: "browser", hero: "center",
-      nav: { links: ["Docs", "Guides", "API", "Support"] },
-      palette: { canvas: "#fbfbfa", surface: "#ffffff", text: "#111827", muted: "#6b7280", accent: "#7c3aed", border: "#e5e7eb" },
-      font: "system", radius: 10,
-      sections: [DZ_SECTION_DEFAULTS.skeleton()],
-    },
-  },
-];
-
-/* New Demo intents — the altitude that guides a draft. Each carries the
-   guidance line the generator receives, so one chip steers the whole draft
-   without a form. */
 /* New Demo feature checklist — each pick maps 1:1 to a builder toggle and a
    section the template drafts. Defaults mirror what a good first demo wants. */
 const DEMO_FEATURES = [
@@ -781,57 +718,21 @@ const BUILDER_CSS = `
         .pron-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
         /* ✨ Designed pages — spec-driven look from the design engine. The
            spec only supplies tokens + text; layout is these fixed classes. */
-        .demo-designed .demo-nav { background:var(--canvas); border-bottom:1px solid var(--border); }
-        .dz-page { width:min(1140px,94%); margin:0 auto; padding-bottom:36px; }
-        .dz-hero { padding:38px 0 26px; display:grid; gap:30px; }
-        .dz-hero-center .dz-hero { justify-items:center; text-align:center; }
-        .dz-hero-center .dz-stage { width:min(980px,100%); }
-        .dz-hero-split .dz-hero { grid-template-columns:1fr 1.25fr; align-items:center; text-align:left; }
-        .dz-eyebrow { font-size:12.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--accent); font-weight:700; }
-        .dz-copy h1 { font-size:clamp(30px,4.4vw,50px); line-height:1.04; letter-spacing:-1.4px; margin:12px 0 12px; color:var(--text); }
-        .dz-copy p { color:var(--muted); font-size:16.5px; line-height:1.55; margin:0; max-width:56ch; }
-        .dz-stage { width:100%; min-width:0; }
-        .dz-stage .demo-stage { width:100%; }
-        .dz-logos { display:flex; gap:30px; justify-content:center; flex-wrap:wrap; padding:20px 0 6px; border-top:1px solid var(--border); color:var(--muted); opacity:.6; font-size:13px; letter-spacing:.6px; font-weight:600; }
-        .dz-features { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; padding:26px 0 6px; }
-        .dz-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius,18px); padding:20px; }
-        .dz-card h3 { margin:0 0 8px; font-size:16px; color:var(--text); }
-        .dz-card p { margin:0; color:var(--muted); font-size:13.5px; line-height:1.55; }
-        .dz-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; padding:24px 0 4px; text-align:center; }
-        .dz-stats b { display:block; font-size:clamp(26px,3vw,38px); letter-spacing:-1px; color:var(--accent); }
-        .dz-stats span { color:var(--muted); font-size:13px; }
-        .dz-quote { margin:30px auto 8px; max-width:640px; text-align:center; font-size:19px; line-height:1.5; color:var(--text); }
-        .dz-quote cite { display:block; margin-top:10px; font-style:normal; color:var(--muted); font-size:13.5px; }
-        .dz-footer { border-top:1px solid var(--border); margin-top:30px; padding-top:16px; color:var(--muted); font-size:12.5px; text-align:center; }
-        @media (max-width:900px) { .dz-hero-split .dz-hero { grid-template-columns:1fr; } }
         /* Blueprint blocks: browser chrome, nav links, profile block, skeleton */
-        .dz-page.dz-framed { border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-top:14px; background:var(--canvas); box-shadow:0 24px 70px -30px rgba(20,20,20,.25); }
-        .dz-framed .dz-hero, .dz-framed .dz-logos, .dz-framed .dz-features, .dz-framed .dz-stats, .dz-framed .dz-quote, .dz-framed .dz-footer, .dz-framed .dz-skel, .dz-framed .dz-profile { margin-left:26px; margin-right:26px; }
-        .dz-browserbar { display:flex; align-items:center; gap:7px; padding:10px 14px; background:var(--surface); border-bottom:1px solid var(--border); }
-        .dz-browserbar i { width:10px; height:10px; border-radius:50%; background:var(--border); display:inline-block; }
-        .dz-browserbar i:first-child { background:#f26d67; } .dz-browserbar i:nth-child(2) { background:#f2c14f; } .dz-browserbar i:nth-child(3) { background:#5fc46a; }
-        .dz-browserbar span { flex:1; max-width:340px; margin:0 auto; text-align:center; background:var(--canvas); border:1px solid var(--border); border-radius:999px; padding:3px 14px; font-size:11.5px; color:var(--muted); font-family:var(--mono); }
         .dz-navlinks { display:flex; gap:20px; margin:0 auto 0 30px; color:var(--muted); font-size:13px; font-weight:600; }
         @media (max-width:760px) { .dz-navlinks { display:none; } }
-        .dz-profile { display:grid; grid-template-columns:330px 1fr; gap:32px; align-items:center; padding:36px 0 10px; }
-        .dz-profile-stage .demo-stage { width:100%; aspect-ratio:3.4/4; }
-        .dz-profile-body h1 { font-size:clamp(26px,3.6vw,40px); letter-spacing:-1px; margin:0 0 4px; color:var(--text); }
-        .dz-role { color:var(--accent); font-weight:600; margin:0 0 10px; }
-        .dz-bio { color:var(--muted); line-height:1.6; margin:0 0 14px; max-width:52ch; }
-        .dz-chips { display:flex; gap:8px; flex-wrap:wrap; }
-        .dz-chips span { border:1px solid var(--border); background:var(--surface); border-radius:999px; padding:5px 12px; font-size:12px; color:var(--muted); }
-        @media (max-width:820px) { .dz-profile { grid-template-columns:1fr; } }
-        .dz-skel { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:18px 0 6px; }
-        .dz-skel-row { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; opacity:.75; }
-        @media (max-width:820px) { .dz-skel { grid-template-columns:1fr; } }
-        /* Pre-call, the designed stage reads as a VIDEO POSTER — a dark panel
-           with a play affordance — never a giant empty white card. In-call
-           the CVI UI covers it, so this only styles the waiting state. */
-        .demo-designed .demo-stage { background:linear-gradient(160deg, color-mix(in srgb, var(--accent) 22%, #12141a), #101216 62%); border:1px solid var(--border); border-top:none; }
-        .demo-designed .demo-cta::before { content:"▶"; display:flex; align-items:center; justify-content:center; width:64px; height:64px; border-radius:50%; background:var(--accent); color:#fff; font-size:20px; padding-left:5px; box-sizing:border-box; box-shadow:0 14px 40px -12px rgba(0,0,0,.55); }
-        .demo-designed .demo-cta-hint { color:#c7cdd8; }
-        /* Journey / gate / thank-you screens keep a readable light card on the poster. */
-        .demo-designed .exp-screen { background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:0 24px 70px -28px rgba(0,0,0,.5); }
+        /* 📸 Screenshot facade: their real site as the page, the call floating
+           over its hero. The image scrolls naturally under a fixed stage. */
+        .demo-shot .demo-main { padding:0; max-width:none; }
+        .shot-wrap { position:relative; width:100%; }
+        .shot-img { display:block; width:100%; height:auto; user-select:none; }
+        .shot-overlay { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-start; padding-top:min(12vw,150px); pointer-events:none; background:linear-gradient(180deg, rgba(10,12,16,.18), rgba(10,12,16,.05) 40%, transparent 70%); }
+        .shot-stage { pointer-events:auto; width:min(880px,86%); box-shadow:0 40px 120px -30px rgba(8,10,14,.55); border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,.35); }
+        .demo-shot .demo-powered { position:fixed; right:16px; bottom:12px; }
+        .shot-phone { position:relative; height:100%; overflow-y:auto; }
+        .shot-phone .shot-img { min-height:100%; object-fit:cover; }
+        .shot-phone-cta { position:sticky; bottom:14px; display:flex; justify-content:center; padding:0 14px; }
+        .shot-phone-cta .pill-btn { box-shadow:0 18px 50px -12px rgba(8,10,14,.55); }
         /* Brand carry-through on themed pages: accent eyebrow + accent CTA +
            a soft accent wash behind the hero. Alto default stays untouched. */
         .demo-eyebrow { display:inline-flex; align-items:center; gap:8px; font-size:12px; font-weight:700; letter-spacing:1.6px; text-transform:uppercase; color:var(--accent); margin-bottom:14px; }
@@ -2900,25 +2801,10 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
     ].filter(([, v]) => v)
   ) : undefined;
 
-  // ✨ Design-engine spec (site.design) — vibe-built palette/type/layout,
-  // sanitized at render time: only real CSS colors, fonts from a fixed map.
-  const dz = format === "designed" && site.design && typeof site.design === "object" ? site.design : null;
-  const dzVars = (() => {
-    if (!dz) return null;
-    const col = (v) => {
-      const s2 = String(v ?? "").trim();
-      return /^#[0-9a-f]{3,8}$/i.test(s2) || /^rgba?\([\d\s.,%]+\)$/i.test(s2) ? s2 : null;
-    };
-    const fonts = DZ_FONTS;
-    const vars = {};
-    const p = dz.palette || {};
-    [["canvas", "--canvas"], ["surface", "--surface"], ["text", "--text"], ["muted", "--muted"], ["accent", "--accent"], ["border", "--border"]]
-      .forEach(([k, cssVar]) => { const v = col(p[k]); if (v) vars[cssVar] = v; });
-    if (fonts[dz.font]) vars["--font"] = fonts[dz.font];
-    const r = parseInt(dz.radius, 10);
-    if (r >= 4 && r <= 32) vars["--radius"] = `${r}px`;
-    return vars;
-  })();
+  // 📸 Screenshot facade: the prospect's real site as the page itself, the
+  // call stage floating over it. Desktop + phone only (kiosk/holo are
+  // physical-surface stories).
+  const shot = (format === "desktop" || format === "phone") && String(site.shot || "").trim() ? site.shot : null;
 
   // Brand the browser tab itself: title + favicon from the logo. Small, but
   // it's half of what makes a page read as "theirs" instead of a tool.
@@ -2937,7 +2823,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
   }, [site.brand, site.logoUrl]);
 
   return (
-    <div className={`demo-root demo-${format}${format === "kiosk" && kioskLive ? " demo-kiosk-live" : ""}${t ? " demo-themed" : ""}`} style={dzVars ? { ...(themeVars || {}), ...dzVars } : themeVars}>
+    <div className={`demo-root demo-${format}${format === "kiosk" && kioskLive ? " demo-kiosk-live" : ""}${t ? " demo-themed" : ""}${shot ? " demo-shot" : ""}`} style={themeVars}>
       {format === "kiosk" && kioskLive && (
         <button className="kiosk-exit" onClick={handleExit} title="Back to builder">×</button>
       )}
@@ -2959,9 +2845,11 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
           )}
           {!(site.logoUrl && logoIsWordmark) && <span className="demo-brand">{site.brand || "Your Brand"}</span>}
         </div>
-        {format === "designed" && Array.isArray(site.design?.nav?.links) && site.design.nav.links.length > 0 && (
+        {/* Facade nav: the prospect's REAL nav labels (pulled from their live
+            site by brand theming) — half of what makes it read as "our site". */}
+        {!shot && Array.isArray(site.nav) && site.nav.length > 0 && (
           <div className="dz-navlinks" aria-hidden="true">
-            {site.design.nav.links.slice(0, 5).map((l, i) => <span key={i}>{String(l)}</span>)}
+            {site.nav.slice(0, 6).map((l, i) => <span key={i}>{String(l)}</span>)}
           </div>
         )}
         {!visitor && (
@@ -2972,7 +2860,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
       </nav>
 
       <main className="demo-main">
-        {format === "desktop" && (site.headline || !conversationUrl) && (
+        {format === "desktop" && !shot && (site.headline || !conversationUrl) && (
           <header className="demo-header">
             {site.brand && <span className="demo-eyebrow">{site.brand} · Live demo</span>}
             <h1>{site.headline || "Talk to our AI expert"}</h1>
@@ -2990,6 +2878,17 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
             <div className="phone-screen">
               {conversationUrl || flowIdx >= 0 || (postEnabled && postCall) ? (
                 <div className="demo-stage">{stage()}</div>
+              ) : shot ? (
+                /* 📸 Their real app screen: the screenshot IS the phone's
+                   content; the CTA floats at the bottom like an in-app sheet. */
+                <div className="shot-phone">
+                  <img className="shot-img" src={shot} alt="" draggable={false} />
+                  <div className="shot-phone-cta">
+                    <button className="pill-btn primary" onClick={handleStart} disabled={busy}>
+                      {busy ? "Connecting…" : site.cta || "Start the conversation"}
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <>
                   <div className="app-status">
@@ -3082,90 +2981,22 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
               <div className="holo-foot">powered by tavus</div>
             </div>
           </div>
-        ) : format === "designed" && dz ? (
-          /* ✨ Blueprint page: block stack from the spec — frame (browser
-             chrome or bare), hero or profile block carrying the call stage,
-             then the content blocks (logos / features / stats / quote /
-             skeleton). All content is plain text from the spec; colors and
-             fonts are the sanitized CSS vars applied on the root. */
-          <div className={"dz-page dz-hero-" + (dz.hero === "split" ? "split" : "center") + (dz.frame === "browser" ? " dz-framed" : "")}>
-            {dz.frame === "browser" && (
-              <div className="dz-browserbar" aria-hidden="true">
-                <i /><i /><i />
-                <span>{(site.brand || "demo").toLowerCase().replace(/[^a-z0-9]+/g, "")}.com</span>
-              </div>
-            )}
-            {!(Array.isArray(dz.sections) && dz.sections.some((s2) => s2?.type === "profile")) && (
-              <section className="dz-hero">
-                <div className="dz-copy">
-                  {(dz.eyebrow || site.brand) && <span className="dz-eyebrow">{String(dz.eyebrow || site.brand)}</span>}
-                  <h1>{site.headline || "Talk to our AI human"}</h1>
-                  {site.tagline && <p>{site.tagline}</p>}
-                </div>
-                <div className="dz-stage"><div className="demo-stage">{stage()}</div></div>
-              </section>
-            )}
-            {Array.isArray(dz.sections) && dz.sections.slice(0, 5).map((s2, i) => {
-              if (s2?.type === "profile") {
-                return (
-                  <section key={i} className="dz-profile">
-                    <div className="dz-profile-stage"><div className="demo-stage">{stage()}</div></div>
-                    <div className="dz-profile-body">
-                      <h1>{String(s2.name || site.brand || "Alex Rivera")}</h1>
-                      <p className="dz-role">{String(s2.role || site.headline || "Your AI specialist")}</p>
-                      {(s2.bio || site.tagline) && <p className="dz-bio">{String(s2.bio || site.tagline)}</p>}
-                      {Array.isArray(s2.chips) && s2.chips.length > 0 && (
-                        <div className="dz-chips" aria-hidden="true">{s2.chips.slice(0, 6).map((c, j) => <span key={j}>{String(c)}</span>)}</div>
-                      )}
-                    </div>
-                  </section>
-                );
-              }
-              if (s2?.type === "skeleton") {
-                // Hard cap + compact grid: a tall stack of empty bars read as
-                // "the page is broken", not "content placeholder".
-                const rows = Math.min(4, Math.max(2, parseInt(s2.rows, 10) || 3));
-                return (
-                  <section key={i} className="dz-skel" aria-hidden="true">
-                    {Array.from({ length: rows }, (_, j) => (
-                      <div key={j} className="dz-skel-row">
-                        <div className="app-line" style={{ width: `${34 + ((j * 17) % 32)}%` }} />
-                        <div className="app-line dim" style={{ width: `${58 + ((j * 23) % 30)}%` }} />
-                      </div>
-                    ))}
-                  </section>
-                );
-              }
-              if (s2?.type === "logos" && Array.isArray(s2.items)) {
-                return <div key={i} className="dz-logos" aria-hidden="true">{s2.items.slice(0, 6).map((n, j) => <span key={j}>{String(n)}</span>)}</div>;
-              }
-              if (s2?.type === "features" && Array.isArray(s2.items)) {
-                return (
-                  <section key={i} className="dz-features">
-                    {s2.items.slice(0, 4).map((f, j) => (
-                      <div key={j} className="dz-card"><h3>{String(f?.title ?? "")}</h3><p>{String(f?.body ?? "")}</p></div>
-                    ))}
-                  </section>
-                );
-              }
-              if (s2?.type === "stats" && Array.isArray(s2.items)) {
-                return (
-                  <section key={i} className="dz-stats">
-                    {s2.items.slice(0, 4).map((f, j) => (
-                      <div key={j}><b>{String(f?.value ?? "")}</b><span>{String(f?.label ?? "")}</span></div>
-                    ))}
-                  </section>
-                );
-              }
-              if (s2?.type === "quote" && s2.text) {
-                return <blockquote key={i} className="dz-quote">“{String(s2.text)}”{s2.name ? <cite>— {String(s2.name)}</cite> : null}</blockquote>;
-              }
-              return null;
-            })}
-            {dz.footer && <footer className="dz-footer">{String(dz.footer)}</footer>}
+        ) : shot ? (
+          /* 📸 Their real site IS the page: the screenshot scrolls like the
+             site would, and the call stage floats over its hero area. No
+             headline/copy of ours — the screenshot already says everything. */
+          <div className="shot-wrap">
+            <img className="shot-img" src={shot} alt="" draggable={false} />
+            <div className="shot-overlay">
+              <div className="demo-stage shot-stage">{stage()}</div>
+            </div>
           </div>
         ) : (
-          <div className="demo-stage">{stage()}</div>
+          /* Their real hero image (og:image off the live site) as the stage
+             poster pre-call — themed pages stop looking like an empty card. */
+          <div className="demo-stage" style={!conversationUrl && /^https?:\/\//i.test(String(site.heroImage || ""))
+            ? { backgroundImage: `linear-gradient(rgba(10,12,16,.52), rgba(10,12,16,.72)), url("${String(site.heroImage).replace(/["\\]/g, "")}")`, backgroundSize: "cover", backgroundPosition: "center" }
+            : undefined}>{stage()}</div>
         )}
 
         <span className="demo-powered">powered by tavus</span>
@@ -3643,7 +3474,6 @@ export default function TavusExperienceBuilder() {
     brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop",
   });
   const setSiteField = (k, v) => setSite((s) => ({ ...s, [k]: v }));
-  const [designBusy, setDesignBusy] = useState(false);
 
   /* 🎙 Dictation (browser speech recognition — Chrome/Edge) + Spin-up: talk
      out your thoughts on the persona, flow, and rules; the transcript streams
@@ -3881,59 +3711,6 @@ export default function TavusExperienceBuilder() {
     setEditAsk("");
   };
 
-  /* ✨ Design engine: vibe description → Claude returns a constrained design
-     spec (palette/type/radius/hero + real on-page sections). The spec lives
-     in site.design (rides scenarios AND share-link snapshots), renders as
-     the "designed" format, and is sanitized at render. Iterate by tweaking
-     the vibe and re-running — each run is a fresh design. */
-  const generateSiteDesign = async () => {
-    const vibe = String(site.designVibe || "").trim();
-    if (!vibe) return;
-    setDesignBusy(true);
-    try {
-      addLog("info", "Designing the page — palette, type, hero, sections…");
-      const res = await fetch("/api/generate-persona", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          kind: "design",
-          vibe,
-          context: {
-            brand: site.brand,
-            headline: site.headline,
-            tagline: site.tagline,
-            product: personaBrief.product,
-            audience: personaBrief.audience,
-            // Without the real brand colors Claude invents a palette from the
-            // vibe (USAA came out green) — the theme is ground truth.
-            brandColors: site.theme ? ["canvas", "surface", "text", "muted", "accent", "border"].reduce((o, k) => (site.theme[k] ? { ...o, [k]: site.theme[k] } : o), {}) : null,
-          },
-        }),
-      });
-      const text = await res.text();
-      if (!res.ok || text.startsWith("[error]")) {
-        let msg = text.replace(/^\[error\]\s*/, "");
-        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
-        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
-        throw new Error(msg || `${res.status}: generation failed`);
-      }
-      const spec = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
-      if (!spec?.palette || typeof spec.palette !== "object") throw new Error("The design came back incomplete — try a more specific vibe.");
-      setSite((s) => ({
-        ...s,
-        design: spec,
-        format: "designed",
-        headline: spec.headline || s.headline,
-        tagline: spec.tagline || s.tagline,
-        cta: spec.cta || s.cta,
-      }));
-      addLog("ok", `Page designed — ${spec.font || "custom"} type, ${Array.isArray(spec.sections) ? spec.sections.length : 0} on-page sections. Format is now ✨ Designed; preview it, tweak the vibe, re-run to iterate.`);
-    } catch (e) {
-      addLog("err", `Design: ${e.message}`);
-    } finally {
-      setDesignBusy(false);
-    }
-  };
 
   // Experience arc — guided pre-call journey + email gate (table stakes:
   // default ON) + attendance alert + post-call feedback.
@@ -4001,6 +3778,7 @@ export default function TavusExperienceBuilder() {
   const [rememberKey, setRememberKey] = useState(() => !!store.get(APIKEY_KEY, ""));
   const importRef = useRef(null);
   const logoFileRef = useRef(null);
+  const shotFileRef = useRef(null);
   const kbFileRef = useRef(null);
   const deckFileRef = useRef(null);
   const [brandUrl, setBrandUrl] = useState("");
@@ -4125,7 +3903,15 @@ export default function TavusExperienceBuilder() {
     setDemoReplacing(c.demoReplacing ?? ""); setDemoHandoff(c.demoHandoff ?? "");
     setDemoFeatures({ ...defaultDemoFeatures(), ...(c.demoFeatures || {}) });
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
-    setSite({ brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, ...(c.site || {}) });
+    {
+      // Legacy scenarios may carry format "designed" + a design spec — the
+      // design studio is gone (replaced by screenshot facade); fall back to
+      // desktop and drop the spec.
+      const s2 = { brand: "", logoUrl: "", headline: "", tagline: "", cta: "Start the conversation", format: "desktop", theme: null, shot: "", nav: null, heroImage: "", ...(c.site || {}) };
+      if (s2.format === "designed") s2.format = "desktop";
+      delete s2.design; delete s2.designVibe;
+      setSite(s2);
+    }
     setScCards(Array.isArray(c.scCards) ? c.scCards : []);
     setStudioLines(Array.isArray(c.studioLines) && c.studioLines.length ? c.studioLines : [{ text: "" }]);
     setDuetDesc(c.duetDesc ?? "");
@@ -4347,12 +4133,18 @@ export default function TavusExperienceBuilder() {
       lastDraftJsonRef.current = json;
       const draft = { at: new Date().toISOString(), active: activeScenario, config };
       store.set(DRAFT_KEY, draft);
-      // Cloud copy makes the draft follow the account across computers.
+      // Cloud copy makes the draft follow the account across computers. The
+      // cloud draft slot caps at 400KB — a site screenshot can blow that, so
+      // the shot stays local/scenario-only when the payload runs heavy.
       if (cloudSync !== "off") {
+        let cloudDraft = draft;
+        if (json.length > 380_000 && config.site?.shot) {
+          cloudDraft = { ...draft, config: { ...config, site: { ...config.site, shot: "" } } };
+        }
         fetch("/api/scenarios", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ draft }),
+          body: JSON.stringify({ draft: cloudDraft }),
         }).catch(() => { /* offline — the local draft still protects this machine */ });
       }
     }, 1200);
@@ -6460,25 +6252,19 @@ export default function TavusExperienceBuilder() {
         if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
         throw new Error(j.error || `${res.status}: theming failed`);
       }
-      setSite((s) => {
-        const colors = j.colors || {};
-        const next = {
-          ...s,
-          brand: j.brand || s.brand,
-          headline: j.headline || s.headline,
-          tagline: j.tagline || s.tagline,
-          cta: j.cta || s.cta,
-          logoUrl: s.logoUrl || j.logoUrl || "",
-          theme: { ...colors, font: j.font || "" },
-        };
-        // A designed page must inherit the brand too — push the colors into
-        // the design palette, or theming after picking a blueprint is invisible.
-        if (s.design && typeof s.design === "object") {
-          const brand = ["canvas", "surface", "text", "muted", "accent", "border"].reduce((o, k2) => (colors[k2] ? { ...o, [k2]: colors[k2] } : o), {});
-          next.design = { ...s.design, palette: { ...(s.design.palette || {}), ...brand } };
-        }
-        return next;
-      });
+      setSite((s) => ({
+        ...s,
+        brand: j.brand || s.brand,
+        headline: j.headline || s.headline,
+        tagline: j.tagline || s.tagline,
+        cta: j.cta || s.cta,
+        logoUrl: s.logoUrl || j.logoUrl || "",
+        theme: { ...(j.colors || {}), font: j.font || "" },
+        // The facade pieces: their REAL nav labels + hero image, straight off
+        // the live site — this is what makes the page read as "our site".
+        nav: Array.isArray(j.navLabels) && j.navLabels.length ? j.navLabels.slice(0, 6).map((x) => String(x).slice(0, 30)) : s.nav,
+        heroImage: j.heroImage || s.heroImage || "",
+      }));
       // Updater form: the fetch takes up to 75s — a greeting typed (or drafted)
       // meanwhile must win over the theme's suggestion, not get clobbered.
       if (j.greeting) setGreeting((g) => (g.trim() ? g : j.greeting));
@@ -6555,6 +6341,32 @@ export default function TavusExperienceBuilder() {
         canvas.height = Math.max(1, Math.round(img.height * scale));
         canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
         setSiteField("logoUrl", canvas.toDataURL("image/png"));
+      };
+      img.onerror = () => addLog("err", "Couldn't read that image.");
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Site screenshot → the demo page's backdrop ("that's OUR site"). JPEG at
+  // ≤1600px wide keeps the data URL small enough to ride scenarios and the
+  // shared-link snapshot.
+  const onShotFile = (file) => {
+    if (!file || !file.type.startsWith("image/")) { addLog("err", "That file isn't an image."); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_W = 1600;
+        const scale = Math.min(1, MAX_W / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        const data = canvas.toDataURL("image/jpeg", 0.82);
+        if (data.length > 900_000) { addLog("err", "That screenshot is huge even compressed — crop it to the top of the page and retry."); return; }
+        setSiteField("shot", data);
+        addLog("ok", "Screenshot in — the demo page now IS their site, with the call on top.");
       };
       img.onerror = () => addLog("err", "Couldn't read that image.");
       img.src = reader.result;
@@ -9122,7 +8934,6 @@ export default function TavusExperienceBuilder() {
                       {f.v === "phone" && <div className="fv-phone" />}
                       {f.v === "kiosk" && <div className="fv-kiosk" />}
                       {f.v === "hologram" && <div className="fv-holo" />}
-                      {f.v === "designed" && <div style={{ fontSize: 26, lineHeight: "44px" }}>✨</div>}
                     </div>
                     <div style={{ fontWeight: 600 }}>{f.label}</div>
                     <div style={{ fontSize: 11.5, marginTop: 4, lineHeight: 1.4 }}>{f.desc}</div>
@@ -9130,173 +8941,32 @@ export default function TavusExperienceBuilder() {
                 ))}
               </div>
 
-              <div className="subhead">🧱 Format blocks</div>
+              <div className="subhead">📸 Make it their site</div>
               <p className="field-hint" style={{ maxWidth: 640, marginBottom: 10 }}>
-                Vibe coding for formats: pick the SURFACE the demo lives on — or describe it in the box and Claude assembles the blocks for you. Every block stays editable in the drawer below.
+                The reaction that sells is <b>"wait — that's OUR site."</b> Two ways to get it, best used together:
+                the 🌐 URL above pulls their real name, colors, logo, nav and hero image onto the page automatically —
+                and a <b>screenshot of their actual site</b> becomes the page itself, with the call sitting on top. Screenshot wins when both are set.
               </p>
-              {(() => {
-                const dzn = site.design && typeof site.design === "object" ? site.design : null;
-                const setDesignField = (k, v) => setSite((s) => ({ ...s, format: "designed", design: { ...(s.design || {}), [k]: v } }));
-                const sections = Array.isArray(dzn?.sections) ? dzn.sections : [];
-                const secIdx = (t2) => sections.findIndex((s2) => s2?.type === t2);
-                const toggleSection = (t2) => {
-                  const i = secIdx(t2);
-                  setDesignField("sections", i >= 0 ? sections.filter((_, j) => j !== i) : [...sections, DZ_SECTION_DEFAULTS[t2]()]);
-                };
-                const patchSection = (i, patch) => setDesignField("sections", sections.map((s2, j) => (j === i ? { ...s2, ...patch } : s2)));
-                const inp = { fontSize: 12.5 };
-                return (
-                  <>
-                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12, maxWidth: 720 }}>
-                      {FORMAT_BLUEPRINTS.map((bp) => (
-                        <button key={bp.name} type="button" className="placement-card" style={{ width: 160, textAlign: "left", cursor: "pointer" }}
-                          onClick={() => setSite((s) => {
-                            const design = JSON.parse(JSON.stringify(bp.design));
-                            // Blueprints set the BLOCK STACK — colors stay the
-                            // brand's whenever a brand theme exists; the stock
-                            // palette is only for unthemed demos.
-                            const t2 = s.theme || {};
-                            const brand = ["canvas", "surface", "text", "muted", "accent", "border"].reduce((o, k2) => (t2[k2] ? { ...o, [k2]: t2[k2] } : o), {});
-                            design.palette = { ...design.palette, ...brand };
-                            return { ...s, format: "designed", design };
-                          })}
-                          title="Sets the block stack — your headline, copy and brand colors stay yours">
-                          <div style={{ fontWeight: 700, fontSize: 13 }}>{bp.name}</div>
-                          <div style={{ fontSize: 11, marginTop: 4, lineHeight: 1.45, color: "var(--muted)" }}>{bp.desc}</div>
-                        </button>
-                      ))}
-                      <button type="button" className="placement-card" style={{ width: 160, textAlign: "left", cursor: "pointer" }}
-                        onClick={() => setSiteField("format", "phone")} title="The existing mobile-app format — a phone frame with your app around the call">
-                        <div style={{ fontWeight: 700, fontSize: 13 }}>📱 In-app</div>
-                        <div style={{ fontSize: 11, marginTop: 4, lineHeight: 1.45, color: "var(--muted)" }}>Inside their mobile app — phone frame, app chrome, your call full-bleed.</div>
-                      </button>
-                    </div>
-                    <Field label="…or describe the surface" hint="Claude assembles the blocks — frame, nav, hero or profile, sections, copy — into the same editable structure.">
-                      <textarea
-                        style={{ minHeight: 52 }}
-                        value={site.designVibe || ""}
-                        onChange={(e) => setSiteField("designVibe", e.target.value)}
-                        placeholder={'e.g. "our pricing page with the AI human embedded" · "a recruiter-facing resume page for the AI" · "a help-center portal"'}
-                      />
-                      <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                        <button className="pill-btn primary" onClick={generateSiteDesign} disabled={designBusy || !String(site.designVibe || "").trim()}>
-                          {designBusy ? "Assembling…" : "✨ Assemble the blocks"}
-                        </button>
-                        {dzn && <button className="pill-btn" onClick={() => setSiteMode(true)}>👁 Preview the page</button>}
-                        {dzn && (
-                          <button className="pill-btn ghost" onClick={() => setSite((s) => ({ ...s, design: null, format: s.format === "designed" ? "desktop" : s.format }))}>
-                            ✕ Remove
-                          </button>
-                        )}
-                      </div>
-                    </Field>
-                    {dzn && (
-                      <details style={{ maxWidth: 680, marginBottom: 16 }}>
-                        <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--muted)" }}>🧱 Edit the blocks (words, blocks, look)</summary>
-                        <div style={{ paddingTop: 12 }}>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-                            <button type="button" className={"pill-btn" + (dzn.frame === "browser" ? " primary" : "")} style={{ padding: "4px 13px", fontSize: 12.5 }}
-                              onClick={() => setDesignField("frame", dzn.frame === "browser" ? "none" : "browser")}>🖥 Browser chrome</button>
-                            <button type="button" className={"pill-btn" + (dzn.nav?.links?.length ? " primary" : "")} style={{ padding: "4px 13px", fontSize: 12.5 }}
-                              onClick={() => setDesignField("nav", dzn.nav?.links?.length ? null : { links: ["Product", "Solutions", "Pricing", "Contact"] })}>🧭 Nav links</button>
-                            {[["profile", "👤 Profile"], ["logos", "🏢 Logos"], ["features", "🧩 Features"], ["stats", "📈 Stats"], ["quote", "❝ Quote"], ["skeleton", "▤ Content skeleton"]].map(([t2, l]) => (
-                              <button key={t2} type="button" className={"pill-btn" + (secIdx(t2) >= 0 ? " primary" : "")} style={{ padding: "4px 13px", fontSize: 12.5 }} onClick={() => toggleSection(t2)}>{l}</button>
-                            ))}
-                          </div>
-                          {dzn.nav?.links && (
-                            <div style={{ marginBottom: 10 }}>
-                              <span className="field-hint">Nav links — comma-separated</span>
-                              <input style={inp} value={dzn.nav.links.join(", ")} onChange={(e) => setDesignField("nav", { links: e.target.value.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 5) })} />
-                            </div>
-                          )}
-                          {sections.map((s2, i) => {
-                            if (s2?.type === "profile") return (
-                              <div key={i} style={{ marginBottom: 10 }}>
-                                <span className="field-hint">Profile — the AI human is the photo</span>
-                                <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                                  <input style={{ ...inp, flex: 1 }} placeholder="Name" value={s2.name || ""} onChange={(e) => patchSection(i, { name: e.target.value })} />
-                                  <input style={{ ...inp, flex: 1 }} placeholder="Role / title" value={s2.role || ""} onChange={(e) => patchSection(i, { role: e.target.value })} />
-                                </div>
-                                <input style={{ ...inp, marginBottom: 6 }} placeholder="One-line bio" value={s2.bio || ""} onChange={(e) => patchSection(i, { bio: e.target.value })} />
-                                <input style={inp} placeholder="Chips, comma-separated" value={(s2.chips || []).join(", ")} onChange={(e) => patchSection(i, { chips: e.target.value.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 6) })} />
-                              </div>
-                            );
-                            if (s2?.type === "skeleton") return (
-                              <div key={i} style={{ marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
-                                <span className="field-hint" style={{ margin: 0 }}>Content skeleton rows</span>
-                                <input type="number" min="2" max="10" style={{ ...inp, maxWidth: 90 }} value={parseInt(s2.rows, 10) || 6} onChange={(e) => patchSection(i, { rows: Number(e.target.value) })} />
-                              </div>
-                            );
-                            if (s2?.type === "logos") return (
-                              <div key={i} style={{ marginBottom: 10 }}>
-                                <span className="field-hint">Logo strip — names, comma-separated</span>
-                                <input style={inp} value={(s2.items || []).join(", ")} onChange={(e) => patchSection(i, { items: e.target.value.split(",").map((x) => x.trim()).filter(Boolean).slice(0, 6) })} />
-                              </div>
-                            );
-                            if (s2?.type === "features") return (
-                              <div key={i} style={{ marginBottom: 10 }}>
-                                <span className="field-hint">Feature cards</span>
-                                {(s2.items || []).map((f, j) => (
-                                  <div key={j} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                                    <input style={{ ...inp, flex: "0 1 200px" }} placeholder="Title" value={f?.title || ""} onChange={(e) => patchSection(i, { items: s2.items.map((x, k2) => (k2 === j ? { ...x, title: e.target.value } : x)) })} />
-                                    <input style={{ ...inp, flex: 1 }} placeholder="One sentence" value={f?.body || ""} onChange={(e) => patchSection(i, { items: s2.items.map((x, k2) => (k2 === j ? { ...x, body: e.target.value } : x)) })} />
-                                    <button className="kb-del" onClick={() => patchSection(i, { items: s2.items.filter((_, k2) => k2 !== j) })}>✕</button>
-                                  </div>
-                                ))}
-                                {(s2.items || []).length < 4 && <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11.5 }} onClick={() => patchSection(i, { items: [...(s2.items || []), { title: "", body: "" }] })}>+ card</button>}
-                              </div>
-                            );
-                            if (s2?.type === "stats") return (
-                              <div key={i} style={{ marginBottom: 10 }}>
-                                <span className="field-hint">Stats</span>
-                                {(s2.items || []).map((f, j) => (
-                                  <div key={j} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-                                    <input style={{ ...inp, flex: "0 1 110px" }} placeholder="98%" value={f?.value || ""} onChange={(e) => patchSection(i, { items: s2.items.map((x, k2) => (k2 === j ? { ...x, value: e.target.value } : x)) })} />
-                                    <input style={{ ...inp, flex: 1 }} placeholder="label" value={f?.label || ""} onChange={(e) => patchSection(i, { items: s2.items.map((x, k2) => (k2 === j ? { ...x, label: e.target.value } : x)) })} />
-                                    <button className="kb-del" onClick={() => patchSection(i, { items: s2.items.filter((_, k2) => k2 !== j) })}>✕</button>
-                                  </div>
-                                ))}
-                                {(s2.items || []).length < 4 && <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11.5 }} onClick={() => patchSection(i, { items: [...(s2.items || []), { value: "", label: "" }] })}>+ stat</button>}
-                              </div>
-                            );
-                            if (s2?.type === "quote") return (
-                              <div key={i} style={{ marginBottom: 10 }}>
-                                <span className="field-hint">Quote</span>
-                                <div style={{ display: "flex", gap: 6 }}>
-                                  <input style={{ ...inp, flex: 1 }} placeholder="The quote itself" value={s2.text || ""} onChange={(e) => patchSection(i, { text: e.target.value })} />
-                                  <input style={{ ...inp, flex: "0 1 200px" }} placeholder="Name, role" value={s2.name || ""} onChange={(e) => patchSection(i, { name: e.target.value })} />
-                                </div>
-                              </div>
-                            );
-                            return null;
-                          })}
-                          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginTop: 4 }}>
-                            {["canvas", "surface", "text", "muted", "accent"].map((k) => (
-                              <label key={k} style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: "var(--muted)" }}>
-                                {k}
-                                <input type="color" value={hex6(dzn.palette?.[k]) || "#ffffff"} onChange={(e) => setDesignField("palette", { ...(dzn.palette || {}), [k]: e.target.value })}
-                                  style={{ width: 44, height: 28, padding: 0, border: "1px solid var(--border)", borderRadius: 8, background: "none", cursor: "pointer" }} />
-                              </label>
-                            ))}
-                            <label style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 11, color: "var(--muted)" }}>
-                              typeface
-                              <select style={{ width: "auto", fontSize: 12.5 }} value={dzn.font || "inter"} onChange={(e) => setDesignField("font", e.target.value)}>
-                                {Object.keys(DZ_FONTS).map((f) => <option key={f} value={f}>{f}</option>)}
-                              </select>
-                            </label>
-                            {!sections.some((s2) => s2?.type === "profile") && (
-                              <div className="seg" style={{ fontSize: 12 }}>
-                                <button className={dzn.hero !== "split" ? "on" : ""} onClick={() => setDesignField("hero", "center")}>Centered hero</button>
-                                <button className={dzn.hero === "split" ? "on" : ""} onClick={() => setDesignField("hero", "split")}>Split hero</button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </details>
-                    )}
-                  </>
-                );
-              })()}
+              {site.shot ? (
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 18, maxWidth: 640 }}>
+                  <img src={site.shot} alt="site screenshot" style={{ width: 220, borderRadius: 10, border: "1px solid var(--border)" }} />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <span className="field-hint">Their site is the backdrop — the call stage renders over it (desktop &amp; phone formats).</span>
+                    <button className="pill-btn" style={{ alignSelf: "flex-start" }} onClick={() => setSiteField("shot", "")}>✕ Remove screenshot</button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  tabIndex={0}
+                  onPaste={(e) => { const f = [...(e.clipboardData?.files || [])].find((x) => x.type.startsWith("image/")); if (f) { e.preventDefault(); onShotFile(f); } }}
+                  onClick={() => shotFileRef.current?.click()}
+                  style={{ border: "1.5px dashed var(--border)", borderRadius: 12, padding: "18px 16px", maxWidth: 640, marginBottom: 18, cursor: "pointer", fontSize: 13, color: "var(--muted)" }}>
+                  Screenshot their homepage (⌘⇧4 / Win+Shift+S), then click here and <b>paste</b> — or click to upload.
+                  Works for apps, portals, and bot-protected sites the crawler can't reach.
+                </div>
+              )}
+              <input ref={shotFileRef} type="file" accept="image/*" style={{ display: "none" }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) onShotFile(f); e.target.value = ""; }} />
 
               <div className="subhead">In-call controls</div>
               <div className="skill-head" style={{ marginBottom: 6 }}>
