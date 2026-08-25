@@ -232,7 +232,16 @@ non-technical users; ids unchanged):
    mirrors the canvas inject): weaves the deck — trigger mode, presenter
    style, talk track — into the persona + objectives via the revise
    machinery, so the flow actually reaches and finishes the deck.
-4. **Magic Canvas** — interactive cards beside the video. Seven components
+4. **Magic Canvas** — interactive cards beside the video. **Magic moments
+   board** (primary UI, per explicit user direction — vibe-writing canvas
+   plans was "too much"): the objectives flow renders as a numbered
+   vertical diagram and the operator pins cards to steps ("＋ magic moment
+   here"); a moment is a scripted card (style note/image/question/stat)
+   with `objIndex` for board grouping and trigger keywords pre-derived
+   from its step's words — deterministic firing via the existing
+   scripted-card engine, no model judgment. Model-driven config
+   (style/rules/playbook/suggest) remains below as "Model-driven cards
+   (advanced)". Seven components
    (`CANVAS_COMPONENTS`); all on by default. Per-card enable + free-text rule,
    `canvasStyle` (eager/balanced/minimal/on_request), `canvasPlaybook`,
    `placement` (auto/right/left), and `schedulingUrl` (Calendly, activates the
