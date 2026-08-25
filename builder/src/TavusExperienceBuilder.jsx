@@ -7900,7 +7900,7 @@ export default function TavusExperienceBuilder() {
           {step === "vision" && (
             <>
               <div className="skill-head">
-                <h1>Vision</h1>
+                <h1>Perception</h1>
                 <Toggle on={visionEnabled} onChange={setVisionEnabled} />
               </div>
               <p className="lede">
