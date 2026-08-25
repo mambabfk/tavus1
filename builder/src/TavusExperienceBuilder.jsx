@@ -725,11 +725,8 @@ const BUILDER_CSS = `
         .human-col { flex:1 1 240px; display:flex; flex-direction:column; gap:10px; }
         .human-fig { position:relative; flex:0 0 300px; }
         .human-fig svg { display:block; width:100%; height:auto; }
-        .human-dot { position:absolute; width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%; border:2px solid var(--accent); background:var(--surface); cursor:pointer; padding:0; transition:transform .2s, box-shadow .2s; }
-        .human-dot.on { background:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); }
-        .human-dot.hot, .human-dot:hover { transform:scale(1.45); z-index:2; }
-        .human-dot:not(.on) { animation:humanpulse 2.4s ease-in-out infinite; }
-        @keyframes humanpulse { 50% { box-shadow:0 0 0 6px color-mix(in srgb, var(--accent) 14%, transparent); } }
+        .human-dot { position:absolute; width:11px; height:11px; margin:-5.5px 0 0 -5.5px; border-radius:50%; border:1.5px solid #fff; background:var(--accent); opacity:.55; cursor:pointer; padding:0; transition:transform .2s, opacity .2s; }
+        .human-dot.hot, .human-dot:hover { transform:scale(1.7); opacity:1; z-index:2; box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent); }
         .human-card { display:flex; gap:10px; align-items:flex-start; text-align:left; background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:12px 14px; cursor:pointer; font:inherit; transition:border-color .2s, transform .2s, box-shadow .2s; }
         .human-card:hover, .human-card.hot { border-color:var(--accent); transform:translateY(-1px); box-shadow:0 10px 30px -18px color-mix(in srgb, var(--accent) 45%, transparent); }
         .human-card-icon { font-size:20px; line-height:1.2; flex-shrink:0; }
@@ -7337,16 +7334,16 @@ export default function TavusExperienceBuilder() {
               { k: "knowledge", icon: "📖", label: "Did the homework", desc: "Read your docs before the meeting — answers come from them, not thin air.", target: "kb", on: !!knowledgeIdsRaw.trim(), status: knowledgeIdsRaw.trim() ? "docs in hand" : "no reading assigned", x: 28.5, y: 42.5, side: "left" },
               { k: "hands", icon: "✋", label: "Shows you things", desc: "Doesn't just talk — presents a deck, drives a live browser, puts cards on screen.", target: "presentation", on: presentationEnabled || browserUseEnabled || canvasEnabled, status: [presentationEnabled && "deck", browserUseEnabled && "browser", canvasEnabled && "cards"].filter(Boolean).join(" + ") || "empty-handed", x: 75.5, y: 47, side: "right" },
             ];
+            // Descriptors only — status/on-off lines crowded the demo screen.
             const card = (p) => (
               <button key={p.k} type="button"
-                className={"human-card" + (p.on ? " on" : "") + (humanHover === p.k ? " hot" : "")}
+                className={"human-card" + (humanHover === p.k ? " hot" : "")}
                 onMouseEnter={() => setHumanHover(p.k)} onMouseLeave={() => setHumanHover("")}
                 onClick={() => setStep(p.target)}>
                 <span className="human-card-icon">{p.icon}</span>
                 <span style={{ minWidth: 0 }}>
                   <b>{p.label}</b>
                   <small>{p.desc}</small>
-                  <em className={p.on ? "ok" : ""}>{p.on ? "●" : "○"} {p.status}</em>
                 </span>
               </button>
             );
@@ -7354,7 +7351,7 @@ export default function TavusExperienceBuilder() {
               <>
                 <h1>Your AI human</h1>
                 <p className="lede">
-                  It's architected the way a person works in a conversation — it sees you, hears you, remembers you, did the homework, and knows where the conversation should go. Click any part to configure it. Filled dots are live in this demo; pulsing ones aren't set up yet.
+                  It's architected the way a person works in a conversation — it sees you, hears you, remembers you, did the homework, and knows where the conversation should go. Click any part to configure it.
                 </p>
                 <div className="human-hub">
                   <div className="human-col">{parts.filter((p) => p.side === "left").map(card)}</div>
@@ -7417,9 +7414,9 @@ export default function TavusExperienceBuilder() {
                     </svg>
                     {parts.map((p) => (
                       <button key={p.k} type="button"
-                        className={"human-dot" + (p.on ? " on" : "") + (humanHover === p.k ? " hot" : "")}
+                        className={"human-dot" + (humanHover === p.k ? " hot" : "")}
                         style={{ left: `${p.x}%`, top: `${p.y}%` }}
-                        title={`${p.label} — ${p.status}`}
+                        title={p.label}
                         onMouseEnter={() => setHumanHover(p.k)} onMouseLeave={() => setHumanHover("")}
                         onClick={() => setStep(p.target)} />
                     ))}
@@ -7427,7 +7424,7 @@ export default function TavusExperienceBuilder() {
                   <div className="human-col">{parts.filter((p) => p.side === "right").map(card)}</div>
                 </div>
                 <p className="field-hint" style={{ maxWidth: 620, marginTop: 14 }}>
-                  The figure is your demo's state at a glance — a great screen to leave up while you talk through what an AI human is made of.
+                  A great screen to leave up while you talk through what an AI human is made of — click the part you're describing.
                 </p>
               </>
             );
