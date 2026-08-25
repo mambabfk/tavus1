@@ -7306,9 +7306,9 @@ export default function TavusExperienceBuilder() {
             const parts = [
               { k: "mind", icon: "🧠", label: "Mind", desc: "Who they are and how they talk — the persona prompt.", target: "persona", on: !!personaDraft.trim(), status: personaDraft.trim() ? (personaAttached ? "written & attached" : "written — attach on Persona") : "not written yet", x: 50, y: 5.5, side: "left" },
               { k: "memory", icon: "📚", label: "Memory", desc: "Knowledge Base documents it grounds answers in.", target: "kb", on: !!knowledgeIdsRaw.trim(), status: knowledgeIdsRaw.trim() ? "documents attached" : "nothing attached", x: 36, y: 9, side: "left" },
-              { k: "eyes", icon: "👁", label: "Eyes", desc: "Perception — what it notices on camera and in tone.", target: "vision", on: visionEnabled, status: visionEnabled ? "watching" : "off", x: 40, y: 14.5, side: "left" },
+              { k: "eyes", icon: "👁", label: "Eyes", desc: "Perception — what it notices on camera and in tone.", target: "vision", on: visionEnabled, status: visionEnabled ? "watching" : "off", x: 44, y: 12, side: "left" },
               { k: "voice", icon: "🗣", label: "Voice", desc: "The voice, its accent, and pronunciation rules.", target: "speech", on: !!(externalVoiceId.trim() || pronunciationText.trim()), status: externalVoiceId.trim() ? (externalVoiceName || "voice picked") : "face's default voice", x: 50, y: 24, side: "left" },
-              { k: "face", icon: "👤", label: "Face", desc: "The human face on the call.", target: "setup", on: !!faceId.trim(), status: faceId.trim() ? (FACE_PRESETS.find((f) => f.id === faceId.trim())?.name || "custom face") : "not picked", x: 62, y: 14.5, side: "right" },
+              { k: "face", icon: "👤", label: "Face", desc: "The human face on the call.", target: "setup", on: !!faceId.trim(), status: faceId.trim() ? (FACE_PRESETS.find((f) => f.id === faceId.trim())?.name || "custom face") : "not picked", x: 61, y: 14, side: "right" },
               { k: "compass", icon: "🧭", label: "Compass", desc: "Objectives it drives toward, guardrails it won't cross.", target: "guide", on: objectivesEnabled || guardrailsEnabled, status: objectivesEnabled ? `${parseObjectives(objectivesText, confirmationMode).length} steps` : "no flow yet", x: 50, y: 44, side: "right" },
               { k: "hands", icon: "🛠", label: "Hands", desc: "What it can do: present a deck, drive a browser, show cards.", target: "presentation", on: presentationEnabled || browserUseEnabled || canvasEnabled, status: [presentationEnabled && "deck", browserUseEnabled && "browser", canvasEnabled && "canvas"].filter(Boolean).join(" + ") || "none yet", x: 77, y: 53, side: "right" },
             ];
@@ -7337,18 +7337,42 @@ export default function TavusExperienceBuilder() {
                     <svg viewBox="0 0 200 340" aria-hidden="true">
                       <defs>
                         <radialGradient id="hglow" cx="50%" cy="30%" r="70%">
-                          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.35" />
+                          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.30" />
                           <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
                         </radialGradient>
-                        <linearGradient id="hbody" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#2a2d36" />
-                          <stop offset="100%" stopColor="#171920" />
+                        <linearGradient id="hshirt" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--accent)" />
+                          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.78" />
                         </linearGradient>
                       </defs>
-                      <ellipse cx="100" cy="120" rx="96" ry="110" fill="url(#hglow)" />
-                      <circle cx="100" cy="38" r="26" fill="url(#hbody)" />
-                      <path d="M100 70 C 78 70 64 80 58 96 C 52 112 50 126 44 150 C 40 166 36 186 40 190 C 44 194 52 190 56 176 L 66 140 C 64 190 62 230 66 268 C 68 296 72 318 78 332 L 92 332 C 90 300 92 268 96 240 L 104 240 C 108 268 110 300 108 332 L 122 332 C 128 318 132 296 134 268 C 138 230 136 190 134 140 L 144 176 C 148 190 156 194 160 190 C 164 186 160 166 156 150 C 150 126 148 112 142 96 C 136 80 122 70 100 70 Z" fill="url(#hbody)" />
-                      <ellipse cx="100" cy="336" rx="52" ry="5" fill="rgba(10,12,16,.25)" />
+                      <ellipse cx="100" cy="120" rx="96" ry="112" fill="url(#hglow)" />
+                      {/* legs + shoes */}
+                      <path d="M78 182 L74 316 L94 316 L97 216 L103 216 L106 316 L126 316 L122 182 Z" fill="#2b2f3a" />
+                      <path d="M70 316 h26 a4 4 0 0 1 4 4 v4 h-34 v-3 a5 5 0 0 1 4-5 Z" fill="#1c1f27" />
+                      <path d="M104 316 h26 a5 5 0 0 1 4 5 v3 h-34 v-4 a4 4 0 0 1 4-4 Z" fill="#1c1f27" />
+                      {/* arms (sleeves + hands) */}
+                      <path d="M62 92 C 50 104 46 126 44 150 C 43 160 44 168 46 172 L 62 168 C 61 150 63 126 68 108 Z" fill="url(#hshirt)" />
+                      <path d="M138 92 C 150 104 154 126 156 150 C 157 160 156 168 154 172 L 138 168 C 139 150 137 126 132 108 Z" fill="url(#hshirt)" />
+                      <circle cx="53" cy="180" r="9" fill="#e9bd93" />
+                      <circle cx="147" cy="180" r="9" fill="#e9bd93" />
+                      {/* torso */}
+                      <path d="M100 76 C 80 76 68 84 63 94 C 58 106 58 128 60 150 C 61 166 64 178 66 184 L 134 184 C 136 178 139 166 140 150 C 142 128 142 106 137 94 C 132 84 120 76 100 76 Z" fill="url(#hshirt)" />
+                      {/* collar */}
+                      <path d="M88 76 L100 92 L112 76 Z" fill="#fdf7f0" />
+                      {/* neck + head */}
+                      <rect x="91" y="58" width="18" height="16" rx="7" fill="#e9bd93" />
+                      <ellipse cx="100" cy="40" rx="24" ry="26" fill="#ecc39a" />
+                      <circle cx="75" cy="42" r="5" fill="#e9bd93" />
+                      <circle cx="125" cy="42" r="5" fill="#e9bd93" />
+                      {/* hair */}
+                      <path d="M76 36 C 74 18 86 8 100 8 C 114 8 126 18 124 36 C 122 28 116 22 100 22 C 84 22 78 28 76 36 Z" fill="#3d3229" />
+                      {/* face */}
+                      <circle cx="91" cy="41" r="2.6" fill="#2c2620" />
+                      <circle cx="109" cy="41" r="2.6" fill="#2c2620" />
+                      <path d="M86 34 q5 -3.4 10 -1" stroke="#3d3229" strokeWidth="2" fill="none" strokeLinecap="round" />
+                      <path d="M104 33 q5 -2.4 10 1" stroke="#3d3229" strokeWidth="2" fill="none" strokeLinecap="round" />
+                      <path d="M92 51 Q100 57 108 51" stroke="#b9805a" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+                      <ellipse cx="100" cy="330" rx="54" ry="5" fill="rgba(10,12,16,.22)" />
                     </svg>
                     {parts.map((p) => (
                       <button key={p.k} type="button"
