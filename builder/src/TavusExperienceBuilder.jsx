@@ -740,6 +740,7 @@ const BUILDER_CSS = `
         .mm-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; padding-bottom:16px; }
         .mm-label { font-size:13.5px; font-weight:600; padding-top:4px; }
         .mm-card { border:1px dashed color-mix(in srgb, var(--accent) 45%, var(--border)); border-radius:12px; padding:10px 12px; background:color-mix(in srgb, var(--accent) 4%, var(--surface)); display:flex; flex-direction:column; }
+        .mm-own { border-top:1px dashed var(--border); margin-top:6px; padding-top:14px; display:flex; flex-direction:column; gap:8px; }
 
         /* ── Anatomy hub: the AI human as navigation ── */
         .human-hub { display:flex; gap:22px; align-items:center; max-width:860px; }
@@ -8509,12 +8510,65 @@ export default function TavusExperienceBuilder() {
                   .filter((w) => w.length >= 5 && !stop.has(w)).slice(0, 3).join(", ");
                 const momentsAt = (i) => scCards.map((c, j) => ({ c, j })).filter((x) => x.c.objIndex === i);
                 const setCardField = (j, k, v) => setScCards((cs) => cs.map((c, idx) => (idx === j ? { ...c, [k]: v } : c)));
+                /* Moment editor body — shared by step-pinned and free moments. */
+                const momentEditor = (c, j, { withTrigger = false } = {}) => (
+                  <div key={j} className="mm-card">
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      <select style={{ width: "auto", fontSize: 12 }} value={c.style || "note"} onChange={(e) => setCardField(j, "style", e.target.value)}>
+                        <option value="note">💬 text card</option>
+                        <option value="image">🖼 image</option>
+                        <option value="question">☑️ multiple choice</option>
+                        <option value="stat">📈 big stat</option>
+                      </select>
+                      <input style={{ flex: "1 1 140px", fontSize: 12 }} placeholder="Card title" value={c.title || ""} onChange={(e) => setCardField(j, "title", e.target.value)} />
+                      <button className="pill-btn" style={{ padding: "2px 9px", flexShrink: 0 }} onClick={() => setScCards((cs) => cs.filter((_, idx) => idx !== j))}>✕</button>
+                    </div>
+                    {c.style === "image"
+                      ? <input className="mono" style={{ fontSize: 12, marginTop: 6 }} placeholder="Image URL (or 📷 a product from Approved links below)" value={c.url || ""} onChange={(e) => setCardField(j, "url", e.target.value)} />
+                      : <textarea style={{ minHeight: 44, fontSize: 12, marginTop: 6 }} placeholder={c.style === "question" ? "One option per line" : c.style === "stat" ? "Big value on line 1, label on line 2" : "What the card says (one point per line)"} value={c.body || ""} onChange={(e) => setCardField(j, "body", e.target.value)} />}
+                    {withTrigger ? (
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                        <select style={{ width: "auto", fontSize: 11.5 }} value={c.trigger || "keyword"} onChange={(e) => setCardField(j, "trigger", e.target.value)}>
+                          <option value="keyword">when words are said</option>
+                          <option value="time">at a time</option>
+                          <option value="start">at call start</option>
+                        </select>
+                        {(c.trigger || "keyword") === "keyword" && (
+                          <input style={{ flex: "1 1 180px", fontSize: 11.5 }} value={c.keywords || ""} onChange={(e) => setCardField(j, "keywords", e.target.value)}
+                            placeholder="Trigger words — comma-separated, either side can say them" />
+                        )}
+                        {c.trigger === "time" && (
+                          <input style={{ width: 140, fontSize: 11.5 }} value={c.atMinutes || ""} onChange={(e) => setCardField(j, "atMinutes", e.target.value)}
+                            placeholder="minutes — e.g. 1.5" title="Minutes into the call (decimals fine: 1.5 = 90 seconds)" />
+                        )}
+                      </div>
+                    ) : (
+                      <input style={{ fontSize: 11.5, marginTop: 6 }} value={c.keywords || ""} onChange={(e) => setCardField(j, "keywords", e.target.value)}
+                        placeholder="Fires when anyone says…" title="Comma-separated trigger words — the card appears the moment one is spoken (by either side)" />
+                    )}
+                  </div>
+                );
+                /* Your own moments: not tied to a flow step — full trigger control. */
+                const free = scCards.map((c, j) => ({ c, j })).filter((x) => x.c.objIndex == null);
+                const ownMoments = (
+                  <div className="mm-own">
+                    <div className="mm-label">✨ Your own moments — any trigger, no step required</div>
+                    {free.map(({ c, j }) => momentEditor(c, j, { withTrigger: true }))}
+                    <button className="pill-btn ghost" style={{ padding: "3px 12px", fontSize: 12, alignSelf: "flex-start" }}
+                      onClick={() => setScCards((cs) => [...cs, { style: "note", trigger: "keyword", keywords: "", title: "", body: "", hideAfter: 45 }])}>
+                      ＋ Add your own moment
+                    </button>
+                  </div>
+                );
                 if (!steps.length) return (
-                  <div className="mm-board" style={{ padding: "14px 16px" }}>
-                    <span style={{ fontSize: 13, color: "var(--muted)" }}>
-                      Magic moments pin to your conversation flow — write it first on <b>Objectives &amp; Guardrails</b> (or let New Demo draft it), then come back here.
-                    </span>
-                    <button className="pill-btn" style={{ marginLeft: 10 }} onClick={() => setStep("guide")}>Open the flow →</button>
+                  <div className="mm-board">
+                    <div style={{ padding: "0 0 10px" }}>
+                      <span style={{ fontSize: 13, color: "var(--muted)" }}>
+                        Step-pinned moments need a conversation flow — write one on <b>Objectives &amp; Guardrails</b> (or let New Demo draft it).
+                      </span>
+                      <button className="pill-btn" style={{ marginLeft: 10 }} onClick={() => setStep("guide")}>Open the flow →</button>
+                    </div>
+                    {ownMoments}
                   </div>
                 );
                 return (
@@ -8524,25 +8578,7 @@ export default function TavusExperienceBuilder() {
                         <div className="mm-rail"><span className="mm-node">{i + 1}</span></div>
                         <div className="mm-body">
                           <div className="mm-label">{shortLabel(s2.objective_prompt, 72)}</div>
-                          {momentsAt(i).map(({ c, j }) => (
-                            <div key={j} className="mm-card">
-                              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                                <select style={{ width: "auto", fontSize: 12 }} value={c.style || "note"} onChange={(e) => setCardField(j, "style", e.target.value)}>
-                                  <option value="note">💬 text card</option>
-                                  <option value="image">🖼 image</option>
-                                  <option value="question">☑️ multiple choice</option>
-                                  <option value="stat">📈 big stat</option>
-                                </select>
-                                <input style={{ flex: "1 1 140px", fontSize: 12 }} placeholder="Card title" value={c.title || ""} onChange={(e) => setCardField(j, "title", e.target.value)} />
-                                <button className="pill-btn" style={{ padding: "2px 9px", flexShrink: 0 }} onClick={() => setScCards((cs) => cs.filter((_, idx) => idx !== j))}>✕</button>
-                              </div>
-                              {c.style === "image"
-                                ? <input className="mono" style={{ fontSize: 12, marginTop: 6 }} placeholder="Image URL (or 📷 a product from Approved links below)" value={c.url || ""} onChange={(e) => setCardField(j, "url", e.target.value)} />
-                                : <textarea style={{ minHeight: 44, fontSize: 12, marginTop: 6 }} placeholder={c.style === "question" ? "One option per line" : c.style === "stat" ? "Big value on line 1, label on line 2" : "What the card says (one point per line)"} value={c.body || ""} onChange={(e) => setCardField(j, "body", e.target.value)} />}
-                              <input style={{ fontSize: 11.5, marginTop: 6 }} value={c.keywords || ""} onChange={(e) => setCardField(j, "keywords", e.target.value)}
-                                placeholder="Fires when anyone says…" title="Comma-separated trigger words — the card appears the moment one is spoken (by either side)" />
-                            </div>
-                          ))}
+                          {momentsAt(i).map(({ c, j }) => momentEditor(c, j))}
                           <button className="pill-btn ghost" style={{ padding: "3px 12px", fontSize: 12, alignSelf: "flex-start" }}
                             onClick={() => setScCards((cs) => [...cs, { style: "note", trigger: "keyword", keywords: kwFor(s2.objective_prompt), title: "", body: "", hideAfter: 45, objIndex: i }])}>
                             ＋ magic moment here
@@ -8550,6 +8586,7 @@ export default function TavusExperienceBuilder() {
                         </div>
                       </div>
                     ))}
+                    {ownMoments}
                   </div>
                 );
               })()}
