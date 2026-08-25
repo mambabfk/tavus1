@@ -722,13 +722,18 @@ const BUILDER_CSS = `
         .dz-navlinks { display:flex; gap:20px; margin:0 auto 0 30px; color:var(--muted); font-size:13px; font-weight:600; }
         @media (max-width:760px) { .dz-navlinks { display:none; } }
         /* 📸 Screenshot facade: their real site as the page, the call floating
-           over its hero. The image scrolls naturally under a fixed stage. */
-        .demo-shot .demo-main { padding:0; max-width:none; }
-        .shot-wrap { position:relative; width:100%; }
+           over its hero. Selectors are two-class on purpose — a bare
+           .shot-stage loses every property to the later .demo-stage rule. */
+        .demo-desktop.demo-shot .demo-main { padding:0; max-width:none; }
+        .shot-wrap { position:relative; width:100%; min-height:72vh; background:#0d0e10; }
         .shot-img { display:block; width:100%; height:auto; user-select:none; }
-        .shot-overlay { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-start; padding-top:min(12vw,150px); pointer-events:none; background:linear-gradient(180deg, rgba(10,12,16,.18), rgba(10,12,16,.05) 40%, transparent 70%); }
-        .shot-stage { pointer-events:auto; width:min(880px,86%); box-shadow:0 40px 120px -30px rgba(8,10,14,.55); border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,.35); }
-        .demo-shot .demo-powered { position:fixed; right:16px; bottom:12px; }
+        .shot-overlay { position:absolute; inset:0; display:flex; justify-content:center; align-items:flex-start; pointer-events:none; background:linear-gradient(180deg, rgba(10,12,16,.18), rgba(10,12,16,.05) 40%, transparent 70%); }
+        .demo-shot .shot-overlay .demo-stage { pointer-events:auto; position:sticky; top:min(9vw,110px); margin-top:min(12vw,150px); width:min(880px,86%); box-shadow:0 40px 120px -30px rgba(8,10,14,.55); border-radius:18px; overflow:hidden; border:1px solid rgba(255,255,255,.35); }
+        .demo-desktop.demo-shot .demo-powered { position:fixed; right:16px; bottom:12px; }
+        /* The screenshot already contains THEIR header — our brand bar floats
+           transparent with just the operator buttons, never a second nav. */
+        .demo-desktop.demo-shot .demo-nav { position:absolute; top:0; left:0; right:0; z-index:6; background:transparent; border-bottom:none; justify-content:flex-end; }
+        .demo-desktop.demo-shot .demo-nav .demo-brand, .demo-desktop.demo-shot .demo-nav img, .demo-desktop.demo-shot .dz-navlinks { display:none; }
         .shot-phone { position:relative; height:100%; overflow-y:auto; }
         .shot-phone .shot-img { min-height:100%; object-fit:cover; }
         .shot-phone-cta { position:sticky; bottom:14px; display:flex; justify-content:center; padding:0 14px; }
@@ -2732,7 +2737,9 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
     );
   };
 
-  const format = site.format || "desktop";
+  // Legacy "designed" pages (the deleted design studio) — including immutable
+  // shared-link snapshots — render as desktop; applyConfig can't reach those.
+  const format = site.format === "designed" ? "desktop" : (site.format || "desktop");
 
   // Kiosk has two faces: the framed totem preview (default — visualize the
   // experience on the hardware) and "live" (chrome-less full-viewport for an
@@ -6130,7 +6137,14 @@ export default function TavusExperienceBuilder() {
       // (Reset happens AFTER the fetch succeeds, so a failed draft never
       // wipes the current demo.)
       const freshSite = themeJ
-        ? { theme: themeJ.colors ? { ...(themeJ.colors || {}), font: themeJ.font || "" } : null, logoUrl: themeJ.logoUrl || "" }
+        ? {
+            theme: themeJ.colors ? { ...(themeJ.colors || {}), font: themeJ.font || "" } : null,
+            logoUrl: themeJ.logoUrl || "",
+            // The facade fields ride too — resetting them made the just-fetched
+            // real nav labels + hero image vanish on the main draft path.
+            nav: Array.isArray(themeJ.navLabels) && themeJ.navLabels.length ? themeJ.navLabels.slice(0, 6).map((x) => String(x).slice(0, 30)) : null,
+            heroImage: themeJ.heroImage || "",
+          }
         : {};
       applyConfig({
         faceId, palId, studioPalA, studioPalB,
@@ -6357,16 +6371,22 @@ export default function TavusExperienceBuilder() {
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        const MAX_W = 1600;
-        const scale = Math.min(1, MAX_W / img.width);
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(img.width * scale));
-        canvas.height = Math.max(1, Math.round(img.height * scale));
-        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
-        const data = canvas.toDataURL("image/jpeg", 0.82);
-        if (data.length > 900_000) { addLog("err", "That screenshot is huge even compressed — crop it to the top of the page and retry."); return; }
+        // Step down width/quality until it fits comfortably inside the shared
+        // demo snapshot (a 1600px q0.82 homepage is routinely 400-800KB —
+        // too big to share).
+        let data = "";
+        for (const [w, q] of [[1600, 0.8], [1400, 0.7], [1200, 0.62], [1000, 0.55], [840, 0.5]]) {
+          const scale = Math.min(1, w / img.width);
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.width * scale));
+          canvas.height = Math.max(1, Math.round(img.height * scale));
+          canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+          data = canvas.toDataURL("image/jpeg", q);
+          if (data.length <= 300_000) break;
+        }
+        if (data.length > 300_000) { addLog("err", "That screenshot is huge even compressed — crop it to just the top of the page and retry."); return; }
         setSiteField("shot", data);
-        addLog("ok", "Screenshot in — the demo page now IS their site, with the call on top.");
+        addLog("ok", "Screenshot in — the demo page now IS their site, with the call on top. Rides saves and share links.");
       };
       img.onerror = () => addLog("err", "Couldn't read that image.");
       img.src = reader.result;
@@ -8959,10 +8979,14 @@ export default function TavusExperienceBuilder() {
                 <div
                   tabIndex={0}
                   onPaste={(e) => { const f = [...(e.clipboardData?.files || [])].find((x) => x.type.startsWith("image/")); if (f) { e.preventDefault(); onShotFile(f); } }}
-                  onClick={() => shotFileRef.current?.click()}
-                  style={{ border: "1.5px dashed var(--border)", borderRadius: 12, padding: "18px 16px", maxWidth: 640, marginBottom: 18, cursor: "pointer", fontSize: 13, color: "var(--muted)" }}>
-                  Screenshot their homepage (⌘⇧4 / Win+Shift+S), then click here and <b>paste</b> — or click to upload.
-                  Works for apps, portals, and bot-protected sites the crawler can't reach.
+                  onClick={(e) => e.currentTarget.focus()}
+                  style={{ border: "1.5px dashed var(--border)", borderRadius: 12, padding: "18px 16px", maxWidth: 640, marginBottom: 18, cursor: "text", fontSize: 13, color: "var(--muted)" }}>
+                  Screenshot their homepage (⌘⇧4 / Win+Shift+S), then click here and <b>paste</b> (⌘V).
+                  Works for apps, portals, and bot-protected sites the crawler can't reach.{" "}
+                  <button className="pill-btn" style={{ padding: "2px 12px", fontSize: 12 }}
+                    onClick={(e) => { e.stopPropagation(); shotFileRef.current?.click(); }}>
+                    …or upload a file
+                  </button>
                 </div>
               )}
               <input ref={shotFileRef} type="file" accept="image/*" style={{ display: "none" }}

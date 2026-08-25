@@ -46,8 +46,8 @@ export default async function handler(req, res) {
   }
   const exp = experience && typeof experience === "object" && !Array.isArray(experience) ? experience : null;
   const size = JSON.stringify({ site, controls, payload, experience: exp }).length;
-  if (size > 400_000) {
-    res.status(413).json({ error: "This demo config is too large to share — try a smaller logo image." });
+  if (size > 800_000) {
+    res.status(413).json({ error: "This demo config is too large to share — usually the site screenshot or logo; re-add a smaller one." });
     return;
   }
 

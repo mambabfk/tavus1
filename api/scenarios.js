@@ -108,8 +108,8 @@ export default async function handler(req, res) {
         res.status(400).json({ error: "Nothing to save — the scenario config is missing." });
         return;
       }
-      if (JSON.stringify(config).length > 400_000) {
-        res.status(413).json({ error: "This scenario is too large to sync — try a smaller logo image." });
+      if (JSON.stringify(config).length > 800_000) {
+        res.status(413).json({ error: "This scenario is too large to sync — usually the site screenshot or logo; re-add a smaller one." });
         return;
       }
       const updatedAt = new Date().toISOString();
