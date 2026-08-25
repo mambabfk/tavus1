@@ -29,6 +29,9 @@ const ALLOWED_TYPES = [
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "application/octet-stream", // some OS/browser combos report no real type — Tavus validates content anyway
+  "video/mp4", // feature walkthrough recordings (Studio takes / call captures)
+  "video/webm",
+  "video/quicktime",
 ];
 
 const mode = () =>

@@ -720,6 +720,16 @@ const BUILDER_CSS = `
         /* ✨ Designed pages — spec-driven look from the design engine. The
            spec only supplies tokens + text; layout is these fixed classes. */
         /* Blueprint blocks: browser chrome, nav links, profile block, skeleton */
+        /* ── Feature walkthrough player ── */
+        .rail-play { margin-left:auto; flex-shrink:0; width:20px; height:20px; border-radius:50%; background:var(--accent); color:#fff; font-size:9px; display:inline-flex; align-items:center; justify-content:center; padding-left:1px; opacity:.85; transition:transform .15s, opacity .15s; }
+        .rail-play:hover { transform:scale(1.2); opacity:1; }
+        .rail-btn .rail-play + .rail-check { margin-left:6px; }
+        .wt-overlay { position:fixed; inset:0; z-index:70; background:rgba(12,13,16,.72); display:flex; align-items:center; justify-content:center; padding:26px; }
+        .wt-modal { width:min(960px,100%); background:var(--surface); border-radius:16px; overflow:hidden; box-shadow:0 40px 120px -30px rgba(0,0,0,.6); }
+        .wt-head { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--border); }
+        .wt-head b { flex:1; font-size:14px; }
+        .wt-modal video { display:block; width:100%; max-height:72vh; background:#0b0c0f; }
+
         /* ── Magic moments board: cards pinned to the talk track ── */
         .mm-board { border:1px solid var(--border); border-radius:14px; padding:16px 18px; max-width:720px; background:var(--surface); }
         .mm-step { display:flex; gap:14px; }
@@ -3060,6 +3070,17 @@ export default function TavusExperienceBuilder() {
 
   const [step, setStep] = useState("start");
   const [humanHover, setHumanHover] = useState(""); // anatomy-hub hotspot sync
+  // Feature walkthroughs: app-level video library — a ▶ next to each rail
+  // step plays a short recording, narrated live by the Tavus voice stack.
+  const [walkthroughs, setWalkthroughs] = useState({});
+  const [wtPlaying, setWtPlaying] = useState(null); // stepId open in the player
+  const [wtNarrOn, setWtNarrOn] = useState(true);
+  const [wtUploading, setWtUploading] = useState("");
+  const [wtEditStep, setWtEditStep] = useState("human");
+  const [wtDraft, setWtDraft] = useState({ url: "", narration: "" });
+  const wtVideoRef = useRef(null);
+  const wtAudioRef = useRef(null);
+  const wtFileRef = useRef(null);
   // Tavus Memories: persistent cross-conversation memory via memory_stores
   // on the conversation — separate from (and on top of) the Knowledge Base.
   const [memoryEnabled, setMemoryEnabled] = useState(false);
@@ -5178,47 +5199,121 @@ export default function TavusExperienceBuilder() {
 
   /* Upload a local file → Vercel Blob (direct from the browser) → Tavus KB.
      From the Slides step, the new doc also joins the deck automatically. */
+  /* Shared Blob upload (KB docs + walkthrough videos): preflight picks the
+     right path — RW-token browser stream (50MB) vs OIDC server relay
+     (~3.5MB) — and returns the public URL. The blob client hides the token
+     endpoint's real errors, so ground truth comes from __diag first. */
+  const blobUploadSmart = async (file) => {
+    const pre = await fetch("/api/blob-upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ __diag: true }) });
+    const pj = await pre.json().catch(() => ({}));
+    if (pre.status === 401) throw new Error("Your builder session expired — sign in again, then retry the upload.");
+    if (!pre.ok) throw new Error(pj.error || `token endpoint returned ${pre.status}`);
+    if (pj.hasToken) {
+      addLog("info", `Storage OK (store ${pj.store}) — uploading "${file.name}" (${(file.size / 1e6).toFixed(1)}MB)…`);
+      const blob = await blobUpload(file.name, file, { access: "public", handleUploadUrl: "/api/blob-upload" });
+      return blob.url;
+    }
+    if (pj.hasStoreId && file.size <= 3.5 * 1024 * 1024) {
+      addLog("info", `Storage is in OIDC mode — uploading "${file.name}" (${(file.size / 1e6).toFixed(1)}MB) through the server…`);
+      const b64 = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result).split(",")[1] || "");
+        r.onerror = () => reject(new Error("couldn't read the file"));
+        r.readAsDataURL(file);
+      });
+      const up = await fetch("/api/blob-upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ __direct: true, name: file.name, contentType: file.type || "application/octet-stream", data: b64 }),
+      });
+      const uj = await up.json().catch(() => ({}));
+      if (!up.ok) throw new Error(uj.error || `direct upload failed (${up.status})`);
+      return uj.url;
+    }
+    if (pj.hasStoreId) {
+      throw new Error(`"${file.name}" is ${(file.size / 1e6).toFixed(1)}MB — OIDC-mode storage handles up to ~3.5MB through the server. For bigger files: Vercel → Storage → your store → the tavus1 connection's settings → enable BLOB_READ_WRITE_TOKEN → redeploy. Browser uploads (up to 50MB) light up automatically.`);
+    }
+    throw new Error("The RUNNING deployment has no Blob credentials at all — connect the store under the tavus1 project's Storage tab (Production ticked) and redeploy.");
+  };
+
+  /* ── Feature walkthroughs: shared team library of per-step videos ── */
+  const refreshWalkthroughs = async () => {
+    try {
+      const r = await fetch("/api/walkthroughs");
+      if (r.ok) { const j = await r.json(); if (j && typeof j === "object") setWalkthroughs(j); }
+    } catch { /* offline / no redis — the feature just stays invisible */ }
+  };
+  useEffect(() => {
+    if (auth.checked && (!auth.required || auth.authed)) refreshWalkthroughs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.checked, auth.required, auth.authed]);
+  useEffect(() => {
+    const w = walkthroughs[wtEditStep] || {};
+    setWtDraft({ url: w.url || "", narration: w.narration || "" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wtEditStep, walkthroughs]);
+
+  const saveWalkthrough = async (stepId, patch = {}) => {
+    const cur = walkthroughs[stepId] || {};
+    const next = { url: (patch.url ?? cur.url ?? "").trim(), narration: (patch.narration ?? cur.narration ?? "").trim() };
+    setWalkthroughs((w) => ({ ...w, [stepId]: { ...next, updatedAt: new Date().toISOString() } }));
+    try {
+      const r = await fetch("/api/walkthroughs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stepId, ...next }) });
+      if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.error || r.status); }
+      addLog("ok", `Walkthrough for "${STEPS.find((s) => s.id === stepId)?.label || stepId}" saved — the ▶ is live for the whole team.`);
+    } catch (e) {
+      addLog("err", `Walkthrough save: ${e.message}`);
+    }
+  };
+  const deleteWalkthrough = async (stepId) => {
+    setWalkthroughs((w) => { const n = { ...w }; delete n[stepId]; return n; });
+    try { await fetch(`/api/walkthroughs?stepId=${encodeURIComponent(stepId)}`, { method: "DELETE" }); } catch { /* refresh heals */ }
+  };
+  const uploadWalkthroughVideo = async (stepId, file) => {
+    if (!file) return;
+    if (!file.type.startsWith("video/")) { addLog("err", "That file isn't a video."); return; }
+    setWtUploading(stepId);
+    try {
+      const url = await blobUploadSmart(file);
+      setWtDraft((d) => ({ ...d, url }));
+      await saveWalkthrough(stepId, { url, narration: wtDraft.narration });
+    } catch (e) {
+      addLog("err", `Video upload: ${e.message}`);
+    } finally {
+      setWtUploading("");
+    }
+  };
+  const openWalkthrough = async (stepId) => {
+    setWtPlaying(stepId);
+    setWtNarrOn(true);
+    wtAudioRef.current?.pause();
+    wtAudioRef.current = null;
+    const n = String(walkthroughs[stepId]?.narration || "").trim();
+    if (!n) return;
+    try {
+      // Narration renders live through the same voice stack as the calls —
+      // swapping a video never means re-editing audio into it.
+      const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: n.slice(0, 600) }) });
+      if (!r.ok) return;
+      const a = new Audio(URL.createObjectURL(await r.blob()));
+      wtAudioRef.current = a;
+      const v = wtVideoRef.current;
+      if (v && !v.paused) { a.currentTime = Math.min(v.currentTime, 0); a.play().catch(() => {}); }
+    } catch { /* video plays silent */ }
+  };
+  const closeWalkthrough = () => {
+    wtAudioRef.current?.pause();
+    wtAudioRef.current = null;
+    setWtPlaying(null);
+  };
+
   const uploadKbFile = async (file, { addToDeck = false } = {}) => {
     if (!file) return;
     if (!apiKey.trim()) { addLog("err", "Enter your Tavus API key in Setup first."); return; }
     if (file.size > 50 * 1024 * 1024) { addLog("err", "That file is over Tavus's 50MB document limit."); return; }
     setKbAdding(true);
     try {
-      // Preflight: the blob client hides the token endpoint's real errors, so
-      // check the ground truth first and pick the right upload path.
-      const pre = await fetch("/api/blob-upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ __diag: true }) });
-      const pj = await pre.json().catch(() => ({}));
-      if (pre.status === 401) throw new Error("Your builder session expired — sign in again, then retry the upload.");
-      if (!pre.ok) throw new Error(pj.error || `token endpoint returned ${pre.status}`);
-      let blobUrl;
-      if (pj.hasToken) {
-        // Legacy read-write token: browser streams straight to the store (50MB ok).
-        addLog("info", `Storage OK (store ${pj.store}) — uploading "${file.name}" (${(file.size / 1e6).toFixed(1)}MB)…`);
-        const blob = await blobUpload(file.name, file, { access: "public", handleUploadUrl: "/api/blob-upload" });
-        blobUrl = blob.url;
-      } else if (pj.hasStoreId && file.size <= 3.5 * 1024 * 1024) {
-        // OIDC-mode store (new Vercel default): no client tokens, so small
-        // files go through the server function instead.
-        addLog("info", `Storage is in OIDC mode — uploading "${file.name}" (${(file.size / 1e6).toFixed(1)}MB) through the server…`);
-        const b64 = await new Promise((resolve, reject) => {
-          const r = new FileReader();
-          r.onload = () => resolve(String(r.result).split(",")[1] || "");
-          r.onerror = () => reject(new Error("couldn't read the file"));
-          r.readAsDataURL(file);
-        });
-        const up = await fetch("/api/blob-upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ __direct: true, name: file.name, contentType: file.type || "application/octet-stream", data: b64 }),
-        });
-        const uj = await up.json().catch(() => ({}));
-        if (!up.ok) throw new Error(uj.error || `direct upload failed (${up.status})`);
-        blobUrl = uj.url;
-      } else if (pj.hasStoreId) {
-        throw new Error(`"${file.name}" is ${(file.size / 1e6).toFixed(1)}MB — OIDC-mode storage handles up to ~3.5MB through the server. For bigger files: Vercel → Storage → your store → the tavus1 connection's settings → enable BLOB_READ_WRITE_TOKEN → redeploy. Browser uploads (up to 50MB) light up automatically.`);
-      } else {
-        throw new Error("The RUNNING deployment has no Blob credentials at all — connect the store under the tavus1 project's Storage tab (Production ticked) and redeploy.");
-      }
+      const blobUrl = await blobUploadSmart(file);
       addLog("info", "Uploaded — adding to the Knowledge Base…");
       const doc = await tavusFetch("POST", "/documents", {
         document_url: blobUrl,
@@ -7028,6 +7123,11 @@ export default function TavusExperienceBuilder() {
               {(i === 0 || STEPS[i - 1].group !== s.group) && <div className="rail-group">{s.group}</div>}
             <button className={"rail-btn" + (step === s.id ? " active" : "")} onClick={() => setStep(s.id)}>
               <span className="rail-label">{s.label}</span>
+              {walkthroughs[s.id]?.url && (
+                <span className="rail-play" role="button" tabIndex={0} title={`Watch: ${s.label}`}
+                  onClick={(e) => { e.stopPropagation(); openWalkthrough(s.id); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); openWalkthrough(s.id); } }}>▶</span>
+              )}
               {s.id === "start" && (personaBrief.product || site.theme) && <span className="rail-check">●</span>}
               {s.id === "setup" && canLaunch && <span className="rail-check">●</span>}
               {s.id === "persona" && personaDraft.trim() && <span className="rail-check">●</span>}
@@ -7348,6 +7448,33 @@ export default function TavusExperienceBuilder() {
                   )}
                 </>
               )}
+
+              <div className="subhead" style={{ marginTop: 26 }}>🎬 Feature walkthroughs</div>
+              <p className="field-hint" style={{ maxWidth: 640, marginBottom: 10 }}>
+                Give any step a ▶ in the left rail: a short video of that feature in action (a Studio take, a call recording, a screen capture — up to 50MB), with narration spoken live by the same voice stack as your calls. Shared with the whole team.
+              </p>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 8, maxWidth: 680 }}>
+                <select style={{ width: "auto" }} value={wtEditStep} onChange={(e) => setWtEditStep(e.target.value)}>
+                  {STEPS.map((s) => <option key={s.id} value={s.id}>{walkthroughs[s.id]?.url ? "▶ " : ""}{s.label}</option>)}
+                </select>
+                <button className="pill-btn" disabled={!!wtUploading} onClick={() => wtFileRef.current?.click()}>
+                  {wtUploading ? "Uploading…" : "⬆ Upload video"}
+                </button>
+                {wtDraft.url && <button className="pill-btn" onClick={() => openWalkthrough(wtEditStep)}>▶ Preview</button>}
+                {walkthroughs[wtEditStep]?.url && <button className="pill-btn ghost" onClick={() => deleteWalkthrough(wtEditStep)}>✕ Remove</button>}
+              </div>
+              <input ref={wtFileRef} type="file" accept="video/*" style={{ display: "none" }}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadWalkthroughVideo(wtEditStep, f); e.target.value = ""; }} />
+              <Field label="Video URL" hint="Filled by the upload — or paste any public https video link (an S3 recording, a Loom download, …).">
+                <input className="mono" value={wtDraft.url} onChange={(e) => setWtDraft((d) => ({ ...d, url: e.target.value }))} placeholder="https://…" />
+              </Field>
+              <Field label="Narration (optional)" hint="Spoken over the video by your Tavus voice stack when someone hits ▶ — about 600 characters ≈ 45 seconds plays. Viewers can mute it.">
+                <textarea style={{ minHeight: 70 }} value={wtDraft.narration} onChange={(e) => setWtDraft((d) => ({ ...d, narration: e.target.value }))}
+                  placeholder="This is Magic Canvas — watch the card land the moment she says 'pricing'…" />
+              </Field>
+              <button className="pill-btn primary" style={{ marginBottom: 8 }} disabled={!wtDraft.url.trim()} onClick={() => saveWalkthrough(wtEditStep, wtDraft)}>
+                💾 Save walkthrough
+              </button>
             </>
           )}
 
@@ -10083,6 +10210,38 @@ export default function TavusExperienceBuilder() {
 
       {/* Chat with the demo — the always-there edit bar. One instruction,
           coordinated edits across every implicated piece, approve-to-apply. */}
+      {wtPlaying && (() => {
+        const src = walkthroughs[wtPlaying]?.url || (wtPlaying === wtEditStep ? wtDraft.url : "");
+        if (!src) return null;
+        const hasNarr = !!String(walkthroughs[wtPlaying]?.narration || "").trim();
+        return (
+          <div className="wt-overlay" onClick={closeWalkthrough}>
+            <div className="wt-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="wt-head">
+                <b>▶ {STEPS.find((s) => s.id === wtPlaying)?.label || "Walkthrough"}</b>
+                {hasNarr && (
+                  <button className="pill-btn" style={{ padding: "3px 12px", fontSize: 12 }}
+                    onClick={() => setWtNarrOn((on) => { const next = !on; if (next) wtAudioRef.current?.play().catch(() => {}); else wtAudioRef.current?.pause(); return next; })}>
+                    {wtNarrOn ? "🔊 Narration" : "🔇 Narration off"}
+                  </button>
+                )}
+                <button className="pill-btn" style={{ padding: "3px 12px", fontSize: 12 }} onClick={closeWalkthrough}>✕</button>
+              </div>
+              <video
+                ref={wtVideoRef}
+                src={src}
+                controls
+                autoPlay
+                playsInline
+                onPlay={() => { if (wtNarrOn) wtAudioRef.current?.play().catch(() => {}); }}
+                onPause={() => wtAudioRef.current?.pause()}
+                onSeeked={(e) => { const a = wtAudioRef.current; if (a) { try { a.currentTime = Math.min(e.currentTarget.currentTime, Math.max(0, (a.duration || 0) - 0.05)); } catch { /* not seekable yet */ } } }}
+                onEnded={() => wtAudioRef.current?.pause()}
+              />
+            </div>
+          </div>
+        );
+      })()}
       {!siteMode && !duetRun && !duetRehearse && auth.authed !== false && (
         <div className="editbar">
           {editPending ? (
