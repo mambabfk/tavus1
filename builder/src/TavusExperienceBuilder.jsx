@@ -7323,15 +7323,19 @@ export default function TavusExperienceBuilder() {
                is a live hotspot — shows what's configured, routes to its step.
                Built for showing the APP itself: "click the eyes to give it
                sight" lands better than any settings list. */
+            /* The parts ARE the pitch: a digital human is architected the way
+               a person works in a conversation. Verb-first, layman-first —
+               every label answers "what does it DO like a human?" */
             const parts = [
-              { k: "mind", icon: "🧠", label: "Mind", desc: "Who they are and how they talk — the persona prompt.", target: "persona", on: !!personaDraft.trim(), status: personaDraft.trim() ? (personaAttached ? "written & attached" : "written — attach on Persona") : "not written yet", x: 50, y: 5.5, side: "left" },
-              { k: "knowledge", icon: "📚", label: "Knowledge", desc: "Knowledge Base documents it grounds answers in.", target: "kb", on: !!knowledgeIdsRaw.trim(), status: knowledgeIdsRaw.trim() ? "documents attached" : "nothing attached", x: 36, y: 9, side: "left" },
-              { k: "memory", icon: "💭", label: "Memory", desc: "Remembers people across calls — returning visitors pick up where they left off.", target: "kb", on: memoryEnabled, status: memoryEnabled ? (memoryMode === "visitor" ? "per visitor (by email)" : "one shared store") : "forgets after each call", x: 64, y: 8, side: "right" },
-              { k: "eyes", icon: "👁", label: "Eyes", desc: "Perception — what it notices on camera and in tone.", target: "vision", on: visionEnabled, status: visionEnabled ? "watching" : "off", x: 44, y: 12, side: "left" },
-              { k: "voice", icon: "🗣", label: "Voice", desc: "The voice, its accent, and pronunciation rules.", target: "speech", on: !!(externalVoiceId.trim() || pronunciationText.trim()), status: externalVoiceId.trim() ? (externalVoiceName || "voice picked") : "face's default voice", x: 50, y: 24, side: "left" },
-              { k: "face", icon: "👤", label: "Face", desc: "The human face on the call.", target: "setup", on: !!faceId.trim(), status: faceId.trim() ? (FACE_PRESETS.find((f) => f.id === faceId.trim())?.name || "custom face") : "not picked", x: 61, y: 14, side: "right" },
-              { k: "compass", icon: "🧭", label: "Compass", desc: "Objectives it drives toward, guardrails it won't cross.", target: "guide", on: objectivesEnabled || guardrailsEnabled, status: objectivesEnabled ? `${parseObjectives(objectivesText, confirmationMode).length} steps` : "no flow yet", x: 50, y: 44, side: "right" },
-              { k: "hands", icon: "🛠", label: "Hands", desc: "What it can do: present a deck, drive a browser, show cards.", target: "presentation", on: presentationEnabled || browserUseEnabled || canvasEnabled, status: [presentationEnabled && "deck", browserUseEnabled && "browser", canvasEnabled && "canvas"].filter(Boolean).join(" + ") || "none yet", x: 77, y: 53, side: "right" },
+              { k: "mind", icon: "🧠", label: "Thinks", desc: "Has a personality and a way of talking — who this human is.", target: "persona", on: !!personaDraft.trim(), status: personaDraft.trim() ? (personaAttached ? "personality written & attached" : "written — attach on Persona") : "no personality yet", x: 50, y: 5, side: "left" },
+              { k: "memory", icon: "💭", label: "Remembers you", desc: "Next call, it picks up where you left off — like a person would.", target: "kb", on: memoryEnabled, status: memoryEnabled ? (memoryMode === "visitor" ? "remembers each visitor" : "one shared memory") : "forgets after each call", x: 39, y: 9.5, side: "left" },
+              { k: "eyes", icon: "👁", label: "Sees you", desc: "Reacts to what's on camera — a document held up, a second person, your mood.", target: "vision", on: visionEnabled, status: visionEnabled ? "watching & reacting" : "not looking", x: 50, y: 11.5, side: "left" },
+              { k: "mouth", icon: "💬", label: "Speaks", desc: "A real voice with the right accent — and your product names said right.", target: "speech", on: !!(externalVoiceId.trim() || pronunciationText.trim()), status: externalVoiceId.trim() ? (externalVoiceName || "voice picked") : "face's default voice", x: 50, y: 15.5, side: "left" },
+              { k: "face", icon: "👤", label: "Face", desc: "The human face on the call — eye contact, expressions, presence.", target: "setup", on: !!faceId.trim(), status: faceId.trim() ? (FACE_PRESETS.find((f) => f.id === faceId.trim())?.name || "custom face") : "not picked", x: 43, y: 16.5, side: "right" },
+              { k: "ears", icon: "👂", label: "Hears you", desc: "Always listening — you can interrupt it mid-sentence, and it notices silence.", target: "controls", on: !!(interruptButton || wakePhrase.trim() || inactivitySeconds), status: [interruptButton && "interruptible", wakePhrase.trim() && "wake phrase", inactivitySeconds && "notices silence"].filter(Boolean).join(" · ") || "default listening", x: 61.5, y: 13, side: "right" },
+              { k: "gut", icon: "🫀", label: "Instincts", desc: "A great rep's training: where to steer the conversation, and what it must never say.", target: "guide", on: objectivesEnabled || guardrailsEnabled, status: [objectivesEnabled && `${parseObjectives(objectivesText, confirmationMode).length}-step instinct`, guardrailsEnabled && "hard lines set"].filter(Boolean).join(" · ") || "untrained", x: 50, y: 42, side: "right" },
+              { k: "knowledge", icon: "📖", label: "Did the homework", desc: "Read your docs before the meeting — answers come from them, not thin air.", target: "kb", on: !!knowledgeIdsRaw.trim(), status: knowledgeIdsRaw.trim() ? "docs in hand" : "no reading assigned", x: 28.5, y: 42.5, side: "left" },
+              { k: "hands", icon: "✋", label: "Shows you things", desc: "Doesn't just talk — presents a deck, drives a live browser, puts cards on screen.", target: "presentation", on: presentationEnabled || browserUseEnabled || canvasEnabled, status: [presentationEnabled && "deck", browserUseEnabled && "browser", canvasEnabled && "cards"].filter(Boolean).join(" + ") || "empty-handed", x: 75.5, y: 47, side: "right" },
             ];
             const card = (p) => (
               <button key={p.k} type="button"
@@ -7350,50 +7354,66 @@ export default function TavusExperienceBuilder() {
               <>
                 <h1>Your AI human</h1>
                 <p className="lede">
-                  Everything that makes the AI human, on the human. Click a part — of the figure or the cards — to open that feature. Filled dots are already configured for this demo.
+                  It's architected the way a person works in a conversation — it sees you, hears you, remembers you, did the homework, and knows where the conversation should go. Click any part to configure it. Filled dots are live in this demo; pulsing ones aren't set up yet.
                 </p>
                 <div className="human-hub">
                   <div className="human-col">{parts.filter((p) => p.side === "left").map(card)}</div>
                   <div className="human-fig">
-                    <svg viewBox="0 0 200 340" aria-hidden="true">
+                    <svg viewBox="0 0 200 360" aria-hidden="true">
                       <defs>
-                        <radialGradient id="hglow" cx="50%" cy="30%" r="70%">
-                          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.30" />
+                        <radialGradient id="hglow" cx="50%" cy="28%" r="72%">
+                          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.28" />
                           <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
                         </radialGradient>
                         <linearGradient id="hshirt" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="var(--accent)" />
-                          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.78" />
+                          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.8" />
                         </linearGradient>
                       </defs>
-                      <ellipse cx="100" cy="120" rx="96" ry="112" fill="url(#hglow)" />
+                      <ellipse cx="100" cy="125" rx="96" ry="118" fill="url(#hglow)" />
                       {/* legs + shoes */}
-                      <path d="M78 182 L74 316 L94 316 L97 216 L103 216 L106 316 L126 316 L122 182 Z" fill="#2b2f3a" />
-                      <path d="M70 316 h26 a4 4 0 0 1 4 4 v4 h-34 v-3 a5 5 0 0 1 4-5 Z" fill="#1c1f27" />
-                      <path d="M104 316 h26 a5 5 0 0 1 4 5 v3 h-34 v-4 a4 4 0 0 1 4-4 Z" fill="#1c1f27" />
-                      {/* arms (sleeves + hands) */}
-                      <path d="M62 92 C 50 104 46 126 44 150 C 43 160 44 168 46 172 L 62 168 C 61 150 63 126 68 108 Z" fill="url(#hshirt)" />
-                      <path d="M138 92 C 150 104 154 126 156 150 C 157 160 156 168 154 172 L 138 168 C 139 150 137 126 132 108 Z" fill="url(#hshirt)" />
-                      <circle cx="53" cy="180" r="9" fill="#e9bd93" />
-                      <circle cx="147" cy="180" r="9" fill="#e9bd93" />
+                      <path d="M80 186 L76 334 L95 334 L98 224 L102 224 L105 334 L124 334 L120 186 Z" fill="#2b2f3a" />
+                      <path d="M72 334 h25 a4 4 0 0 1 4 4 v3 h-33 v-2 a5 5 0 0 1 4-5 Z" fill="#1c1f27" />
+                      <path d="M103 334 h25 a5 5 0 0 1 4 5 v2 h-33 v-3 a4 4 0 0 1 4-4 Z" fill="#1c1f27" />
+                      {/* right arm: relaxed out, open palm mid-gesture */}
+                      <path d="M136 94 C 148 102 154 118 156 136 C 158 150 156 160 153 166 L 140 161 C 141 146 138 122 130 108 Z" fill="url(#hshirt)" />
+                      <ellipse cx="151" cy="170" rx="8.5" ry="10" fill="#e9bd93" />
+                      <path d="M145 162 q6 -4 12 -1" stroke="#d8a577" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+                      {/* left arm: bent, holding the book */}
+                      <path d="M64 94 C 54 102 48 116 46 132 C 45 142 46 150 49 156 L 62 150 C 61 136 63 118 70 106 Z" fill="url(#hshirt)" />
+                      {/* the homework: a real book in hand */}
+                      <g transform="rotate(-9 57 152)">
+                        <rect x="40" y="139" width="36" height="25" rx="3" fill="#8a4a3b" />
+                        <rect x="43" y="142" width="30" height="19" rx="2" fill="#fdf7f0" />
+                        <line x1="58" y1="142" x2="58" y2="161" stroke="#d9cfc2" strokeWidth="1.4" />
+                        <line x1="47" y1="148" x2="55" y2="148" stroke="#cfc4b4" strokeWidth="1.2" />
+                        <line x1="61" y1="148" x2="69" y2="148" stroke="#cfc4b4" strokeWidth="1.2" />
+                        <line x1="47" y1="153" x2="55" y2="153" stroke="#cfc4b4" strokeWidth="1.2" />
+                        <line x1="61" y1="153" x2="69" y2="153" stroke="#cfc4b4" strokeWidth="1.2" />
+                      </g>
+                      <circle cx="66" cy="158" r="7" fill="#e9bd93" />
                       {/* torso */}
-                      <path d="M100 76 C 80 76 68 84 63 94 C 58 106 58 128 60 150 C 61 166 64 178 66 184 L 134 184 C 136 178 139 166 140 150 C 142 128 142 106 137 94 C 132 84 120 76 100 76 Z" fill="url(#hshirt)" />
-                      {/* collar */}
-                      <path d="M88 76 L100 92 L112 76 Z" fill="#fdf7f0" />
+                      <path d="M100 78 C 82 78 70 85 65 96 C 59 109 59 132 61 154 C 62 170 65 181 67 188 L 133 188 C 135 181 138 170 139 154 C 141 132 141 109 135 96 C 130 85 118 78 100 78 Z" fill="url(#hshirt)" />
+                      {/* collar + placket */}
+                      <path d="M89 78 L100 93 L111 78 Z" fill="#fdf7f0" />
+                      <line x1="100" y1="94" x2="100" y2="120" stroke="rgba(255,255,255,.35)" strokeWidth="2" />
                       {/* neck + head */}
-                      <rect x="91" y="58" width="18" height="16" rx="7" fill="#e9bd93" />
-                      <ellipse cx="100" cy="40" rx="24" ry="26" fill="#ecc39a" />
-                      <circle cx="75" cy="42" r="5" fill="#e9bd93" />
-                      <circle cx="125" cy="42" r="5" fill="#e9bd93" />
-                      {/* hair */}
-                      <path d="M76 36 C 74 18 86 8 100 8 C 114 8 126 18 124 36 C 122 28 116 22 100 22 C 84 22 78 28 76 36 Z" fill="#3d3229" />
-                      {/* face */}
-                      <circle cx="91" cy="41" r="2.6" fill="#2c2620" />
-                      <circle cx="109" cy="41" r="2.6" fill="#2c2620" />
-                      <path d="M86 34 q5 -3.4 10 -1" stroke="#3d3229" strokeWidth="2" fill="none" strokeLinecap="round" />
-                      <path d="M104 33 q5 -2.4 10 1" stroke="#3d3229" strokeWidth="2" fill="none" strokeLinecap="round" />
-                      <path d="M92 51 Q100 57 108 51" stroke="#b9805a" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-                      <ellipse cx="100" cy="330" rx="54" ry="5" fill="rgba(10,12,16,.22)" />
+                      <path d="M92 62 h16 v12 c0 5 -3.5 8 -8 8 s-8 -3 -8 -8 Z" fill="#e2b489" />
+                      <ellipse cx="100" cy="44" rx="22" ry="25" fill="#ecc39a" />
+                      {/* ears */}
+                      <ellipse cx="78" cy="46" rx="4.5" ry="6" fill="#e6b88d" />
+                      <ellipse cx="122" cy="46" rx="4.5" ry="6" fill="#e6b88d" />
+                      <path d="M120.5 44 q2.5 2 1 5" stroke="#c9976b" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+                      {/* hair: side part, natural hairline */}
+                      <path d="M78 42 C 76 24 84 12 100 12 C 116 12 124 22 122 40 C 121 32 116 26 108 25 C 104 24.6 99 25.4 93 27 C 86 29 80 34 78 42 Z" fill="#3d3229" />
+                      {/* face: eyes, brows, nose hint, warm smile */}
+                      <circle cx="92" cy="42" r="2.5" fill="#2c2620" />
+                      <circle cx="108" cy="42" r="2.5" fill="#2c2620" />
+                      <path d="M87.5 35.5 q4.5 -3 9 -1" stroke="#3d3229" strokeWidth="1.9" fill="none" strokeLinecap="round" />
+                      <path d="M103.5 34.5 q4.5 -2 9 1" stroke="#3d3229" strokeWidth="1.9" fill="none" strokeLinecap="round" />
+                      <path d="M100 45 q-1.6 4.5 1 7" stroke="#d8a577" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+                      <path d="M93 56 Q100 61.5 107 56" stroke="#b9805a" strokeWidth="2.3" fill="none" strokeLinecap="round" />
+                      <ellipse cx="100" cy="348" rx="52" ry="5" fill="rgba(10,12,16,.2)" />
                     </svg>
                     {parts.map((p) => (
                       <button key={p.k} type="button"
