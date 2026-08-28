@@ -306,8 +306,10 @@ non-technical users; ids unchanged):
    download. Covers visitor calls from shared links too (same Tavus account).
 4.7. **Timing & Controls** (`controls`) — `maxMinutes` →
    `properties.max_call_duration`; `wakePhrase` → a conversational_context
-   instruction. **Sparrow turn-taking** (top of the step): 5 optional dials
-   (`sparrowModel` ""/sparrow-2/sparrow-1, `sparrowPatience` low/medium/high,
+   instruction. **Sparrow turn-taking** (top of the step): 5 dials
+   (`sparrowModel` — **defaults to "sparrow-2"** per explicit user direction,
+   Tavus's own default is still sparrow-1, so every launch PATCHes it;
+   ""/sparrow-1 selectable — `sparrowPatience` low/medium/high,
    `sparrowInterrupt` verylow/low/medium/high, `sparrowIsolation` "near",
    `sparrowIdle` "patient") → `conversationalFlowPayload` (only set fields) →
    launch `PATCH /pals/{id}` `[{op:"add", path:"/layers/conversational_flow",

@@ -3446,7 +3446,9 @@ export default function TavusExperienceBuilder() {
   const [wakePhrase, setWakePhrase] = useState("");
   // Conversational Flow layer (Sparrow turn-taking) — blank = Tavus default;
   // only set fields are patched, and the layer persists on the PAL.
-  const [sparrowModel, setSparrowModel] = useState("");
+  // Sparrow-2 by default (per explicit user direction) — Tavus's own default
+  // is still sparrow-1, so the launch PATCH must say it out loud every time.
+  const [sparrowModel, setSparrowModel] = useState("sparrow-2");
   const [sparrowPatience, setSparrowPatience] = useState("");
   const [sparrowInterrupt, setSparrowInterrupt] = useState("");
   const [sparrowIsolation, setSparrowIsolation] = useState("");
@@ -3965,7 +3967,7 @@ export default function TavusExperienceBuilder() {
     setMaxMinutes(c.maxMinutes ?? ""); setTimeWarning(c.timeWarning ?? "");
     setInactivitySeconds(c.inactivitySeconds ?? ""); setInactivityUtterance(c.inactivityUtterance ?? "");
     setWakePhrase(c.wakePhrase ?? ""); setInterruptButton(!!c.interruptButton); setGuardrailEcho(c.guardrailEcho ?? "");
-    setSparrowModel(c.sparrowModel ?? ""); setSparrowPatience(c.sparrowPatience ?? "");
+    setSparrowModel(c.sparrowModel ?? "sparrow-2"); setSparrowPatience(c.sparrowPatience ?? "");
     setSparrowInterrupt(c.sparrowInterrupt ?? ""); setSparrowIsolation(c.sparrowIsolation ?? ""); setSparrowIdle(c.sparrowIdle ?? "");
     // Recording: scenarios saved before this feature (or without it) fall back
     // to this browser's remembered defaults instead of wiping them.
@@ -9365,15 +9367,15 @@ export default function TavusExperienceBuilder() {
               <div className="subhead">🕊 Turn-taking — Sparrow</div>
               <p className="field-hint" style={{ maxWidth: 640, marginBottom: 10 }}>
                 Sparrow is the model deciding <b>when it's the AI's turn to talk</b> — pauses, interruptions, "mm-hm"s, the whole scene. Every dial left on
-                "Tavus default" is untouched; anything you set persists on the PAL. <b>Sparrow-2</b> is the newest model — pick it for noticeably more natural
-                back-and-forth, especially with interruption-happy visitors.
+                "Tavus default" is untouched; anything you set persists on the PAL. <b>Sparrow-2</b> — the newest model, noticeably more natural
+                back-and-forth — is on by default here and applied to the PAL at every launch (Tavus's own default is still Sparrow-1).
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12, maxWidth: 760, marginBottom: 8 }}>
                 <Field label="Turn-taking model">
                   <select value={sparrowModel} onChange={(e) => setSparrowModel(e.target.value)}>
-                    <option value="">Tavus default</option>
-                    <option value="sparrow-2">Sparrow-2 — newest, whole-scene understanding</option>
+                    <option value="sparrow-2">Sparrow-2 — newest, whole-scene understanding (default)</option>
                     <option value="sparrow-1">Sparrow-1</option>
+                    <option value="">Tavus default (currently Sparrow-1)</option>
                   </select>
                 </Field>
                 <Field label="Patience" hint="How long it waits before taking its turn — high = never talks over a thinker; low = snappy.">
