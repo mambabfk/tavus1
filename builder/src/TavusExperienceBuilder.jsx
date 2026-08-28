@@ -13,10 +13,17 @@ import { upload as blobUpload } from "@vercel/blob/client";
 
 const API_BASE = "https://tavusapi.com/v2";
 
+// Tavus's full spoken-language list (docs → Language Support; pass the full
+// name in properties.language). "multilingual" auto-detects per speaker.
 const LANGUAGES = [
-  "multilingual", "english", "spanish", "french", "german", "portuguese",
-  "italian", "dutch", "polish", "swedish", "turkish", "russian",
-  "chinese", "japanese", "korean", "hindi",
+  "multilingual", "english",
+  "arabic", "bengali", "bulgarian", "chinese", "croatian", "czech", "danish",
+  "dutch", "finnish", "french", "georgian", "german", "greek", "gujarati",
+  "hebrew", "hindi", "hungarian", "indonesian", "italian", "japanese",
+  "kannada", "korean", "malay", "malayalam", "marathi", "norwegian", "polish",
+  "portuguese", "punjabi", "romanian", "russian", "slovak", "spanish",
+  "swahili", "swedish", "tagalog", "tamil", "telugu", "thai", "turkish",
+  "ukrainian", "vietnamese",
 ];
 
 const CANVAS_COMPONENTS = [
@@ -3437,6 +3444,13 @@ export default function TavusExperienceBuilder() {
   const [inactivitySeconds, setInactivitySeconds] = useState(""); // blank = off
   const [inactivityUtterance, setInactivityUtterance] = useState("");
   const [wakePhrase, setWakePhrase] = useState("");
+  // Conversational Flow layer (Sparrow turn-taking) — blank = Tavus default;
+  // only set fields are patched, and the layer persists on the PAL.
+  const [sparrowModel, setSparrowModel] = useState("");
+  const [sparrowPatience, setSparrowPatience] = useState("");
+  const [sparrowInterrupt, setSparrowInterrupt] = useState("");
+  const [sparrowIsolation, setSparrowIsolation] = useState("");
+  const [sparrowIdle, setSparrowIdle] = useState("");
   const [interruptButton, setInterruptButton] = useState(false);
   const [guardrailEcho, setGuardrailEcho] = useState("");
 
@@ -3912,6 +3926,7 @@ export default function TavusExperienceBuilder() {
     visionEnabled, visionVibe, visualQueriesText, audioQueriesText,
     speechEnabled, pronunciationText, pronDictId, pronDictName, emotionControl, externalVoiceId, externalVoiceName,
     maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, wakePhrase, interruptButton, guardrailEcho,
+    sparrowModel, sparrowPatience, sparrowInterrupt, sparrowIsolation, sparrowIdle,
     recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout,
     toolsEnabled, toolRows, toolWebhook, toolEcho,
     internetSearchEnabled, browserUseEnabled, browserUseConfig, browsePlan,
@@ -3950,6 +3965,8 @@ export default function TavusExperienceBuilder() {
     setMaxMinutes(c.maxMinutes ?? ""); setTimeWarning(c.timeWarning ?? "");
     setInactivitySeconds(c.inactivitySeconds ?? ""); setInactivityUtterance(c.inactivityUtterance ?? "");
     setWakePhrase(c.wakePhrase ?? ""); setInterruptButton(!!c.interruptButton); setGuardrailEcho(c.guardrailEcho ?? "");
+    setSparrowModel(c.sparrowModel ?? ""); setSparrowPatience(c.sparrowPatience ?? "");
+    setSparrowInterrupt(c.sparrowInterrupt ?? ""); setSparrowIsolation(c.sparrowIsolation ?? ""); setSparrowIdle(c.sparrowIdle ?? "");
     // Recording: scenarios saved before this feature (or without it) fall back
     // to this browser's remembered defaults instead of wiping them.
     const savedRec = store.get(REC_KEY, {});
@@ -4621,6 +4638,18 @@ export default function TavusExperienceBuilder() {
     // public GET); demo-launch derives the per-visitor store key from it.
     memory: memoryEnabled ? { enabled: true, mode: memoryMode, key: memoryKey.trim() } : undefined,
   }), [compiledJourney, expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook, expRating, expBooking, schedulingUrl, expTalkAgain, expThanks, memoryEnabled, memoryMode, memoryKey]);
+
+  /* Conversational Flow layer (Sparrow) — only fields the operator set;
+     null when everything is on Tavus defaults (then launch doesn't touch it). */
+  const conversationalFlowPayload = useMemo(() => {
+    const v = {};
+    if (sparrowModel) v.turn_detection_model = sparrowModel;
+    if (sparrowPatience) v.turn_taking_patience = sparrowPatience;
+    if (sparrowInterrupt) v.replica_interruptibility = sparrowInterrupt;
+    if (sparrowIsolation) v.voice_isolation = sparrowIsolation;
+    if (sparrowIdle) v.idle_engagement = sparrowIdle;
+    return Object.keys(v).length ? v : null;
+  }, [sparrowModel, sparrowPatience, sparrowInterrupt, sparrowIsolation, sparrowIdle]);
 
   const pronunciationRules = useMemo(() => parsePronunciation(pronunciationText), [pronunciationText]);
   const pronunciationPayload = useMemo(
@@ -6786,6 +6815,17 @@ export default function TavusExperienceBuilder() {
         addLog("ok", "Vision attached (persists on the PAL until you change it).");
       });
 
+      // Conversational Flow (Sparrow turn-taking): persists on the PAL like
+      // the other layers. PATCH merges only the fields the operator set —
+      // blank dials stay on Tavus defaults.
+      if (conversationalFlowPayload) await section("Conversational flow (Sparrow)", async () => {
+        addLog("info", `Tuning turn-taking (${conversationalFlowPayload.turn_detection_model || "current Sparrow"})…`);
+        await tavusFetch("PATCH", `/pals/${pal}`, [
+          { op: "add", path: "/layers/conversational_flow", value: conversationalFlowPayload },
+        ]);
+        addLog("ok", "Conversational flow set (persists on the PAL until you change it).");
+      });
+
       // Voice + expressive delivery: nice-to-haves — a failure here must never
       // stop the conversation from launching (some PALs reject TTS-layer ops).
       if (externalVoiceId.trim()) {
@@ -7511,7 +7551,7 @@ export default function TavusExperienceBuilder() {
               { k: "eyes", icon: "👁", label: "Sees you", desc: "Reacts to what's on camera — a document held up, a second person, your mood.", target: "vision", on: visionEnabled, status: visionEnabled ? "watching & reacting" : "not looking", x: 50, y: 11.5, side: "left" },
               { k: "mouth", icon: "💬", label: "Speaks", desc: "A real voice with the right accent — and your product names said right.", target: "speech", on: !!(externalVoiceId.trim() || pronunciationText.trim()), status: externalVoiceId.trim() ? (externalVoiceName || "voice picked") : "face's default voice", x: 50, y: 15.5, side: "left" },
               { k: "face", icon: "👤", label: "Face", desc: "The human face on the call — eye contact, expressions, presence.", target: "setup", on: !!faceId.trim(), status: faceId.trim() ? (FACE_PRESETS.find((f) => f.id === faceId.trim())?.name || "custom face") : "not picked", x: 43, y: 16.5, side: "right" },
-              { k: "ears", icon: "👂", label: "Hears you", desc: "Always listening — you can interrupt it mid-sentence, and it notices silence.", target: "controls", on: !!(interruptButton || wakePhrase.trim() || inactivitySeconds), status: [interruptButton && "interruptible", wakePhrase.trim() && "wake phrase", inactivitySeconds && "notices silence"].filter(Boolean).join(" · ") || "default listening", x: 61.5, y: 13, side: "right" },
+              { k: "ears", icon: "👂", label: "Hears you", desc: "Sparrow turn-taking — knows when to talk, when to yield, when you're just thinking.", target: "controls", on: !!(sparrowModel || sparrowPatience || interruptButton || wakePhrase.trim() || inactivitySeconds), status: [sparrowModel, interruptButton && "interruptible", wakePhrase.trim() && "wake phrase"].filter(Boolean).join(" · ") || "default listening", x: 61.5, y: 13, side: "right" },
               { k: "gut", icon: "🫀", label: "Instincts", desc: "A great rep's training: where to steer the conversation, and what it must never say.", target: "guide", on: objectivesEnabled || guardrailsEnabled, status: [objectivesEnabled && `${parseObjectives(objectivesText, confirmationMode).length}-step instinct`, guardrailsEnabled && "hard lines set"].filter(Boolean).join(" · ") || "untrained", x: 50, y: 42, side: "right" },
               { k: "knowledge", icon: "📖", label: "Did the homework", desc: "Read your docs before the meeting — answers come from them, not thin air.", target: "kb", on: !!knowledgeIdsRaw.trim(), status: knowledgeIdsRaw.trim() ? "docs in hand" : "no reading assigned", x: 28.5, y: 42.5, side: "left" },
               { k: "hands", icon: "✋", label: "Shows you things", desc: "Doesn't just talk — presents a deck, drives a live browser, puts cards on screen.", target: "presentation", on: presentationEnabled || browserUseEnabled || canvasEnabled, status: [presentationEnabled && "deck", browserUseEnabled && "browser", canvasEnabled && "cards"].filter(Boolean).join(" + ") || "empty-handed", x: 75.5, y: 47, side: "right" },
@@ -9287,7 +9327,56 @@ export default function TavusExperienceBuilder() {
             <>
               <h1>Timing</h1>
               <p className="lede">
-                How long the conversation runs and what the AI says as time runs out — plus a wake phrase for kiosks and a nudge for quiet visitors.
+                The conversation's rhythm: Sparrow turn-taking (when it speaks, when it yields), how long the call runs, and what happens in the quiet moments.
+              </p>
+
+              <div className="subhead">🕊 Turn-taking — Sparrow</div>
+              <p className="field-hint" style={{ maxWidth: 640, marginBottom: 10 }}>
+                Sparrow is the model deciding <b>when it's the AI's turn to talk</b> — pauses, interruptions, "mm-hm"s, the whole scene. Every dial left on
+                "Tavus default" is untouched; anything you set persists on the PAL. <b>Sparrow-2</b> is the newest model — pick it for noticeably more natural
+                back-and-forth, especially with interruption-happy visitors.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 12, maxWidth: 760, marginBottom: 8 }}>
+                <Field label="Turn-taking model">
+                  <select value={sparrowModel} onChange={(e) => setSparrowModel(e.target.value)}>
+                    <option value="">Tavus default</option>
+                    <option value="sparrow-2">Sparrow-2 — newest, whole-scene understanding</option>
+                    <option value="sparrow-1">Sparrow-1</option>
+                  </select>
+                </Field>
+                <Field label="Patience" hint="How long it waits before taking its turn — high = never talks over a thinker; low = snappy.">
+                  <select value={sparrowPatience} onChange={(e) => setSparrowPatience(e.target.value)}>
+                    <option value="">Tavus default</option>
+                    <option value="low">Low — jumps in fast</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High — lets them finish thinking</option>
+                  </select>
+                </Field>
+                <Field label="Interruptibility" hint="How easily the visitor can cut it off mid-sentence.">
+                  <select value={sparrowInterrupt} onChange={(e) => setSparrowInterrupt(e.target.value)}>
+                    <option value="">Tavus default</option>
+                    <option value="verylow">Very low — finishes its thought</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High — yields instantly</option>
+                  </select>
+                </Field>
+                <Field label="Voice isolation" hint='Filters background noise/voices — "near" focuses on the closest speaker. Great for kiosks and events.'>
+                  <select value={sparrowIsolation} onChange={(e) => setSparrowIsolation(e.target.value)}>
+                    <option value="">Tavus default</option>
+                    <option value="near">Near — closest speaker only</option>
+                  </select>
+                </Field>
+                <Field label="Idle engagement" hint="Whether it proactively breaks a long silence.">
+                  <select value={sparrowIdle} onChange={(e) => setSparrowIdle(e.target.value)}>
+                    <option value="">Tavus default</option>
+                    <option value="patient">Patient — waits it out</option>
+                  </select>
+                </Field>
+              </div>
+              <p className="field-hint" style={{ maxWidth: 640, marginBottom: 22 }}>
+                Recipes: <b>demo to executives</b> → Sparrow-2, patience high, interruptibility high (they talk, it yields). <b>Kiosk on a loud floor</b> →
+                voice isolation near, patience medium. <b>Roleplay a pushy customer</b> → interruptibility very low (they must experience being talked over).
               </p>
 
               <div className="subhead">Conversation length</div>

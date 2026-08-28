@@ -164,7 +164,8 @@ and is collapsible (persisted via `SHOWAPI_KEY`).
 Categorization rules learned the hard way: the ✋ interrupt-button toggle
 lives in **Page & Brand** (it's call UI, not timing); the guardrail
 voice-line lives in **Goals & Rules** next to the guardrails textarea;
-Timing keeps only duration/warning/nudge/wake-phrase. Magic Canvas has a
+Timing keeps duration/warning/nudge/wake-phrase plus the Sparrow
+turn-taking dials. Magic Canvas has a
 "Suggest a canvas plan" button (`kind: "canvas"` → JSON
 {style, playbook, rules, disable}, biased against card overuse).
 
@@ -294,7 +295,14 @@ non-technical users; ids unchanged):
    download. Covers visitor calls from shared links too (same Tavus account).
 4.7. **Timing & Controls** (`controls`) — `maxMinutes` →
    `properties.max_call_duration`; `wakePhrase` → a conversational_context
-   instruction. The rest run client-side in `CallExtras` (rendered inside
+   instruction. **Sparrow turn-taking** (top of the step): 5 optional dials
+   (`sparrowModel` ""/sparrow-2/sparrow-1, `sparrowPatience` low/medium/high,
+   `sparrowInterrupt` verylow/low/medium/high, `sparrowIsolation` "near",
+   `sparrowIdle` "patient") → `conversationalFlowPayload` (only set fields) →
+   launch `PATCH /pals/{id}` `[{op:"add", path:"/layers/conversational_flow",
+   value}]`. Blank = Tavus default; deliberately NOT cleared by the hygiene
+   sweep (low-stakes layer, avoids churn). Persists on the PAL.
+   The rest run client-side in `CallExtras` (rendered inside
    `CVIProvider`, custom call UI only) via Daily app-messages:
    `timeWarning` (echoed at T−2min), `inactivitySeconds`/`inactivityUtterance`
    (silence → echo → 10s grace → leave), `interruptButton`
