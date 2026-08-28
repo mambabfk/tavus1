@@ -6941,6 +6941,19 @@ export default function TavusExperienceBuilder() {
           }
         } else {
           await section("Presentation", async () => {
+            // Name the failure mode BEFORE it bites: a deck doc that's still
+            // processing (or a bad id) is the top "no slides" cause, and the
+            // attach itself won't always say so.
+            for (const id of docIds) {
+              try {
+                const doc = await tavusFetch("GET", `/documents/${id}`);
+                const st = String(doc?.status || doc?.data?.status || "").toLowerCase();
+                if (st && st !== "ready") addLog("err", `Deck doc ${id} ("${doc?.document_name || doc?.name || "?"}") is "${st}" — slides won't render until it's ready. A fresh upload takes a few minutes; relaunch after.`);
+                else addLog("info", `Deck doc ${id} ("${doc?.document_name || doc?.name || id}") is ready.`);
+              } catch {
+                addLog("err", `Deck doc ${id} can't be read — check the ID against the Knowledge Base step (this is usually a typo or a deleted doc).`);
+              }
+            }
             addLog("info", `Attaching presentation skill (${slidesTrigger}, ${docIds.length} doc${docIds.length > 1 ? "s" : ""})…`);
             await tavusFetch("PUT", `/pals/${pal}/skills/presentation`, presentationPayload);
             addLog("ok", "Presentation skill attached.");
