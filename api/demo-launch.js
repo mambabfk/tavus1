@@ -95,6 +95,22 @@ export default async function handler(req, res) {
       }
     }
 
+    // Re-attach the demo's deck to the PAL this call will use. The skill
+    // persists on the PAL, where any later builder launch (a different demo,
+    // or presentation toggled off) can rewrite or detach it — the snapshot
+    // is the link's ground truth. Best-effort: a hiccup here must not block
+    // the visitor's call. Runs after journey prefs so a per-option PAL
+    // override gets the deck too.
+    if (demo.presentation?.config?.document_ids?.length && payload.pal_id) {
+      try {
+        await fetch(`https://tavusapi.com/v2/pals/${encodeURIComponent(payload.pal_id)}/skills/presentation`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "x-api-key": process.env.TAVUS_API_KEY },
+          body: JSON.stringify({ config: demo.presentation.config }),
+        });
+      } catch { /* deck attach is best-effort */ }
+    }
+
     const r = await fetch("https://tavusapi.com/v2/conversations", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": process.env.TAVUS_API_KEY },

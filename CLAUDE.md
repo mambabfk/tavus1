@@ -39,7 +39,8 @@ Anthropic key.
   stores an immutable snapshot `{name, site, controls, payload}` in Upstash
   Redis (`KV_REST_API_URL`/`UPSTASH_REDIS_REST_URL` env pairs, zero-dep REST
   client) under `demo:{slug}` → `/d/{slug}` (vercel.json rewrite → SPA).
-  `GET /api/demos?slug=` is public but strips `payload`; visitors launch via
+  `GET /api/demos?slug=` is public but strips `payload` + `presentation`
+  (the deck-skill config, re-attached per visitor call); visitors launch via
   `POST /api/demo-launch` which creates the Tavus conversation server-side
   with the `TAVUS_API_KEY` env var (rate-limited per slug/hour). The frontend
   `VisitorDemo` component (`?demo=` or `/d/` detection, before the auth gate)
@@ -233,6 +234,16 @@ non-technical users; ids unchanged):
    mirrors the canvas inject): weaves the deck — trigger mode, presenter
    style, talk track — into the persona + objectives via the revise
    machinery, so the flow actually reaches and finishes the deck.
+   **Deck coherence rules** (from the "presentation isn't working" audit):
+   toggle-on-with-no-docs at launch SKIPS the attach and CLEARS any stale
+   deck the PAL carries (loud log both times; the rail ● needs docs, not
+   just the toggle); a failed attach is fail-SAFE (DELETE, never launch on
+   an older deck); when the deck is configured, `conversationPayload` adds
+   a one-line context part telling the model a deck exists (walk vs
+   on-request wording) — without it on_demand mode never fired; share
+   links snapshot `presentation: {config}` and `demo-launch` re-PUTs it
+   per visitor call (after journey PAL overrides), so a later builder
+   launch on the same PAL can't kill a live link's slides.
 4. **Magic Canvas** — interactive cards beside the video. **Magic moments
    board** (primary UI, per explicit user direction — vibe-writing canvas
    plans was "too much"): the objectives flow renders as a numbered

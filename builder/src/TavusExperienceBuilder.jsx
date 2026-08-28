@@ -4396,6 +4396,15 @@ export default function TavusExperienceBuilder() {
       );
     }
 
+    // The deck lives on the PAL as a skill, but nothing else tells the MODEL
+    // it exists — in on_demand mode nobody ever opened it, and a net-new
+    // persona drafted before the doc id was pasted has no presenting section.
+    if (presentationEnabled && docIds.length) {
+      parts.push(slidesTrigger === "walk_the_deck"
+        ? "A slide deck is attached: walk through it during this conversation — bring it up once the visitor's opening question is handled, and talk to each slide briefly rather than reading it."
+        : "A slide deck is attached: open it whenever the visitor asks to see slides, the deck, or a walkthrough — and offer it once, naturally, when it would clearly help.");
+    }
+
     if (recordingEnabled && recLayout === "stage") {
       parts.push(
         "If a screen share from the visitor appears, ignore it completely and never mention it — it is a recording tap of this same call, not content to look at or discuss."
@@ -4480,7 +4489,7 @@ export default function TavusExperienceBuilder() {
       if (recS3ExternalId.trim()) body.properties.recording_storage.external_id = recS3ExternalId.trim();
     }
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan, memoryEnabled, memoryMode, memoryKey]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan, memoryEnabled, memoryMode, memoryKey, presentationEnabled, docIds, slidesTrigger]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
@@ -6217,6 +6226,10 @@ export default function TavusExperienceBuilder() {
           controls: controlsConfig,
           payload: conversationPayload,
           experience: experienceConfig,
+          // The deck lives on the PAL, which any later builder launch can
+          // rewrite — demo-launch re-attaches this per visitor call so the
+          // link keeps its slides no matter what ran on the PAL since.
+          presentation: presentationEnabled && docIds.length ? presentationPayload : null,
         }),
       });
       const j = await res.json().catch(() => ({}));
@@ -6227,6 +6240,7 @@ export default function TavusExperienceBuilder() {
       const url = `${window.location.origin}/d/${j.slug}`;
       setShareUrl(url);
       addLog("ok", `Shareable link ready: ${url}`);
+      if (presentationEnabled && !docIds.length) addLog("err", "Heads up: Presentation is on but has no document IDs — visitors on this link get NO slides. Add doc IDs on the Presentation step and share again.");
       promptSaveIfDirty(); // a shared demo should exist as a saved demo too
     } catch (e) {
       addLog("err", `Share: ${e.message}`);
@@ -6727,8 +6741,9 @@ export default function TavusExperienceBuilder() {
       // Skills the PAL carries but this demo TURNED OFF — detach (the duet
       // path proved this pattern). Two safety rules learned the hard way:
       // - detach keys on the operator's toggle alone, never on "toggle on but
-      //   not configured yet" (presentation-on-with-no-deck used to strip the
-      //   PAL's working deck) — unconfigured sections just skip their attach;
+      //   not configured yet" — unconfigured sections handle themselves at
+      //   attach time (presentation clears a stale deck LOUDLY there, with a
+      //   log line, instead of this sweep stripping it silently);
       // - if the PAL couldn't be read, do NOT blind-delete: a transient GET
       //   failure must not mutate the PAL.
       if (palState) {
@@ -6913,11 +6928,28 @@ export default function TavusExperienceBuilder() {
       if (presentationEnabled) {
         if (!docIds.length) {
           addLog("err", "Presentation is on but has no document IDs — SKIPPING the deck this launch. Add your Knowledge Base doc IDs on the Presentation step (a fresh demo starts with none).");
+          // Without this, the PAL keeps whatever deck the LAST demo attached
+          // and walk_the_deck opens the old slides in the new demo. Only when
+          // the PAL was readable — a transient GET failure must not mutate it.
+          if (palState) {
+            try {
+              await tavusFetch("DELETE", `/pals/${pal}/skills/presentation`);
+              addLog("ok", "Cleared a previous demo's deck from the PAL so it can't present the wrong slides.");
+            } catch { /* no deck on the PAL — nothing to clear */ }
+          }
         } else {
           await section("Presentation", async () => {
             addLog("info", `Attaching presentation skill (${slidesTrigger}, ${docIds.length} doc${docIds.length > 1 ? "s" : ""})…`);
             await tavusFetch("PUT", `/pals/${pal}/skills/presentation`, presentationPayload);
             addLog("ok", "Presentation skill attached.");
+          }, async () => {
+            // Fail-SAFE like objectives/guardrails: a failed attach (doc still
+            // processing, deleted id, >50 pages) must not launch on whatever
+            // deck the PAL already carries.
+            try {
+              await tavusFetch("DELETE", `/pals/${pal}/skills/presentation`);
+              addLog("info", "Cleared the PAL's presentation skill so the call can't run an older deck — fix the doc IDs and relaunch.");
+            } catch { /* nothing attached */ }
           });
         }
       }
@@ -7196,7 +7228,7 @@ export default function TavusExperienceBuilder() {
               {s.id === "speech" && speechEnabled && <span className="rail-check">●</span>}
               {s.id === "tools" && toolsEnabled && toolDefs.length > 0 && <span className="rail-check">●</span>}
               {s.id === "controls" && (maxMinutes || inactivitySeconds || wakePhrase.trim() || interruptButton || guardrailEcho.trim() || recordingEnabled) && <span className="rail-check">●</span>}
-              {s.id === "presentation" && presentationEnabled && <span className="rail-check">●</span>}
+              {s.id === "presentation" && presentationEnabled && docIds.length > 0 && <span className="rail-check">●</span>}
               {s.id === "canvas" && canvasEnabled && <span className="rail-check">●</span>}
               {s.id === "site" && site.brand && <span className="rail-check">●</span>}
             </button>
