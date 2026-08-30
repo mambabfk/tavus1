@@ -115,6 +115,20 @@ export async function verifyAccount(email, password) {
   return email;
 }
 
+/* Self-serve password change: proving the CURRENT password is the
+   credential (verifyAccount also rate-limits guesses). Sessions are
+   stateless cookies, so existing sign-ins on other laptops stay valid. */
+export async function changePassword(email, current, next) {
+  email = normEmail(email);
+  if (String(next ?? "").length < 8) throw new Error("New password needs at least 8 characters.");
+  await verifyAccount(email, current);
+  const user = await kvGet(`user:${email}`);
+  if (!user) throw new Error("Account not found.");
+  const salt = crypto.randomBytes(16).toString("base64url");
+  await kvSet(`user:${email}`, { ...user, salt, hash: hashPassword(next, salt), resetAt: new Date().toISOString() });
+  return email;
+}
+
 /* Legacy shared-code helpers (no-Redis fallback). */
 export const checkPassword = (password) => safeEqual(password, process.env.BUILDER_PASSWORD);
 export const sessionCookie = () =>

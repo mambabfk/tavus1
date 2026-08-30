@@ -57,6 +57,21 @@ export async function kvMget(keys) {
 export const kvSetRaw = (key, value) => redis(["SET", key, String(value)]);
 export const kvGetRaw = (key) => redis(["GET", key]);
 
+/* Key scan — for small, bounded namespaces only (e.g. the team's user:*
+   accounts). Walks SCAN cursors with a hard cap so it can never run away. */
+export async function kvScanKeys(match, limit = 300) {
+  let cursor = "0";
+  const keys = [];
+  for (let i = 0; i < 20; i++) {
+    const out = await redis(["SCAN", cursor, "MATCH", match, "COUNT", "200"]);
+    const [next, chunk] = Array.isArray(out) ? out : ["0", []];
+    keys.push(...(chunk || []));
+    cursor = String(next);
+    if (cursor === "0" || keys.length >= limit) break;
+  }
+  return keys.slice(0, limit);
+}
+
 /* Hash helpers — one hash per user, one field per item. Each request only
    carries a single item, so a big collection never hits request-size caps. */
 export const kvHset = (key, field, value) => redis(["HSET", key, field, JSON.stringify(value)]);

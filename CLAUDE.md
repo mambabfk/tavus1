@@ -33,7 +33,15 @@ Anthropic key.
   minted by any signed-in user via `api/invites.js`, 30-day unused TTL,
   burned on use; "Team access" panel on the Account step). Sessions are HMAC
   cookies derived from the password — rotating it signs everyone out but
-  keeps accounts. Unset = open (local dev).
+  keeps accounts; they're stateless with no device limit, so the same
+  account signs in on any number of laptops (demo library is cloud-synced
+  by email; only the Tavus API key is per-browser). `api/account.js`:
+  GET → team accounts directory (kvScanKeys over `user:*`), POST → self-
+  serve password change (current password is the credential; other devices
+  stay signed in). Lost password = teammate mints a fresh personal invite,
+  sign up again with the same email + code. "👤 Your account" panel on the
+  Account step; multi-laptop + lost-password hints on the lock screen.
+  Unset = open (local dev).
 - `builder/api/demos.js` + `builder/api/demo-launch.js` + `builder/api/_kv.js`
   — **shareable demo links**. `POST /api/demos` (builder session required)
   stores an immutable snapshot `{name, site, controls, payload}` in Upstash

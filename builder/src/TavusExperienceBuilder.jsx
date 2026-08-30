@@ -3420,6 +3420,12 @@ export default function TavusExperienceBuilder() {
   const [invitesLoading, setInvitesLoading] = useState(false);
   const [inviteCreating, setInviteCreating] = useState(false);
   const [inviteError, setInviteError] = useState("");
+  // Account self-service (change password) + team accounts directory
+  const [teamUsers, setTeamUsers] = useState(null);
+  const [acctCur, setAcctCur] = useState("");
+  const [acctNew, setAcctNew] = useState("");
+  const [acctMsg, setAcctMsg] = useState(null); // {ok, text}
+  const [acctBusy, setAcctBusy] = useState(false);
 
   // Demo dashboard (per-slug stats from Redis)
   const [demoStats, setDemoStats] = useState(null);
@@ -7023,10 +7029,36 @@ export default function TavusExperienceBuilder() {
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || "couldn't load invites");
       setInvites(j.invites || []);
+      // The team directory rides along — same panel, one click.
+      try {
+        const ra = await fetch("/api/account");
+        const ja = await ra.json().catch(() => ({}));
+        if (ra.ok) setTeamUsers(ja.users || []);
+      } catch { /* directory is best-effort */ }
     } catch (e) {
       setInviteError(e.message);
     } finally {
       setInvitesLoading(false);
+    }
+  };
+
+  const changeAccountPassword = async () => {
+    setAcctBusy(true);
+    setAcctMsg(null);
+    try {
+      const r = await fetch("/api/account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ current: acctCur, next: acctNew }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "couldn't change the password");
+      setAcctCur(""); setAcctNew("");
+      setAcctMsg({ ok: true, text: "Password changed. Use the new one everywhere from now on — laptops already signed in stay signed in." });
+    } catch (e) {
+      setAcctMsg({ ok: false, text: e.message });
+    } finally {
+      setAcctBusy(false);
     }
   };
 
@@ -7094,6 +7126,11 @@ export default function TavusExperienceBuilder() {
                   onClick={() => { setAuthView((v) => (v === "signin" ? "signup" : "signin")); setAuthErr(""); }}>
                   {authView === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
                 </button>
+                <div style={{ color: "#A2A39B", fontSize: 11.5, marginTop: 10, lineHeight: 1.5 }}>
+                  {authView === "signin"
+                    ? "One account, any laptop — your saved demos follow your email. Lost your password? Ask a signed-in teammate for an invite code, then use \"Create an account\" with your email + that code to set a new one."
+                    : "Signing up with an email that already exists + a fresh invite code resets that account's password — demos stay attached to the email."}
+                </div>
               </>
             ) : (
               <>
@@ -7513,6 +7550,33 @@ export default function TavusExperienceBuilder() {
 
               {auth.required && auth.authed && (
                 <>
+                  <div className="subhead" style={{ marginTop: 26 }}>👤 Your account</div>
+                  {auth.email ? (
+                    <>
+                      <p className="field-hint" style={{ maxWidth: 640, marginBottom: 10 }}>
+                        Signed in as <b>{auth.email}</b>. <b>Your account works on any laptop</b> — open the builder there and sign in
+                        with the same email + password; your saved demos are cloud-synced to your account and follow you.
+                        The only per-browser thing is the Tavus API key (never stored server-side): paste it once on the new
+                        laptop with "Remember key" checked.
+                      </p>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", maxWidth: 640 }}>
+                        <input type="password" style={{ width: 200 }} value={acctCur} onChange={(e) => setAcctCur(e.target.value)}
+                          placeholder="current password" autoComplete="current-password" />
+                        <input type="password" style={{ width: 200 }} value={acctNew} onChange={(e) => setAcctNew(e.target.value)}
+                          placeholder="new password (8+ chars)" autoComplete="new-password" />
+                        <button className="pill-btn" disabled={acctBusy || !acctCur || acctNew.length < 8} onClick={changeAccountPassword}>
+                          {acctBusy ? "Changing…" : "Change password"}
+                        </button>
+                      </div>
+                      {acctMsg && <p className="field-hint" style={{ color: acctMsg.ok ? "var(--ok, #2E7D46)" : "var(--danger)", maxWidth: 640 }}>{acctMsg.text}</p>}
+                    </>
+                  ) : (
+                    <p className="field-hint" style={{ maxWidth: 640 }}>
+                      You're signed in with the legacy shared code. Create a personal account (sign out, then "Create account" with an
+                      invite code from a teammate) to get a cloud-synced demo library that follows you across laptops.
+                    </p>
+                  )}
+
                   <div className="skill-head" style={{ marginTop: 26 }}>
                     <div className="subhead" style={{ margin: 0 }}>Team access</div>
                     <button className="pill-btn primary" style={{ padding: "6px 14px", fontSize: 13 }} onClick={createInvite} disabled={inviteCreating}>
@@ -7522,6 +7586,8 @@ export default function TavusExperienceBuilder() {
                   <p className="field-hint" style={{ maxWidth: 560, marginBottom: 10 }}>
                     Each code admits <b>one</b> teammate: send it to them, they hit "Create account" on the lock screen with their own
                     email + password + the code. Codes burn on use and expire after 30 days unused — the list shows who used what.
+                    <b> Lost password?</b> Mint them a fresh code — signing up again with their email + the code sets a new password
+                    and keeps all their demos (they're attached to the email).
                   </p>
                   {inviteError && <p className="field-hint" style={{ color: "var(--danger)" }}>{inviteError}</p>}
                   {invites === null ? (
@@ -7551,6 +7617,21 @@ export default function TavusExperienceBuilder() {
                         </div>
                       ))}
                     </div>
+                  )}
+                  {teamUsers && teamUsers.length > 0 && (
+                    <>
+                      <div className="subhead" style={{ marginTop: 18 }}>Accounts on this deployment</div>
+                      <div className="kb-list" style={{ maxWidth: 640 }}>
+                        {teamUsers.map((u) => (
+                          <div key={u.email} className="kb-row">
+                            <span style={{ flex: 1, fontSize: 12.5 }}>{u.email}{u.email === auth.email ? " — you" : ""}</span>
+                            <span style={{ color: "var(--muted)", fontSize: 11.5 }}>
+                              {u.resetAt ? `password reset ${String(u.resetAt).slice(0, 10)}` : u.createdAt ? `since ${String(u.createdAt).slice(0, 10)}` : ""}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </>
               )}
