@@ -110,6 +110,18 @@ export default async function handler(req, res) {
         });
       } catch { /* deck attach is best-effort */ }
     }
+    // Guided browser flows: same treatment — a later builder launch with the
+    // toggle off DETACHES the skill from the PAL, which used to silently kill
+    // browser mode on every live link.
+    if (demo.browserUse?.config?.guided_flows?.length && payload.pal_id) {
+      try {
+        await fetch(`https://tavusapi.com/v2/pals/${encodeURIComponent(payload.pal_id)}/skills/browser_use`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", "x-api-key": process.env.TAVUS_API_KEY },
+          body: JSON.stringify({ config: demo.browserUse.config }),
+        });
+      } catch { /* flow attach is best-effort */ }
+    }
 
     const r = await fetch("https://tavusapi.com/v2/conversations", {
       method: "POST",

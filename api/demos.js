@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     try {
       const demo = await kvGet(`demo:${slug}`);
       if (!demo) { res.status(404).json({ error: "This demo link doesn't exist (or was created before storage was set up)." }); return; }
-      const { payload, presentation, ...pub } = demo; // visitors don't need the raw Tavus payload or the deck config
+      const { payload, presentation, browserUse, ...pub } = demo; // visitors don't need the raw Tavus payload or the skill configs
       if (pub.experience && typeof pub.experience === "object") {
         // The attendance-alert webhook and the memory store key stay
         // server-side (used by /api/experience and /api/demo-launch).
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   if (!isAuthed(req)) { res.status(401).json({ error: "Not signed in — enter the access code first." }); return; }
   if (!kvAvailable()) { res.status(500).json({ error: NO_KV_MSG }); return; }
 
-  const { name = "", site = {}, controls = {}, payload = null, experience = null, presentation = null } = req.body ?? {};
+  const { name = "", site = {}, controls = {}, payload = null, experience = null, presentation = null, browserUse = null } = req.body ?? {};
   if (!payload?.pal_id || !payload?.face_id) {
     res.status(400).json({ error: "The demo needs a PAL ID and Face ID before it can be shared." });
     return;
@@ -51,7 +51,10 @@ export default async function handler(req, res) {
   // this snapshot per visitor call to keep the link's slides stable.
   const deck = Array.isArray(presentation?.config?.document_ids) && presentation.config.document_ids.length
     ? { config: presentation.config } : null;
-  const size = JSON.stringify({ site, controls, payload, experience: exp, presentation: deck }).length;
+  // Guided browser flows — same re-attach-per-visitor treatment as the deck.
+  const flows = Array.isArray(browserUse?.config?.guided_flows) && browserUse.config.guided_flows.length
+    ? { config: browserUse.config } : null;
+  const size = JSON.stringify({ site, controls, payload, experience: exp, presentation: deck, browserUse: flows }).length;
   if (size > 800_000) {
     res.status(413).json({ error: "This demo config is too large to share — usually the site screenshot or logo; re-add a smaller one." });
     return;
@@ -71,6 +74,7 @@ export default async function handler(req, res) {
       payload,
       ...(exp ? { experience: exp } : {}),
       ...(deck ? { presentation: deck } : {}),
+      ...(flows ? { browserUse: flows } : {}),
     });
     // Index for the stats dashboard (newest first, capped).
     await kvLpush("demos:index", { slug, name: String(name).slice(0, 120), createdAt, createdBy });

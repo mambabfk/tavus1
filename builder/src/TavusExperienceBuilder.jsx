@@ -3303,6 +3303,28 @@ export default function TavusExperienceBuilder() {
   // fields stay correct as Tavus evolves the brand-new skill. Values live in
   // browserUseConfig (JSON string) — one source of truth with the raw box.
   const browserCfgObj = useMemo(() => { try { return JSON.parse(browserUseConfig || "{}") || {}; } catch { return {}; } }, [browserUseConfig]);
+  // Drop blank flows/steps before any PUT — "+ Add flow"/"+ Step" leave empty
+  // husks behind, and one husk makes Tavus reject the WHOLE config (which at
+  // launch is a single quiet log line). Also strips empty step URLs (a
+  // cleared ⚡ field leaves url:"" — a navigation target to nowhere) and
+  // enforces Tavus's 20-flow/50-step caps.
+  const sanitizeBrowserCfg = (cfg) => {
+    const flows = (Array.isArray(cfg?.guided_flows) ? cfg.guided_flows : [])
+      .map((f) => ({
+        ...f,
+        steps: (Array.isArray(f?.steps) ? f.steps : [])
+          .map((st) => {
+            const s = { ...st };
+            if (typeof s.url === "string" && !s.url.trim()) delete s.url;
+            return s;
+          })
+          .filter((s) => String(s.task ?? "").trim() || String(s.prompt ?? "").trim() || s.slide != null)
+          .slice(0, 50),
+      }))
+      .filter((f) => String(f?.name ?? "").trim() && f.steps.length)
+      .slice(0, 20);
+    return { ...cfg, guided_flows: flows };
+  };
   const setBrowserCfgField = (k, v) => {
     const next = { ...browserCfgObj };
     const empty = v === "" || v === null || v === undefined || (Array.isArray(v) && !v.length);
@@ -3391,8 +3413,9 @@ export default function TavusExperienceBuilder() {
     if (browserUseConfig.trim()) {
       try { cfg = JSON.parse(browserUseConfig); } catch { addLog("err", "The Browser Use config isn't valid JSON — fix it first."); return; }
     }
-    if (!Array.isArray(cfg.guided_flows) || !cfg.guided_flows.length) {
-      addLog("err", "Browser Use needs at least one guided flow (it runs pre-authored walkthroughs, never free-browses) — add or ✨ script one first.");
+    cfg = sanitizeBrowserCfg(cfg); // launch PUTs the same sanitized shape — keep the two in lockstep
+    if (!cfg.guided_flows.length) {
+      addLog("err", "Browser Use needs at least one COMPLETE guided flow — a name plus at least one filled-in step (blank flows/steps are dropped before the attach). Add or ✨ script one first.");
       return;
     }
     if (cfg.guided_flows.some((f) => (Array.isArray(f?.steps) ? f.steps : []).some((st) => st?.slide != null && st.slide !== "")) && !cfg.slide_document_id) {
@@ -4396,6 +4419,18 @@ export default function TavusExperienceBuilder() {
       );
     }
 
+    // The flows live on the PAL, but the model invokes them BY NAME — without
+    // this line it narrates the walkthrough instead of opening the browser,
+    // and stalls between steps waiting for the visitor (both seen live).
+    const guidedFlows = browserUseEnabled && Array.isArray(browserCfgObj.guided_flows)
+      ? browserCfgObj.guided_flows.filter((f) => String(f?.name ?? "").trim())
+      : [];
+    if (guidedFlows.length) {
+      parts.push(
+        `You can run live guided browser walkthroughs — start one by its exact name when its moment comes: ${guidedFlows.map((f) => `"${String(f.name).trim()}"${String(f?.description || "").trim() ? ` (${String(f.description).trim().slice(0, 90)})` : ""}`).join("; ")}. Once started, run it straight through step by step without waiting for the visitor between steps — pause only if they interrupt, then resume where you left off.`
+      );
+    }
+
     // Browse plan rides conversational_context (per-demo, like canvas rules).
     if (browserUseEnabled && browsePlan.trim()) {
       parts.push(
@@ -4497,7 +4532,7 @@ export default function TavusExperienceBuilder() {
       if (recS3ExternalId.trim()) body.properties.recording_storage.external_id = recS3ExternalId.trim();
     }
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan, memoryEnabled, memoryMode, memoryKey, presentationEnabled, docIds, slidesTrigger]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan, browserCfgObj, memoryEnabled, memoryMode, memoryKey, presentationEnabled, docIds, slidesTrigger]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
@@ -6234,10 +6269,14 @@ export default function TavusExperienceBuilder() {
           controls: controlsConfig,
           payload: conversationPayload,
           experience: experienceConfig,
-          // The deck lives on the PAL, which any later builder launch can
-          // rewrite — demo-launch re-attaches this per visitor call so the
-          // link keeps its slides no matter what ran on the PAL since.
+          // Deck + guided flows live on the PAL, which any later builder
+          // launch can rewrite — demo-launch re-attaches these per visitor
+          // call so the link keeps working no matter what ran on the PAL.
           presentation: presentationEnabled && docIds.length ? presentationPayload : null,
+          browserUse: (() => {
+            const bc = sanitizeBrowserCfg(browserCfgObj);
+            return browserUseEnabled && bc.guided_flows.length ? { config: bc } : null;
+          })(),
         }),
       });
       const j = await res.json().catch(() => ({}));
@@ -6903,33 +6942,48 @@ export default function TavusExperienceBuilder() {
         addLog("ok", `Tools attached: ${toolDefs.map((t) => t.function.name).join(", ")}.`);
       });
 
-      // Browser Use runs pre-authored guided flows only — with no flows we
-      // SKIP it (never abort the whole launch over one section).
-      let browserUseReady = false;
+      // Browser Use runs pre-authored guided flows only — with no complete
+      // flows we SKIP the attach and CLEAR any stale flows the PAL carries
+      // (same fail-safe shape as presentation: a net-new demo must never run
+      // the previous demo's walkthroughs).
+      let browserCfg = null;
       if (browserUseEnabled) {
         let bc = {};
-        try { bc = browserUseConfig.trim() ? JSON.parse(browserUseConfig) : {}; } catch { /* bad JSON — reported below */ }
-        browserUseReady = Array.isArray(bc.guided_flows) && bc.guided_flows.length > 0;
-        if (!browserUseReady) {
-          addLog("err", "Browser Use is on but has no guided flows — SKIPPING it this launch. Script one on the Presentation step (the skill runs pre-authored walkthroughs; it never free-browses).");
+        let badJson = false;
+        try { bc = browserUseConfig.trim() ? JSON.parse(browserUseConfig) : {}; } catch { badJson = true; }
+        bc = sanitizeBrowserCfg(bc);
+        if (bc.guided_flows.length) {
+          browserCfg = bc;
+        } else {
+          addLog("err", badJson
+            ? "The Browser Use config isn't valid JSON — SKIPPING it this launch. Fix it on the Presentation step."
+            : "Browser Use is on but has no complete guided flows — SKIPPING it this launch. A flow needs a name and at least one filled-in step (Presentation step).");
+          if (palState) {
+            try {
+              await tavusFetch("DELETE", `/pals/${pal}/skills/browser_use`);
+              addLog("ok", "Cleared a previous demo's guided flows from the PAL so it can't run the wrong walkthrough.");
+            } catch { /* nothing attached */ }
+          }
         }
       }
       // Tavus-authored skills (internet_search / browser_use) — same PUT
-      // pattern as presentation/canvas; they persist on the PAL.
-      for (const [on, skillId, cfgText] of [
-        [internetSearchEnabled, "internet_search", ""],
-        [browserUseEnabled && browserUseReady, "browser_use", browserUseConfig],
+      // pattern as presentation/canvas; they persist on the PAL. Fail-SAFE
+      // like the deck: a rejected attach detaches rather than leaving the
+      // call running on whatever config the PAL carried before.
+      for (const [on, skillId, cfg] of [
+        [internetSearchEnabled, "internet_search", {}],
+        [!!browserCfg, "browser_use", browserCfg],
       ]) {
         if (!on) continue;
         await section(skillId.replace("_", " "), async () => {
-          let cfg = {};
-          if (String(cfgText).trim()) {
-            try { cfg = JSON.parse(cfgText); }
-            catch { throw new Error(`the ${skillId} config isn't valid JSON — fix or clear it (browser_use lives on the Presentation step now).`); }
-          }
           addLog("info", `Attaching the ${skillId.replace("_", " ")} skill…`);
-          await tavusFetch("PUT", `/pals/${pal}/skills/${skillId}`, { config: cfg });
+          await tavusFetch("PUT", `/pals/${pal}/skills/${skillId}`, { config: cfg || {} });
           addLog("ok", `${skillId.replace("_", " ")} attached (persists on the PAL until detached).`);
+        }, async () => {
+          try {
+            await tavusFetch("DELETE", `/pals/${pal}/skills/${skillId}`);
+            addLog("info", `Cleared the PAL's ${skillId.replace("_", " ")} skill so the call can't run an older config — fix the config and relaunch. (If the error above says 403/404, the skill may not be granted on this Tavus account yet — ask your account team.)`);
+          } catch { /* nothing attached */ }
         });
       }
 
@@ -8597,7 +8651,7 @@ export default function TavusExperienceBuilder() {
                                 onChange={(e) => putStep(i, j, { ...st, prompt: e.target.value })}
                               />
                               {t3 === "task" && (
-                                <input className="mono" style={{ ...inp2, width: "100%" }} placeholder="⚡ Page URL — paste from your browser's address bar and the browser JUMPS here instantly (no URL = it scrolls & clicks its way there, slow)" value={st.url || ""} onChange={(e) => putStep(i, j, { ...st, url: e.target.value })} />
+                                <input className="mono" style={{ ...inp2, width: "100%" }} placeholder="⚡ Page URL — paste from your browser's address bar and the browser JUMPS here instantly (no URL = it scrolls & clicks its way there, slow)" value={st.url || ""} onChange={(e) => { const v = e.target.value; const s2 = { ...st }; if (v.trim()) s2.url = v; else delete s2.url; putStep(i, j, s2); }} />
                               )}
                               {t3 === "task" && !String(st.prompt || "").trim() && <span className="field-hint" style={{ color: "#b4552d" }}>⚠ browser steps need narration — silence here reads as dead air</span>}
                             </div>

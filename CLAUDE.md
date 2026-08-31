@@ -297,7 +297,18 @@ non-technical users; ids unchanged):
    flows BY NAME), and a raw-JSON drawer over the same `browserUseConfig`.
    Launch + validate refuse empty `guided_flows` / slide steps without a
    deck. On launch `PUT /pals/{id}/skills/{skill_id}` `{config}`; per-skill
-   Detach buttons (`DELETE …/skills/{id}`). Browser view arrives as the
+   Detach buttons (`DELETE …/skills/{id}`). **Flow coherence rules** (from
+   the "browser mode isn't working" audit — mirrors the deck's): both
+   validate and launch PUT the same `sanitizeBrowserCfg` shape (blank
+   flows/steps dropped, empty step `url` keys stripped, 20/50 caps);
+   toggle-on-with-no-complete-flows SKIPS the attach and CLEARS stale flows
+   off the PAL; a failed attach fail-SAFEs (DELETE — the log also points at
+   the account-grant cause on 403/404); when flows exist,
+   `conversationPayload` names them in context ("start one by its exact
+   name… run it straight through step by step without waiting between
+   steps" — the model otherwise narrates instead of opening the browser,
+   or stalls mid-flow waiting for the visitor); share links snapshot
+   `browserUse: {config}` and `demo-launch` re-PUTs it per visitor call. Browser view arrives as the
    replica's screenVideo track — same path as slides, already rendered by
    the custom UI (and the duet joiner's side panel; the duet beat cue says
    "start your guided browser flow \"X\"").
