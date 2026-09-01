@@ -3,7 +3,10 @@ import { useObservableEvent } from './cvi-events-hooks';
 
 const CAPTION_CLEAR_DELAY_MS = 2000;
 
-export const useClosedCaption = () => {
+// `enabled` gates the per-chunk setState: utterance.streaming fires roughly
+// per word while anyone speaks, and captions default OFF — updating state
+// for a hidden UI was the highest-frequency React work on a plain call.
+export const useClosedCaption = (enabled = true) => {
 	const [caption, setCaption] = useState(null);
 	const clearTimer = useRef(null);
 
@@ -24,6 +27,7 @@ export const useClosedCaption = () => {
 	useObservableEvent(
 		useCallback(
 			(event) => {
+				if (!enabled) return;
 				if (event.event_type === 'conversation.utterance.streaming') {
 					const { role, speech, final } = event.properties;
 					if (role === 'user' || role === 'replica') {
@@ -31,7 +35,7 @@ export const useClosedCaption = () => {
 					}
 				}
 			},
-			[update]
+			[update, enabled]
 		)
 	);
 

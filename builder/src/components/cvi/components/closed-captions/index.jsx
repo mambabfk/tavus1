@@ -64,7 +64,7 @@ ClosedCaptionsButton.displayName = 'ClosedCaptionsButton';
 
 export const ClosedCaptions = memo(() => {
 	const { isEnabled } = useClosedCaptionsContext();
-	const caption = useClosedCaption();
+	const caption = useClosedCaption(isEnabled);
 
 	if (!isEnabled || !caption || !caption.text) {
 		return null;

@@ -1024,7 +1024,11 @@ const BUILDER_CSS = `
         .holo-box::before { left:12px; }
         .holo-box::after { right:12px; }
         /* portrait glowing screen, width bounded by the height budget */
-        .holo-screen { position:relative; width:min(400px, 84vw, calc(58vh * 9 / 16)); aspect-ratio:9/16; border-radius:12px; overflow:hidden; background:radial-gradient(120% 90% at 50% 26%, #a6d4fb, #4f9be4 62%, #2f6fb6); box-shadow:inset 0 0 60px rgba(255,255,255,.4), inset 0 0 0 2px rgba(20,40,70,.35), 0 0 54px rgba(96,168,255,.4); animation:hologlow 5s ease-in-out infinite; }
+        /* Static glow: the pulsing box-shadow (hologlow) repainted every frame
+           for the whole call, which starves audio playout on marginal machines
+           (audio lags lipsync, then speeds up). The bright static glow reads
+           the same at demo distance. */
+        .holo-screen { position:relative; width:min(400px, 84vw, calc(58vh * 9 / 16)); aspect-ratio:9/16; border-radius:12px; overflow:hidden; background:radial-gradient(120% 90% at 50% 26%, #a6d4fb, #4f9be4 62%, #2f6fb6); box-shadow:inset 0 0 60px rgba(255,255,255,.4), inset 0 0 0 2px rgba(20,40,70,.35), 0 0 60px rgba(96,168,255,.48); }
         .demo-hologram .demo-stage.holo-stage { position:absolute; inset:0; width:100%; height:100%; max-width:none; aspect-ratio:auto; background:transparent; border:none; border-radius:0; box-shadow:none; }
         /* the video beams in over the glow: crop to fill the portrait panel */
         .holo-stage .cvi-wrap, .holo-stage .cvi-video-pane > * > * { background:transparent; }
@@ -2841,7 +2845,10 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
   };
   // Call over: with any post-call element configured, land on the feedback
   // screen (clearing just the conversation) instead of leaving the page.
-  const handleLeave = () => {
+  // useCallback matters here: this is a prop of the memoized <Conversation>
+  // — a fresh function every render broke the memo, so per-utterance state
+  // (coach feed) re-rendered the whole call surface and janked audio playout.
+  const handleLeave = useCallback(() => {
     if (postEnabled && conversationId) {
       setPostCall(conversationId);
       setFbRating(0); setFbComment(""); setFbSent(false);
@@ -2849,7 +2856,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
       return;
     }
     onExit();
-  };
+  }, [postEnabled, conversationId, onCallEnd, onExit]);
   const handleExit = () => { exitFullscreen(); onExit(); };
 
   // Theme override: Claude-extracted brand colors/font applied as CSS vars.

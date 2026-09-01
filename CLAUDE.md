@@ -704,6 +704,32 @@ Full-screen branded shell rendered when `siteMode` is true.
   CSS sizes them off `100vw`, wrong inside a contained stage). Phone format
   keeps the overlay behavior — too narrow to split.
 
+### A/V smoothness invariants (from the "audio lags lipsync then speeds
+up to catch up" audit — that symptom is WebRTC NetEQ draining a playout
+buffer the page starved)
+
+- **No perpetual paint animations while a call is live.** The vendored
+  call container's infinite `background-position` gradient animation and
+  the hologram's pulsing `box-shadow` (`hologlow`) were the culprits —
+  both now static. One-shot animations (`shotdim`/`shotrise`, connect
+  spinners) are fine; anything `infinite` that invalidates paint
+  (background-position, box-shadow, filter) is not.
+- **The remote-audio sink never unmounts mid-call.** `MainVideo` renders
+  its one `DailyAudioTrack` on every branch (connecting states included),
+  keyed to the last known replica id — a detached/re-attached audio
+  element restarts playout with accumulated delay, then audibly
+  accelerates.
+- **No mic input processors.** `use-cvi-call` joins without Krisp
+  noise-cancellation — the WASM processing competes with remote playout
+  on marginal demo laptops.
+- **Keep the memo firewall intact.** `handleLeave` (a prop of the
+  memoized `Conversation`) stays `useCallback`-wrapped; per-utterance
+  state (coach feed, captions) must not re-render the call surface.
+  `useClosedCaption(enabled)` is gated — captions default off, so its
+  per-word setState was the highest-frequency React work on a plain call.
+- Live diagnosis: `chrome://webrtc-internals` → receive-audio
+  jitter-buffer target rising then dropping during the drift.
+
 ### Fixed — custom CVI call UI used to hang on "Connecting"
 
 Root cause (confirmed & fixed): the vendored `Conversation` component joined

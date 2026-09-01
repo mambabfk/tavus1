@@ -18,7 +18,10 @@
 	max-height: 90vh;
 	background: linear-gradient(135deg, #4b5563 0%, #1f2937 100%);
 	background-size: 400% 400%;
-	animation: gradient 15s ease infinite;
+	/* No animation: an infinitely animating background-position repaints a
+	   stage-sized layer every frame for the whole call — the sustained paint
+	   load starves audio playout (audio lags lipsync, then time-compresses
+	   to catch up). A static gradient reads identically. */
 }
 
 /* Aspect ratio tracks the wrapper's actual width: portrait when narrow

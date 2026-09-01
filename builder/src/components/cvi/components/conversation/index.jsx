@@ -98,16 +98,28 @@ const MainVideo = React.memo(() => {
 		}
 	}, [replicaId, videoState.state]);
 
+	// The ONE remote-audio sink, rendered on every branch below (and keyed to
+	// the last known replica id): the connecting states and reconnect blips
+	// used to unmount it, and a detached/re-attached audio element restarts
+	// playout with accumulated delay, then audibly accelerates to catch up.
+	// Audio arriving before the video is 'playable' now has a sink from the
+	// first packet instead of buffering behind the connect screen.
+	const lastReplicaIdRef = useRef('');
+	if (replicaId) lastReplicaIdRef.current = replicaId;
+	const audioSink = lastReplicaIdRef.current
+		? <DailyAudioTrack sessionId={lastReplicaIdRef.current} />
+		: null;
+
 	if (meetingState === 'left-meeting' || meetingState === 'error') {
 		return <LeavingState />;
 	}
 
 	if (!hasReplicaConnected) {
-		return <ConnectingState />;
+		return <>{audioSink}<ConnectingState /></>;
 	}
 
 	if (!replicaId) {
-		return <ConnectingState />;
+		return <>{audioSink}<ConnectingState /></>;
 	}
 
 	// Priority: the user's own screenshare > the PAL's slides > the PAL's face.
@@ -131,7 +143,7 @@ const MainVideo = React.memo(() => {
 				${videoState.isOff && !showingScreen ? styles.mainVideoHidden : ''}`}
 			/>
 
-			<DailyAudioTrack sessionId={replicaId} />
+			{audioSink}
 		</div>
 	);
 });
