@@ -242,6 +242,22 @@ non-technical users; ids unchanged):
    mirrors the canvas inject): weaves the deck — trigger mode, presenter
    style, talk track — into the persona + objectives via the revise
    machinery, so the flow actually reaches and finishes the deck.
+   **Vision-grounded talk track** (portal AI spec): ⬆ Slide images (PNG/JPG
+   exports, ≤20, canvas-downscaled ≤240KB each, session-only `slideShots` —
+   never saved) ride `kind:"talktrack"` as base64 `images` → one vision
+   block per slide; TALKTRACK_SYSTEM writes presenter-instructions (never
+   verbatim script / stage directions), grounds every note in the visible
+   slide, 2-4 conversational moments per deck, `FLAGS:` lines surface as
+   Review log lines. Text-only stays the fallback (log says it's
+   unverified). **The Brief** (same spec): `buildBrief()` compiles a
+   `<brief>` block from existing intake state (use case, audience,
+   presenter=ai_avatar, goal, tone, must cover/avoid, product, brand) and
+   rides `context.brief` on talktrack/canvas/vision/browserflow/revise/edit
+   calls; the server prepends it to the USER message (never for
+   kind:"demo"/"score"). FLOW/DEMO objectives prompts carry the spec's
+   structural rules (mode detection first, escalations→guardrails never
+   steps, branches exit, loop counters, explicit "| var" captures,
+   converged close); REVISE/EDIT carry its merge-with-implications rules.
    **Deck coherence rules** (from the "presentation isn't working" audit):
    toggle-on-with-no-docs at launch SKIPS the attach and CLEARS any stale
    deck the PAL carries (loud log both times; the rail ● needs docs, not

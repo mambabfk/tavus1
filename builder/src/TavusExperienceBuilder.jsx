@@ -3345,7 +3345,7 @@ export default function TavusExperienceBuilder() {
       const res = await fetch("/api/generate-persona", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "browserflow", vibe: desc, context: { brand: site.brand, product: personaBrief.product || personaBrief.vibe } }),
+        body: JSON.stringify({ kind: "browserflow", vibe: desc, context: { brand: site.brand, product: personaBrief.product || personaBrief.vibe, brief: buildBrief() } }),
       });
       const text = await res.text();
       if (!res.ok || text.startsWith("[error]")) {
@@ -3520,6 +3520,10 @@ export default function TavusExperienceBuilder() {
   const [presentPrompt, setPresentPrompt] = useState("");
   const [talkTrack, setTalkTrack] = useState([]); // per-slide speaker notes
   const [talkTrackDrafting, setTalkTrackDrafting] = useState(false);
+  // Session-only slide images (base64) for vision-grounded talk-track drafts —
+  // deliberately NOT saved with scenarios (too big; the notes are the artifact).
+  const [slideShots, setSlideShots] = useState([]);
+  const slideFileRef = useRef(null);
 
   // Objectives & Guardrails
   const [objectivesEnabled, setObjectivesEnabled] = useState(false);
@@ -3797,6 +3801,7 @@ export default function TavusExperienceBuilder() {
           context: {
             prompt: personaDraft, objectives: objectivesText, guardrails: guardrailsText, greeting,
             headline: site.headline, tagline: site.tagline, cta: site.cta, canvasPlaybook, brand: site.brand,
+            brief: buildBrief(),
           },
         }),
       });
@@ -4944,6 +4949,7 @@ export default function TavusExperienceBuilder() {
             guardrails: guardrailsEnabled ? guardrailsText : "",
             presentation: presentationContext(),
             greeting: greeting.trim(),
+            brief: buildBrief(),
           },
         }),
       });
@@ -5197,7 +5203,7 @@ export default function TavusExperienceBuilder() {
         body: JSON.stringify({
           kind: "vision",
           vibe: visionVibe,
-          context: { product: personaBrief.product, brand: site.brand },
+          context: { product: personaBrief.product, brand: site.brand, brief: buildBrief() },
         }),
       });
       const text = await res.text();
@@ -5435,20 +5441,69 @@ export default function TavusExperienceBuilder() {
     }
   };
 
-  /* ── Talk track: Claude drafts per-slide speaker notes ── */
+  /* ── The Brief (portal AI spec): one block sent on every AI call so no
+     generation happens blind. Compiled from existing intake state — the
+     replace-a-flow arc + fine-tune drawer ARE the form; no new inputs. ── */
+
+  const buildBrief = () => {
+    const L = [];
+    const add = (k, v) => { const s = String(v ?? "").trim(); if (s) L.push(`${k}: ${s.slice(0, 320)}`); };
+    add("Use case", demoReplacing || personaBrief.vibe || ideaText);
+    add("Audience", personaBrief.audience);
+    L.push("Presenter: ai_avatar (a Tavus AI human on live video)");
+    add("Goal when the conversation ends", personaBrief.goal);
+    add("Tone", personaBrief.tone);
+    add("Must cover", personaBrief.mustCover);
+    add("Must avoid", personaBrief.avoid);
+    add("Product context", personaBrief.product);
+    add("Brand", site.brand);
+    return L.length > 1 ? `<brief>\n${L.join("\n")}\n</brief>` : "";
+  };
+
+  /* ── Talk track: Claude drafts per-slide speaker notes. With slide images
+     uploaded, the draft is VISION-GROUNDED — one image block per slide, notes
+     grounded in what's actually on each one. ── */
+
+  const onSlideFiles = (files) => {
+    const room = 20 - slideShots.filter(Boolean).length;
+    const list = [...files].filter((f) => f.type.startsWith("image/")).slice(0, Math.max(0, room));
+    if (!list.length) { if (room <= 0) addLog("err", "20 slides max per draft — clear the images to start over."); return; }
+    const base = slideShots.length;
+    list.forEach((file, idx) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          let data = "";
+          for (const [w, q] of [[1280, 0.75], [1100, 0.66], [960, 0.58]]) {
+            const scale = Math.min(1, w / img.width);
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.max(1, Math.round(img.width * scale));
+            canvas.height = Math.max(1, Math.round(img.height * scale));
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            data = canvas.toDataURL("image/jpeg", q);
+            if (data.length <= 240_000) break;
+          }
+          // Indexed insert keeps selection order even when loads finish out of order.
+          setSlideShots((s) => { const n = [...s]; n[base + idx] = data; return n; });
+        };
+        img.onerror = () => addLog("err", `Couldn't read ${file.name}.`);
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
 
   const draftTalkTrack = async () => {
-    const slideCount = talkTrack.length || 8;
+    const shots = slideShots.filter(Boolean);
+    const slideCount = shots.length || talkTrack.length || 8;
     const vibe = [
       ideaText.trim(),
-      personaBrief.product && `Product: ${personaBrief.product}`,
-      personaBrief.goal && `Goal: ${personaBrief.goal}`,
-      personaBrief.audience && `Audience: ${personaBrief.audience}`,
       `The deck has ${slideCount} slides.`,
       talkTrack.some((t) => t?.trim()) && `Current notes to improve on:\n${talkTrack.map((t, i) => `${i + 1}: ${t || "(empty)"}`).join("\n")}`,
     ].filter(Boolean).join("\n");
-    if (!ideaText.trim() && !personaBrief.product) {
-      addLog("err", "Describe the demo first (New Demo or Persona step) so Claude knows what the deck is about.");
+    if (!shots.length && !ideaText.trim() && !personaBrief.product) {
+      addLog("err", "Upload slide images, or describe the demo first (New Demo or Persona step), so Claude knows what the deck is about.");
       return;
     }
     setTalkTrackDrafting(true);
@@ -5456,7 +5511,12 @@ export default function TavusExperienceBuilder() {
       const res = await fetch("/api/generate-persona", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "talktrack", vibe }),
+        body: JSON.stringify({
+          kind: "talktrack",
+          vibe,
+          context: { brief: buildBrief() },
+          images: shots.map((d) => { const m = /^data:(image\/\w+);base64,(.+)$/s.exec(d); return m ? { media_type: m[1], data: m[2] } : null; }).filter(Boolean),
+        }),
       });
       const text = await res.text();
       if (!res.ok || text.startsWith("[error]")) {
@@ -5466,13 +5526,23 @@ export default function TavusExperienceBuilder() {
         throw new Error(msg || "drafting failed");
       }
       const rows = [];
+      let inFlags = false;
       for (const line of text.split("\n")) {
-        const m = line.trim().match(/^(?:slide\s*)?(\d+)\s*[:.)-]\s*(.+)/i);
+        const t = line.trim();
+        if (/^FLAGS:?\s*$/i.test(t)) { inFlags = true; continue; }
+        if (inFlags) {
+          const f = t.replace(/^-\s*/, "").trim();
+          if (f) addLog("err", `Review: ${f}`);
+          continue;
+        }
+        const m = t.match(/^(?:slide\s*)?(\d+)\s*[:.)-]\s*(.+)/i);
         if (m) rows[parseInt(m[1], 10) - 1] = m[2].trim();
       }
       if (!rows.length) throw new Error("Couldn't parse the draft — try again.");
       setTalkTrack(rows.map((r) => r || ""));
-      addLog("ok", `Talk track drafted for ${rows.length} slides — align it with your actual deck, Claude hasn't seen the slides.`);
+      addLog("ok", shots.length
+        ? `Talk track drafted from your ${shots.length} slide image${shots.length > 1 ? "s" : ""} — every note is grounded in what's on that slide.`
+        : `Talk track drafted for ${rows.length} slides — align it with your actual deck (upload slide images and redraft to ground it), Claude hasn't seen the slides.`);
     } catch (e) {
       addLog("err", `Talk track: ${e.message}`);
     } finally {
@@ -6572,7 +6642,7 @@ export default function TavusExperienceBuilder() {
       const res = await fetch("/api/generate-persona", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind: "canvas", vibe }),
+        body: JSON.stringify({ kind: "canvas", vibe, context: { brief: buildBrief() } }),
       });
       const text = await res.text();
       if (!res.ok || text.startsWith("[error]")) {
@@ -8555,8 +8625,27 @@ export default function TavusExperienceBuilder() {
                 </button>
               </div>
               <p className="field-hint" style={{ maxWidth: 560, marginBottom: 10 }}>
-                Speaker notes per slide — the AI follows them in its own voice as it presents. Claude can draft them from your use case (it can't see the slides, so give the draft a read).
+                Speaker notes per slide — the AI follows them in its own voice as it presents. <b>Upload slide images</b> (export your deck as PNG/JPG, pick them in order)
+                and the draft is grounded in what's actually on each slide; without images Claude drafts from the use case, so give that version a read.
               </p>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
+                <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12 }} disabled={!presentationEnabled} onClick={() => slideFileRef.current?.click()}>
+                  ⬆ Slide images{slideShots.filter(Boolean).length ? ` (${slideShots.filter(Boolean).length}/20)` : ""}
+                </button>
+                {slideShots.filter(Boolean).length > 0 && (
+                  <button className="pill-btn ghost" style={{ padding: "5px 12px", fontSize: 12 }} onClick={() => setSlideShots([])}>✕ Clear images</button>
+                )}
+              </div>
+              <input ref={slideFileRef} type="file" accept="image/*" multiple style={{ display: "none" }}
+                onChange={(e) => { onSlideFiles(e.target.files || []); e.target.value = ""; }} />
+              {slideShots.filter(Boolean).length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10, maxWidth: 640 }}>
+                  {slideShots.filter(Boolean).map((d, i) => (
+                    <img key={i} src={d} alt={`Slide ${i + 1}`} title={`Slide ${i + 1}`}
+                      style={{ height: 46, borderRadius: 6, border: "1px solid var(--border)" }} />
+                  ))}
+                </div>
+              )}
               {talkTrack.length === 0 && (
                 <button className="pill-btn" style={{ marginBottom: 8 }} disabled={!presentationEnabled}
                   onClick={() => setTalkTrack(["", "", "", ""])}>+ Start a talk track</button>

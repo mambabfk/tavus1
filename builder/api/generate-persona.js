@@ -64,6 +64,7 @@ Apply the feedback precisely and return ONLY valid JSON (no code fences, no comm
 
 Rules:
 - Change exactly what the feedback asks for; keep everything else as close to the original as possible. This is an edit, not a rewrite.
+- Apply the feedback's implications, not just its words: "make this handle troubleshooting too" means adding the mode AND scoping existing single-mode language ("the deck is the spine of the call" becomes "…of onboarding calls"). If the feedback conflicts with an existing rule or the brief, apply what you can and flag the conflict in "note".
 - Feedback may include a REHEARSAL TRANSCRIPT — a simulated run of this config. Treat it as evidence of how the config plays (find WHERE in the prompt/objectives the flagged behavior comes from and fix the cause); never copy transcript lines into the prompt.
 - Prompt: keep (or move it toward) the Tavus Prompting Guide structure — "## Identity & Role", "## Personality & Conversational Style", "## Core Behaviors", "## Response Style Rules", "## Perception", "## Guardrails & Constraints", "## Conversation Flow" — with voice-first spoken content (short sentences, contractions, no stage directions), second person, one question at a time, never claims to be human, never invents pricing/features/commitments, 300–600 words.
 - Perception input (what the PAL sees on camera/screen) is private awareness, not conversation: the prompt must keep — or gain, if it's missing — a rule that the PAL never announces or describes its own observations ("I can see that…", "I'm noticing…"), and reacts to deliberately shared content by discussing the content itself, never the act of seeing it.
@@ -160,12 +161,20 @@ Emotion rules: give both personas an explicit EMOTIONAL ARC tied to the outline 
 
 const TALKTRACK_SYSTEM = `You write slide-by-slide talk tracks for an AI human presenting a deck on a live video call.
 
-Given the demo's use case (and optionally what's on the slides), write speaker notes for each slide: what to SAY and what to ask. Spoken style — short sentences, contractions, no markdown. Each slide gets 1-3 sentences plus, where natural, one engaging question to keep it a conversation rather than a lecture.
+When slide IMAGES are provided you can see the actual slides — ground every note in what is visibly on that slide, in the order given, and never invent features, numbers, or UI elements not shown. Without images, write from the use case and keep notes general enough to survive contact with the real deck.
 
-Return EXACTLY this format, one line per slide, nothing else:
+The <brief> (when present) defines the use case, audience, and goal — obey it completely. Use cases differ structurally, not cosmetically: a sales demo builds toward value and closes with a next step; onboarding sells nothing (they already bought) — its questions collect setup information and it closes with something done and something owed; troubleshooting/support notes say what to check and why; training explains the why behind each step with one comprehension check per major concept.
+
+The presenter is an AI human: write every note as INSTRUCTIONS TO THE PRESENTER — never a verbatim script, never human stage directions ("point at", "pause here", "gesture"). Phrase visual references so they can only land in speech ("draw attention to the Type column"). Interactive moments are behavior: Ask: "…" — then stop, wait for the answer, and use it specifically for the rest of the walkthrough.
+
+Structure: one note per slide, matching slide order; 2-4 conversational moments across the WHOLE deck, placed where the audience naturally has questions — never one per slide, never "any questions?"; every question forces them to map the content to their own situation; each note ends with the transition to the next slide, and the final note closes on the brief's goal. Respect the brief's must-avoid absolutely.
+
+Return EXACTLY this format, one line per slide (spoken style — short sentences, contractions, no markdown). Append FLAGS lines only when something needs the operator's eyes (an unreadable slide, a claim you couldn't ground):
 1: <talk track for slide 1>
 2: <talk track for slide 2>
-...`;
+...
+FLAGS:
+- <anything the operator should review>`;
 
 const DEMO_SYSTEM = `You design complete Tavus CVI demo templates. Given a plain-English idea for a demo, draft every configurable element so it reads coherently for THAT use case — never recycle wording from unrelated products.
 
@@ -193,7 +202,7 @@ Return ONLY valid JSON (no code fences, no commentary):
   "coach": null OR — ONLY when coach mode is a selected feature — {"title":"scenario title, character-forward","scene":"one tense connecting-screen line","talkHint":"3-6 word talk-meter nudge","criteria":["behavior label | optional, comma keywords", "5-7 total"]}
 }
 
-Rules: 3-5 objectives in conversation order (an objective entry may be a conditional branch written as "if <condition> -> <detour objective>", placed immediately after its parent objective — use one when the use case naturally routes, e.g. new vs. returning customers); 2-4 guardrails; every string speaks specifically to the described use case; greetings and page copy are warm and concise; no markdown anywhere.
+Rules: 3-5 objectives in conversation order (an objective entry may be a conditional branch written as "if <condition> -> <detour objective>", placed immediately after its parent objective — use one when the use case naturally routes, e.g. new vs. returning customers); when the use case spans more than one conversation type, the FIRST objective sorts which type this call is; escalation triggers (billing, legal, anger, asking for a human) go in guardrails, never as objectives — an objective only fires when the flow reaches it; anything that must be collected gets its own "capture X" objective with a "| var" suffix; the final objective converges every lane on the same close. 2-4 guardrails; every string speaks specifically to the described use case; greetings and page copy are warm and concise; no markdown anywhere.
 FEATURES: the request lists FEATURES SELECTED. Fill a feature's field ONLY when it is selected; unselected features get "" / null. Never push card/vision/coach content into the persona brief or objectives when the feature is off.
 DISCOVERY ANSWERS: the request carries labeled answers — treat each as authoritative over your own invention:
 - THE CONVERSATION THIS DEMO REPLACES → the demo's whole frame: the persona plays the person who has this conversation today, and page copy speaks to whoever walks into it.
@@ -320,7 +329,12 @@ Rules:
 - If CURRENT OBJECTIVES exist, the description is a revision: keep unaffected steps word-for-word (the operator's text is sacred) and change only what the description reaches. If none exist, create the flow.
 - Steps are goals the PAL drives toward, phrased as actions ("Ask which product they're evaluating") — not stage directions or paragraphs. 3-8 main steps.
 - Branches are detours that automatically rejoin the main flow at the next step — never write a catch-all or "otherwise" line, one is added mechanically. Branch only where the description implies different handling.
-- Data capture: when the description says to collect something (name, email, budget), add the "| var" suffix rather than a separate step.`;
+- Data capture: when the description says to collect something (name, email, budget), add the "| var" suffix rather than a separate step — an explicit "| var" is what keeps the capture from being dropped.
+- MODE DETECTION FIRST: when the description covers more than one conversation type (onboarding vs troubleshooting vs how-to), the first step after greeting determines which type this is — with the clarifying question written into the step — and branches route from there. Never assume every call is the same type.
+- Escalation triggers (billing, security, legal, anger, asking for a human) are NOT steps — a step only fires when the flow reaches it. Put them in guardrails (guardrails fire at any point) and say so in "note".
+- EVERY BRANCH EXITS: each detour states its end state — resolved, handed off with context, or back to the main flow. No branch trails off.
+- Loops need a counter: any retry behavior gets an explicit limit in the step and what happens when it's hit.
+- Converged close: the last main step summarizes next steps and confirms nothing is left unresolved, whichever lane got there.`;
 
 /* Spin-up: a spoken brain-dump (rambly dictation transcript) → clean builder
    inputs. The frontend then auto-runs the prompt generator on top. */
@@ -345,6 +359,7 @@ Return ONLY JSON (no markdown fences):
 
 Rules:
 - EDIT, never regenerate. Preserve the operator's existing wording, structure, and voice everywhere the instruction doesn't reach — their edits are sacred. If a piece needs no change, return null for it.
+- Apply the instruction's implications, not just its words: adding a second conversation mode means scoping existing single-mode language too. If the instruction conflicts with an existing guardrail or the brief, apply what you can and flag the conflict in "note".
 - Cross-piece consistency: a conversation-flow change belongs in objectives (they drive the flow mechanically — a prompt-only edit leaves the PAL looping on stale steps) AND in the prompt's Conversation Flow section. A new rule belongs in guardrails AND the prompt's constraints section when one exists. Tone/personality changes usually touch only the prompt (and maybe the greeting).
 - Formats: objectives = one step per line, in order; branches indented as "if <condition> -> <detour objective>"; optional "| var" suffix. guardrails = one rule per line; [visual] marks camera-enforced rules. The prompt keeps its ## section structure.
 - Page copy (headline/tagline/cta) changes only when the instruction is about the page.
@@ -392,6 +407,7 @@ export default async function handler(req, res) {
 
   let system;
   let userPrompt;
+  let slideImages = []; // kind:"talktrack" vision path
   if (kind === "revise") {
     if (!String(draft).trim()) {
       res.status(400).json({ error: "There's no persona prompt to revise yet — draft one first." });
@@ -550,12 +566,22 @@ export default async function handler(req, res) {
     if (presLines.length) parts.push(...presLines);
     userPrompt = parts.join("\n\n");
   } else if (kind === "talktrack") {
-    if (!String(vibe).trim()) {
-      res.status(400).json({ error: "Describe the demo / deck first so Claude knows what to script." });
+    // Vision path: the frontend sends the actual slide images (base64) so
+    // notes are grounded in what's on each slide, not guessed from the
+    // use case. Text-only stays as the fallback when no images are uploaded.
+    slideImages = (Array.isArray(req.body?.images) ? req.body.images : [])
+      .slice(0, 20)
+      .map((im) => ({
+        media_type: ["image/png", "image/jpeg", "image/webp", "image/gif"].includes(im?.media_type) ? im.media_type : null,
+        data: typeof im?.data === "string" && im.data.length <= 1_500_000 && /^[A-Za-z0-9+/=]+$/.test(im.data.slice(0, 200)) ? im.data : null,
+      }))
+      .filter((im) => im.media_type && im.data);
+    if (!String(vibe).trim() && !slideImages.length) {
+      res.status(400).json({ error: "Describe the demo / deck (or upload slide images) so Claude knows what to script." });
       return;
     }
     system = TALKTRACK_SYSTEM;
-    userPrompt = `Write the talk track:\n${String(vibe).trim()}`;
+    userPrompt = `Write the talk track.${String(vibe).trim() ? `\n${String(vibe).trim()}` : ""}`;
   } else if (kind === "canvas") {
     if (!String(vibe).trim()) {
       res.status(400).json({ error: "Describe the demo's use case first (New Demo or Persona step)." });
@@ -591,6 +617,28 @@ export default async function handler(req, res) {
     userPrompt = briefToPrompt(brief, context);
   }
 
+  // "The Brief" (portal AI spec): the frontend compiles one <brief> block
+  // from the intake state and sends it on every AI call — generation never
+  // happens blind. Prepended to the USER message, never the system prompt.
+  // kind:"demo" builds the brief itself and "score" is the latency-critical
+  // live judge — both skip it.
+  const briefCtx = String(context?.brief ?? "").trim();
+  if (briefCtx && kind !== "demo" && kind !== "score") {
+    userPrompt = `${briefCtx.slice(0, 1600)}\n\n${userPrompt}`;
+  }
+
+  // Slide images become vision content blocks, one per slide, in order.
+  const content = slideImages.length
+    ? [
+        { type: "text", text: `${userPrompt}\n\nThe slides follow in order:` },
+        ...slideImages.flatMap((im, i) => [
+          { type: "text", text: `Slide ${i + 1}:` },
+          { type: "image", source: { type: "base64", media_type: im.media_type, data: im.data } },
+        ]),
+        { type: "text", text: "Write the talk track. Follow the output format exactly." },
+      ]
+    : userPrompt;
+
   if (!process.env.ANTHROPIC_API_KEY) {
     res.status(500).json({ error: "ANTHROPIC_API_KEY is not set on the server. Add it in the Vercel project's environment variables." });
     return;
@@ -611,7 +659,7 @@ export default async function handler(req, res) {
       max_tokens: isScore ? 300 : 16000,
       ...(isScore ? {} : { thinking: { type: "adaptive" } }),
       system,
-      messages: [{ role: "user", content: userPrompt }],
+      messages: [{ role: "user", content }],
     });
 
     stream.on("text", (text) => res.write(text));
