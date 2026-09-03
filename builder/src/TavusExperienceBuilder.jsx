@@ -7064,6 +7064,9 @@ export default function TavusExperienceBuilder() {
         });
       }
 
+      if (presentationEnabled && docIds.length && canvasEnabled && slidesTrigger === "walk_the_deck") {
+        addLog("err", "Both the deck (walk the deck) and Magic Canvas are attached — they compete for the screen beside the face, and the PAL usually reaches for a card instead of opening the slides. Turn Magic Canvas off for deck-led demos.");
+      }
       if (presentationEnabled) {
         if (!docIds.length) {
           addLog("err", "Presentation is on but has no document IDs — SKIPPING the deck this launch. Add your Knowledge Base doc IDs on the Presentation step (a fresh demo starts with none).");
@@ -7085,8 +7088,12 @@ export default function TavusExperienceBuilder() {
               try {
                 const doc = await tavusFetch("GET", `/documents/${id}`);
                 const st = String(doc?.status || doc?.data?.status || "").toLowerCase();
+                const durl = String(doc?.document_url || doc?.data?.document_url || "");
                 if (st && st !== "ready") addLog("err", `Deck doc ${id} ("${doc?.document_name || doc?.name || "?"}") is "${st}" — slides won't render until it's ready. A fresh upload takes a few minutes; relaunch after.`);
                 else addLog("info", `Deck doc ${id} ("${doc?.document_name || doc?.name || id}") is ready.`);
+                // The deck list is not the Knowledge Base. Articles and help-centre
+                // pages read fine for RAG and render as nothing at all as slides.
+                if (durl && !PRESENTABLE.test(durl)) addLog("err", `Deck doc ${id} ("${doc?.document_name || doc?.name || id}") doesn't look like a deck — reference material belongs on the Knowledge step ("PAL can use"), not in the deck. Only the PDF/PPTX/image deck should be here.`);
               } catch {
                 addLog("err", `Deck doc ${id} can't be read — check the ID against the Knowledge Base step (this is usually a typo or a deleted doc).`);
               }
@@ -7543,11 +7550,25 @@ export default function TavusExperienceBuilder() {
                         className={"pill-btn" + (demoFeatures[f.k] ? " primary" : "")}
                         style={{ padding: "6px 14px", fontSize: 13 }}
                         title={f.desc}
-                        onClick={() => setDemoFeatures((d) => ({ ...d, [f.k]: !d[f.k] }))}>
+                        onClick={() => setDemoFeatures((d) => {
+                          const next = { ...d, [f.k]: !d[f.k] };
+                          // The deck and Magic Canvas both own the screen beside
+                          // the face. With both on, the PAL reaches for cards and
+                          // never opens the slides — the "it showed canvas cards
+                          // instead of presenting" bug. Picking one drops the other.
+                          if (next.presentation && next.canvas) next[f.k === "presentation" ? "canvas" : "presentation"] = false;
+                          return next;
+                        })}>
                         {demoFeatures[f.k] ? "✓ " : ""}{f.label}
                       </button>
                     ))}
                   </div>
+                  {demoFeatures.presentation && (
+                    <span className="field-hint">
+                      Deck demos turn Magic Canvas off — the slides and the cards compete for the same screen beside the face.
+                      You'll pick the deck document (just the deck, not your whole Knowledge Base) on the Presentation step.
+                    </span>
+                  )}
                 </Field>
                 <button className="pill-btn primary big" onClick={async () => {
                   // Theme FIRST: it reads the real site and returns the real
@@ -8538,6 +8559,10 @@ export default function TavusExperienceBuilder() {
                 <Toggle on={presentationEnabled} onChange={setPresentationEnabled} />
               </div>
               <p className="lede">The PAL presents PDF decks and images from your Knowledge Base as a live screen share. PDFs must be 50 pages or fewer and fully processed ("ready") before launching. Slides appear inside the conversation automatically.</p>
+              <p className="field-hint" style={{ maxWidth: 620, marginTop: -6, marginBottom: 14 }}>
+                <b>Pick the deck only.</b> Help-centre articles and other reference docs belong on the Knowledge step —
+                the PAL reads those to answer questions; it can't present them, and adding them here is what turns a deck walk into a shrug.
+              </p>
 
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
                 <button className="pill-btn primary" onClick={() => deckFileRef.current?.click()} disabled={kbAdding || !presentationEnabled}>
@@ -8573,6 +8598,16 @@ export default function TavusExperienceBuilder() {
                     </div>
                   ))}
                 </div>
+              )}
+
+              {!!kbDocs?.length && docIds.some((id) => {
+                const d = kbDocs.find((x) => x.document_id === id);
+                return d && d.document_url && !PRESENTABLE.test(d.document_url);
+              }) && (
+                <p className="field-hint" style={{ color: "var(--danger)", maxWidth: 620, marginTop: 4 }}>
+                  ⚠ Some of the documents in this deck aren't PDFs, slides, or images. If they're reference articles, take them out —
+                  add them on the Knowledge step instead, where the PAL can read them.
+                </p>
               )}
 
               {docIds.length > 1 && (
