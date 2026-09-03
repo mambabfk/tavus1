@@ -9261,8 +9261,17 @@ export default function TavusExperienceBuilder() {
                       <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                         <div style={{ flex: "1 1 280px", minWidth: 240 }}>
                           {(c.trigger || "keyword") === "keyword" && (
-                            <input value={c.keywords || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, keywords: e.target.value } : x)))}
-                              placeholder='Trigger words, comma-separated — e.g. pricing, cost, tiers' />
+                            <>
+                              <input value={c.keywords || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, keywords: e.target.value } : x)))}
+                                placeholder='Trigger words, comma-separated — e.g. pricing, cost, tiers' />
+                              {/* A comma-less sentence is one phrase, matched verbatim — it
+                                  reads like a list and silently never fires. */}
+                              {!(c.keywords || "").includes(",") && (c.keywords || "").trim().split(/\s+/).length >= 3 && (
+                                <span className="field-hint" style={{ color: "var(--danger)" }}>
+                                  No commas — this fires only if someone says “{(c.keywords || "").trim()}” word for word. Separate the alternatives with commas.
+                                </span>
+                              )}
+                            </>
                           )}
                           {c.trigger === "time" && (
                             <input type="number" min="0.5" step="0.5" value={c.atMinutes ?? ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, atMinutes: e.target.value } : x)))}
