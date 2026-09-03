@@ -4456,7 +4456,10 @@ export default function TavusExperienceBuilder() {
     // persona drafted before the doc id was pasted has no presenting section.
     if (presentationEnabled && docIds.length) {
       parts.push(slidesTrigger === "walk_the_deck"
-        ? "A slide deck is attached: walk through it during this conversation — bring it up once the visitor's opening question is handled, and talk to each slide briefly rather than reading it."
+        // No conditional cue here. "Bring it up once their opening question is
+        // handled" left the deck waiting for a question that never came — the
+        // PAL said "let's get started" and then stood there.
+        ? "A slide deck is attached. Open slide 1 and start presenting as your first action, on your own initiative. Talk to each slide briefly rather than reading it; if they interrupt with a question, answer it and pick up where you left off."
         : "A slide deck is attached: open it whenever the visitor asks to see slides, the deck, or a walkthrough — and offer it once, naturally, when it would clearly help.");
     }
 
@@ -4467,12 +4470,18 @@ export default function TavusExperienceBuilder() {
     }
 
     if (canvasEnabled) {
-      const styleText = {
-        eager: "Use Magic Canvas cards frequently and proactively — whenever a card could make information clearer or capture input, show one.",
-        balanced: "",
-        minimal: "Use Magic Canvas cards sparingly — only when a card is clearly more effective than speaking.",
-        on_request: "Do not show Magic Canvas cards unless the user explicitly asks to see one, or a rule below says to.",
-      }[canvasStyle];
+      // A live deck owns the screen beside the face, so the style dial is the
+      // wrong instruction to send — "use cards proactively" plus a deck walk is
+      // how cards ended up standing in for slides. One line replaces it.
+      const deckLive = presentationEnabled && docIds.length > 0;
+      const styleText = deckLive
+        ? "While the deck is up, the slides are your visual — talk to them. Save cards for questions: when someone asks how to do something, show a Text card with the numbered steps."
+        : {
+            eager: "Use Magic Canvas cards frequently and proactively — whenever a card could make information clearer or capture input, show one.",
+            balanced: "",
+            minimal: "Use Magic Canvas cards sparingly — only when a card is clearly more effective than speaking.",
+            on_request: "Do not show Magic Canvas cards unless the user explicitly asks to see one, or a rule below says to.",
+          }[canvasStyle];
       if (styleText) parts.push(styleText);
 
       // Card contract, imperative and tight — the default PAL model is small
@@ -7064,8 +7073,8 @@ export default function TavusExperienceBuilder() {
         });
       }
 
-      if (presentationEnabled && docIds.length && canvasEnabled && slidesTrigger === "walk_the_deck") {
-        addLog("err", "Both the deck (walk the deck) and Magic Canvas are attached — they compete for the screen beside the face, and the PAL usually reaches for a card instead of opening the slides. Turn Magic Canvas off for deck-led demos.");
+      if (presentationEnabled && docIds.length && canvasEnabled) {
+        addLog("info", "Deck + Magic Canvas: the slides lead and cards are reserved for questions (this replaces the canvas style dial for this call). Scripted cards and link photos still fire on their keywords — check those if a card lands mid-slide.");
       }
       if (presentationEnabled) {
         if (!docIds.length) {
@@ -7550,22 +7559,14 @@ export default function TavusExperienceBuilder() {
                         className={"pill-btn" + (demoFeatures[f.k] ? " primary" : "")}
                         style={{ padding: "6px 14px", fontSize: 13 }}
                         title={f.desc}
-                        onClick={() => setDemoFeatures((d) => {
-                          const next = { ...d, [f.k]: !d[f.k] };
-                          // The deck and Magic Canvas both own the screen beside
-                          // the face. With both on, the PAL reaches for cards and
-                          // never opens the slides — the "it showed canvas cards
-                          // instead of presenting" bug. Picking one drops the other.
-                          if (next.presentation && next.canvas) next[f.k === "presentation" ? "canvas" : "presentation"] = false;
-                          return next;
-                        })}>
+                        onClick={() => setDemoFeatures((d) => ({ ...d, [f.k]: !d[f.k] }))}>
                         {demoFeatures[f.k] ? "✓ " : ""}{f.label}
                       </button>
                     ))}
                   </div>
                   {demoFeatures.presentation && (
                     <span className="field-hint">
-                      Deck demos turn Magic Canvas off — the slides and the cards compete for the same screen beside the face.
+                      With both the deck and Magic Canvas on, the slides lead and cards answer questions — the demo won't card over its own slides.
                       You'll pick the deck document (just the deck, not your whole Knowledge Base) on the Presentation step.
                     </span>
                   )}
@@ -9085,9 +9086,15 @@ export default function TavusExperienceBuilder() {
                   <button key={o.v} className={canvasStyle === o.v ? "on" : ""} onClick={() => setCanvasStyle(o.v)}>{o.label}</button>
                 ))}
               </div>
-              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 20 }}>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: presentationEnabled && docIds.length ? 8 : 20 }}>
                 Eager: cards at every opportunity. Balanced: the PAL's default judgment. Minimal: only when clearly better than speaking. Only when asked: nothing appears unless the user requests it or a rule triggers it.
               </p>
+              {presentationEnabled && !!docIds.length && (
+                <p className="field-hint" style={{ maxWidth: 560, marginBottom: 20 }}>
+                  <b>This dial is overridden while a deck is attached.</b> The slides lead and cards are reserved for questions,
+                  so the deck walk isn't interrupted by a card. Turn the deck off on the Presentation step to get the dial back.
+                </p>
+              )}
 
               <div className="subhead">Canvas playbook</div>
               <Field label="" hint="Plain-English direction the PAL follows for this conversation — sequencing, triggers, exclusions. Sent as conversation context on launch, so different demos can run different playbooks without touching the PAL.">
