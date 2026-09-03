@@ -616,7 +616,7 @@ const BUILDER_CSS = `
         .sc-stat { text-align:center; padding:6px 0; }
         .sc-stat-value { display:block; font-size:36px; font-weight:700; letter-spacing:-1.2px; line-height:1.1; }
         .sc-stat-label { display:block; color:var(--muted); font-size:13px; line-height:1.5; margin-top:3px; }
-        .sc-img { width:100%; border-radius:10px; object-fit:cover; }
+        .sc-img { width:100%; border-radius:10px; display:block; }
         .sc-preview { flex:0 0 260px; background:var(--canvas); border:1px dashed var(--border); border-radius:var(--r-md); padding:14px; display:flex; align-items:center; justify-content:center; }
         .sc-preview .sc-card { position:static; transform:none; width:100%; box-shadow:0 10px 30px -14px rgba(20,20,20,.25); }
         .sc-preview-empty { color:var(--muted); font-size:12px; text-align:center; line-height:1.6; }
@@ -806,6 +806,7 @@ const BUILDER_CSS = `
         .demo-stage { width:min(1080px,100%); aspect-ratio:16/9; background:var(--surface); border:1px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:0 20px 60px -24px rgba(20,20,20,.18); display:flex; align-items:center; justify-content:center; position:relative; }
         .demo-stage iframe { width:100%; height:100%; border:none; }
         .cvi-wrap { position:relative; width:100%; height:100%; background:#0e0f12; overflow:hidden; --canvas-panel-w:min(480px, 46%); }
+        .cvi-wrap.canvas-wide { --canvas-panel-w:min(760px, 58%); }
         .cvi-wrap > * { width:100%; height:100%; }
         /* Split layout: an active side card claims a dedicated panel and the
            video pane RESIZES into the remaining width — the canvas gets its own
@@ -1835,10 +1836,16 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
     const timers = [];
     let current = -1;
     let armed = false;
-    const showCard = (i) => {
-      if (fired.has(i)) return;
-      fired.add(i);
+    let shownAt = 0;
+    const queue = [];
+    // A card triggered a second after another wiped it off screen before anyone
+    // could read it — an image card "flashed" and was replaced by the next
+    // note. Each card holds the panel for a beat; anything triggered meanwhile
+    // waits its turn (at most two waiting, so a card never lands minutes late).
+    const MIN_DWELL_MS = 6000;
+    const present = (i) => {
       current = i;
+      shownAt = Date.now();
       onScriptedCard({
         card: cards[i],
         seq: i,
@@ -1856,6 +1863,20 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
       });
       const hide = Number(cards[i].hideAfter) || 0;
       if (hide > 0) timers.push(setTimeout(() => { if (current === i) { current = -1; onScriptedCard(null); } }, hide * 1000));
+    };
+    const drain = () => {
+      if (!queue.length) return;
+      const wait = shownAt ? Math.max(0, shownAt + MIN_DWELL_MS - Date.now()) : 0;
+      if (wait > 0) { timers.push(setTimeout(drain, wait)); return; }
+      present(queue.shift());
+      if (queue.length) timers.push(setTimeout(drain, MIN_DWELL_MS));
+    };
+    const showCard = (i) => {
+      if (fired.has(i)) return;
+      fired.add(i);
+      queue.push(i);
+      if (queue.length > 2) queue.shift(); // drop the stalest waiting card
+      drain();
     };
     const arm = () => {
       if (armed) return;
@@ -2777,9 +2798,12 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
       // canvas/card panel then uses the left side so the two never collide.
       const coach = wide && controls.coach && Array.isArray(controls.coach.criteria) && controls.coach.criteria.length ? controls.coach : null;
       const cardSide = coach ? "left" : canvasPanel.side;
+      // A UI screenshot is unreadable at note-card width. Image cards claim a
+      // wider panel; the video pane already resizes into whatever is left.
+      const liveCard = scCard && !canvasPanel.active && wide ? scCard.card : null;
       return (
         <CVIProvider>
-          <div className={"cvi-wrap" + (split ? ` canvas-split canvas-split-${cardSide}` : "") + (coach ? " coach-split" : "")}>
+          <div className={"cvi-wrap" + (split ? ` canvas-split canvas-split-${cardSide}` : "") + (coach ? " coach-split" : "") + (liveCard?.style === "image" ? " canvas-wide" : "")}>
             {/* The video pane resizes into the space the canvas panel doesn't
                 claim, so active cards get their own screen region beside the
                 video instead of cutting into it. */}
