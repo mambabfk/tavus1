@@ -126,6 +126,7 @@ Return ONLY a valid JSON array (no code fences, no commentary), 2-5 cards:
   "linkLabel": "link style only — the button text, 2-4 words (e.g. \"Book a session\"). Empty for every other style",
   "trigger": "keyword" | "time" | "start",
   "keywords": "2-4 comma-separated words someone would naturally SAY (keyword trigger only, else empty string)",
+  "speaker": "keyword trigger only — \"visitor\" when the words are what a CUSTOMER would say (the usual case: a question, a problem, an ask), \"ai\" when only the AI human would say them, \"either\" if genuinely both. Empty string for other triggers",
   "atMinutes": 0,
   "hideAfter": 0
 }]
@@ -133,6 +134,7 @@ Return ONLY a valid JSON array (no code fences, no commentary), 2-5 cards:
 Rules:
 - Content must be specific to THIS demo (its real tiers, value props, flow) — but never invent precise real-world facts the config doesn't contain; for real brands keep numbers clearly illustrative.
 - Prefer keyword triggers with words that naturally come up in the conversation; vary the styles across the set; at most one question card.
+- Scope every keyword card with "speaker". Default to "visitor": the AI human talks far more than the visitor and will say your trigger words while ANSWERING, firing the card at the wrong moment.
 - stat = EXACTLY two lines: one big value, one short label (max 8 words). Never put multiple numbers in a stat — comparisons are charts.
 - link = the booking card: use it when the moment is scheduling, a callback, or a hand-off to a human. Leave "href" empty so it picks up the demo's scheduling link, and keep the body to what the visitor gets, not instructions to click.
 - "atMinutes" only for time triggers (e.g. 1.5); "hideAfter" seconds or 0 to stay until the next card. No markdown anywhere.`;

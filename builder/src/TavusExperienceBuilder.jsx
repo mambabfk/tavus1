@@ -1872,9 +1872,17 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
       if (!d?.event_type || !/utterance/i.test(d.event_type)) return;
       const speech = String(d.properties?.speech ?? d.properties?.text ?? "").toLowerCase();
       if (!speech) return;
+      // Same role read the coach panel uses. Without it a card fires on the
+      // PAL's OWN answer — ask about forms, the PAL says "that's under user
+      // management", and the user-management card jumps up looking like the
+      // question triggered it.
+      const role = String(d.properties?.role ?? (/\.user\./i.test(d.event_type) ? "user" : "replica")).toLowerCase();
+      const fromVisitor = role === "user";
       for (let i = 0; i < cards.length; i++) {
         const c = cards[i];
         if (c.trigger !== "keyword" || fired.has(i)) continue;
+        if (c.speaker === "visitor" && !fromVisitor) continue;
+        if (c.speaker === "ai" && fromVisitor) continue;
         const kws = String(c.keywords || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
         if (kws.some((k) => speech.includes(k))) { showCard(i); break; }
       }
@@ -2284,6 +2292,9 @@ function compileScriptedCards(arr) {
       atSeconds: Math.max(0, Math.round((parseFloat(c.atMinutes) || 0) * 60)),
       hideAfter: Math.max(0, parseInt(c.hideAfter, 10) || 0),
       linkLabel: t(c.linkLabel),
+      // Which side's speech arms a keyword card. "either" is the old behaviour
+      // and stays the default so saved demos don't change under people.
+      speaker: ["visitor", "ai"].includes(c.speaker) ? c.speaker : "either",
       owner: c.owner === "host" ? "host" : "featured", // duets: whose screen it belongs on — ALWAYS explicit, placement is never speaker-dependent
     };
     if (!scCardComplete(c)) return null;
@@ -8933,8 +8944,16 @@ export default function TavusExperienceBuilder() {
                           <option value="start">at call start</option>
                         </select>
                         {(c.trigger || "keyword") === "keyword" && (
+                          <select style={{ width: "auto", fontSize: 11.5 }} value={c.speaker || "either"} onChange={(e) => setCardField(j, "speaker", e.target.value)}
+                            title="Whose speech arms this card">
+                            <option value="either">either of us</option>
+                            <option value="visitor">the visitor</option>
+                            <option value="ai">the AI human</option>
+                          </select>
+                        )}
+                        {(c.trigger || "keyword") === "keyword" && (
                           <input style={{ flex: "1 1 180px", fontSize: 11.5 }} value={c.keywords || ""} onChange={(e) => setCardField(j, "keywords", e.target.value)}
-                            placeholder="Trigger words — comma-separated, either side can say them" />
+                            placeholder="Trigger words — comma-separated" />
                         )}
                         {c.trigger === "time" && (
                           <input style={{ width: 140, fontSize: 11.5 }} value={c.atMinutes || ""} onChange={(e) => setCardField(j, "atMinutes", e.target.value)}
@@ -9224,6 +9243,15 @@ export default function TavusExperienceBuilder() {
                           <option value="time">at a set time</option>
                           <option value="start">at call start</option>
                         </select>
+                        {(c.trigger || "keyword") === "keyword" && (
+                          <select style={{ width: "auto", padding: "4px 10px", fontSize: 12 }} value={c.speaker || "either"}
+                            title="Whose speech arms this card. The PAL says your trigger words far more often than the visitor does."
+                            onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, speaker: e.target.value } : x)))}>
+                            <option value="either">by either of us</option>
+                            <option value="visitor">by the visitor</option>
+                            <option value="ai">by the AI human</option>
+                          </select>
+                        )}
                         <span className="jr-btns">
                           <button className="kb-move" onClick={() => setScCards((cs) => { if (!cs[i - 1]) return cs; const n = [...cs]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; return n; })} disabled={i === 0} title="Move up">↑</button>
                           <button className="kb-move" onClick={() => setScCards((cs) => { if (!cs[i + 1]) return cs; const n = [...cs]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; return n; })} disabled={i === scCards.length - 1} title="Move down">↓</button>
