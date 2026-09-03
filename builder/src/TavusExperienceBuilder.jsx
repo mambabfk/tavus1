@@ -4539,7 +4539,11 @@ export default function TavusExperienceBuilder() {
       // how cards ended up standing in for slides. One line replaces it.
       const deckLive = presentationEnabled && docIds.length > 0;
       const styleText = deckLive
-        ? "While the deck is up, the slides are your visual — talk to them. Save cards for questions: when someone asks how to do something, show a Text card with the numbered steps."
+        // "Show a Text card with the steps" on its own asks for A card, not a
+        // card about the question — a tickets question came back as a Managing
+        // Forms card, because the tickets material talks about forms. Bind the
+        // card to the thing asked, and make skipping it the easy option.
+        ? "While the deck is up, the slides are your visual — talk to them. Between slides, a card is for one thing: the exact topic they just asked about, as steps they could follow. If the answer is broader than that, say it out loud and show nothing."
         : {
             eager: "Use Magic Canvas cards frequently and proactively — whenever a card could make information clearer or capture input, show one.",
             balanced: "",
