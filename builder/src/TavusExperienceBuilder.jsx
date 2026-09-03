@@ -1843,6 +1843,7 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
     // note. Each card holds the panel for a beat; anything triggered meanwhile
     // waits its turn (at most two waiting, so a card never lands minutes late).
     const MIN_DWELL_MS = 6000;
+    const STALE_QUEUE_MS = 20000;
     const present = (i) => {
       current = i;
       shownAt = Date.now();
@@ -1861,21 +1862,29 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
           } catch { /* room gone */ }
         },
       });
-      const hide = Number(cards[i].hideAfter) || 0;
-      if (hide > 0) timers.push(setTimeout(() => { if (current === i) { current = -1; onScriptedCard(null); } }, hide * 1000));
+      // Blank auto-hide used to mean "until the next card" — and when no next
+      // card ever fired, a note about step 2 sat beside her for the rest of the
+      // call. Blank now means the same 45s the link-catalog photo cards use.
+      const hide = Number(cards[i].hideAfter) || DEFAULT_HIDE_S;
+      timers.push(setTimeout(() => { if (current === i) { current = -1; onScriptedCard(null); } }, hide * 1000));
     };
     const drain = () => {
+      // A card whose cue has long passed is worse than no card, so waiting
+      // entries expire rather than surfacing minutes later. (The old overflow
+      // rule binned the OLDEST entry outright — already in `fired`, so it could
+      // never come back, and the card silently never appeared.)
+      const cutoff = Date.now() - STALE_QUEUE_MS;
+      while (queue.length && queue[0].at < cutoff) queue.shift();
       if (!queue.length) return;
       const wait = shownAt ? Math.max(0, shownAt + MIN_DWELL_MS - Date.now()) : 0;
       if (wait > 0) { timers.push(setTimeout(drain, wait)); return; }
-      present(queue.shift());
+      present(queue.shift().i);
       if (queue.length) timers.push(setTimeout(drain, MIN_DWELL_MS));
     };
     const showCard = (i) => {
       if (fired.has(i)) return;
       fired.add(i);
-      queue.push(i);
-      if (queue.length > 2) queue.shift(); // drop the stalest waiting card
+      queue.push({ i, at: Date.now() });
       drain();
     };
     const arm = () => {
@@ -2277,6 +2286,7 @@ function Toggle({ on, onChange }) {
 
 /* Editor/plan shape → deliverable scripted cards. Incomplete cards drop out
    silently (missing content or an unusable trigger). */
+const DEFAULT_HIDE_S = 45; // blank auto-hide — matches the link-catalog photo cards
 const SC_STYLES = ["note", "chart", "stat", "image", "question", "link"];
 const scStyle = (c) => (SC_STYLES.includes(c?.style) ? c.style : "note");
 const scTrigger = (c) => (["keyword", "beat", "time", "start"].includes(c?.trigger) ? c.trigger : "keyword");
@@ -7212,6 +7222,14 @@ export default function TavusExperienceBuilder() {
           addLog("err", "Recording is toggled on but bucket / region / role ARN aren't all filled in (Timing step) — launching WITHOUT recording.");
         }
       }
+      // The compiler drops cards that can't render. Silently, until now — a
+      // booking card with no URL just never appeared mid-demo.
+      if (scCards.length > compiledScriptedCards.length) {
+        const bad = scCards.map((c, i) => ({ c, i })).filter(({ c }) => !scCardComplete(
+          c.style === "link" && !String(c.href || "").trim() && schedulingUrl.trim() ? { ...c, href: schedulingUrl.trim() } : c
+        ));
+        addLog("err", `${bad.length} scripted card${bad.length > 1 ? "s" : ""} won't appear — missing content or a trigger: ${bad.map(({ c, i }) => `#${i + 1} ${c.title || c.style || "untitled"}`).join(", ")}. Fix them on the Magic Canvas step.`);
+      }
       addLog("info", "Creating conversation…");
       const payload = journeyPrefs
         ? applyJourneyPrefs(conversationPayload, experienceConfig.journey, journeyPrefs)
@@ -9323,7 +9341,7 @@ export default function TavusExperienceBuilder() {
                               style={{ minHeight: 68 }} />
                           )}
                           <input type="number" min="0" value={c.hideAfter ?? ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, hideAfter: e.target.value } : x)))}
-                            placeholder="Auto-hide after N seconds (blank = stays until the next card)" />
+                            placeholder={`Auto-hide after N seconds (blank = ${DEFAULT_HIDE_S})`} />
                         </div>
                         {(() => {
                           const preview = compiledScriptedCards.find((_, k) => {
@@ -9343,7 +9361,16 @@ export default function TavusExperienceBuilder() {
                               <ScriptedCard card={preview} />
                             </div>
                           ) : (
-                            <div className="sc-preview sc-preview-empty">fill in the content + trigger<br />to see the live preview</div>
+                            <div className="sc-preview sc-preview-empty">
+                              <b style={{ color: "var(--danger)" }}>⚠ This card won't appear.</b><br />
+                              {c.style === "link" && !String(c.href || "").trim() && !schedulingUrl.trim()
+                                ? "It needs a booking URL — either here, or the scheduling link on this step."
+                                : c.style === "image" && !String(c.url || "").trim()
+                                ? "It needs an image URL."
+                                : !String(c.body || "").trim()
+                                ? "It needs card text."
+                                : "It needs a trigger — words, a time, or call start."}
+                            </div>
                           );
                         })()}
                       </div>
