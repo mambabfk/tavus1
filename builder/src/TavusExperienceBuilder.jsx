@@ -606,6 +606,7 @@ const BUILDER_CSS = `
         .sc-title { font-weight:700; font-size:15px; letter-spacing:-.2px; }
         .sc-note p { margin:0 0 8px; font-size:13.5px; line-height:1.55; }
         .sc-note p:last-child { margin-bottom:0; }
+        .sc-link-btn { display:inline-block; margin-top:10px; padding:10px 16px; border-radius:999px; background:var(--text,#17181A); color:var(--surface,#fff); font-size:13px; font-weight:600; text-decoration:none; }
         .sc-chart { display:flex; flex-direction:column; gap:8px; }
         .sc-bar-row { display:grid; grid-template-columns:minmax(56px,38%) 1fr auto; align-items:center; gap:8px; font-size:12px; }
         .sc-bar-label { color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -2247,11 +2248,30 @@ function Toggle({ on, onChange }) {
 
 /* Editor/plan shape → deliverable scripted cards. Incomplete cards drop out
    silently (missing content or an unusable trigger). */
+const SC_STYLES = ["note", "chart", "stat", "image", "question", "link"];
+const scStyle = (c) => (SC_STYLES.includes(c?.style) ? c.style : "note");
+const scTrigger = (c) => (["keyword", "beat", "time", "start"].includes(c?.trigger) ? c.trigger : "keyword");
+/* What each style needs before it can appear. The editor's live preview asks
+   the SAME question the compiler does — two copies of this test drifted, and a
+   card that compiled but read as incomplete shifted every preview after it. */
+function scCardComplete(c) {
+  const t = (v) => String(v ?? "").trim();
+  const style = scStyle(c);
+  const content = style === "image" ? t(c?.url) : style === "link" ? t(c?.href) : t(c?.body);
+  const trig = scTrigger(c);
+  const trigOk = trig === "start"
+    ? true
+    : trig === "keyword" ? !!t(c?.keywords)
+    : trig === "beat" ? parseInt(c?.atBeat, 10) > 0
+    : Math.round((parseFloat(c?.atMinutes) || 0) * 60) > 0; // matches the compiled atSeconds exactly
+  return !!content && trigOk;
+}
+
 function compileScriptedCards(arr) {
   return (Array.isArray(arr) ? arr : []).map((c) => {
     const t = (v) => String(v ?? "").trim();
-    const style = ["note", "chart", "stat", "image", "question"].includes(c.style) ? c.style : "note";
-    const trigger = ["keyword", "beat", "time", "start"].includes(c.trigger) ? c.trigger : "keyword";
+    const style = scStyle(c);
+    const trigger = scTrigger(c);
     const card = {
       style,
       trigger,
@@ -2263,12 +2283,10 @@ function compileScriptedCards(arr) {
       atBeat: Math.max(0, parseInt(c.atBeat, 10) || 0), // duets: 1-indexed talk-track beat
       atSeconds: Math.max(0, Math.round((parseFloat(c.atMinutes) || 0) * 60)),
       hideAfter: Math.max(0, parseInt(c.hideAfter, 10) || 0),
+      linkLabel: t(c.linkLabel),
       owner: c.owner === "host" ? "host" : "featured", // duets: whose screen it belongs on — ALWAYS explicit, placement is never speaker-dependent
     };
-    if (style === "image" ? !card.url : !card.body) return null;
-    if (trigger === "keyword" && !card.keywords) return null;
-    if (trigger === "beat" && !card.atBeat) return null;
-    if (trigger === "time" && !card.atSeconds) return null;
+    if (!scCardComplete(c)) return null;
     return card;
   }).filter(Boolean).slice(0, 12);
 }
@@ -2443,6 +2461,17 @@ function ScriptedCard({ card, onAnswer, forcePicked = null }) {
       <div className="sc-stat">
         <span className="sc-stat-value">{lines[0] || ""}</span>
         {lines.slice(1, 4).map((l, i) => <span key={i} className="sc-stat-label">{l}</span>)}
+      </div>
+    );
+  } else if (card.style === "link") {
+    // The whole point is the click: a scheduling page the visitor opens from
+    // the card, with no model involvement and no URL read aloud.
+    inner = (
+      <div className="sc-note">
+        {lines.map((l, i) => <p key={i}>{l}</p>)}
+        <a className="sc-link-btn" href={card.href || ""} target="_blank" rel="noreferrer">
+          {card.linkLabel || "Book a time"} →
+        </a>
       </div>
     );
   } else if (card.style === "image") {
@@ -4593,7 +4622,17 @@ export default function TavusExperienceBuilder() {
 
   /* Editor shape → the scripted cards that ship. Incomplete cards drop out
      silently (missing content or an unusable trigger). */
-  const compiledScriptedCards = useMemo(() => compileScriptedCards(scCards), [scCards]);
+  // A booking card with no URL of its own uses the demo's scheduling link —
+  // the same one the Canvas scheduling card and the post-call screen use, so
+  // it's entered once per demo rather than per card.
+  const compiledScriptedCards = useMemo(
+    () => compileScriptedCards(scCards.map((c) => (
+      c.style === "link" && !String(c.href || "").trim() && schedulingUrl.trim()
+        ? { ...c, href: schedulingUrl.trim() }
+        : c
+    ))),
+    [scCards, schedulingUrl]
+  );
 
   /* Approved-links rows with a photo become deterministic image cards: the
      moment EITHER side says the item's words, the product appears beside the
@@ -8873,13 +8912,19 @@ export default function TavusExperienceBuilder() {
                         <option value="image">🖼 image</option>
                         <option value="question">☑️ multiple choice</option>
                         <option value="stat">📈 big stat</option>
+                        <option value="link">📅 booking link</option>
                       </select>
                       <input style={{ flex: "1 1 140px", fontSize: 12 }} placeholder="Card title" value={c.title || ""} onChange={(e) => setCardField(j, "title", e.target.value)} />
                       <button className="pill-btn" style={{ padding: "2px 9px", flexShrink: 0 }} onClick={() => setScCards((cs) => cs.filter((_, idx) => idx !== j))}>✕</button>
                     </div>
+                    {c.style === "link" && (
+                      <input className="mono" style={{ fontSize: 12, marginTop: 6 }}
+                        placeholder={schedulingUrl.trim() ? "Booking URL — blank uses the scheduling link below" : "Booking URL — e.g. https://calendly.com/you/30min"}
+                        value={c.href || ""} onChange={(e) => setCardField(j, "href", e.target.value)} />
+                    )}
                     {c.style === "image"
                       ? <input className="mono" style={{ fontSize: 12, marginTop: 6 }} placeholder="Image URL (or 📷 a product from Approved links below)" value={c.url || ""} onChange={(e) => setCardField(j, "url", e.target.value)} />
-                      : <textarea style={{ minHeight: 44, fontSize: 12, marginTop: 6 }} placeholder={c.style === "question" ? "One option per line" : c.style === "stat" ? "Big value on line 1, label on line 2" : "What the card says (one point per line)"} value={c.body || ""} onChange={(e) => setCardField(j, "body", e.target.value)} />}
+                      : <textarea style={{ minHeight: 44, fontSize: 12, marginTop: 6 }} placeholder={c.style === "question" ? "One option per line" : c.style === "stat" ? "Big value on line 1, label on line 2" : c.style === "link" ? "Optional lines above the button" : "What the card says (one point per line)"} value={c.body || ""} onChange={(e) => setCardField(j, "body", e.target.value)} />}
                     {withTrigger ? (
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
                         <select style={{ width: "auto", fontSize: 11.5 }} value={c.trigger || "keyword"} onChange={(e) => setCardField(j, "trigger", e.target.value)}>
@@ -9171,6 +9216,7 @@ export default function TavusExperienceBuilder() {
                           <option value="stat">🔢 Big stat</option>
                           <option value="image">🖼 Image</option>
                           <option value="question">❓ Multiple choice</option>
+                          <option value="link">📅 Booking link</option>
                         </select>
                         <select style={{ width: "auto", padding: "4px 10px", fontSize: 12 }} value={c.trigger || "keyword"}
                           onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, trigger: e.target.value } : x)))}>
@@ -9196,11 +9242,19 @@ export default function TavusExperienceBuilder() {
                           )}
                           <input value={c.title || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
                             placeholder={c.style === "question" ? "The question — e.g. Which package fits you best?" : "Card title (optional)"} />
+                          {c.style === "link" && (
+                            <>
+                              <input className="mono" value={c.href || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, href: e.target.value } : x)))}
+                                placeholder={schedulingUrl.trim() ? `Booking URL — blank uses ${schedulingUrl.trim()}` : "Booking URL — e.g. https://calendly.com/you/30min"} />
+                              <input value={c.linkLabel || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, linkLabel: e.target.value } : x)))}
+                                placeholder='Button label — e.g. "Book a session" (blank = Book a time)' />
+                            </>
+                          )}
                           {c.style === "image" ? (
                             <input className="mono" value={c.url || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} placeholder="Image URL" />
                           ) : (
                             <textarea value={c.body || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))}
-                              placeholder={c.style === "chart" ? "One bar per line — Label: number (e.g. Tier 1: 4900)" : c.style === "stat" ? "Big value on the first line, label on the second — e.g.\n87%\nless manual work" : c.style === "question" ? "One choice per line (2–4):\nClassic Santa\nBetter Santa" : "The exact text to show, one paragraph per line."}
+                              placeholder={c.style === "chart" ? "One bar per line — Label: number (e.g. Tier 1: 4900)" : c.style === "stat" ? "Big value on the first line, label on the second — e.g.\n87%\nless manual work" : c.style === "question" ? "One choice per line (2–4):\nClassic Santa\nBetter Santa" : c.style === "link" ? "Optional lines above the button — e.g.\nYour issue and full context are attached" : "The exact text to show, one paragraph per line."}
                               style={{ minHeight: 68 }} />
                           )}
                           <input type="number" min="0" value={c.hideAfter ?? ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, hideAfter: e.target.value } : x)))}
@@ -9211,12 +9265,11 @@ export default function TavusExperienceBuilder() {
                             // map editor index → compiled index (incomplete cards drop out)
                             let n = -1;
                             for (let j = 0; j <= i; j++) {
-                              const cj = scCards[j];
-                              const style = ["note", "chart", "stat", "image"].includes(cj.style) ? cj.style : "note";
-                              const hasContent = style === "image" ? (cj.url || "").trim() : (cj.body || "").trim();
-                              const trig = cj.trigger || "keyword";
-                              const trigOk = trig === "start" || (trig === "keyword" ? (cj.keywords || "").trim() : parseFloat(cj.atMinutes) > 0);
-                              if (hasContent && trigOk) n++;
+                              // Same completeness test the compiler runs, so a
+                              // booking card can't shift every preview below it.
+                              if (scCardComplete(scCards[j].style === "link" && !String(scCards[j].href || "").trim() && schedulingUrl.trim()
+                                ? { ...scCards[j], href: schedulingUrl.trim() }
+                                : scCards[j])) n++;
                             }
                             return k === n && n >= 0;
                           });
@@ -10260,11 +10313,14 @@ export default function TavusExperienceBuilder() {
                           <div key={ci} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 8, marginBottom: 8, background: "var(--surface)" }}>
                             <div style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
                               <select style={{ ...inp, width: 96, flexShrink: 0 }} value={c.style || "note"} onChange={(e) => setCard(ci, { style: e.target.value })}>
-                                <option value="note">📄 note</option><option value="stat">🔢 stat</option><option value="chart">📊 chart</option><option value="image">🖼 image</option><option value="question">❓ question</option>
+                                <option value="note">📄 note</option><option value="stat">🔢 stat</option><option value="chart">📊 chart</option><option value="image">🖼 image</option><option value="question">❓ question</option><option value="link">📅 booking link</option>
                               </select>
                               <input style={inp} placeholder="Card title" value={c.title ?? ""} onChange={(e) => setCard(ci, { title: e.target.value })} />
                               <button className="kb-del" onClick={() => delCard(ci)} title="Remove this card">✕</button>
                             </div>
+                            {c.style === "link" && (
+                              <input style={{ ...inp, marginBottom: 6 }} placeholder="Booking URL — e.g. https://calendly.com/you/30min" value={c.href ?? ""} onChange={(e) => setCard(ci, { href: e.target.value })} />
+                            )}
                             {c.style === "image"
                               ? <input style={{ ...inp, marginBottom: 6 }} placeholder="Image URL" value={c.url ?? ""} onChange={(e) => setCard(ci, { url: e.target.value })} />
                               : <textarea style={{ ...inp, marginBottom: 6, minHeight: 44, resize: "vertical" }} placeholder={c.style === "question" ? "The options — one per line" : c.style === "chart" ? "One “Label: value” per line" : c.style === "stat" ? "Big value\nlabel" : "Card text"} value={c.body ?? ""} onChange={(e) => setCard(ci, { body: e.target.value })} />}

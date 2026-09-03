@@ -119,9 +119,11 @@ const CARDS_SYSTEM = `You design "scripted cards" for a Tavus demo — determini
 
 Return ONLY a valid JSON array (no code fences, no commentary), 2-5 cards:
 [{
-  "style": "note" | "chart" | "stat" | "image" | "question",
+  "style": "note" | "chart" | "stat" | "image" | "question" | "link",
   "title": "Card heading — for question style this IS the question",
-  "body": "note: 1-3 short lines, one per line. chart: one 'Label: number' per line (2-5 bars). stat: big value on line 1, short label on line 2. question: one choice per line (2-4). image: empty string",
+  "body": "note: 1-3 short lines, one per line. chart: one 'Label: number' per line (2-5 bars). stat: big value on line 1, short label on line 2. question: one choice per line (2-4). image: empty string. link: 0-3 short lines shown above the button",
+  "href": "link style only — a booking/scheduling URL, or an empty string to use the demo's own scheduling link. Empty for every other style",
+  "linkLabel": "link style only — the button text, 2-4 words (e.g. \"Book a session\"). Empty for every other style",
   "trigger": "keyword" | "time" | "start",
   "keywords": "2-4 comma-separated words someone would naturally SAY (keyword trigger only, else empty string)",
   "atMinutes": 0,
@@ -132,6 +134,7 @@ Rules:
 - Content must be specific to THIS demo (its real tiers, value props, flow) — but never invent precise real-world facts the config doesn't contain; for real brands keep numbers clearly illustrative.
 - Prefer keyword triggers with words that naturally come up in the conversation; vary the styles across the set; at most one question card.
 - stat = EXACTLY two lines: one big value, one short label (max 8 words). Never put multiple numbers in a stat — comparisons are charts.
+- link = the booking card: use it when the moment is scheduling, a callback, or a hand-off to a human. Leave "href" empty so it picks up the demo's scheduling link, and keep the body to what the visitor gets, not instructions to click.
 - "atMinutes" only for time triggers (e.g. 1.5); "hideAfter" seconds or 0 to stay until the next card. No markdown anywhere.`;
 
 const DUET_SYSTEM = `You design a complete recorded conversation between two AI humans (a "duet") for a demo video, from a plain-English description. Work in this ORDER: first fix the talk track (the outline), then write both personas around it, then derive the cards from the finished talk track — the cards must line up with what will actually be said.
