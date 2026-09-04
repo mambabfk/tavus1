@@ -629,6 +629,27 @@ non-technical users; ids unchanged):
    can draft the whole card set: `kind: "cards"` on generate-persona
    (JSON array), wired to "✨ Generate cards" on the Studio step (lands in
    `scCards`, editable on the Magic Canvas step).
+5.9. **Cross-check** (top of the Launch step + a red count badge on the
+   rail from every step) — `crossCheck`, a useMemo of ~15 DETERMINISTIC
+   findings: facts about the config, never a model's opinion, so it cannot
+   invent a problem. Catches the drift a scattered launch log never
+   surfaced in time — an unattached persona draft (the PAL runs the older
+   prompt), perception queries with no Perception section in the prompt, a
+   deck with no presenting section, two scripted cards sharing a trigger
+   word (first-match-wins, so the later never fires), per-visitor memory
+   with the email gate off (no key, no memory), anything offering booking
+   with no `schedulingUrl`, a rubric with the scorecard switched off.
+   Findings are `{level: "break"|"look", title, why, step, fix?}`; each
+   carries its OWN fix that routes through the existing reviewed path
+   (`attachPersona`, the 🪡 injects, a single toggle) plus a jump to the
+   step. **There is deliberately no "fix all"** — a button that
+   reconciled persona, objectives, cards and rubric together would be a
+   regenerate in disguise and would change a demo in the one way the
+   operator can't catch before going live. It detects; it never
+   reconciles. NOTE: the memo must stay declared BELOW
+   `compiledScriptedCards`/`parsedRubric`/`parsedCoachCriteria` and
+   reference later-declared functions only inside arrows — naming a
+   later `const` in the memo body is a TDZ error that renders a blank app.
 6. **Launch** — runs the whole attach-then-create sequence, logs each step.
    Also **Preflight check** (`preflight()`): `POST /objectives/validate`
    (shape/chain check, nothing saved) + `POST /conversations` with

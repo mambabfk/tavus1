@@ -542,6 +542,27 @@ const BUILDER_CSS = `
         .rail-btn:hover { background:var(--surface); color:var(--text); }
         .rail-btn.active { background:var(--surface); color:var(--text); border:1px solid var(--border); box-shadow:0 1px 2px rgba(20,20,20,.04); }
         .rail-check { margin-left:auto; color:var(--ok); font-size:11px; }
+        .rail-warn { margin-left:auto; min-width:17px; height:17px; border-radius:9px; background:#C4553B; color:#fff;
+          font-size:10.5px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; padding:0 5px; }
+
+        /* Cross-check */
+        .xc { border:1px solid var(--border); border-radius:18px; padding:18px 20px; margin-bottom:26px; background:var(--surface); }
+        .xc-bad { border-color:#C4553B; box-shadow:0 0 0 3px rgba(196,85,59,.09); }
+        .xc-warn { border-color:#D9922E; box-shadow:0 0 0 3px rgba(217,146,46,.08); }
+        .xc-head { display:grid; grid-template-columns:auto 1fr; gap:0 11px; align-items:center; margin-bottom:4px; }
+        .xc-head h2 { margin:0; font-size:17px; letter-spacing:-.01em; }
+        .xc-sub { grid-column:2; font-size:12.5px; color:var(--muted); }
+        .xc-dot { grid-row:span 2; width:11px; height:11px; border-radius:50%; background:var(--ok,#2E9E6B); }
+        .xc-bad .xc-dot { background:#C4553B; } .xc-warn .xc-dot { background:#D9922E; }
+        .xc-row { display:flex; gap:13px; align-items:flex-start; padding:14px 0; border-top:1px solid var(--border); margin-top:14px; }
+        .xc-tag { flex-shrink:0; margin-top:1px; font-size:9.5px; font-weight:750; letter-spacing:.07em; padding:3px 7px; border-radius:5px; }
+        .xc-break .xc-tag { background:rgba(196,85,59,.12); color:#9c4230; }
+        .xc-look .xc-tag { background:rgba(217,146,46,.14); color:#8a5b12; }
+        .xc-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+        .xc-body b { font-size:13.5px; font-weight:600; line-height:1.45; }
+        .xc-body span { font-size:12.5px; color:var(--muted); line-height:1.5; }
+        .xc-acts { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
+        @media (max-width:720px) { .xc-row { flex-wrap:wrap; } .xc-acts { width:100%; justify-content:flex-start; } }
         .rail-group { font-family:var(--mono); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); opacity:.75; padding:14px 14px 4px; }
         .rail > div:first-child .rail-group { padding-top:2px; }
         .flow-nav { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:36px; padding-top:18px; border-top:1px solid var(--border); }
@@ -4872,6 +4893,7 @@ export default function TavusExperienceBuilder() {
   );
   const guardrailsParsed = useMemo(() => parseGuardrails(guardrailsText), [guardrailsText]);
 
+
   const visionPayload = useMemo(() => {
     const lines = (t) => t.split("\n").map((s) => s.trim().replace(/^[-*•]\s*/, "")).filter(Boolean);
     const value = { perception_model: "raven-1" };
@@ -4954,6 +4976,100 @@ export default function TavusExperienceBuilder() {
     .split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 8)
     .map((l) => { const [label, kw = ""] = l.split("|"); return { label: label.trim(), keywords: kw.trim() }; })
     .filter((c) => c.label), [coachCriteriaText]);
+
+  /* ── Cross-check: does this demo still hang together? ──────────────────
+     Every finding is a FACT about the config, computed here — never a model's
+     opinion, so it can't invent a problem. It reports and offers one fix at a
+     time; it never reconciles anything on its own. A button that quietly
+     rewrote the persona, objectives and cards together would change a demo in
+     the one way you can't catch before you're live in front of someone. */
+  const crossCheck = useMemo(() => {
+    const f = [];
+    const add = (level, title, why, stepId, fix) => f.push({ level, title, why, step: stepId, fix });
+
+    if (palId.trim() && personaDraft.trim() && !personaAttached) {
+      add("break", "The PAL is running an older prompt than the one you're looking at",
+        "The draft on the Persona step has never been attached, so the call uses whatever was attached last.",
+        "persona", { label: "Attach it now", run: () => attachPersona() });
+    }
+    if (visionEnabled && visualQueriesText.trim() && personaDraft.trim() && !/perception/i.test(personaDraft)) {
+      add("look", "Perception checks exist, but the prompt never mentions them",
+        "Raven will answer these every second and nothing will act on the answers.",
+        "vision", { label: "🪡 Weave them in", run: () => injectVisionIntoPrompt() });
+    }
+    if (presentationEnabled && docIds.length > 0 && personaDraft.trim() && !/slide|deck|present/i.test(personaDraft)) {
+      add("look", "A deck is attached, but the prompt has no presenting section",
+        "The persona has no instruction about when to open the deck or how to walk it.",
+        "presentation", { label: "🪡 Weave it in", run: () => injectPresentationIntoPrompt() });
+    }
+    if (presentationEnabled && !docIds.length) {
+      add("break", "Slides are on with no documents chosen",
+        "Launch will skip the deck entirely and clear whatever deck the PAL was carrying.", "presentation");
+    }
+    if (canvasEnabled && presentationEnabled && docIds.length > 0 && slidesTrigger === "walk_the_deck") {
+      add("look", "The deck and Magic Canvas both want the screen beside the face",
+        "Slides lead and cards are held for questions — the canvas style dial is overridden while a deck is attached.", "canvas");
+    }
+    if (objectivesEnabled && !objectivesPayload.data.length) {
+      add("break", "Objectives are on but nothing parsed", "The call runs with no flow at all.", "guide");
+    }
+    if (guardrailsEnabled && !guardrailsParsed.length) {
+      add("break", "Guardrails are on but nothing parsed", "No rules will be attached to the PAL.", "guide");
+    }
+    if (scCards.length > compiledScriptedCards.length) {
+      add("break", `${scCards.length - compiledScriptedCards.length} scripted card${scCards.length - compiledScriptedCards.length > 1 ? "s" : ""} won't appear`,
+        "Missing content or a trigger, so the card is dropped before the call and never fires.", "canvas");
+    }
+    // Substring matching + first-match-wins: a shared word means the later
+    // card is unreachable for the whole call.
+    const seen = new Map();
+    for (const [i, c] of compiledScriptedCards.entries()) {
+      if (c.trigger !== "keyword") continue;
+      for (const k of c.keywords.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean)) {
+        if (seen.has(k)) {
+          add("break", `Cards ${seen.get(k) + 1} and ${i + 1} both trigger on "${k}"`,
+            `Whichever fires first wins, and card ${i + 1} never appears. Give them distinct trigger words.`, "canvas");
+        } else seen.set(k, i);
+      }
+    }
+    if (coachEnabled && !parsedCoachCriteria.length) {
+      add("break", "Coach mode is on with no criteria", "The scorecard panel renders empty.", "experience");
+    }
+    if (browserUseEnabled && !(browserCfgObj.guided_flows || []).some((x) => String(x?.name || "").trim())) {
+      add("break", "Browser Use is on with no complete flow",
+        "Launch will skip the attach and clear any flows the PAL carries.", "presentation");
+    }
+    if (memoryEnabled && memoryMode === "visitor" && !expEmailGate) {
+      add("break", "Per-visitor memory needs the email gate",
+        "The store is keyed to the email a visitor enters; with the gate off nobody has a key, so nobody is remembered.",
+        "experience", { label: "Turn the gate on", run: () => setExpEmailGate(true) });
+    }
+    const wantsBooking = expBooking || components.scheduling_embed || compiledScriptedCards.some((c) => c.style === "link");
+    if (wantsBooking && !schedulingUrl.trim()) {
+      add("break", "Something offers booking but there's no scheduling link",
+        "The booking card, the scheduling component and the post-call screen all read one URL, and it's empty.", "canvas");
+    }
+    if (gradeEnabled && !parsedRubric.length) {
+      add("look", "The scorecard is on with no rubric", "Grading a call will refuse until there's at least one competency.", "grade");
+    }
+    if (!gradeEnabled && parsedRubric.length > 0) {
+      add("look", "You have a rubric but the scorecard is switched off",
+        "The Grade button won't appear on a call in Results.", "grade", { label: "Switch it on", run: () => setGradeEnabled(true) });
+    }
+    if (languages[0] && languages[0] !== "en" && greeting.trim()) {
+      add("look", `The call opens in ${LANG_NAME(languages[0])} — check the greeting matches`,
+        "The scripted greeting plays verbatim before anyone speaks, so it can't adapt the way the rest of the call does.", "setup");
+    }
+    if (recordingEnabled && !(recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim())) {
+      add("look", "Recording is on but the S3 details are incomplete", "The call will run and simply not be recorded.", "controls");
+    }
+    return f;
+  }, [palId, personaDraft, personaAttached, visionEnabled, visualQueriesText, presentationEnabled, docIds,
+      canvasEnabled, slidesTrigger, objectivesEnabled, objectivesPayload, guardrailsEnabled, guardrailsParsed,
+      scCards, compiledScriptedCards, coachEnabled, parsedCoachCriteria, browserUseEnabled, browserCfgObj,
+      memoryEnabled, memoryMode, expEmailGate, expBooking, components, schedulingUrl, gradeEnabled,
+      parsedRubric, languages, greeting, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn]);
+  const crossBreaks = crossCheck.filter((x) => x.level === "break").length;
 
   const controlsConfig = useMemo(() => ({
     scriptedCards: [...compiledScriptedCards, ...productCards].slice(0, 16),
@@ -7828,6 +7944,7 @@ export default function TavusExperienceBuilder() {
               {s.id === "controls" && (maxMinutes || inactivitySeconds || wakePhrase.trim() || interruptButton || guardrailEcho.trim() || recordingEnabled) && <span className="rail-check">●</span>}
               {s.id === "presentation" && presentationEnabled && docIds.length > 0 && <span className="rail-check">●</span>}
               {s.id === "grade" && gradeEnabled && parsedRubric.length > 0 && <span className="rail-check">●</span>}
+              {s.id === "launch" && crossBreaks > 0 && <span className="rail-warn" title={`${crossBreaks} will misbehave on this call`}>{crossBreaks}</span>}
               {s.id === "canvas" && canvasEnabled && <span className="rail-check">●</span>}
               {s.id === "site" && site.brand && <span className="rail-check">●</span>}
             </button>
@@ -11104,6 +11221,41 @@ export default function TavusExperienceBuilder() {
 
           {step === "launch" && (
             <>
+              <div className={"xc" + (crossBreaks ? " xc-bad" : crossCheck.length ? " xc-warn" : " xc-ok")}>
+                <div className="xc-head">
+                  <span className="xc-dot" />
+                  <h2>
+                    {crossBreaks
+                      ? `${crossBreaks} thing${crossBreaks > 1 ? "s" : ""} will misbehave on this call`
+                      : crossCheck.length
+                      ? `${crossCheck.length} thing${crossCheck.length > 1 ? "s" : ""} worth a look`
+                      : "Everything lines up"}
+                  </h2>
+                  <span className="xc-sub">
+                    {crossCheck.length
+                      ? "Facts about this config, not opinions — nothing here changes until you click a fix."
+                      : "No contradictions between the persona, the flow, the cards and the skills."}
+                  </span>
+                </div>
+                {crossCheck.map((x, i) => (
+                  <div key={i} className={`xc-row xc-${x.level}`}>
+                    <span className="xc-tag">{x.level === "break" ? "WILL BREAK" : "LOOK"}</span>
+                    <div className="xc-body">
+                      <b>{x.title}</b>
+                      <span>{x.why}</span>
+                    </div>
+                    <div className="xc-acts">
+                      {x.fix && (
+                        <button className="pill-btn primary" style={{ padding: "5px 12px", fontSize: 12.5 }}
+                          disabled={generating}
+                          onClick={() => x.fix.run()}>{x.fix.label}</button>
+                      )}
+                      <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12.5 }}
+                        onClick={() => setStep(x.step)}>Open {STEPS.find((st) => st.id === x.step)?.label || x.step} →</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
               <h1>Launch &amp; Share</h1>
               <p className="lede">
                 On launch: {[
