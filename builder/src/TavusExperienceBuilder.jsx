@@ -3754,7 +3754,7 @@ export default function TavusExperienceBuilder() {
 
   // Integrations (custom LLM tools → any webhook)
   const [toolsEnabled, setToolsEnabled] = useState(false);
-  const [toolRows, setToolRows] = useState([{ name: "", desc: "", fields: "" }]);
+  const [toolRows, setToolRows] = useState([{ name: "", desc: "", fields: "", delivery: "app_message" }]);
   const [toolWebhook, setToolWebhook] = useState("");
   const [toolEcho, setToolEcho] = useState("");
 
@@ -4919,23 +4919,57 @@ export default function TavusExperienceBuilder() {
   }, [visualQueriesText, audioQueriesText]);
 
   /* Plain-English tool rows → OpenAI function-shape tools for the PAL's LLM. */
+  /* Tools are standalone objects in the registry (POST /v2/tools) attached to
+     a PAL (POST /pals/{id}/tools) — NOT the deprecated inline layers.llm.tools.
+     The reason that matters: inline tools can only be delivered to the browser
+     and the result never re-enters the conversation. A registry tool with
+     delivery.api + on_resolve:"generate_response" lets the PAL call a real
+     endpoint and SPEAK the answer, which is the whole point of a tool in a
+     demo. */
   const toolDefs = useMemo(() => toolRows
     .filter((r) => r.name.trim() && r.desc.trim())
     .map((r) => {
       const name = r.name.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60) || "tool";
       const fields = r.fields.split(",").map((f) => f.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_")).filter(Boolean);
-      return {
-        type: "function",
-        function: {
-          name,
-          description: r.desc.trim(),
-          parameters: {
-            type: "object",
-            properties: Object.fromEntries(fields.map((f) => [f, { type: "string" }])),
-            required: fields,
-          },
+      const api = r.delivery === "api" && String(r.url || "").trim().startsWith("https://");
+      const def = {
+        name,
+        description: r.desc.trim(),
+        parameters: {
+          type: "object",
+          properties: Object.fromEntries(fields.map((f) => [f, { type: "string" }])),
+          required: fields,
         },
+        origin: "llm",
+        // Defaults ARE the feature: an API tool that narrates itself and then
+        // ignores its own result is the useless version.
+        on_call: r.onCall || (api ? "silent" : "generate_filler"),
+        on_resolve: r.onResolve || (api ? "generate_response" : "fire_and_forget"),
       };
+      if (def.on_call === "static_filler") def.static_filler = String(r.filler || "").trim() || "One moment.";
+      if (api) {
+        const auth = { type: r.authType || "none" };
+        if (auth.type === "bearer" && String(r.authValue || "").trim()) auth.token = r.authValue.trim();
+        if (auth.type === "api_key") { auth.name = String(r.authName || "").trim() || "x-api-key"; auth.value = String(r.authValue || "").trim(); }
+        const method = r.method || "POST";
+        def.delivery = {
+          app_message: false,
+          api: {
+            url: r.url.trim(),
+            method,
+            timeout: Math.min(60, Math.max(1, parseInt(r.timeout, 10) || 10)),
+            auth,
+            // The body writes itself from the fields — every {placeholder} must
+            // be a declared property, and hand-written JSON is where that breaks.
+            ...(["GET", "HEAD", "DELETE"].includes(method) || !fields.length
+              ? {}
+              : { body_template: Object.fromEntries(fields.map((f) => [f, `{${f}}`])) }),
+          },
+        };
+      } else {
+        def.delivery = { app_message: true };
+      }
+      return def;
     }), [toolRows]);
 
   /* Editor shape → the scripted cards that ship. Incomplete cards drop out
@@ -5231,7 +5265,7 @@ export default function TavusExperienceBuilder() {
     if (step === "speech")
       return { title: "POST /pronunciation-dictionaries", text: curlFor("POST", "/pronunciation-dictionaries", pronunciationPayload) };
     if (step === "tools")
-      return { title: "PATCH /pals/… (llm tools)", text: curlFor("PATCH", `/pals/${pal}`, [{ op: "add", path: "/layers/llm/tools", value: toolDefs }]) };
+      return { title: "POST /tools  →  POST /pals/…/tools", text: curlFor("POST", "/tools", toolDefs[0] || {}) };
     if (step === "calls")
       return {
         title: "GET /conversations/{id}?verbose=true",
@@ -7386,10 +7420,22 @@ export default function TavusExperienceBuilder() {
             [{ op: "remove", path: "/layers/tts/pronunciation_dictionary_id" }],
             [{ op: "add", path: "/layers/tts/pronunciation_dictionary_id", value: null }]);
         }
-        if ((!toolsEnabled || !toolDefs.length) && Array.isArray(palState.layers?.llm?.tools) && palState.layers.llm.tools.length) {
-          await clearPatch("custom tools",
+        // Inline layers.llm.tools is the deprecated path and this builder no
+        // longer writes it. Clear it ALWAYS, not just when tools are off: a PAL
+        // built by an older version would otherwise offer every function twice,
+        // once inline and once from the registry.
+        if (Array.isArray(palState.layers?.llm?.tools) && palState.layers.llm.tools.length) {
+          await clearPatch("legacy inline tools",
             [{ op: "replace", path: "/layers/llm/tools", value: [] }],
             [{ op: "add", path: "/layers/llm/tools", value: [] }]);
+        }
+        // Registry tools the operator has since switched off.
+        if (!toolsEnabled || !toolDefs.length) {
+          try {
+            const attached = (await tavusFetch("GET", `/pals/${pal}/tools`))?.data || [];
+            for (const t of attached) if (t?.tool_id && !t.is_system_tool) await tavusFetch("DELETE", `/pals/${pal}/tools/${t.tool_id}`);
+            if (attached.some((t) => !t?.is_system_tool)) addLog("ok", "Detached the PAL's tools — this demo has tools off.");
+          } catch { /* none attached */ }
         }
         // Asymmetric bleed: an old demo that turned expressive delivery OFF
         // left it off forever — turn it back on when this demo wants it on.
@@ -7548,11 +7594,50 @@ export default function TavusExperienceBuilder() {
 
       // Integrations: attach custom tools to the PAL's LLM (persists on the PAL).
       if (toolsEnabled && toolDefs.length) await section("Tools", async () => {
-        addLog("info", `Attaching ${toolDefs.length} custom tool${toolDefs.length > 1 ? "s" : ""} to the PAL…`);
-        await tavusFetch("PATCH", `/pals/${pal}`, [
-          { op: "add", path: "/layers/llm/tools", value: toolDefs },
-        ]);
-        addLog("ok", `Tools attached: ${toolDefs.map((t) => t.function.name).join(", ")}.`);
+        addLog("info", `Registering ${toolDefs.length} tool${toolDefs.length > 1 ? "s" : ""}…`);
+        const ids = [];
+        for (const def of toolDefs) {
+          // Tool names are unique per ACCOUNT, so a relaunch of the same demo
+          // hits 409 on create. Look the name up first and PATCH it instead —
+          // the tool_id stays stable and anything else using it keeps working.
+          let existing = null;
+          try {
+            const found = await tavusFetch("GET", `/tools?type=user&name_or_uuid=${encodeURIComponent(def.name)}`);
+            existing = (found?.data || []).find((t) => t.name === def.name) || null;
+          } catch { /* treat as new */ }
+          if (existing?.tool_id) {
+            await tavusFetch("PATCH", `/tools/${existing.tool_id}`, def);
+            ids.push(existing.tool_id);
+            addLog("info", `↻ ${def.name} updated.`);
+          } else {
+            const made = await tavusFetch("POST", "/tools", def);
+            const id = made?.tool_id || made?.data?.tool_id;
+            if (!id) throw new Error(`Tavus didn't return a tool_id for "${def.name}".`);
+            ids.push(id);
+            addLog("info", `＋ ${def.name} created.`);
+          }
+        }
+        await tavusFetch("POST", `/pals/${pal}/tools`, { tool_ids: ids });
+        // Full replace, same principle as guardrails: this demo owns the PAL's
+        // tool set, or a previous demo's tools ride along into this call.
+        try {
+          const attached = (await tavusFetch("GET", `/pals/${pal}/tools`))?.data || [];
+          for (const t of attached) {
+            if (t?.tool_id && !ids.includes(t.tool_id) && !t.is_system_tool) {
+              await tavusFetch("DELETE", `/pals/${pal}/tools/${t.tool_id}`);
+              addLog("info", `Detached "${t.name}" — left over from another demo.`);
+            }
+          }
+        } catch { /* listing is best-effort; the attach above already landed */ }
+        const speaks = toolDefs.filter((d) => d.on_resolve === "generate_response" || d.on_resolve === "response_in_result");
+        addLog("ok", `Tools attached: ${toolDefs.map((t) => t.name).join(", ")}.`
+          + (speaks.length ? ` ${speaks.length} of them answer back into the conversation.` : ""));
+      }, async () => {
+        try {
+          const attached = (await tavusFetch("GET", `/pals/${pal}/tools`))?.data || [];
+          for (const t of attached) if (t?.tool_id && !t.is_system_tool) await tavusFetch("DELETE", `/pals/${pal}/tools/${t.tool_id}`);
+          addLog("info", "Cleared the PAL's tools so the call can't offer a half-registered one — fix and relaunch.");
+        } catch { /* nothing attached */ }
       });
 
       // Browser Use runs pre-authored guided flows only — with no complete
@@ -9903,7 +9988,7 @@ export default function TavusExperienceBuilder() {
                 <Toggle on={toolsEnabled} onChange={setToolsEnabled} />
               </div>
               <p className="lede">
-                Give the PAL abilities in plain English — "book a meeting", "create a CRM lead", "file a ticket". When the PAL decides to use one mid-conversation, the call fires into any webhook you point at (Zapier, Make, n8n, your own endpoint) with the details it collected. This is the "Tavus plugs into anything" demo: no code on the Tavus side.
+                Give the PAL abilities in plain English — "check a seat count", "book a meeting", "file a ticket". When it decides to use one mid-conversation, Tavus can either fire the call at your frontend and any webhook you point at, or <b>call your API, wait for the answer, and let the PAL say it out loud</b>. The second is what makes a tool demo land: the AI human looks something real up and tells them what it found.
               </p>
 
               {toolRows.map((row, i) => (
@@ -9917,10 +10002,65 @@ export default function TavusExperienceBuilder() {
                   {toolRows.length > 1 && (
                     <button className="kb-del" onClick={() => setToolRows((rs) => rs.filter((_, j) => j !== i))}>✕</button>
                   )}
+                  <div style={{ flexBasis: "100%", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <select style={{ width: "auto", fontSize: 12.5, padding: "5px 9px" }} disabled={!toolsEnabled}
+                      value={row.delivery || "app_message"}
+                      onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, delivery: e.target.value } : r))}>
+                      <option value="app_message">→ the browser (fire & forget)</option>
+                      <option value="api">→ your API (it speaks the answer)</option>
+                    </select>
+                    {row.delivery === "api" && (
+                      <>
+                        <select style={{ width: "auto", fontSize: 12.5, padding: "5px 9px" }} disabled={!toolsEnabled}
+                          value={row.method || "POST"}
+                          onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, method: e.target.value } : r))}>
+                          {["POST", "GET", "PUT", "PATCH", "DELETE"].map((m) => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                        <input className="mono" style={{ flex: "1 1 240px", fontSize: 12.5 }} disabled={!toolsEnabled}
+                          value={row.url || ""} placeholder="https://your-api.example.com/lookup"
+                          onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, url: e.target.value } : r))} />
+                        <select style={{ width: "auto", fontSize: 12.5, padding: "5px 9px" }} disabled={!toolsEnabled}
+                          value={row.authType || "none"}
+                          onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, authType: e.target.value } : r))}>
+                          <option value="none">no auth</option>
+                          <option value="bearer">bearer token</option>
+                          <option value="api_key">API key header</option>
+                        </select>
+                        {row.authType === "api_key" && (
+                          <input className="mono" style={{ width: 130, fontSize: 12.5 }} disabled={!toolsEnabled}
+                            value={row.authName || ""} placeholder="header name"
+                            onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, authName: e.target.value } : r))} />
+                        )}
+                        {(row.authType === "bearer" || row.authType === "api_key") && (
+                          <input className="mono" type="password" style={{ width: 150, fontSize: 12.5 }} disabled={!toolsEnabled}
+                            value={row.authValue || ""} placeholder="secret"
+                            onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, authValue: e.target.value } : r))} />
+                        )}
+                      </>
+                    )}
+                    <select style={{ width: "auto", fontSize: 12.5, padding: "5px 9px" }} disabled={!toolsEnabled}
+                      title="What it does while the call is in flight"
+                      value={row.onCall || (row.delivery === "api" ? "silent" : "generate_filler")}
+                      onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, onCall: e.target.value } : r))}>
+                      <option value="silent">stays quiet while it runs</option>
+                      <option value="generate_filler">improvises a filler line</option>
+                      <option value="static_filler">says a set line</option>
+                    </select>
+                    {(row.onCall || (row.delivery === "api" ? "silent" : "generate_filler")) === "static_filler" && (
+                      <input style={{ flex: "1 1 180px", fontSize: 12.5 }} disabled={!toolsEnabled}
+                        value={row.filler || ""} placeholder='e.g. "Let me pull that up."'
+                        onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, filler: e.target.value } : r))} />
+                    )}
+                  </div>
+                  {row.delivery === "api" && !String(row.url || "").trim().startsWith("https://") && (
+                    <span className="field-hint" style={{ flexBasis: "100%", color: "var(--danger)" }}>
+                      Needs an https:// URL — without one this falls back to browser delivery and the PAL can't use the result.
+                    </span>
+                  )}
                 </div>
               ))}
               <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13, marginBottom: 20 }} disabled={!toolsEnabled}
-                onClick={() => setToolRows((rs) => [...rs, { name: "", desc: "", fields: "" }])}>+ Add ability</button>
+                onClick={() => setToolRows((rs) => [...rs, { name: "", desc: "", fields: "", delivery: "app_message" }])}>+ Add ability</button>
 
               <Field label="Send tool calls to (webhook URL)" hint="Any HTTPS endpoint — a Zapier 'Catch Hook', Make, n8n, or your own API. Each call posts JSON: { tool, arguments, conversation_id }. Fires live from the demo page.">
                 <input className="mono" disabled={!toolsEnabled} value={toolWebhook} onChange={(e) => setToolWebhook(e.target.value)} placeholder="https://hooks.zapier.com/hooks/catch/…" />
@@ -9928,8 +10068,15 @@ export default function TavusExperienceBuilder() {
               <Field label="Spoken confirmation (optional)" hint="Said by the PAL right after it uses an ability.">
                 <input disabled={!toolsEnabled} value={toolEcho} onChange={(e) => setToolEcho(e.target.value)} placeholder="Done — I've sent that over to the team." />
               </Field>
-              <p className="field-hint" style={{ maxWidth: 560 }}>
-                On launch the abilities attach to the PAL ({toolDefs.length ? toolDefs.map((t) => t.function.name).join(", ") : "none defined yet"}) and persist on it. The webhook forwarding works on the demo page's custom call UI — including shared /d/ links.
+              <p className="field-hint" style={{ maxWidth: 620 }}>
+                On launch each ability is registered at <span className="mono">/v2/tools</span> and attached to the PAL
+                ({toolDefs.length ? toolDefs.map((t) => t.name).join(", ") : "none defined yet"}); re-launching updates them in place
+                rather than creating duplicates, and anything left attached from another demo is detached.
+                <br /><br />
+                <b>→ your API</b> is the one worth using. Tavus calls your endpoint, waits for the JSON, and the PAL answers
+                from what came back — "your account has 2 of 100 seats used". <b>→ the browser</b> is the old behaviour:
+                the call reaches the demo page and the webhook below, the PAL never learns the result, so it can only
+                acknowledge that something happened.
               </p>
 
               <div className="subhead" style={{ marginTop: 26 }}>Tavus skills</div>

@@ -342,13 +342,31 @@ non-technical users; ids unchanged):
    replica's screenVideo track — same path as slides, already rendered by
    the custom UI (and the duet joiner's side panel; the duet beat cue says
    "start your guided browser flow \"X\"").
-4.6. **Integrations** (`tools`) — plain-English ability rows
-   ({name, desc, fields}) → `toolDefs` (OpenAI function shape, slugged names,
-   comma fields → required string params) → on launch
-   `PATCH /pals/{id}` `/layers/llm/tools`. `toolWebhook`/`toolEcho` travel in
-   `controlsConfig`; `CallExtras` forwards `conversation.tool_call`
-   app-messages to the webhook as `text/plain` JSON (no CORS preflight —
-   works with Zapier/Make catch hooks) and optionally echoes a confirmation.
+4.6. **Integrations** (`tools`) — the **tools REGISTRY**, not the deprecated
+   inline `layers.llm.tools`. That path only ever supported app-message
+   delivery, so the result never re-entered the conversation and the PAL
+   could acknowledge a tool call but never answer from it. Ability rows
+   ({name, desc, fields, delivery, method, url, authType/Name/Value, onCall,
+   filler, onResolve}) → `toolDefs` (registry shape: name, description,
+   parameters, origin:"llm", on_call, on_resolve, delivery). Launch:
+   `GET /tools?type=user&name_or_uuid=` → `PATCH /tools/{id}` when the name
+   exists else `POST /tools` (names are unique per ACCOUNT, so a relaunch
+   409s on create), then `POST /pals/{id}/tools {tool_ids}` and DELETE any
+   attached tool not in this demo's set (full replace, like guardrails).
+   **Defaults are the feature**: `delivery:"api"` implies
+   `on_call:"silent"` + `on_resolve:"generate_response"`, so the PAL calls
+   the endpoint quietly and SPEAKS the JSON that comes back; `body_template`
+   is generated from the declared fields (every `{placeholder}` must be a
+   declared property — hand-written JSON is where that breaks). The hygiene
+   sweep now clears `layers.llm.tools` ALWAYS, not only when tools are off:
+   a PAL built by an older version would otherwise offer every function
+   twice. `toolWebhook`/`toolEcho` still travel in `controlsConfig` and
+   still serve app_message delivery — `CallExtras` forwards
+   `conversation.tool_call` app-messages to the webhook as `text/plain`
+   JSON (no CORS preflight — works with Zapier/Make catch hooks).
+   NOTE: the Tavus **MCP server** (`https://mcp.tavus.io/mcp`) is for CODING
+   AGENTS, not for this browser app — it is an OAuth'd wrapper over the same
+   REST API the builder already calls. Don't route the builder through it.
 4.65. **Calls & Data** (`calls`) — pull-based, straight from Tavus:
    `GET /conversations` list + `GET /conversations/{id}?verbose=true` for
    transcript (`transcription`-type event), perception analyses, and raw JSON
