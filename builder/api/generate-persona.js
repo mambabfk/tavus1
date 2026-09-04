@@ -302,6 +302,46 @@ Rules:
 - Most criteria should have keywords:"" — over-eager keyword ticks feel fake; reserve keywords for words that only occur when the behavior happens.`;
 
 /* Score: the live judge — transcript so far + unmet criteria → which are now met. */
+const RUBRIC_SYSTEM = `You turn a job description, training curriculum, or rough notes into an interview scorecard rubric.
+
+Return ONLY a valid JSON array (no code fences, no commentary), 4-8 competencies:
+[{
+  "label": "The competency — 2-4 words, the words a hiring manager would use",
+  "good": "What a strong answer actually sounds like in this conversation — one concrete sentence, observable in a transcript. Not a definition of the trait.",
+  "weight": 1
+}]
+
+Rules:
+- Only competencies this conversation can actually evidence. A voice interview cannot assess someone's portfolio, their code, or their references — leave those out however prominent they are in the source.
+- "good" must be observable: what they SAY, describe, or demonstrate in dialogue. "Communicates clearly" is unscoreable; "explains a technical decision so a non-engineer follows it" is scoreable.
+- Weights 1-3. Use 3 sparingly — for the one or two things the role genuinely lives or dies on. Most rows are 1.
+- No overlap between rows: if two competencies would be evidenced by the same answer, merge them.
+- Order them the way the conversation would surface them, opening topics first.`;
+
+const GRADE_SYSTEM = `You grade one recorded interview against a fixed rubric. A hiring decision may lean on this, so being accurate matters far more than being generous or being harsh.
+
+Return ONLY valid JSON (no code fences, no commentary):
+{
+  "summary": "Two sentences: what this candidate showed, and the single thing that most limits confidence.",
+  "verdict": "one of: Strong yes | Yes | Mixed | No | Not enough signal",
+  "rows": [{
+    "label": "the competency, copied EXACTLY from the rubric",
+    "score": 1-5, or null when the transcript contains no evidence either way,
+    "evidence": "a VERBATIM quote from the CANDIDATE that drove the score — copy it exactly, never paraphrase, never invent. Empty string when score is null.",
+    "note": "one sentence on why that score and not one higher"
+  }],
+  "strengths": ["2-3 short phrases, each tied to something they actually said"],
+  "gaps": ["2-3 short phrases — what is missing, weak, or untested"]
+}
+
+Rules:
+- One row per rubric competency, in the rubric's order, labels copied exactly.
+- Score ONLY what the candidate said. The interviewer's lines are context, never evidence. If a topic never came up, score null — do not infer competence from an adjacent answer, and do not punish them for a question nobody asked.
+- Every non-null score needs a real verbatim quote. If you cannot quote it, you cannot score it.
+- 3 is a solid, unremarkable answer. Reserve 5 for something genuinely distinguishing and 1 for a clear miss — not for brevity.
+- A short interview means more nulls, not lower scores. Say so in the summary when the call was too thin to judge.
+- Never mention the rubric's weights, and never compute an overall score — that arithmetic happens outside you.`;
+
 const SCORE_SYSTEM = `You are the live judge behind a roleplay scorecard. You get the transcript so far and the criteria not yet met. Decide which criteria the TRAINEE (the human, lines marked TRAINEE) has now clearly demonstrated.
 
 Return ONLY JSON (no markdown fences): {"hit":[0-based indices of criteria now met]}
@@ -491,6 +531,29 @@ export default async function handler(req, res) {
     if (c.personaSummary) parts.push(`The AI character (persona summary):\n${String(c.personaSummary).slice(0, 3000)}`);
     if (c.objectives) parts.push(`Conversation flow objectives:\n${String(c.objectives).slice(0, 1500)}`);
     if (c.brand) parts.push(`Brand: ${String(c.brand).slice(0, 200)}`);
+    userPrompt = parts.join("\n\n");
+  } else if (kind === "rubric") {
+    if (!String(vibe).trim()) {
+      res.status(400).json({ error: "Paste the job description or curriculum first." });
+      return;
+    }
+    system = RUBRIC_SYSTEM;
+    const parts = [`SOURCE MATERIAL (turn this into a rubric):\n${String(vibe).trim().slice(0, 12000)}`];
+    if (c.role) parts.push(`Role being interviewed for: ${String(c.role).slice(0, 200)}`);
+    if (c.objectives) parts.push(`The interview's own flow (what actually gets asked):\n${String(c.objectives).slice(0, 1500)}`);
+    userPrompt = parts.join("\n\n");
+  } else if (kind === "grade") {
+    const rows = (Array.isArray(context?.rubric) ? context.rubric : []).slice(0, 12);
+    if (!rows.length || !String(vibe).trim()) {
+      res.status(400).json({ error: "Grading needs a rubric and a transcript." });
+      return;
+    }
+    system = GRADE_SYSTEM;
+    const parts = [
+      `RUBRIC — grade against exactly these, in this order:\n${rows.map((r, i) => `${i + 1}. ${String(r.label).slice(0, 200)}\n   Strong looks like: ${String(r.good || "(not specified — use your judgement for the role)").slice(0, 400)}`).join("\n")}`,
+    ];
+    if (c.role) parts.push(`Role: ${String(c.role).slice(0, 200)}`);
+    parts.push(`TRANSCRIPT (the candidate's lines are marked CANDIDATE):\n${String(vibe).trim().slice(0, 40000)}`);
     userPrompt = parts.join("\n\n");
   } else if (kind === "score") {
     const crit = (Array.isArray(context?.criteria) ? context.criteria : []).map((s) => String(s).slice(0, 200)).slice(0, 12);

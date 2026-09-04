@@ -54,6 +54,7 @@ const STEPS = [
   { id: "controls", label: "Timing", group: "Run it" },
   { id: "launch", label: "Launch & Share", group: "Run it" },
   { id: "studio", label: "Studio", group: "Run it" },
+  { id: "grade", label: "Scorecard", group: "Run it" },
   { id: "calls", label: "Results", group: "Run it" },
 ];
 
@@ -606,6 +607,44 @@ const BUILDER_CSS = `
         .sc-title { font-weight:700; font-size:15px; letter-spacing:-.2px; }
         .sc-note p { margin:0 0 8px; font-size:13.5px; line-height:1.55; }
         .sc-note p:last-child { margin-bottom:0; }
+
+        /* Interview grade */
+        .gc { background:var(--surface,#fff); border:1px solid var(--border,#E6E4DF); border-radius:20px; padding:22px; max-width:720px; }
+        .gc-top { display:flex; gap:22px; align-items:flex-start; padding-bottom:18px; border-bottom:1px solid var(--border,#E6E4DF); }
+        .gc-ring { position:relative; flex-shrink:0; width:104px; height:104px; border-radius:50%; display:flex; flex-direction:column;
+          align-items:center; justify-content:center; gap:0;
+          background:conic-gradient(var(--gc-c) var(--gc-pct), var(--canvas,#F5F4F1) 0); }
+        .gc-ring::after { content:""; position:absolute; inset:9px; border-radius:50%; background:var(--surface,#fff); }
+        .gc-ring > * { position:relative; z-index:1; }
+        .gc-num { font-size:30px; font-weight:650; letter-spacing:-.02em; line-height:1; }
+        .gc-den { font-size:11.5px; color:var(--muted,#7A7A73); margin-top:3px; }
+        .gc-hi { --gc-c:#2E9E6B; } .gc-mid { --gc-c:#D9922E; } .gc-lo { --gc-c:#C4553B; } .gc-none { --gc-c:var(--border,#E6E4DF); }
+        .gc-head { flex:1; min-width:0; }
+        .gc-verdict { display:inline-block; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:650;
+          background:color-mix(in srgb, var(--gc-c) 14%, transparent); color:var(--gc-c); margin-bottom:9px; }
+        .gc-summary { margin:0 0 8px; font-size:14.5px; line-height:1.55; }
+        .gc-meta { font-size:11.5px; color:var(--muted,#7A7A73); }
+        .gc-rows { display:flex; flex-direction:column; }
+        .gc-row { padding:15px 0; border-bottom:1px solid var(--border,#E6E4DF); }
+        .gc-row:last-child { border-bottom:0; }
+        .gc-row-null { opacity:.62; }
+        .gc-row-head { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+        .gc-label { font-size:13.5px; font-weight:600; }
+        .gc-weight { font-size:10.5px; font-weight:650; color:var(--muted,#7A7A73); border:1px solid var(--border,#E6E4DF); border-radius:5px; padding:1px 5px; }
+        .gc-dots { display:flex; gap:4px; margin-left:auto; }
+        .gc-dot { width:9px; height:9px; border-radius:50%; background:var(--canvas,#F5F4F1); border:1px solid var(--border,#E6E4DF); }
+        .gc-dot.on { background:var(--gc-c); border-color:var(--gc-c); }
+        .gc-score { font-size:12px; font-weight:650; color:var(--muted,#7A7A73); min-width:56px; text-align:right; }
+        .gc-quote { margin:9px 0 0; padding:8px 0 8px 13px; border-left:2px solid var(--accent,#F0A891);
+          font-size:13px; line-height:1.5; color:var(--text,#17181A); }
+        .gc-quote::before { content:"“"; } .gc-quote::after { content:"”"; }
+        .gc-note { margin:7px 0 0; font-size:12.5px; line-height:1.5; color:var(--muted,#7A7A73); }
+        .gc-split { display:grid; grid-template-columns:1fr 1fr; gap:18px; padding-top:16px; border-top:1px solid var(--border,#E6E4DF); }
+        .gc-sub { font-size:11px; font-weight:650; letter-spacing:.05em; text-transform:uppercase; color:var(--muted,#7A7A73); margin-bottom:8px; }
+        .gc-chip { display:inline-block; margin:0 5px 5px 0; padding:4px 10px; border-radius:999px; font-size:12px; line-height:1.35; }
+        .gc-chip-hi { background:rgba(46,158,107,.11); color:#24734f; }
+        .gc-chip-lo { background:rgba(196,85,59,.11); color:#9c4230; }
+        @media (max-width:640px) { .gc-top { flex-direction:column; } .gc-split { grid-template-columns:1fr; } }
         .sc-link-btn { display:inline-block; margin-top:10px; padding:10px 16px; border-radius:999px; background:var(--text,#17181A); color:var(--surface,#fff); font-size:13px; font-weight:600; text-decoration:none; }
         .sc-chart { display:flex; flex-direction:column; gap:8px; }
         .sc-bar-row { display:grid; grid-template-columns:minmax(56px,38%) 1fr auto; align-items:center; gap:8px; font-size:12px; }
@@ -2457,6 +2496,73 @@ function CoachPanel({ coach, events, conversationId, slug, maxSeconds }) {
 /* ── Scripted card renderer: SE-authored content, rendered verbatim.
       Styles: note (text), chart (one "Label: value" bar per line),
       stat (big value + label), image (URL). No model involved. ── */
+/* Rendered interview grade. Every number carries the quote that produced it —
+   a score with no receipt is the first thing anyone argues with. */
+function GradeCard({ grade, rubric }) {
+  const weightOf = (label) => rubric.find((r) => r.label === label)?.weight || 1;
+  const pct = grade.overall != null ? (grade.overall / 5) * 100 : 0;
+  const tone = grade.overall == null ? "none" : grade.overall >= 4 ? "hi" : grade.overall >= 3 ? "mid" : "lo";
+  return (
+    <div className="gc">
+      <div className="gc-top">
+        <div className={`gc-ring gc-${tone}`} style={{ "--gc-pct": `${pct}%` }}>
+          <span className="gc-num">{grade.overall != null ? grade.overall.toFixed(1) : "—"}</span>
+          <span className="gc-den">/ 5</span>
+        </div>
+        <div className="gc-head">
+          {grade.verdict && <span className={`gc-verdict gc-${tone}`}>{grade.verdict}</span>}
+          <p className="gc-summary">{grade.summary}</p>
+          <span className="gc-meta">
+            {grade.scored} of {grade.total} competencies evidenced
+            {grade.at ? ` · graded ${grade.at.slice(0, 16).replace("T", " ")}` : ""}
+          </span>
+        </div>
+      </div>
+
+      <div className="gc-rows">
+        {grade.rows.map((r, i) => {
+          const sc = Number(r.score);
+          const has = Number.isFinite(sc);
+          const w = weightOf(r.label);
+          return (
+            <div key={i} className={"gc-row" + (has ? "" : " gc-row-null")}>
+              <div className="gc-row-head">
+                <span className="gc-label">{r.label}</span>
+                {w > 1 && <span className="gc-weight" title={`Weighted ${w}×`}>{w}×</span>}
+                <span className="gc-dots" aria-hidden="true">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <span key={n} className={"gc-dot" + (has && n <= sc ? ` on gc-${sc >= 4 ? "hi" : sc >= 3 ? "mid" : "lo"}` : "")} />
+                  ))}
+                </span>
+                <span className="gc-score">{has ? sc : "no signal"}</span>
+              </div>
+              {r.evidence ? <blockquote className="gc-quote">{r.evidence}</blockquote> : null}
+              {r.note && <p className="gc-note">{r.note}</p>}
+            </div>
+          );
+        })}
+      </div>
+
+      {!!(grade.strengths?.length || grade.gaps?.length) && (
+        <div className="gc-split">
+          {!!grade.strengths?.length && (
+            <div>
+              <div className="gc-sub">Strengths</div>
+              {grade.strengths.map((x, i) => <span key={i} className="gc-chip gc-chip-hi">{x}</span>)}
+            </div>
+          )}
+          {!!grade.gaps?.length && (
+            <div>
+              <div className="gc-sub">Gaps</div>
+              {grade.gaps.map((x, i) => <span key={i} className="gc-chip gc-chip-lo">{x}</span>)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ScriptedCard({ card, onAnswer, forcePicked = null }) {
   const [picked, setPicked] = useState(null); // question style: chosen option index
   useEffect(() => { setPicked(null); }, [card]);
@@ -3448,6 +3554,100 @@ export default function TavusExperienceBuilder() {
       setBrowserFlowBusy(false);
     }
   };
+  /* Paste a JD or curriculum → rubric rows. Editable after, like everything. */
+  const draftRubric = async () => {
+    if (gradeBusy || !gradeSource.trim()) return;
+    setGradeBusy(true);
+    try {
+      addLog("info", "Reading the source and drafting the rubric…");
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "rubric",
+          vibe: gradeSource.trim(),
+          context: { role: gradeRole.trim(), objectives: objectivesText },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: drafting failed`);
+      }
+      const rows = JSON.parse(text.slice(text.indexOf("["), text.lastIndexOf("]") + 1));
+      if (!Array.isArray(rows) || !rows.length) throw new Error("The rubric came back empty — paste more of the role or curriculum.");
+      setGradeRubricText(rows.map((r) =>
+        `${String(r.label || "").trim()} | ${String(r.good || "").trim()} | ${Math.min(3, Math.max(1, parseInt(r.weight, 10) || 1))}`
+      ).filter((l) => l.trim().length > 4).join("\n"));
+      setGradeEnabled(true);
+      addLog("ok", `Rubric drafted — ${rows.length} competencies. Edit any line; weights are the last number.`);
+    } catch (e) {
+      addLog("err", `Rubric: ${e.message}`);
+    } finally {
+      setGradeBusy(false);
+    }
+  };
+
+  /* Grade one finished call. The transcript comes straight from Tavus — no
+     recording, no webhook, nothing to have gone missing mid-call. */
+  const gradeCall = async (id, transcript) => {
+    if (gradingId) return;
+    if (!parsedRubric.length) { addLog("err", "No rubric yet — build one on the Scorecard step first."); return; }
+    const lines = (Array.isArray(transcript) ? transcript : [])
+      .filter((m) => m.role !== "system")
+      .map((m) => `${m.role === "assistant" ? "INTERVIEWER" : "CANDIDATE"}: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
+      .join("\n");
+    if (!lines.trim()) { addLog("err", "That call has no transcript yet — Tavus takes a minute after a call ends."); return; }
+    setGradingId(id);
+    try {
+      addLog("info", `Grading ${id} against ${parsedRubric.length} competencies…`);
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "grade",
+          vibe: lines,
+          context: { rubric: parsedRubric.map(({ label, good }) => ({ label, good })), role: gradeRole.trim() },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: grading failed`);
+      }
+      const g = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+      if (!Array.isArray(g?.rows) || !g.rows.length) throw new Error("The grade came back empty.");
+      // The weighted mean is computed HERE, not by the model — arithmetic is
+      // the one part of this it has no business doing. Unscored rows are left
+      // out of both halves rather than counted as zero.
+      const byLabel = new Map(parsedRubric.map((r) => [r.label, r.weight]));
+      let num = 0, den = 0;
+      for (const row of g.rows) {
+        const sc = Number(row.score);
+        if (!Number.isFinite(sc)) continue;
+        const w = byLabel.get(row.label) ?? 1;
+        num += sc * w; den += w;
+      }
+      const graded = {
+        ...g,
+        overall: den ? Math.round((num / den) * 10) / 10 : null,
+        scored: den ? g.rows.filter((r) => Number.isFinite(Number(r.score))).length : 0,
+        total: g.rows.length,
+        at: new Date().toISOString(),
+      };
+      setGradeResults((m) => ({ ...m, [id]: graded }));
+      addLog("ok", `Graded — ${graded.overall ?? "—"}/5 across ${graded.scored}/${graded.total} competencies.`);
+    } catch (e) {
+      addLog("err", `Grade: ${e.message}`);
+    } finally {
+      setGradingId("");
+    }
+  };
+
   const draftCoach = async () => {
     if (coachBusy) return;
     setCoachBusy(true);
@@ -3939,6 +4139,15 @@ export default function TavusExperienceBuilder() {
   // Coach mode — a live roleplay scorecard beside the call (Rilla-style):
   // criteria tick as the trainee demonstrates them, talk/listen meter,
   // transcript, REC countdown, scene line while connecting.
+  // Post-call grading: the rubric is authored here, the grade runs on demand
+  // from Results. Nothing about it reaches the PAL or the conversation.
+  const [gradeEnabled, setGradeEnabled] = useState(false);
+  const [gradeRole, setGradeRole] = useState("");
+  const [gradeRubricText, setGradeRubricText] = useState("");
+  const [gradeSource, setGradeSource] = useState("");   // JD / curriculum paste
+  const [gradeBusy, setGradeBusy] = useState(false);    // drafting the rubric
+  const [gradingId, setGradingId] = useState("");       // conversation being graded
+  const [gradeResults, setGradeResults] = useState({}); // conversation_id → grade
   const [coachEnabled, setCoachEnabled] = useState(false);
   const [coachTitle, setCoachTitle] = useState("");
   const [coachScene, setCoachScene] = useState("");
@@ -4059,6 +4268,7 @@ export default function TavusExperienceBuilder() {
     expJourney,
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
     expRating, expBooking, expTalkAgain, expThanks,
+    gradeEnabled, gradeRole, gradeRubricText, gradeSource,
     coachEnabled, coachTitle, coachScene, coachTalkHint, coachCriteriaText, coachVibe,
   });
 
@@ -4153,6 +4363,9 @@ export default function TavusExperienceBuilder() {
     setExpBooking(!!c.expBooking);
     setExpTalkAgain(!!c.expTalkAgain);
     setExpThanks(c.expThanks ?? "");
+    setGradeEnabled(!!c.gradeEnabled);
+    setGradeRole(c.gradeRole ?? ""); setGradeRubricText(c.gradeRubricText ?? "");
+    setGradeSource(c.gradeSource ?? "");
     setCoachEnabled(!!c.coachEnabled);
     setCoachTitle(c.coachTitle ?? ""); setCoachScene(c.coachScene ?? "");
     setCoachTalkHint(c.coachTalkHint ?? "Keep them talking.");
@@ -4704,6 +4917,19 @@ export default function TavusExperienceBuilder() {
 
   /* Coach criteria: one per line, "behavior label | instant-tick keywords"
      (keywords optional — the live Claude judge covers the rest). */
+  /* Rubric rows: "competency | what strong looks like | weight". Weight is
+     optional and defaults to 1 — the format has to survive being typed by
+     hand, so only the label is required. */
+  const parsedRubric = useMemo(() => gradeRubricText
+    .split("\n")
+    .map((line) => {
+      const [label, good, w] = line.split("|").map((x) => x.trim());
+      const weight = Math.min(3, Math.max(1, parseInt(w, 10) || 1));
+      return { label: label || "", good: good || "", weight };
+    })
+    .filter((r) => r.label)
+    .slice(0, 12), [gradeRubricText]);
+
   const parsedCoachCriteria = useMemo(() => coachCriteriaText
     .split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 8)
     .map((l) => { const [label, kw = ""] = l.split("|"); return { label: label.trim(), keywords: kw.trim() }; })
@@ -7524,6 +7750,7 @@ export default function TavusExperienceBuilder() {
               {s.id === "tools" && toolsEnabled && toolDefs.length > 0 && <span className="rail-check">●</span>}
               {s.id === "controls" && (maxMinutes || inactivitySeconds || wakePhrase.trim() || interruptButton || guardrailEcho.trim() || recordingEnabled) && <span className="rail-check">●</span>}
               {s.id === "presentation" && presentationEnabled && docIds.length > 0 && <span className="rail-check">●</span>}
+              {s.id === "grade" && gradeEnabled && parsedRubric.length > 0 && <span className="rail-check">●</span>}
               {s.id === "canvas" && canvasEnabled && <span className="rail-check">●</span>}
               {s.id === "site" && site.brand && <span className="rail-check">●</span>}
             </button>
@@ -9442,6 +9669,70 @@ export default function TavusExperienceBuilder() {
             </>
           )}
 
+          {step === "grade" && (
+            <>
+              <div className="skill-head">
+                <h1>Scorecard</h1>
+                <Toggle on={gradeEnabled} onChange={setGradeEnabled} />
+              </div>
+              <p className="lede">
+                Grade a finished interview against a rubric you define. This runs <b>after</b> the call, on the transcript Tavus
+                already keeps — it never touches the PAL, the conversation, or what the candidate sees. Grade from the Results step.
+              </p>
+
+              <Field label="Role" hint="Gives the grader the context a hiring manager would have. Optional.">
+                <input value={gradeRole} onChange={(e) => setGradeRole(e.target.value)} placeholder="e.g. Enterprise AE, Mid-Market · Construction SaaS" />
+              </Field>
+
+              <div className="subhead" style={{ marginTop: 18 }}>Build the rubric from what you already have</div>
+              <Field label="" hint="Paste a job description, a training curriculum, an interview guide — whatever defines what good looks like. Claude keeps only the competencies a spoken conversation can actually evidence.">
+                <textarea style={{ minHeight: 110 }} value={gradeSource} onChange={(e) => setGradeSource(e.target.value)}
+                  placeholder="Paste the JD or curriculum here…" />
+              </Field>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+                <button className="pill-btn primary" onClick={draftRubric} disabled={gradeBusy || !gradeSource.trim()}>
+                  {gradeBusy ? "Reading…" : parsedRubric.length ? "✨ Redraft the rubric" : "✨ Draft the rubric"}
+                </button>
+              </div>
+
+              <div className="subhead">The rubric</div>
+              <Field label="" hint="One competency per line: what it is | what a strong answer sounds like | weight 1-3. The middle part is what the grader actually matches against, so make it observable — something they'd SAY, not a trait.">
+                <textarea style={{ minHeight: 150 }} className="mono" value={gradeRubricText} onChange={(e) => setGradeRubricText(e.target.value)}
+                  placeholder={"Discovery | Asks what the buyer's process looks like before pitching | 3\nHandles objection | Acknowledges the concern, then reframes with a concrete example | 2\nProduct fluency | Explains a technical detail so a non-technical buyer follows it | 1"} />
+              </Field>
+
+              {parsedRubric.length > 0 ? (
+                <>
+                  <div className="subhead" style={{ marginTop: 4 }}>Parsed — {parsedRubric.length} competenc{parsedRubric.length === 1 ? "y" : "ies"}</div>
+                  <div className="kb-list" style={{ maxWidth: 640, marginBottom: 16 }}>
+                    {parsedRubric.map((r, i) => (
+                      <div key={i} className="kb-row" style={{ alignItems: "flex-start", gap: 10 }}>
+                        <span style={{ color: "var(--muted)", fontSize: 12, width: 18, flexShrink: 0 }}>{i + 1}.</span>
+                        <span style={{ flex: 1, fontSize: 13, lineHeight: 1.5 }}>
+                          <b>{r.label}</b>
+                          {r.good ? <span style={{ color: "var(--muted)" }}> — {r.good}</span>
+                            : <span style={{ color: "var(--danger)" }}> — no "strong looks like" yet; the grader is guessing</span>}
+                        </span>
+                        <span className="gc-weight" style={{ flexShrink: 0 }}>{r.weight}×</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="field-hint" style={{ color: "var(--muted)", marginBottom: 16 }}>
+                  Nothing parsed yet — each line needs at least a competency name.
+                </p>
+              )}
+
+              <p className="field-hint" style={{ maxWidth: 620 }}>
+                Scores are 1-5 per competency and every score comes with the candidate's own words as evidence. A competency the
+                conversation never reached is marked <b>no signal</b> rather than scored — it doesn't drag the average down, and the
+                overall says how many of the rubric actually got evidenced. The weighted average is computed in the browser, not by
+                the model.
+              </p>
+            </>
+          )}
+
           {step === "calls" && (
             <>
               <div className="skill-head">
@@ -9629,8 +9920,36 @@ export default function TavusExperienceBuilder() {
                     const pEvents = events.filter((e) => /perception/i.test(e.event_type || ""));
                     const rec = recMap[callDetail.conversation_id];
                     const ex = expMap[callDetail.conversation_id];
+                    const graded = gradeResults[callDetail.conversation_id];
                     return (
                       <>
+                        {gradeEnabled && (
+                          <>
+                            <div className="subhead">Scorecard</div>
+                            {parsedRubric.length === 0 ? (
+                              <p className="field-hint" style={{ marginBottom: 14 }}>
+                                No rubric yet — build one on the <b>Scorecard</b> step, then grade from here.
+                              </p>
+                            ) : (
+                              <div style={{ marginBottom: 16 }}>
+                                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: graded ? 14 : 0 }}>
+                                  <button className="pill-btn primary" style={{ padding: "6px 14px", fontSize: 13 }}
+                                    onClick={() => gradeCall(callDetail.conversation_id, transcript)}
+                                    disabled={!!gradingId || !Array.isArray(transcript)}
+                                    title={Array.isArray(transcript) ? `Grade against ${parsedRubric.length} competencies` : "No transcript on this call yet"}>
+                                    {gradingId === callDetail.conversation_id ? "Grading…" : graded ? "Grade again" : "◎ Grade this call"}
+                                  </button>
+                                  <span className="field-hint" style={{ margin: 0 }}>
+                                    {Array.isArray(transcript)
+                                      ? `${parsedRubric.length} competenc${parsedRubric.length === 1 ? "y" : "ies"} · runs on the transcript below`
+                                      : "Waiting on the transcript — Tavus posts it a minute or so after a call ends."}
+                                  </span>
+                                </div>
+                                {graded && <GradeCard grade={graded} rubric={parsedRubric} />}
+                              </div>
+                            )}
+                          </>
+                        )}
                         {ex && (ex.email || ex.rating || ex.comment) && (
                           <>
                             <div className="subhead">Visitor</div>
