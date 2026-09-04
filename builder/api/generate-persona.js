@@ -555,6 +555,7 @@ export default async function handler(req, res) {
       return;
     }
     system = RUBRIC_SYSTEM;
+    const c = context || {};
     const parts = [`SOURCE MATERIAL (turn this into a rubric):\n${String(vibe).trim().slice(0, 12000)}`];
     if (c.role) parts.push(`Role being interviewed for: ${String(c.role).slice(0, 200)}`);
     if (c.objectives) parts.push(`The interview's own flow (what actually gets asked):\n${String(c.objectives).slice(0, 1500)}`);
@@ -566,6 +567,7 @@ export default async function handler(req, res) {
       return;
     }
     system = GRADE_SYSTEM;
+    const c = context || {};
     const parts = [
       `RUBRIC — grade against exactly these, in this order:\n${rows.map((r, i) => `${i + 1}. ${String(r.label).slice(0, 200)}\n   Strong looks like: ${String(r.good || "(not specified — use your judgement for the role)").slice(0, 400)}`).join("\n")}`,
     ];

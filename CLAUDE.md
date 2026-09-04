@@ -815,12 +815,21 @@ their interactions broke the paste-a-link golden path). Three standing
 rules, in force for EVERY change:
 
 1. **The golden path is executable.** `cd builder && npm run smoke` runs
-   the objectives-compiler invariant tests + a real-browser drive of the
-   New Demo flow (mocked backend) asserting intake → build → apply →
-   settings, PAL-id survival, greeting cohesion, and feature toggles.
-   Run it before pushing anything that touches draftDemo, launch,
-   parseObjectives, conversationPayload, or the start step — and extend
-   it when adding an intake field or feature pick. RED = don't ship.
+   the objectives-compiler invariant tests, `tools/api-kinds.test.mjs`
+   (invokes the generate-persona handler once per `kind` with no
+   ANTHROPIC_API_KEY, so each branch builds its whole prompt and stops at
+   the key check — **add a case when you add a kind**), and a real-browser
+   drive of the New Demo flow (mocked backend) asserting intake → build →
+   apply → settings, PAL-id survival, greeting cohesion, and feature
+   toggles. Run it before pushing anything that touches draftDemo, launch,
+   parseObjectives, conversationPayload, the start step, or a
+   generate-persona branch — and extend it when adding an intake field or
+   feature pick. RED = don't ship.
+   (`const c = context || {}` is declared PER BRANCH in generate-persona:
+   a branch that uses `c` without declaring it throws only at request
+   time, shipping clean through build and lint and surfacing as Vercel's
+   FUNCTION_INVOCATION_FAILED. That is the bug api-kinds.test.mjs exists
+   to catch.)
 2. **Complexity budget on the PAL's standing instructions.** The default
    PAL model is tavus-gemma-4 (small): `conversational_context` stays
    ≤ ~450 words fully loaded, no rule stated twice across prompt and
