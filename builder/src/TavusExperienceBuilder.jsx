@@ -2405,7 +2405,7 @@ function compileScriptedCards(arr) {
       two ways — instantly on trainee keywords, and every ~25s a fast Claude
       judge reads the transcript for the judgment-call behaviors. Plus a
       talk/listen meter, live transcript, and a REC countdown. ── */
-function CoachPanel({ coach, events, conversationId, slug, maxSeconds }) {
+function CoachPanel({ coach, events, conversationId, slug, maxSeconds, hidden = false }) {
   const [ticked, setTicked] = useState(() => new Set());
   const [elapsed, setElapsed] = useState(0);
   const tickedRef = useRef(ticked); tickedRef.current = ticked;
@@ -2489,6 +2489,12 @@ function CoachPanel({ coach, events, conversationId, slug, maxSeconds }) {
   const them = words("replica");
   const talkPct = you + them ? Math.round((you / (you + them)) * 100) : 0;
   const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+  // Assessment mode: the criteria ARE the answer key. A candidate reading
+  // "mentions total cost of ownership" off a sidebar mid-interview is being
+  // handed the marking scheme. Score silently — the keyword ticks, the judge,
+  // and the final post to the call record all still run above.
+  if (hidden) return null;
 
   return (
     <div className="coach-panel">
@@ -2942,19 +2948,22 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
       // Coach mode claims a persistent right sidebar on wide stages; the
       // canvas/card panel then uses the left side so the two never collide.
       const coach = wide && controls.coach && Array.isArray(controls.coach.criteria) && controls.coach.criteria.length ? controls.coach : null;
-      const cardSide = coach ? "left" : canvasPanel.side;
+      // Hidden coaching still scores, but claims no screen — so the stage must
+      // not split for a sidebar nobody can see.
+      const coachShown = !!coach && coach.visible !== false;
+      const cardSide = coachShown ? "left" : canvasPanel.side;
       // A UI screenshot is unreadable at note-card width. Image cards claim a
       // wider panel; the video pane already resizes into whatever is left.
       const liveCard = scCard && !canvasPanel.active && wide ? scCard.card : null;
       return (
         <CVIProvider>
-          <div className={"cvi-wrap" + (split ? ` canvas-split canvas-split-${cardSide}` : "") + (coach ? " coach-split" : "") + (liveCard?.style === "image" ? " canvas-wide" : "")}>
+          <div className={"cvi-wrap" + (split ? ` canvas-split canvas-split-${cardSide}` : "") + (coachShown ? " coach-split" : "") + (liveCard?.style === "image" ? " canvas-wide" : "")}>
             {/* The video pane resizes into the space the canvas panel doesn't
                 claim, so active cards get their own screen region beside the
                 video instead of cutting into it. */}
             <div className="cvi-video-pane">
               <Conversation conversationUrl={conversationUrl} onLeave={handleLeave} />
-              {coach && coachEvents.length === 0 && (
+              {coachShown && coachEvents.length === 0 && (
                 <div className="coach-scene">
                   <div className="coach-scene-badge">{(coach.title || "GO").split(/[\s·]+/).filter(Boolean).slice(-2).map((w) => w[0]).join("").toUpperCase()}</div>
                   <div className="coach-scene-title">{coach.scene || "They're about to pick up…"}</div>
@@ -2988,7 +2997,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
               )}
             </div>
             {/* Contained inside the stage instead of a full-viewport overlay */}
-            {coach && <CoachPanel coach={coach} events={coachEvents} conversationId={conversationId} slug={slug} maxSeconds={Number(controls.maxSeconds) || 0} />}
+            {coach && <CoachPanel coach={coach} events={coachEvents} conversationId={conversationId} slug={slug} maxSeconds={Number(controls.maxSeconds) || 0} hidden={!coachShown} />}
             <MagicCanvas className="canvas-contained" onError={(e) => console.error("canvas error", e)} onLayoutEffectChange={onCanvasLayout} />
             <CallExtras controls={controls} conversationId={conversationId} onForceLeave={handleLeave} visitor={visitor} onScriptedCard={setScCard} onCoachSpeech={coach ? pushCoachEvent : null} />
           </div>
@@ -4183,6 +4192,10 @@ export default function TavusExperienceBuilder() {
   const [gradingId, setGradingId] = useState("");       // conversation being graded
   const [gradeResults, setGradeResults] = useState({}); // conversation_id → grade
   const [coachEnabled, setCoachEnabled] = useState(false);
+  // Whether the person ON the call sees the scorecard. True for roleplay
+  // training (the panel is the product); false for any assessment, where the
+  // criteria are the answer key.
+  const [coachVisible, setCoachVisible] = useState(true);
   const [coachTitle, setCoachTitle] = useState("");
   const [coachScene, setCoachScene] = useState("");
   const [coachTalkHint, setCoachTalkHint] = useState("Keep them talking.");
@@ -4303,7 +4316,7 @@ export default function TavusExperienceBuilder() {
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
     expRating, expBooking, expTalkAgain, expThanks,
     gradeEnabled, gradeRole, gradeRubricText, gradeSource,
-    coachEnabled, coachTitle, coachScene, coachTalkHint, coachCriteriaText, coachVibe,
+    coachEnabled, coachVisible, coachTitle, coachScene, coachTalkHint, coachCriteriaText, coachVibe,
   });
 
   const applyConfig = (c) => {
@@ -4406,6 +4419,7 @@ export default function TavusExperienceBuilder() {
     setGradeRole(c.gradeRole ?? ""); setGradeRubricText(c.gradeRubricText ?? "");
     setGradeSource(c.gradeSource ?? "");
     setCoachEnabled(!!c.coachEnabled);
+    setCoachVisible(c.coachVisible !== false); // older scenarios showed it
     setCoachTitle(c.coachTitle ?? ""); setCoachScene(c.coachScene ?? "");
     setCoachTalkHint(c.coachTalkHint ?? "Keep them talking.");
     setCoachCriteriaText(c.coachCriteriaText ?? ""); setCoachVibe(c.coachVibe ?? "");
@@ -5032,6 +5046,11 @@ export default function TavusExperienceBuilder() {
         } else seen.set(k, i);
       }
     }
+    if (coachEnabled && parsedCoachCriteria.length > 0 && coachVisible && (gradeEnabled || parsedRubric.length > 0)) {
+      add("break", "The person on the call can read your scorecard",
+        "Coach mode is showing its criteria beside the video, and you're grading this conversation — that's the answer key, on screen, during the assessment.",
+        "experience", { label: "Hide it from them", run: () => setCoachVisible(false) });
+    }
     if (coachEnabled && !parsedCoachCriteria.length) {
       add("break", "Coach mode is on with no criteria", "The scorecard panel renders empty.", "experience");
     }
@@ -5067,7 +5086,7 @@ export default function TavusExperienceBuilder() {
   }, [palId, personaDraft, personaAttached, visionEnabled, visualQueriesText, presentationEnabled, docIds,
       canvasEnabled, slidesTrigger, objectivesEnabled, objectivesPayload, guardrailsEnabled, guardrailsParsed,
       scCards, compiledScriptedCards, coachEnabled, parsedCoachCriteria, browserUseEnabled, browserCfgObj,
-      memoryEnabled, memoryMode, expEmailGate, expBooking, components, schedulingUrl, gradeEnabled,
+      memoryEnabled, memoryMode, expEmailGate, expBooking, components, schedulingUrl, gradeEnabled, coachVisible,
       parsedRubric, languages, greeting, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn]);
   const crossBreaks = crossCheck.filter((x) => x.level === "break").length;
 
@@ -5078,6 +5097,7 @@ export default function TavusExperienceBuilder() {
       scene: coachScene.trim(),
       talkHint: coachTalkHint.trim(),
       criteria: parsedCoachCriteria,
+      visible: coachVisible,
     } : undefined,
     maxSeconds: parseInt(maxMinutes, 10) > 0 ? parseInt(maxMinutes, 10) * 60 : 0,
     timeWarning: timeWarning.trim(),
@@ -5091,7 +5111,7 @@ export default function TavusExperienceBuilder() {
     // daily.startRecording() once joined. CallExtras does that when this is set.
     recording: recordingEnabled && !!(recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim()),
     recordingLayout: recLayout,
-  }), [compiledScriptedCards, productCards, coachEnabled, parsedCoachCriteria, coachTitle, coachScene, coachTalkHint, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout]);
+  }), [compiledScriptedCards, productCards, coachEnabled, coachVisible, parsedCoachCriteria, coachTitle, coachScene, coachTalkHint, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout]);
 
   /* Journey editor helpers — steps the builder composes for the guided
      pre-call flow (waiver questions, persona pickers, videos, …). */
@@ -10787,6 +10807,16 @@ export default function TavusExperienceBuilder() {
                   </Field>
                   <p className="field-hint" style={{ maxWidth: 640 }}>
                     Coach mode shows on desktop and live-kiosk formats. Tip: make the persona a hard character on the Persona step and keep Magic Canvas minimal — the scorecard <i>is</i> the visual.
+                  </p>
+                  <div className="skill-head" style={{ marginTop: 14, marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>👁 Show the scorecard to the person on the call</span>
+                    <Toggle on={coachVisible} onChange={setCoachVisible} />
+                  </div>
+                  <p className="field-hint" style={{ maxWidth: 640 }}>
+                    <b>On</b> for roleplay training — watching the criteria tick as they talk is the whole point.
+                    <b> Off</b> for anything you're assessing: an interview candidate reading "mentions total cost of ownership"
+                    off a sidebar is being handed the answer key. Scoring runs either way and still lands on the call record;
+                    only the panel disappears.
                   </p>
                 </>
               )}

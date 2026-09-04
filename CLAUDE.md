@@ -471,8 +471,18 @@ non-technical users; ids unchanged):
    a blank memory. The anatomy hub shows 💭 Memory separate from
    📚 Knowledge.
    **Coach mode** (same step; Rilla-style roleplay trainer): `coachEnabled` +
-   `coachTitle/Scene/TalkHint/CriteriaText` ("label | keywords" per line, ≤8)
-   → `controlsConfig.coach`; `CoachPanel` in DemoSite (desktop + live kiosk;
+   `coachVisible` + `coachTitle/Scene/TalkHint/CriteriaText`
+   ("label | keywords" per line, ≤8) → `controlsConfig.coach`;
+   **`coachVisible` (default true) decides whether the person ON THE CALL
+   sees the panel.** True is roleplay training, where watching the criteria
+   tick is the product. FALSE is any assessment: the criteria are the answer
+   key, and an interview candidate reading "mentions total cost of
+   ownership" off a sidebar is being marked against a rubric they can see.
+   Hidden keeps every hook running (keyword ticks, the ~25s judge, the final
+   post to the exp record) and returns null instead of the panel — and
+   `coachShown` gates `.coach-split` too, so the stage doesn't reserve a
+   sidebar nobody can see. The cross-check flags visible-coach +
+   a grading rubric as a WILL BREAK with a one-click hide. `CoachPanel` in DemoSite (desktop + live kiosk;
    `.coach-split` right sidebar, canvas/card panel auto-moves left) renders a
    live scorecard — keyword lines tick instantly off the visitor's speech
    (utterance feed via `onCoachSpeech` on CallExtras), keyword-less lines are
