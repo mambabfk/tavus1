@@ -3813,6 +3813,10 @@ export default function TavusExperienceBuilder() {
   // Session-only slide images (base64) for vision-grounded talk-track drafts —
   // deliberately NOT saved with scenarios (too big; the notes are the artifact).
   const [slideShots, setSlideShots] = useState([]);
+  const visionFileRef = useRef(null);
+  // Session-only frames of the real scene (base64) for vision-grounded
+  // perception queries — never saved, same handling as slideShots.
+  const [visionShots, setVisionShots] = useState([]);
   const slideFileRef = useRef(null);
 
   // Objectives & Guardrails
@@ -5354,6 +5358,29 @@ export default function TavusExperienceBuilder() {
      only presents WELL when the prompt owns the beat — when the deck starts,
      the pacing, resuming after questions, closing it. Same revise machinery
      as the canvas inject. */
+  /* Raven answers the queries whether or not anything reads them. This weaves
+     them into the persona so seeing something actually changes what it does —
+     without it, perception observes into the void. */
+  const injectVisionIntoPrompt = async () => {
+    if (!personaDraft.trim()) {
+      addLog("err", "Perception inject: draft a persona first (Persona step) — there's no prompt to weave the checks into.");
+      return;
+    }
+    const visual = visualQueriesText.split("\n").map((l) => l.trim().replace(/^[-•]\s*/, "")).filter(Boolean);
+    const audio = audioQueriesText.split("\n").map((l) => l.trim().replace(/^[-•]\s*/, "")).filter(Boolean);
+    if (!visionEnabled || (!visual.length && !audio.length)) {
+      addLog("err", "Perception inject: turn on Perception and generate the checks first.");
+      return;
+    }
+    const parts = [
+      "Update the persona's Perception section so what it SEES and HEARS changes what it does. For each check below, name the observation and the specific response it should trigger — a different question, a slower pace, skipping a step, an escalation. Keep them as natural conversational moves, never announcements: it must never narrate that it is observing, never say what the camera shows, and never mention a check by name.",
+      `Visual checks running continuously:\n${visual.map((q) => `- ${q}`).join("\n")}`,
+    ];
+    if (audio.length) parts.push(`Audio/tone checks running continuously:\n${audio.map((q) => `- ${q}`).join("\n")}`);
+    parts.push("If a check maps to a moment in the flow, mirror it in the objectives so the step actually waits for what it needs to see. Checks that shouldn't change the conversation at all can stay out of the prompt.");
+    await revisePersona(parts.join("\n\n"), "Perception woven into prompt");
+  };
+
   const injectPresentationIntoPrompt = async () => {
     if (!personaDraft.trim()) {
       addLog("err", "Slides inject: draft a persona first (Persona step) — there's no prompt to weave the deck into.");
@@ -5549,7 +5576,17 @@ export default function TavusExperienceBuilder() {
         body: JSON.stringify({
           kind: "vision",
           vibe: visionVibe,
-          context: { product: personaBrief.product, brand: site.brand, brief: buildBrief() },
+          images: visionShots.filter(Boolean).map((d) => {
+            const m = /^data:(image\/\w+);base64,(.+)$/s.exec(d);
+            return m ? { media_type: m[1], data: m[2] } : null;
+          }).filter(Boolean),
+          context: {
+            product: personaBrief.product,
+            brand: site.brand,
+            brief: buildBrief(),
+            objectives: objectivesEnabled ? objectivesText : "",
+            guardrails: guardrailsEnabled ? guardrailsText : "",
+          },
         }),
       });
       const text = await res.text();
@@ -5810,11 +5847,14 @@ export default function TavusExperienceBuilder() {
      uploaded, the draft is VISION-GROUNDED — one image block per slide, notes
      grounded in what's actually on each one. ── */
 
-  const onSlideFiles = (files) => {
-    const room = 20 - slideShots.filter(Boolean).length;
+  /* Files → downscaled JPEG data URLs for Claude's vision blocks. Shared by
+     the deck's slide images and the vision step's scene frames; the indexed
+     insert keeps selection order even when reads finish out of order. */
+  const readShrunkImages = (files, { have, cap, setter, noun }) => {
+    const room = cap - have;
     const list = [...files].filter((f) => f.type.startsWith("image/")).slice(0, Math.max(0, room));
-    if (!list.length) { if (room <= 0) addLog("err", "20 slides max per draft — clear the images to start over."); return; }
-    const base = slideShots.length;
+    if (!list.length) { if (room <= 0) addLog("err", `${cap} ${noun} max per draft — clear them to start over.`); return; }
+    const base = have;
     list.forEach((file, idx) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -5830,8 +5870,7 @@ export default function TavusExperienceBuilder() {
             data = canvas.toDataURL("image/jpeg", q);
             if (data.length <= 240_000) break;
           }
-          // Indexed insert keeps selection order even when loads finish out of order.
-          setSlideShots((s) => { const n = [...s]; n[base + idx] = data; return n; });
+          setter((s) => { const n = [...s]; n[base + idx] = data; return n; });
         };
         img.onerror = () => addLog("err", `Couldn't read ${file.name}.`);
         img.src = reader.result;
@@ -5839,6 +5878,13 @@ export default function TavusExperienceBuilder() {
       reader.readAsDataURL(file);
     });
   };
+
+  const onSlideFiles = (files) => readShrunkImages(files, {
+    have: slideShots.filter(Boolean).length, cap: 20, setter: setSlideShots, noun: "slides",
+  });
+  const onVisionFiles = (files) => readShrunkImages(files, {
+    have: visionShots.filter(Boolean).length, cap: 6, setter: setVisionShots, noun: "frames",
+  });
 
   const draftTalkTrack = async () => {
     const shots = slideShots.filter(Boolean);
@@ -8605,6 +8651,32 @@ export default function TavusExperienceBuilder() {
                   placeholder={"Notice when they hold up their ID or a document, when someone else walks into frame, and when they sound confused or frustrated so it can slow down and help."}
                 />
               </Field>
+              <div className="skill-head" style={{ marginTop: 4 }}>
+                <div className="subhead" style={{ margin: 0 }}>Frames of the real scene</div>
+                <span className="field-hint" style={{ margin: 0 }}>{visionShots.filter(Boolean).length}/6 · never saved</span>
+              </div>
+              <p className="field-hint" style={{ maxWidth: 620, marginBottom: 10 }}>
+                Without these, Claude is writing checks for a scene it has never seen, and you get generic ones —
+                "is the user showing something to the camera". Upload a photo of the actual setup, a screenshot of what
+                they'll share, or a still from a previous call, and the checks name what's really in shot.
+              </p>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
+                <button className="pill-btn" onClick={() => visionFileRef.current?.click()} disabled={!visionEnabled}>⬆ Add frames</button>
+                {visionShots.filter(Boolean).length > 0 && (
+                  <button className="pill-btn ghost" style={{ padding: "5px 12px", fontSize: 12 }} onClick={() => setVisionShots([])}>✕ Clear</button>
+                )}
+                <input ref={visionFileRef} type="file" accept="image/*" multiple style={{ display: "none" }}
+                  onChange={(e) => { onVisionFiles(e.target.files); e.target.value = ""; }} />
+              </div>
+              {visionShots.filter(Boolean).length > 0 && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                  {visionShots.filter(Boolean).map((d, i) => (
+                    <img key={i} src={d} alt={`Scene ${i + 1}`}
+                      style={{ width: 116, borderRadius: 8, border: "1px solid var(--border)" }} />
+                  ))}
+                </div>
+              )}
+
               <button className="pill-btn primary" style={{ marginBottom: 22 }} onClick={generateVision} disabled={!visionEnabled || visionGenerating || !visionVibe.trim()}>
                 {visionGenerating ? "Drafting…" : (visualQueriesText || audioQueriesText) ? "Regenerate checks" : "Generate checks with Claude"}
               </button>
@@ -8627,6 +8699,19 @@ export default function TavusExperienceBuilder() {
                   placeholder={"Does the user sound confused or frustrated?\nHas the user asked to speak to a human?"}
                 />
               </Field>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                <button className="pill-btn" onClick={injectVisionIntoPrompt}
+                  disabled={!visionEnabled || generating || !personaDraft.trim() || !(visualQueriesText.trim() || audioQueriesText.trim())}
+                  title={personaDraft.trim() ? "Claude rewrites the persona so each check changes what it does" : "Draft a persona first — there's no prompt to inject into yet"}>
+                  {generating ? "Weaving…" : "🪡 Inject into prompt"}
+                </button>
+              </div>
+              <p className="field-hint" style={{ maxWidth: 620 }}>
+                Raven answers these checks every second of the call whether or not anything acts on them — the queries alone
+                change nothing. <b>Inject into prompt</b> weaves them into the persona so what it sees moves the conversation.
+                Re-attach the prompt on the Persona step afterwards.
+              </p>
             </>
           )}
 

@@ -235,6 +235,19 @@ non-technical users; ids unchanged):
    `parseVisionDraft` into editable per-line textareas. On launch →
    `PATCH /pals/{id}` `/layers/perception` with `{perception_model: "raven-1",
    visual_awareness_queries, audio_awareness_queries}`. Persists on the PAL.
+   **Scenario-specific queries** (from the "vision is fine at basic, useless
+   at specific" brainstorm) rest on three things the one-shot vibe box
+   lacked: ⬆ **scene frames** (`visionShots`, ≤6, session-only, never
+   saved) ride as base64 `images` so the queries name what is REALLY in
+   shot — the same vision-grounding the talk track got, via the shared
+   `readShrunkImages` downscaler and the server's `sanitizeImages`;
+   **objectives + guardrails** ride `context` so queries serve the flow's
+   actual moments; and 🪡 **inject into prompt**
+   (`injectVisionIntoPrompt`, mirrors the deck's) weaves each check into
+   the persona's Perception section with the response it should trigger —
+   raven answers the queries whether or not anything reads them, so
+   without the inject perception observes into the void, which is
+   indistinguishable from not observing.
 3. **Presentation** — attach PDF/image decks from the Knowledge Base.
    `docIdsRaw` (comma/newline list → `docIds`), `slidesTrigger`
    (`walk_the_deck` | `on_demand`), optional `presentPrompt`, per-slide

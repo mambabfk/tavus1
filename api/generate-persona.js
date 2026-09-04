@@ -71,11 +71,26 @@ Rules:
 - Objectives: plain English, one objective per line-item, in conversation order (they chain top to bottom). Conditional branches are supported: a line-item starting with "if <condition> -> <detour objective>" placed right after its parent objective becomes an if/then branch that runs on the condition and then rejoins the main flow. Use branches when feedback describes routing ("if they already did X, skip to Y").
 - Keep the prompt and objectives CONSISTENT with each other — if the flow changes in one, mirror it in the other.`;
 
+/* Base64 images off the wire, for any kind that takes vision input. */
+function sanitizeImages(raw, cap) {
+  return (Array.isArray(raw) ? raw : [])
+    .slice(0, cap)
+    .map((im) => ({
+      media_type: ["image/png", "image/jpeg", "image/webp", "image/gif"].includes(im?.media_type) ? im.media_type : null,
+      data: typeof im?.data === "string" && im.data.length <= 1_500_000 && /^[A-Za-z0-9+/=]+$/.test(im.data.slice(0, 200)) ? im.data : null,
+    }))
+    .filter((im) => im.media_type && im.data);
+}
+
 const VISION_SYSTEM = `You configure the vision layer ("perception", model raven-1) of a Tavus PAL — an AI human on a live video call that can continuously watch the user's camera/screen and listen to their tone.
 
 From the user's plain-English description of what the PAL should notice, write awareness queries:
 - VISUAL queries: short present-tense observations Raven continuously checks in the video/screen stream (e.g. "Is more than one person visible?", "Is the user showing a document to the camera?"). Write 3-6.
 - AUDIO queries: tone/emotion/explicit-request checks from the audio stream (e.g. "Is the user expressing frustration?", "Has the user asked to speak to a human?"). Write 0-3, only when the description calls for them.
+
+When frames of the actual scene are provided, write the queries against WHAT YOU CAN SEE in them — the real objects, surfaces, screens, documents, and framing — not a generic version of the setting. Name what is actually there. If a frame shows the visitor's shared screen, ask about the specific pages and states that screen will be in; if it shows a physical space, ask about the specific things that will and won't be in shot. Generic queries are the failure mode: "Is the user showing something to the camera?" tells the PAL nothing it can act on, while "Is the damaged panel held close enough that the dent is visible?" does.
+
+When the conversation's objectives are provided, tie the queries to the moments in that flow where seeing something changes what happens next — the step that asks them to hold something up, share a screen, or demonstrate a task. A query nobody's flow ever consumes is dead weight.
 
 Each query must be a single, concretely checkable question — no compound questions, no instructions to act (the PAL's prompt handles reactions).
 
@@ -452,7 +467,9 @@ export default async function handler(req, res) {
 
   let system;
   let userPrompt;
-  let slideImages = []; // kind:"talktrack" vision path
+  let inputImages = [];          // vision content blocks: talktrack slides, vision scene frames
+  let imageLabel = "Slide";
+  let imageOutro = "Write the talk track. Follow the output format exactly.";
   if (kind === "revise") {
     if (!String(draft).trim()) {
       res.status(400).json({ error: "There's no persona prompt to revise yet — draft one first." });
@@ -637,14 +654,8 @@ export default async function handler(req, res) {
     // Vision path: the frontend sends the actual slide images (base64) so
     // notes are grounded in what's on each slide, not guessed from the
     // use case. Text-only stays as the fallback when no images are uploaded.
-    slideImages = (Array.isArray(req.body?.images) ? req.body.images : [])
-      .slice(0, 20)
-      .map((im) => ({
-        media_type: ["image/png", "image/jpeg", "image/webp", "image/gif"].includes(im?.media_type) ? im.media_type : null,
-        data: typeof im?.data === "string" && im.data.length <= 1_500_000 && /^[A-Za-z0-9+/=]+$/.test(im.data.slice(0, 200)) ? im.data : null,
-      }))
-      .filter((im) => im.media_type && im.data);
-    if (!String(vibe).trim() && !slideImages.length) {
+    inputImages = sanitizeImages(req.body?.images, 20);
+    if (!String(vibe).trim() && !inputImages.length) {
       res.status(400).json({ error: "Describe the demo / deck (or upload slide images) so Claude knows what to script." });
       return;
     }
@@ -670,9 +681,17 @@ export default async function handler(req, res) {
       return;
     }
     system = VISION_SYSTEM;
+    inputImages = sanitizeImages(req.body?.images, 6);
+    imageLabel = "Scene";
+    imageOutro = "Write the awareness queries against these frames. Follow the output format exactly.";
     const parts = [`What the PAL should notice on the call:\n${String(vibe).trim()}`];
     if (context.product) parts.push(`Product being demoed: ${context.product}`);
     if (context.brand) parts.push(`Brand: ${context.brand}`);
+    // The objectives are the best description anywhere of what will physically
+    // happen on the call — which step asks them to hold something up or share
+    // a screen. Without it the queries can only describe a generic setting.
+    if (context.objectives) parts.push(`The conversation's flow (perception should serve these moments):\n${String(context.objectives).slice(0, 2000)}`);
+    if (context.guardrails) parts.push(`Rules the PAL must enforce (some may need watching for):\n${String(context.guardrails).slice(0, 800)}`);
     userPrompt = parts.join("\n\n");
   } else {
     const hasInput = ["vibe", "product", "audience", "goal", "tone", "mustCover", "avoid"]
@@ -695,15 +714,15 @@ export default async function handler(req, res) {
     userPrompt = `${briefCtx.slice(0, 1600)}\n\n${userPrompt}`;
   }
 
-  // Slide images become vision content blocks, one per slide, in order.
-  const content = slideImages.length
+  // Uploaded images become vision content blocks, one per image, in order.
+  const content = inputImages.length
     ? [
-        { type: "text", text: `${userPrompt}\n\nThe slides follow in order:` },
-        ...slideImages.flatMap((im, i) => [
-          { type: "text", text: `Slide ${i + 1}:` },
+        { type: "text", text: `${userPrompt}\n\nThe ${imageLabel.toLowerCase()}s follow in order:` },
+        ...inputImages.flatMap((im, i) => [
+          { type: "text", text: `${imageLabel} ${i + 1}:` },
           { type: "image", source: { type: "base64", media_type: im.media_type, data: im.data } },
         ]),
-        { type: "text", text: "Write the talk track. Follow the output format exactly." },
+        { type: "text", text: imageOutro },
       ]
     : userPrompt;
 
