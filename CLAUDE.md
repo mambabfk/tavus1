@@ -237,8 +237,9 @@ non-technical users; ids unchanged):
    visual_awareness_queries, audio_awareness_queries}`. Persists on the PAL.
    **Scenario-specific queries** (from the "vision is fine at basic, useless
    at specific" brainstorm) rest on three things the one-shot vibe box
-   lacked: ⬆ **scene frames** (`visionShots`, ≤6, session-only, never
-   saved) ride as base64 `images` so the queries name what is REALLY in
+   lacked: ⬆ **scene frames** (`visionShots`, session-only, never
+   saved; no taste-based cap — `imageBlocks()` refuses a set over ~3.6MB
+   and names the reason, since the only real limit is the request body) ride as base64 `images` so the queries name what is REALLY in
    shot — the same vision-grounding the talk track got, via the shared
    `readShrunkImages` downscaler and the server's `sanitizeImages`;
    **objectives + guardrails** ride `context` so queries serve the flow's

@@ -681,7 +681,7 @@ export default async function handler(req, res) {
       return;
     }
     system = VISION_SYSTEM;
-    inputImages = sanitizeImages(req.body?.images, 6);
+    inputImages = sanitizeImages(req.body?.images, 20);
     imageLabel = "Scene";
     imageOutro = "Write the awareness queries against these frames. Follow the output format exactly.";
     const parts = [`What the PAL should notice on the call:\n${String(vibe).trim()}`];

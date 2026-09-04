@@ -5568,6 +5568,8 @@ export default function TavusExperienceBuilder() {
   /* ── Vision: Claude drafts awareness queries from a plain-English vibe ── */
 
   const generateVision = async () => {
+    const visionImages = imageBlocks(visionShots, "frames");
+    if (visionImages === null) return;
     setVisionGenerating(true);
     try {
       const res = await fetch("/api/generate-persona", {
@@ -5576,10 +5578,7 @@ export default function TavusExperienceBuilder() {
         body: JSON.stringify({
           kind: "vision",
           vibe: visionVibe,
-          images: visionShots.filter(Boolean).map((d) => {
-            const m = /^data:(image\/\w+);base64,(.+)$/s.exec(d);
-            return m ? { media_type: m[1], data: m[2] } : null;
-          }).filter(Boolean),
+          images: visionImages,
           context: {
             product: personaBrief.product,
             brand: site.brand,
@@ -5883,8 +5882,24 @@ export default function TavusExperienceBuilder() {
     have: slideShots.filter(Boolean).length, cap: 20, setter: setSlideShots, noun: "slides",
   });
   const onVisionFiles = (files) => readShrunkImages(files, {
-    have: visionShots.filter(Boolean).length, cap: 6, setter: setVisionShots, noun: "frames",
+    have: visionShots.filter(Boolean).length, cap: 20, setter: setVisionShots, noun: "frames",
   });
+
+  /* data-URL frames → Claude image blocks, with the one limit that's real:
+     the serverless request body. Say so plainly instead of letting a 413
+     come back as "generation failed". */
+  const imageBlocks = (shots, label) => {
+    const blocks = shots.filter(Boolean).map((d) => {
+      const m = /^data:(image\/\w+);base64,(.+)$/s.exec(d);
+      return m ? { media_type: m[1], data: m[2] } : null;
+    }).filter(Boolean);
+    const bytes = blocks.reduce((n, b) => n + b.data.length, 0);
+    if (bytes > 3_600_000) {
+      addLog("err", `${blocks.length} ${label} is more than the request can carry (~${(bytes / 1e6).toFixed(1)}MB). Remove a few and draft again — they're already downscaled, so the only lever is fewer.`);
+      return null;
+    }
+    return blocks;
+  };
 
   const draftTalkTrack = async () => {
     const shots = slideShots.filter(Boolean);
@@ -8653,12 +8668,16 @@ export default function TavusExperienceBuilder() {
               </Field>
               <div className="skill-head" style={{ marginTop: 4 }}>
                 <div className="subhead" style={{ margin: 0 }}>Frames of the real scene</div>
-                <span className="field-hint" style={{ margin: 0 }}>{visionShots.filter(Boolean).length}/6 · never saved</span>
+                <span className="field-hint" style={{ margin: 0 }}>
+                  {visionShots.filter(Boolean).length || "no"} frame{visionShots.filter(Boolean).length === 1 ? "" : "s"} · never saved
+                </span>
               </div>
               <p className="field-hint" style={{ maxWidth: 620, marginBottom: 10 }}>
                 Without these, Claude is writing checks for a scene it has never seen, and you get generic ones —
                 "is the user showing something to the camera". Upload a photo of the actual setup, a screenshot of what
-                they'll share, or a still from a previous call, and the checks name what's really in shot.
+                they'll share, or a still from a previous call, and the checks name what's really in shot. Add as many
+                angles as the scene needs — frames are downscaled on the way in, and you'll be told if the set outgrows
+                what one request can carry.
               </p>
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
                 <button className="pill-btn" onClick={() => visionFileRef.current?.click()} disabled={!visionEnabled}>⬆ Add frames</button>
