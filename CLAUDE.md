@@ -181,7 +181,7 @@ turn-taking dials. Magic Canvas has a
 Step slices of the one big component's state (labels renamed for
 non-technical users; ids unchanged):
 
-1. **Setup** — `apiKey`, `faceId`, `palId`, `language`, `conversationName`,
+1. **Setup** — `apiKey`, `faceId`, `palId`, `languages`, `conversationName`,
    `callbackUrl` (webhook), `greeting`. `canLaunch` requires key + face + PAL.
 1.5. **Persona** — ONE freeform vibe box (`personaBrief.vibe`) + an optional
    "Fine-tune" drawer (product, audience, goal, tone, emotions; the old
@@ -675,7 +675,11 @@ to copy that curl and run it from a terminal/backend.
   replaces the whole overlay map — always send the complete set of overrides.**
   This tool uses `PUT` (full overwrite) for skill attaches.
 - `conversationPayload` → `face_id` + `pal_id`, optional name/callback/greeting,
-  `properties.language`, and (when canvas is on) the assembled
+  `properties.languages` — an ORDERED list of the 42 Tavus language codes,
+  first entry = the language the call opens in; sending it REPLACES the PAL's
+  set rather than merging (the deprecated single-name `properties.language` is
+  gone, and `applyConfig` migrates old scenarios by name) — and (when canvas
+  is on) the assembled
   `conversational_context` combining style text, per-card rules, playbook, and a
   `layout.preferred_slot` instruction for `safe-area-{left|right}`.
 

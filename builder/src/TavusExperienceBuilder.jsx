@@ -13,18 +13,14 @@ import { upload as blobUpload } from "@vercel/blob/client";
 
 const API_BASE = "https://tavusapi.com/v2";
 
-// Tavus's full spoken-language list (docs → Language Support; pass the full
-// name in properties.language). "multilingual" auto-detects per speaker.
-const LANGUAGES = [
-  "multilingual", "english",
-  "arabic", "bengali", "bulgarian", "chinese", "croatian", "czech", "danish",
-  "dutch", "finnish", "french", "georgian", "german", "greek", "gujarati",
-  "hebrew", "hindi", "hungarian", "indonesian", "italian", "japanese",
-  "kannada", "korean", "malay", "malayalam", "marathi", "norwegian", "polish",
-  "portuguese", "punjabi", "romanian", "russian", "slovak", "spanish",
-  "swahili", "swedish", "tagalog", "tamil", "telugu", "thai", "turkish",
-  "ukrainian", "vietnamese",
-];
+/* The 42 languages Tavus speaks with the default tavus-auto engine (docs →
+   Language Support). Sent as `properties.languages` — an ORDERED list of
+   codes, where the first entry is the language the call opens in.
+   `properties.language` (one full name) is deprecated; LANG_LEGACY migrates
+   scenarios saved against it. */
+const LANGUAGES = [{ c: "ar", n: "Arabic" }, { c: "bg", n: "Bulgarian" }, { c: "bn", n: "Bengali" }, { c: "cs", n: "Czech" }, { c: "da", n: "Danish" }, { c: "de", n: "German" }, { c: "el", n: "Greek" }, { c: "en", n: "English" }, { c: "es", n: "Spanish" }, { c: "fi", n: "Finnish" }, { c: "fr", n: "French" }, { c: "gu", n: "Gujarati" }, { c: "he", n: "Hebrew" }, { c: "hi", n: "Hindi" }, { c: "hr", n: "Croatian" }, { c: "hu", n: "Hungarian" }, { c: "id", n: "Indonesian" }, { c: "it", n: "Italian" }, { c: "ja", n: "Japanese" }, { c: "ka", n: "Georgian" }, { c: "kn", n: "Kannada" }, { c: "ko", n: "Korean" }, { c: "ml", n: "Malayalam" }, { c: "mr", n: "Marathi" }, { c: "ms", n: "Malay" }, { c: "nl", n: "Dutch" }, { c: "no", n: "Norwegian" }, { c: "pa", n: "Punjabi" }, { c: "pl", n: "Polish" }, { c: "pt", n: "Portuguese" }, { c: "ro", n: "Romanian" }, { c: "ru", n: "Russian" }, { c: "sk", n: "Slovak" }, { c: "sv", n: "Swedish" }, { c: "ta", n: "Tamil" }, { c: "te", n: "Telugu" }, { c: "th", n: "Thai" }, { c: "tl", n: "Tagalog" }, { c: "tr", n: "Turkish" }, { c: "uk", n: "Ukrainian" }, { c: "vi", n: "Vietnamese" }, { c: "zh", n: "Chinese" }];
+const LANG_NAME = (c) => LANGUAGES.find((l) => l.c === c)?.n || c;
+const LANG_LEGACY = Object.fromEntries(LANGUAGES.map((l) => [l.n.toLowerCase(), l.c]));
 
 const CANVAS_COMPONENTS = [
   { key: "question", label: "Question", desc: "Multiple-choice cards; answers flow back to the PAL and your webhook." },
@@ -118,7 +114,9 @@ function demoBadges(cfg) {
   if (cfg.expEmailGate !== false) b.push("✉ email gate");
   if (cfg.recordingEnabled) b.push("⏺ records");
   if (cfg.duetPlan) b.push("🎭 duet");
-  if (String(cfg.language || "english").toLowerCase() !== "english") b.push(`🌐 ${cfg.language}`);
+  const cfgLangs = Array.isArray(cfg.languages) ? cfg.languages : (cfg.language ? [cfg.language] : []);
+  if (cfgLangs.length > 1) b.push(`🌐 ${cfgLangs.length} languages`);
+  else if (cfgLangs.length === 1 && cfgLangs[0] !== "en" && String(cfgLangs[0]).toLowerCase() !== "english") b.push(`🌐 ${cfgLangs[0]}`);
   return b;
 }
 
@@ -607,6 +605,16 @@ const BUILDER_CSS = `
         .sc-title { font-weight:700; font-size:15px; letter-spacing:-.2px; }
         .sc-note p { margin:0 0 8px; font-size:13.5px; line-height:1.55; }
         .sc-note p:last-child { margin-bottom:0; }
+
+        .lang-picked { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+        .lang-picked:empty { display:none; }
+        .lang-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 8px 5px 11px; border-radius:999px;
+          border:1px solid var(--border,#E6E4DF); background:var(--surface,#fff); font-size:12.5px; }
+        .lang-chip.lang-first { border-color:var(--accent,#F0A891); background:color-mix(in srgb, var(--accent,#F0A891) 12%, var(--surface,#fff)); }
+        .lang-open { font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted,#7A7A73); }
+        .lang-chip button { border:0; background:none; cursor:pointer; font:inherit; font-size:12px; color:var(--muted,#7A7A73); padding:0 2px; }
+        .lang-chip button:disabled { opacity:.28; cursor:default; }
+        .lang-opts { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
 
         /* Interview grade */
         .gc { background:var(--surface,#fff); border:1px solid var(--border,#E6E4DF); border-radius:20px; padding:22px; max-width:720px; }
@@ -3352,7 +3360,8 @@ export default function TavusExperienceBuilder() {
   const [apiKey, setApiKey] = useState("");
   const [faceId, setFaceId] = useState("");
   const [palId, setPalId] = useState("");
-  const [language, setLanguage] = useState("english");
+  const [languages, setLanguages] = useState(["en"]);
+  const [langQuery, setLangQuery] = useState("");
   const [conversationName, setConversationName] = useState("");
   // Webhook is account plumbing, not demo content — remembered per browser
   // (like the API key and S3 fields) so scenario loads/reloads can't wipe it.
@@ -4247,7 +4256,7 @@ export default function TavusExperienceBuilder() {
 
   const collectConfig = () => ({
     v: 1,
-    faceId, palId, language, conversationName, callbackUrl, greeting,
+    faceId, palId, languages, conversationName, callbackUrl, greeting,
     personaBrief, personaDraft,
     visionEnabled, visionVibe, visualQueriesText, audioQueriesText,
     speechEnabled, pronunciationText, pronDictId, pronDictName, emotionControl, externalVoiceId, externalVoiceName,
@@ -4274,7 +4283,12 @@ export default function TavusExperienceBuilder() {
 
   const applyConfig = (c) => {
     if (!c || typeof c !== "object") return;
-    setFaceId(c.faceId ?? ""); setPalId(c.palId ?? ""); setLanguage(c.language ?? "english");
+    setFaceId(c.faceId ?? ""); setPalId(c.palId ?? "");
+    // Scenarios saved before the multi-language switch carry one full name
+    // ("spanish"), or "multilingual", which named nothing at all.
+    setLanguages(Array.isArray(c.languages) && c.languages.length
+      ? c.languages.filter((x) => LANGUAGES.some((l) => l.c === x)).slice(0, 42)
+      : [LANG_LEGACY[String(c.language ?? "").toLowerCase()] || "en"]);
     setConversationName(c.conversationName ?? "");
     // Older scenarios without a webhook must not wipe the remembered one.
     setCallbackUrl(c.callbackUrl || store.get(WEBHOOK_KEY, ""));
@@ -4827,7 +4841,9 @@ export default function TavusExperienceBuilder() {
 
     if (knowledgeIds.length) body.document_ids = knowledgeIds;
 
-    body.properties = { language };
+    // Ordered — Tavus opens the call in the first entry. Sending this REPLACES
+    // whatever the PAL carries; the two sets are never merged.
+    body.properties = { languages: languages.length ? languages : ["en"] };
     const mins = parseInt(maxMinutes, 10);
     if (mins > 0) body.properties.max_call_duration = mins * 60;
 
@@ -4844,7 +4860,7 @@ export default function TavusExperienceBuilder() {
       if (recS3ExternalId.trim()) body.properties.recording_storage.external_id = recS3ExternalId.trim();
     }
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan, browserCfgObj, memoryEnabled, memoryMode, memoryKey, presentationEnabled, docIds, slidesTrigger]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, languages, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan, browserCfgObj, memoryEnabled, memoryMode, memoryKey, presentationEnabled, docIds, slidesTrigger]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
@@ -8009,11 +8025,41 @@ export default function TavusExperienceBuilder() {
               <Field label="PAL ID" hint="Filled automatically when you create a persona in the Persona step — or paste an existing p… ID here.">
                 <input className="mono" value={palId} onChange={(e) => setPalId(e.target.value)} placeholder="p… (or create one in the Persona step)" />
               </Field>
-              <Field label="Language" hint="Full language name. Multilingual auto-detects the speaker's language and responds in kind.">
-                <select value={language} onChange={(e) => setLanguage(e.target.value)}>
-                  {LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
-                </select>
+              <Field label="Languages" hint="Name only the languages you expect — a narrower set is recognised more accurately than a wide one. The call opens in the first, and switches as the visitor does.">
+                <div className="lang-picked">
+                  {languages.map((code, i) => (
+                    <span key={code} className={"lang-chip" + (i === 0 ? " lang-first" : "")}>
+                      {i === 0 && <b className="lang-open">opens in</b>}
+                      {LANG_NAME(code)}
+                      <button type="button" title="Make this the opening language" disabled={i === 0}
+                        onClick={() => setLanguages((ls) => [code, ...ls.filter((x) => x !== code)])}>↑</button>
+                      <button type="button" title="Remove" disabled={languages.length === 1}
+                        onClick={() => setLanguages((ls) => (ls.length > 1 ? ls.filter((x) => x !== code) : ls))}>✕</button>
+                    </span>
+                  ))}
+                </div>
+                <input value={langQuery} onChange={(e) => setLangQuery(e.target.value)}
+                  placeholder={`Add a language — ${languages.length}/42 chosen`} />
+                {langQuery.trim() && (
+                  <div className="lang-opts">
+                    {LANGUAGES
+                      .filter((l) => !languages.includes(l.c) && l.n.toLowerCase().includes(langQuery.trim().toLowerCase()))
+                      .slice(0, 8)
+                      .map((l) => (
+                        <button key={l.c} type="button" className="pill-btn" style={{ padding: "4px 11px", fontSize: 12.5 }}
+                          onClick={() => { setLanguages((ls) => (ls.length < 42 ? [...ls, l.c] : ls)); setLangQuery(""); }}>
+                          + {l.n} <span style={{ color: "var(--muted)" }}>{l.c}</span>
+                        </button>
+                      ))}
+                  </div>
+                )}
               </Field>
+              {languages.length > 1 && greeting.trim() && (
+                <p className="field-hint" style={{ maxWidth: 560, marginTop: -8, marginBottom: 16 }}>
+                  Your scripted greeting plays verbatim before anyone speaks, so write it in <b>{LANG_NAME(languages[0])}</b> —
+                  it can't adapt to the visitor the way the rest of the conversation does.
+                </p>
+              )}
               <Field label="Conversation name" hint="Optional label for your dashboard.">
                 <input value={conversationName} onChange={(e) => setConversationName(e.target.value)} placeholder="e.g. Acme demo — presentation" />
               </Field>
