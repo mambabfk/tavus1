@@ -326,7 +326,17 @@ non-technical users; ids unchanged):
    when-to-run-which-flow steering box (🪡 inject teaches the persona its
    flows BY NAME), and a raw-JSON drawer over the same `browserUseConfig`.
    Launch + validate refuse empty `guided_flows` / slide steps without a
-   deck. On launch `PUT /pals/{id}/skills/{skill_id}` `{config}`; per-skill
+   deck. **Browser Use and Presentation are MUTUALLY EXCLUSIVE on a PAL** —
+   Tavus 400s the pair outright ("move presentation slides into Browser Use
+   instead"). Launch attaches Browser Use first, so the DECK is what fails
+   and the fail-safe then DELETEs it, leaving a PAL that looks like slides
+   were never configured while the Slides step insists they are. Launch now
+   skips the deck attach with a loud log when a browser config is present,
+   and the cross-check flags the pair. Slides alongside Browser Use only
+   exist as 🖼 steps inside a guided flow (`config.slide_document_id` +
+   `{slide, prompt?}` steps) — which fire in FLOW ORDER, so an "open the
+   diagram whenever X comes up" behaviour is not achievable with Browser
+   Use attached; that needs Presentation and no Browser Use. On launch `PUT /pals/{id}/skills/{skill_id}` `{config}`; per-skill
    Detach buttons (`DELETE …/skills/{id}`). **Flow coherence rules** (from
    the "browser mode isn't working" audit — mirrors the deck's): both
    validate and launch PUT the same `sanitizeBrowserCfg` shape (blank

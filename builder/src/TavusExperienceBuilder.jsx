@@ -5050,6 +5050,16 @@ export default function TavusExperienceBuilder() {
         "The persona has no instruction about when to open the deck or how to walk it.",
         "presentation", { label: "🪡 Weave it in", run: () => injectPresentationIntoPrompt() });
     }
+    // Tavus rejects this pair at the API: "Browser Use and Presentation cannot
+    // be attached together; move presentation slides into Browser Use instead."
+    // Launch attaches Browser Use first, so the deck is the one that 400s and
+    // the fail-safe deletes it — the PAL then looks like no deck was ever set.
+    if (presentationEnabled && docIds.length && browserUseEnabled &&
+        (browserCfgObj.guided_flows || []).some((f) => String(f?.name || "").trim())) {
+      add("break", "Browser Use and Slides can't both be on",
+        "Tavus refuses the pair outright. Launch attaches Browser Use first, so the deck attach 400s and gets cleared — the PAL ends up with no slides at all. Put the deck inside Browser Use as a slide step, or turn Browser Use off.",
+        "presentation");
+    }
     if (presentationEnabled && !docIds.length) {
       add("break", "Slides are on with no documents chosen",
         "Launch will skip the deck entirely and clear whatever deck the PAL was carrying.", "presentation");
@@ -7713,7 +7723,11 @@ export default function TavusExperienceBuilder() {
       if (presentationEnabled && docIds.length && canvasEnabled) {
         addLog("info", "Deck + Magic Canvas: the slides lead and cards are reserved for questions (this replaces the canvas style dial for this call). Scripted cards and link photos still fire on their keywords — check those if a card lands mid-slide.");
       }
-      if (presentationEnabled) {
+      const browserWins = browserCfg && Object.keys(browserCfg).length > 0;
+      if (presentationEnabled && docIds.length && browserWins) {
+        addLog("err", "SKIPPING the deck: Tavus won't attach Browser Use and Presentation to the same PAL. Move the deck into Browser Use (set its slide document and add a 🖼 slide step), or turn Browser Use off — the deck can't ride alongside it.");
+      }
+      if (presentationEnabled && !browserWins) {
         if (!docIds.length) {
           addLog("err", "Presentation is on but has no document IDs — SKIPPING the deck this launch. Add your Knowledge Base doc IDs on the Presentation step (a fresh demo starts with none).");
           // Without this, the PAL keeps whatever deck the LAST demo attached
