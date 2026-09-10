@@ -5054,6 +5054,16 @@ export default function TavusExperienceBuilder() {
       add("break", "Slides are on with no documents chosen",
         "Launch will skip the deck entirely and clear whatever deck the PAL was carrying.", "presentation");
     }
+    // The inverse of the check above it, and the one that actually bit: the
+    // deck inject writes a presenting section into the persona, and nothing
+    // removes it when the deck goes away. The PAL then insists on showing a
+    // diagram it cannot show, and reaches for any other screen it has.
+    if (personaDraft.trim() && !(presentationEnabled && docIds.length) &&
+        /##\s*present|slide deck|the deck\b|bring up the .{0,24}diagram/i.test(personaDraft)) {
+      add("break", "The prompt promises a deck that isn't attached",
+        "The persona has presenting instructions but no deck is configured, so it can't show slides — it will talk about a diagram nobody can see, or open whatever other screen it has (a browser flow).",
+        "presentation", { label: "Strip the deck talk", run: () => stripDeckFromPrompt() });
+    }
     if (canvasEnabled && presentationEnabled && docIds.length > 0 && slidesTrigger === "walk_the_deck") {
       add("look", "The deck and Magic Canvas both want the screen beside the face",
         "Slides lead and cards are held for questions — the canvas style dial is overridden while a deck is attached.", "canvas");
@@ -5549,6 +5559,21 @@ export default function TavusExperienceBuilder() {
     if (audio.length) parts.push(`Audio/tone checks running continuously:\n${audio.map((q) => `- ${q}`).join("\n")}`);
     parts.push("If a check maps to a moment in the flow, mirror it in the objectives so the step actually waits for what it needs to see. Checks that shouldn't change the conversation at all can stay out of the prompt.");
     await revisePersona(parts.join("\n\n"), "Perception woven into prompt");
+  };
+
+  /* The mirror of the deck inject. injectPresentationIntoPrompt writes a
+     presenting section into the persona, and NOTHING took it back out when the
+     deck went away — so the PAL kept being told to bring up a diagram it had no
+     way to show, and reached for whatever screen surface it did have. */
+  const stripDeckFromPrompt = async () => {
+    if (!personaDraft.trim()) {
+      addLog("err", "No persona draft to edit.");
+      return;
+    }
+    await revisePersona(
+      "This demo has NO slide deck attached. Remove every instruction about presenting: delete the presenting/deck section entirely, and any line telling it to bring up, open, walk, resume or close a slide, deck or diagram. Do not replace them with anything. Leave the rest of the persona exactly as it is.",
+      "Deck instructions removed",
+    );
   };
 
   const injectPresentationIntoPrompt = async () => {
