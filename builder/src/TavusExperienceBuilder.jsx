@@ -949,13 +949,17 @@ const BUILDER_CSS = `
         /* Call controls stay over the video, not under the canvas panel */
         .canvas-split-right .interrupt-btn { right:calc(var(--canvas-panel-w) + 18px); }
         .canvas-split-left .rec-live { left:calc(var(--canvas-panel-w) + 14px); }
-        .interrupt-btn { position:absolute; bottom:18px; right:18px; z-index:30; border-radius:999px; border:none; background:rgba(255,255,255,.92); color:#17181A; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+        /* Sits ABOVE the call's own control cluster, never beside it, and stays
+           visually subordinate to the face — it is an escape hatch, not a CTA. */
+        .interrupt-btn { position:absolute; bottom:92px; right:18px; z-index:30; border-radius:999px; border:none; background:rgba(255,255,255,.86); color:#17181A; padding:6px 12px; font:inherit; font-size:12px; font-weight:600; line-height:1.35; white-space:nowrap; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.22); opacity:.9; animation:intfade .18s ease-out; }
+        @keyframes intfade { from { opacity:0; transform:translateY(4px); } to { opacity:.9; transform:none; } }
+        @media (prefers-reduced-motion:reduce) { .interrupt-btn { animation:none; } }
         /* pointer-events:none — must never block call controls under it */
         .rec-live { position:absolute; top:14px; left:14px; z-index:30; pointer-events:none; display:inline-flex; align-items:center; gap:7px; background:rgba(0,0,0,.55); color:#fff; border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; letter-spacing:.3px; }
         .rec-live.rec-fail { background:rgba(214,69,69,.92); }
         .stage-rec-btn { position:absolute; bottom:18px; left:18px; z-index:30; border-radius:999px; border:none; background:rgba(214,69,69,.94); color:#fff; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); display:inline-flex; align-items:center; gap:8px; }
         .stage-rec-btn:hover { background:rgba(214,69,69,1); }
-        .interrupt-btn:hover { background:#fff; }
+        .interrupt-btn:hover { background:#fff; opacity:1; }
         .demo-cta { display:flex; flex-direction:column; align-items:center; gap:14px; }
         /* pre-call email gate & post-call feedback screens (inside the stage) */
         .exp-screen { display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; padding:28px 24px; max-width:460px; width:100%; }
@@ -2105,7 +2109,9 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
   // once the participant has joined. Non-fatal: a recording hiccup must
   // never take down a live demo. recStatus drives the on-screen ⏺ REC badge
   // so "is it actually recording?" is answerable at a glance.
-  const [recStatus, setRecStatus] = useState(""); // "" | "starting" | "recording" | "error"
+  const [recStatus, setRecStatus] = useState("");
+  const [palSpeaking, setPalSpeaking] = useState(false);
+  const speakingRef = useRef(false); // "" | "starting" | "recording" | "error"
 
   /* Full-stage capture: getDisplayMedia needs a user gesture, so it rides the
      ⏺ button click. The tab is published into the call as a screenshare and
@@ -2231,6 +2237,18 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
       if (!d?.event_type) return;
       // Anyone talking (user utterances, PAL speech events) counts as engagement.
       if (/utterance|speaking|respond/i.test(d.event_type)) { armInactivity(); onHumanSpeech(d); }
+      // Track whether SHE is mid-sentence, for the interrupt affordance. Only
+      // set state on an actual change — these fire several times a turn, and
+      // the call surface must not re-render on speech events.
+      if (/speaking/i.test(d.event_type)) {
+        const who = String(d.properties?.role ?? (/\.user\./i.test(d.event_type) ? "user" : "replica")).toLowerCase();
+        if (who !== "user") {
+          const now = /started_speaking/i.test(d.event_type);
+          if (/stopped_speaking/i.test(d.event_type) || now) {
+            if (speakingRef.current !== now) { speakingRef.current = now; setPalSpeaking(now); }
+          }
+        }
+      }
       // Manual objective confirmation: Tavus emits objective.pending and waits
       // for a client confirm — without this reply the flow never advances and
       // the PAL loops on step one.
@@ -2304,9 +2322,13 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
           ⏺ Record full stage
         </button>
       )}
-      {controls.interruptButton && (
-        <button className="interrupt-btn" onClick={interrupt} title="Stop the PAL mid-sentence">
-          ✋ Interrupt
+      {/* Only while she is actually talking. A permanent button sits over the
+          face for the whole call offering to stop speech that isn't happening —
+          the visitor reads it as chrome, and it's in the shot on every
+          recording and screenshot. */}
+      {controls.interruptButton && palSpeaking && (
+        <button className="interrupt-btn" onClick={interrupt} title="Stop her mid-sentence">
+          <span aria-hidden="true">✋</span> Interrupt
         </button>
       )}
     </>
