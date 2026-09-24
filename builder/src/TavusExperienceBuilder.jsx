@@ -855,6 +855,14 @@ const BUILDER_CSS = `
         .coach-line b { color:#8b8b92; font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; margin-right:5px; }
         .coach-line.you b { color:#f5d90a; }
         .coach-scene { position:absolute; inset:0; z-index:7; background:#0d0e10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:24px; }
+        /* On-stage annotation chips — ONE-SHOT entrance only (A/V invariant:
+           nothing may animate perpetually over a live call). */
+        .annot-rail { position:absolute; top:14px; left:14px; z-index:8; display:flex; flex-direction:column; align-items:flex-start; gap:6px; pointer-events:none; max-width:min(46%, 380px); }
+        .annot-chip { background:rgba(13,14,16,.82); color:#fff; font-size:12.5px; line-height:1.35; padding:7px 12px 7px 9px; border-radius:999px; border:1px solid rgba(255,255,255,.14); display:flex; align-items:center; gap:7px; animation:annotin .3s ease both; box-shadow:0 2px 10px rgba(0,0,0,.25); }
+        .annot-icon { font-size:14px; flex-shrink:0; }
+        .annot-chip.annot-react { margin-left:18px; background:rgba(13,14,16,.68); font-size:11.5px; }
+        .annot-chip.annot-memory { border-color:rgba(150,190,255,.35); }
+        @keyframes annotin { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
         .coach-scene-badge { width:84px; height:84px; border-radius:50%; background:#f5a623; border:6px solid #7a6a1e; color:#1a1a1a; font-weight:800; font-size:26px; display:flex; align-items:center; justify-content:center; }
         .coach-scene-title { color:#fff; font-size:26px; font-weight:800; letter-spacing:.02em; text-transform:uppercase; }
         .coach-scene-sub { color:#9a9aa2; font-size:13.5px; max-width:420px; }
@@ -1802,7 +1810,7 @@ const getStudioRuntime = () => STUDIO_RUNTIME;
 /* ── In-call extras: timers, wake reminders, interrupt button, guardrail echo.
       Lives INSIDE CVIProvider so it can use the Daily call object; these
       features need the custom call UI (they're inert in the iframe fallback). */
-function CallExtras({ controls, conversationId, onForceLeave, visitor = false, onScriptedCard = null, onCoachSpeech = null }) {
+function CallExtras({ controls, conversationId, onForceLeave, visitor = false, onScriptedCard = null, onCoachSpeech = null, onAnnot = null }) {
   const daily = useDaily();
   const timeWarnedRef = useRef(false); // the 2-minute warning speaks once per call, across effect re-runs
   const firedCardsRef = useRef(new Set()); // scripted cards fire once per call — effect re-runs must not replay them
@@ -2178,6 +2186,79 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
       clearTimeout(graceTimer);
       daily.off("app-message", onAppMessage);
       daily.off("active-speaker-change", onSpeaker);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daily]);
+
+  // On-stage annotations: perception tool calls (note_emotion / note_scene),
+  // knowledge (RAG) observability events, and memory-recall phrases in the
+  // PAL's speech → chips rendered by DemoSite. Everything is deduped per
+  // window so chips never spam, and chip STATE lives up in DemoSite —
+  // outside the memoized call surface (A/V invariant).
+  useEffect(() => {
+    if (!daily || !onAnnot || !controls.annot) return;
+    const A = controls.annot;
+    const last = { lastText: "" };
+    const reactArm = { at: 0 };
+    const push = (kind, icon, text, minGapMs) => {
+      const now = Date.now();
+      if (now - (last[kind] || 0) < minGapMs) return;
+      if (text === last.lastText) return;
+      last[kind] = now;
+      last.lastText = text;
+      onAnnot({ kind, icon, text });
+    };
+    const onMsg = (e) => {
+      const d = e?.data;
+      if (!d?.event_type) return;
+      const props = d.properties || {};
+      if (/perception_tool_call/i.test(d.event_type)) {
+        let args = props.arguments ?? props.args ?? {};
+        if (typeof args === "string") { try { args = JSON.parse(args); } catch { args = {}; } }
+        const name = String(props.name || props.function_name || props.tool_name || "");
+        if (A.emotion && /note_emotion/i.test(name)) {
+          const emo = String(args.emotion || "").trim();
+          if (emo) {
+            push("emotion", "🎭", `Senses ${emo}${args.evidence ? ` — ${String(args.evidence).slice(0, 60)}` : ""}`, 12_000);
+            reactArm.at = Date.now(); // pair with the reply: sense → react
+          }
+        } else if (A.vision && /note_scene/i.test(name)) {
+          const seen = String(args.seen || args.what || "").trim();
+          if (seen) push("vision", "👁", `Sees: ${seen.slice(0, 80)}`, 8_000);
+        }
+      }
+      // The sensed emotion becomes VISIBLE when the reply lands — expression
+      // and tone follow the speech (tts_emotion_control).
+      if (A.emotion && reactArm.at && Date.now() - reactArm.at < 15_000 &&
+          /started_speaking/i.test(d.event_type) &&
+          (props.role === "pal" || props.role === "replica" || /replica/i.test(d.event_type))) {
+        reactArm.at = 0;
+        push("react", "↳", "Reacting — tone and expression adjust", 10_000);
+      }
+      // Knowledge retrieval: the RAG observability tool call fires when the
+      // reply uses document chunks, carrying the document names.
+      if (A.memory && /rag/i.test(d.event_type)) {
+        const names = [].concat(props.document_names || props.documents || []).filter(Boolean).map(String);
+        push("memory", "📚", names.length ? `Pulling from knowledge: ${names.slice(0, 2).join(", ")}` : "Pulling from the knowledge base", 20_000);
+      }
+      // Memory recall, spoken: the context tells the PAL to say what it
+      // remembers out loud — this is the matching chip.
+      if (A.memory && /utterance/i.test(d.event_type) && (props.role === "replica" || props.role === "pal")) {
+        const t = String(props.speech || props.text || "");
+        if (/(last time|you mentioned|welcome back|when we (last )?spoke|as you (told|said)|from our (last|previous))/i.test(t)) {
+          push("memory", "💭", "Recalling a memory from a previous conversation", 45_000);
+        }
+      }
+    };
+    daily.on("app-message", onMsg);
+    // Memory active from the start — the badge explains a greeting that
+    // "already knows" them.
+    const badgeTimer = A.memoryOn
+      ? setTimeout(() => push("memory", "💭", "Memory active — this visitor is remembered across calls", 0), 1500)
+      : null;
+    return () => {
+      daily.off("app-message", onMsg);
+      if (badgeTimer) clearTimeout(badgeTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daily]);
@@ -2559,6 +2640,16 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
     }
     return [...list.slice(-299), e];
   }), []);
+  // On-stage annotation chips (🎭 senses / 👁 sees / 💭 recalls): pushed by
+  // CallExtras from perception/RAG/recall events, auto-expire, capped at 4.
+  const [annotChips, setAnnotChips] = useState([]);
+  useEffect(() => { if (!conversationUrl) setAnnotChips([]); }, [conversationUrl]);
+  const annotSeq = useRef(0);
+  const pushAnnot = useCallback((chip) => {
+    const id = ++annotSeq.current;
+    setAnnotChips((list) => [...list.slice(-3), { ...chip, id }]);
+    setTimeout(() => setAnnotChips((list) => list.filter((c) => c.id !== id)), 9000);
+  }, []);
   const onCanvasLayout = useCallback((l) => {
     setCanvasPanel((prev) => ({ active: Boolean(l?.active), side: (l?.active && l.side) || prev.side }));
   }, []);
@@ -2780,8 +2871,17 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
             </div>
             {/* Contained inside the stage instead of a full-viewport overlay */}
             {coach && <CoachPanel coach={coach} events={coachEvents} conversationId={conversationId} slug={slug} maxSeconds={Number(controls.maxSeconds) || 0} />}
+            {controls.annot && annotChips.length > 0 && (
+              <div className="annot-rail" aria-hidden="true">
+                {annotChips.map((c) => (
+                  <div key={c.id} className={`annot-chip annot-${c.kind}`}>
+                    <span className="annot-icon">{c.icon}</span>{c.text}
+                  </div>
+                ))}
+              </div>
+            )}
             <MagicCanvas className="canvas-contained" onError={(e) => console.error("canvas error", e)} onLayoutEffectChange={onCanvasLayout} />
-            <CallExtras controls={controls} conversationId={conversationId} onForceLeave={handleLeave} visitor={visitor} onScriptedCard={setScCard} onCoachSpeech={coach ? pushCoachEvent : null} />
+            <CallExtras controls={controls} conversationId={conversationId} onForceLeave={handleLeave} visitor={visitor} onScriptedCard={setScCard} onCoachSpeech={coach ? pushCoachEvent : null} onAnnot={controls.annot ? pushAnnot : null} />
           </div>
         </CVIProvider>
       );
@@ -3210,6 +3310,14 @@ export default function TavusExperienceBuilder() {
   const [visionEnabled, setVisionEnabled] = useState(false);
   const [visionVibe, setVisionVibe] = useState("");
   const [visualQueriesText, setVisualQueriesText] = useState("");
+  // On-stage annotations ("X-ray mode"): chips over the call that SHOW the
+  // AI sensing — 🎭 emotion (heard + reacted to), 👁 vision (what it sees),
+  // 💭 memory/knowledge recall. Emotion + vision ride inline perception
+  // TOOLS (fire-and-forget conversation.perception_tool_call app-messages);
+  // memory is a spoken-recall context line + recall-phrase detection.
+  const [annotEmotion, setAnnotEmotion] = useState(false);
+  const [annotVision, setAnnotVision] = useState(false);
+  const [annotMemory, setAnnotMemory] = useState(false);
   const [audioQueriesText, setAudioQueriesText] = useState("");
   const [visionGenerating, setVisionGenerating] = useState(false);
 
@@ -3981,6 +4089,7 @@ export default function TavusExperienceBuilder() {
     duetDeckBeat, duetBrowserBeat, duetBrowserShow, duetLook, duetCaptions, studioPalA, studioPalB,
     palLlm, knowledgeIdsRaw, personaMode, demoIntent, demoReplacing, demoHandoff, demoFeatures,
     memoryEnabled, memoryMode, memoryKey,
+    annotEmotion, annotVision, annotMemory,
     site,
     expJourney,
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
@@ -4043,6 +4152,7 @@ export default function TavusExperienceBuilder() {
     setDemoIntent(c.demoIntent ?? "");
     setDemoReplacing(c.demoReplacing ?? ""); setDemoHandoff(c.demoHandoff ?? "");
     setMemoryEnabled(!!c.memoryEnabled); setMemoryMode(c.memoryMode === "demo" ? "demo" : "visitor"); setMemoryKey(c.memoryKey ?? "");
+    setAnnotEmotion(!!c.annotEmotion); setAnnotVision(!!c.annotVision); setAnnotMemory(!!c.annotMemory);
     setDemoFeatures({ ...defaultDemoFeatures(), ...(c.demoFeatures || {}) });
     setKnowledgeIdsRaw(c.knowledgeIdsRaw ?? "");
     {
@@ -4521,6 +4631,12 @@ export default function TavusExperienceBuilder() {
       const memSlug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60);
       const key = memSlug(memoryKey || conversationName || "demo") || "demo";
       body.memory_stores = [memoryMode === "visitor" ? `${key}_operator` : key];
+      // Annotated memory: recall is invisible unless spoken — this line makes
+      // the PAL show its memory working, and the recall phrasing is what the
+      // on-stage 💭 chip detects.
+      if (annotMemory) {
+        parts.push('When your memory of this person offers something relevant, reference it out loud naturally — "last time you mentioned…" — once or twice in the call, never as a recited list.');
+      }
     }
 
     if (parts.length) body.conversational_context = parts.join("\n\n");
@@ -4544,7 +4660,7 @@ export default function TavusExperienceBuilder() {
       if (recS3ExternalId.trim()) body.properties.recording_storage.external_id = recS3ExternalId.trim();
     }
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan, browserCfgObj, memoryEnabled, memoryMode, memoryKey, presentationEnabled, docIds, slidesTrigger]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan, browserCfgObj, memoryEnabled, memoryMode, memoryKey, annotMemory, presentationEnabled, docIds, slidesTrigger]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
@@ -4559,8 +4675,46 @@ export default function TavusExperienceBuilder() {
     const audio = lines(audioQueriesText);
     if (visual.length) value.visual_awareness_queries = visual;
     if (audio.length) value.audio_awareness_queries = audio;
+    // On-stage annotations ride inline perception tools: Raven fires them as
+    // fire-and-forget conversation.perception_tool_call app-messages (the PAL
+    // keeps talking — no interruption), which the demo page renders as chips.
+    if (annotEmotion) {
+      value.audio_tool_prompt = "You have a tool named note_emotion. Call it whenever the user's tone of voice clearly shows an emotion — frustration, excitement, confusion, hesitation, relief — and again when the emotion shifts.";
+      value.audio_tools = [{
+        type: "function",
+        function: {
+          name: "note_emotion",
+          description: "Trigger when the user's tone of voice clearly shows an emotion, and when it shifts",
+          parameters: {
+            type: "object",
+            properties: {
+              emotion: { type: "string", description: "the emotion, one or two words" },
+              evidence: { type: "string", description: "very short reason, a few words" },
+            },
+            required: ["emotion"],
+          },
+        },
+      }];
+    }
+    if (annotVision) {
+      value.visual_tool_prompt = "You have a tool named note_scene. Call it when something noteworthy becomes visible: an item held up to the camera, a badge or ID, a phone or document, safety gear, a new person, or a strong facial expression.";
+      value.visual_tools = [{
+        type: "function",
+        function: {
+          name: "note_scene",
+          description: "Trigger when something noteworthy is visible on camera or changes in the scene",
+          parameters: {
+            type: "object",
+            properties: {
+              seen: { type: "string", description: "what is visible, one short phrase" },
+            },
+            required: ["seen"],
+          },
+        },
+      }];
+    }
     return value;
-  }, [visualQueriesText, audioQueriesText]);
+  }, [visualQueriesText, audioQueriesText, annotEmotion, annotVision]);
 
   /* Plain-English tool rows → OpenAI function-shape tools for the PAL's LLM. */
   const toolDefs = useMemo(() => toolRows
@@ -4632,7 +4786,12 @@ export default function TavusExperienceBuilder() {
     // daily.startRecording() once joined. CallExtras does that when this is set.
     recording: recordingEnabled && !!(recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim()),
     recordingLayout: recLayout,
-  }), [compiledScriptedCards, productCards, coachEnabled, parsedCoachCriteria, coachTitle, coachScene, coachTalkHint, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout]);
+    // On-stage annotation chips — rides share links like everything here.
+    annot: (annotEmotion || annotVision || annotMemory) ? {
+      emotion: annotEmotion, vision: annotVision, memory: annotMemory,
+      memoryOn: annotMemory && memoryEnabled,
+    } : undefined,
+  }), [compiledScriptedCards, productCards, coachEnabled, parsedCoachCriteria, coachTitle, coachScene, coachTalkHint, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout, annotEmotion, annotVision, annotMemory, memoryEnabled]);
 
   /* Journey editor helpers — steps the builder composes for the guided
      pre-call flow (waiver questions, persona pickers, videos, …). */
@@ -6841,7 +7000,12 @@ export default function TavusExperienceBuilder() {
             [{ op: "add", path: "/guardrail_ids", value: [] }]);
         }
         const perc = palState.layers?.perception;
-        if ((!visionEnabled || !(visionPayload.visual_awareness_queries || visionPayload.audio_awareness_queries)) && perc?.perception_model && perc.perception_model !== "off") {
+        // Annotations need raven even with no vision queries (their inline
+        // tools ride the perception layer) — don't sweep perception off then.
+        const perceptionWanted =
+          (visionEnabled && (visionPayload.visual_awareness_queries || visionPayload.audio_awareness_queries)) ||
+          annotEmotion || annotVision;
+        if (!perceptionWanted && perc?.perception_model && perc.perception_model !== "off") {
           await clearPatch("vision checks",
             [{ op: "add", path: "/layers/perception", value: { perception_model: "off" } }]);
         }
@@ -6943,13 +7107,20 @@ export default function TavusExperienceBuilder() {
           [{ op: "add", path: "/guardrail_ids", value: [] }]);
       });
 
-      // Vision: attach the perception layer to the PAL (persists like objectives).
-      if (visionEnabled && (visionPayload.visual_awareness_queries || visionPayload.audio_awareness_queries)) await section("Vision", async () => {
-        const v = visionPayload.visual_awareness_queries?.length || 0;
-        const a = visionPayload.audio_awareness_queries?.length || 0;
-        addLog("info", `Attaching vision (${v} visual, ${a} audio checks)…`);
+      // Vision: attach the perception layer to the PAL (persists like
+      // objectives). Also attaches when only the on-stage annotations are on —
+      // their note_emotion/note_scene tools live in this same layer.
+      if ((visionEnabled && (visionPayload.visual_awareness_queries || visionPayload.audio_awareness_queries)) || annotEmotion || annotVision) await section("Vision", async () => {
+        // Vision toggled off but annotations on → attach the tools WITHOUT
+        // any leftover awareness queries the operator turned off.
+        const percValue = visionEnabled
+          ? visionPayload
+          : Object.fromEntries(Object.entries(visionPayload).filter(([k]) => !k.endsWith("awareness_queries")));
+        const v = (visionEnabled && visionPayload.visual_awareness_queries?.length) || 0;
+        const a = (visionEnabled && visionPayload.audio_awareness_queries?.length) || 0;
+        addLog("info", `Attaching vision (${v} visual, ${a} audio checks${annotEmotion || annotVision ? ", + on-stage annotation tools" : ""})…`);
         await tavusFetch("PATCH", `/pals/${pal}`, [
-          { op: "add", path: "/layers/perception", value: visionPayload },
+          { op: "add", path: "/layers/perception", value: percValue },
         ]);
         addLog("ok", "Vision attached (persists on the PAL until you change it).");
       });
@@ -8218,6 +8389,21 @@ export default function TavusExperienceBuilder() {
                 {visionGenerating ? "Drafting…" : (visualQueriesText || audioQueriesText) ? "Regenerate checks" : "Generate checks with Claude"}
               </button>
 
+              <div className="subhead">🔎 On-stage annotations</div>
+              <p className="field-hint" style={{ maxWidth: 640, marginBottom: 10 }}>
+                Show the audience what's invisible: small chips over the call the moment the AI <b>senses</b> something. Works with or without the checks above (the annotations bring their own perception tools), on the builder launch and share links alike. Toggle off for a clean stage.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxWidth: 640, marginBottom: 22 }}>
+                <label style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5 }}>
+                  <Toggle on={annotEmotion} onChange={setAnnotEmotion} />
+                  <span><b>🎭 Emotion</b> — "Senses frustration" when the tone shifts, then "↳ Reacting — tone and expression adjust" as the reply lands.</span>
+                </label>
+                <label style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5 }}>
+                  <Toggle on={annotVision} onChange={setAnnotVision} />
+                  <span><b>👁 Vision</b> — "Sees: a badge held up to the camera" when something noteworthy enters the frame.</span>
+                </label>
+              </div>
+
               <Field label="Visual checks" hint="One per line — what raven-1 continuously watches for in the camera/screen. Edit freely.">
                 <textarea
                   style={{ minHeight: 110 }}
@@ -8526,6 +8712,10 @@ export default function TavusExperienceBuilder() {
                   <p className="field-hint" style={{ maxWidth: 620 }}>
                     Heads up (Tavus early release): what's stored isn't viewable or editable yet — the memory shows up in how the conversation picks up, not in a dashboard.
                   </p>
+                  <label style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5, maxWidth: 640, marginTop: 6 }}>
+                    <Toggle on={annotMemory} onChange={setAnnotMemory} />
+                    <span><b>💭 Make recall visible</b> — the AI says what it remembers out loud ("last time you mentioned…"), and on-stage chips mark the moment: memory active at call start, 💭 when a memory surfaces, 📚 when it pulls from the Knowledge Base.</span>
+                  </label>
                 </>
               )}
             </>

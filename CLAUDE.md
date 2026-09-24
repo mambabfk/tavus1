@@ -235,6 +235,22 @@ non-technical users; ids unchanged):
    `parseVisionDraft` into editable per-line textareas. On launch →
    `PATCH /pals/{id}` `/layers/perception` with `{perception_model: "raven-1",
    visual_awareness_queries, audio_awareness_queries}`. Persists on the PAL.
+   **On-stage annotations** ("X-ray mode", same step + a memory toggle on the
+   KB step): `annotEmotion`/`annotVision`/`annotMemory` → chips over the live
+   call showing the AI sensing. Emotion + vision ride INLINE PERCEPTION
+   TOOLS (`note_emotion` audio tool / `note_scene` visual tool +
+   `audio_tool_prompt`/`visual_tool_prompt` merged into `visionPayload`) —
+   Raven fires them as fire-and-forget `conversation.perception_tool_call`
+   app-messages; a sensed emotion arms a one-shot "↳ Reacting" chip on the
+   PAL's next started_speaking. `annotMemory` = a context line making the
+   PAL say recalls out loud + chips for recall phrases, `rag`-observability
+   events (📚 with document names), and a memory-active badge at call start
+   (`controls.annot.memoryOn`). Wiring: `controls.annot` in controlsConfig
+   (rides share links) → CallExtras `onAnnot` (deduped per kind-window) →
+   `annotChips` state in DemoSite (OUTSIDE the memo firewall) → `.annot-rail`
+   chips (one-shot entrance animation only — A/V invariant). Launch attaches
+   perception whenever vision is on OR annotations are on (queries stripped
+   when vision itself is off), and the hygiene sweep spares the layer then.
 3. **Presentation** — attach PDF/image decks from the Knowledge Base.
    `docIdsRaw` (comma/newline list → `docIds`), `slidesTrigger`
    (`walk_the_deck` | `on_demand`), optional `presentPrompt`, per-slide
