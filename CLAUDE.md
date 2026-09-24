@@ -181,7 +181,7 @@ turn-taking dials. Magic Canvas has a
 Step slices of the one big component's state (labels renamed for
 non-technical users; ids unchanged):
 
-1. **Setup** — `apiKey`, `faceId`, `palId`, `language`, `conversationName`,
+1. **Setup** — `apiKey`, `faceId`, `palId`, `languages`, `conversationName`,
    `callbackUrl` (webhook), `greeting`. `canLaunch` requires key + face + PAL.
 1.5. **Persona** — ONE freeform vibe box (`personaBrief.vibe`) + an optional
    "Fine-tune" drawer (product, audience, goal, tone, emotions; the old
@@ -251,6 +251,20 @@ non-technical users; ids unchanged):
    chips (one-shot entrance animation only — A/V invariant). Launch attaches
    perception whenever vision is on OR annotations are on (queries stripped
    when vision itself is off), and the hygiene sweep spares the layer then.
+   **Scenario-specific queries** (from the "vision is fine at basic, useless
+   at specific" brainstorm) rest on three things the one-shot vibe box
+   lacked: ⬆ **scene frames** (`visionShots`, session-only, never
+   saved; no taste-based cap — `imageBlocks()` refuses a set over ~3.6MB
+   and names the reason, since the only real limit is the request body) ride as base64 `images` so the queries name what is REALLY in
+   shot — the same vision-grounding the talk track got, via the shared
+   `readShrunkImages` downscaler and the server's `sanitizeImages`;
+   **objectives + guardrails** ride `context` so queries serve the flow's
+   actual moments; and 🪡 **inject into prompt**
+   (`injectVisionIntoPrompt`, mirrors the deck's) weaves each check into
+   the persona's Perception section with the response it should trigger —
+   raven answers the queries whether or not anything reads them, so
+   without the inject perception observes into the void, which is
+   indistinguishable from not observing.
 3. **Presentation** — attach PDF/image decks from the Knowledge Base.
    `docIdsRaw` (comma/newline list → `docIds`), `slidesTrigger`
    (`walk_the_deck` | `on_demand`), optional `presentPrompt`, per-slide
@@ -328,7 +342,17 @@ non-technical users; ids unchanged):
    when-to-run-which-flow steering box (🪡 inject teaches the persona its
    flows BY NAME), and a raw-JSON drawer over the same `browserUseConfig`.
    Launch + validate refuse empty `guided_flows` / slide steps without a
-   deck. On launch `PUT /pals/{id}/skills/{skill_id}` `{config}`; per-skill
+   deck. **Browser Use and Presentation are MUTUALLY EXCLUSIVE on a PAL** —
+   Tavus 400s the pair outright ("move presentation slides into Browser Use
+   instead"). Launch attaches Browser Use first, so the DECK is what fails
+   and the fail-safe then DELETEs it, leaving a PAL that looks like slides
+   were never configured while the Slides step insists they are. Launch now
+   skips the deck attach with a loud log when a browser config is present,
+   and the cross-check flags the pair. Slides alongside Browser Use only
+   exist as 🖼 steps inside a guided flow (`config.slide_document_id` +
+   `{slide, prompt?}` steps) — which fire in FLOW ORDER, so an "open the
+   diagram whenever X comes up" behaviour is not achievable with Browser
+   Use attached; that needs Presentation and no Browser Use. On launch `PUT /pals/{id}/skills/{skill_id}` `{config}`; per-skill
    Detach buttons (`DELETE …/skills/{id}`). **Flow coherence rules** (from
    the "browser mode isn't working" audit — mirrors the deck's): both
    validate and launch PUT the same `sanitizeBrowserCfg` shape (blank
@@ -344,13 +368,31 @@ non-technical users; ids unchanged):
    replica's screenVideo track — same path as slides, already rendered by
    the custom UI (and the duet joiner's side panel; the duet beat cue says
    "start your guided browser flow \"X\"").
-4.6. **Integrations** (`tools`) — plain-English ability rows
-   ({name, desc, fields}) → `toolDefs` (OpenAI function shape, slugged names,
-   comma fields → required string params) → on launch
-   `PATCH /pals/{id}` `/layers/llm/tools`. `toolWebhook`/`toolEcho` travel in
-   `controlsConfig`; `CallExtras` forwards `conversation.tool_call`
-   app-messages to the webhook as `text/plain` JSON (no CORS preflight —
-   works with Zapier/Make catch hooks) and optionally echoes a confirmation.
+4.6. **Integrations** (`tools`) — the **tools REGISTRY**, not the deprecated
+   inline `layers.llm.tools`. That path only ever supported app-message
+   delivery, so the result never re-entered the conversation and the PAL
+   could acknowledge a tool call but never answer from it. Ability rows
+   ({name, desc, fields, delivery, method, url, authType/Name/Value, onCall,
+   filler, onResolve}) → `toolDefs` (registry shape: name, description,
+   parameters, origin:"llm", on_call, on_resolve, delivery). Launch:
+   `GET /tools?type=user&name_or_uuid=` → `PATCH /tools/{id}` when the name
+   exists else `POST /tools` (names are unique per ACCOUNT, so a relaunch
+   409s on create), then `POST /pals/{id}/tools {tool_ids}` and DELETE any
+   attached tool not in this demo's set (full replace, like guardrails).
+   **Defaults are the feature**: `delivery:"api"` implies
+   `on_call:"silent"` + `on_resolve:"generate_response"`, so the PAL calls
+   the endpoint quietly and SPEAKS the JSON that comes back; `body_template`
+   is generated from the declared fields (every `{placeholder}` must be a
+   declared property — hand-written JSON is where that breaks). The hygiene
+   sweep now clears `layers.llm.tools` ALWAYS, not only when tools are off:
+   a PAL built by an older version would otherwise offer every function
+   twice. `toolWebhook`/`toolEcho` still travel in `controlsConfig` and
+   still serve app_message delivery — `CallExtras` forwards
+   `conversation.tool_call` app-messages to the webhook as `text/plain`
+   JSON (no CORS preflight — works with Zapier/Make catch hooks).
+   NOTE: the Tavus **MCP server** (`https://mcp.tavus.io/mcp`) is for CODING
+   AGENTS, not for this browser app — it is an OAuth'd wrapper over the same
+   REST API the builder already calls. Don't route the builder through it.
 4.65. **Calls & Data** (`calls`) — pull-based, straight from Tavus:
    `GET /conversations` list + `GET /conversations/{id}?verbose=true` for
    transcript (`transcription`-type event), perception analyses, and raw JSON
@@ -473,8 +515,18 @@ non-technical users; ids unchanged):
    a blank memory. The anatomy hub shows 💭 Memory separate from
    📚 Knowledge.
    **Coach mode** (same step; Rilla-style roleplay trainer): `coachEnabled` +
-   `coachTitle/Scene/TalkHint/CriteriaText` ("label | keywords" per line, ≤8)
-   → `controlsConfig.coach`; `CoachPanel` in DemoSite (desktop + live kiosk;
+   `coachVisible` + `coachTitle/Scene/TalkHint/CriteriaText`
+   ("label | keywords" per line, ≤8) → `controlsConfig.coach`;
+   **`coachVisible` (default true) decides whether the person ON THE CALL
+   sees the panel.** True is roleplay training, where watching the criteria
+   tick is the product. FALSE is any assessment: the criteria are the answer
+   key, and an interview candidate reading "mentions total cost of
+   ownership" off a sidebar is being marked against a rubric they can see.
+   Hidden keeps every hook running (keyword ticks, the ~25s judge, the final
+   post to the exp record) and returns null instead of the panel — and
+   `coachShown` gates `.coach-split` too, so the stage doesn't reserve a
+   sidebar nobody can see. The cross-check flags visible-coach +
+   a grading rubric as a WILL BREAK with a one-click hide. `CoachPanel` in DemoSite (desktop + live kiosk;
    `.coach-split` right sidebar, canvas/card panel auto-moves left) renders a
    live scorecard — keyword lines tick instantly off the visitor's speech
    (utterance feed via `onCoachSpeech` on CallExtras), keyword-less lines are
@@ -631,6 +683,27 @@ non-technical users; ids unchanged):
    can draft the whole card set: `kind: "cards"` on generate-persona
    (JSON array), wired to "✨ Generate cards" on the Studio step (lands in
    `scCards`, editable on the Magic Canvas step).
+5.9. **Cross-check** (top of the Launch step + a red count badge on the
+   rail from every step) — `crossCheck`, a useMemo of ~15 DETERMINISTIC
+   findings: facts about the config, never a model's opinion, so it cannot
+   invent a problem. Catches the drift a scattered launch log never
+   surfaced in time — an unattached persona draft (the PAL runs the older
+   prompt), perception queries with no Perception section in the prompt, a
+   deck with no presenting section, two scripted cards sharing a trigger
+   word (first-match-wins, so the later never fires), per-visitor memory
+   with the email gate off (no key, no memory), anything offering booking
+   with no `schedulingUrl`, a rubric with the scorecard switched off.
+   Findings are `{level: "break"|"look", title, why, step, fix?}`; each
+   carries its OWN fix that routes through the existing reviewed path
+   (`attachPersona`, the 🪡 injects, a single toggle) plus a jump to the
+   step. **There is deliberately no "fix all"** — a button that
+   reconciled persona, objectives, cards and rubric together would be a
+   regenerate in disguise and would change a demo in the one way the
+   operator can't catch before going live. It detects; it never
+   reconciles. NOTE: the memo must stay declared BELOW
+   `compiledScriptedCards`/`parsedRubric`/`parsedCoachCriteria` and
+   reference later-declared functions only inside arrows — naming a
+   later `const` in the memo body is a TDZ error that renders a blank app.
 6. **Launch** — runs the whole attach-then-create sequence, logs each step.
    Also **Preflight check** (`preflight()`): `POST /objectives/validate`
    (shape/chain check, nothing saved) + `POST /conversations` with
@@ -691,7 +764,11 @@ to copy that curl and run it from a terminal/backend.
   replaces the whole overlay map — always send the complete set of overrides.**
   This tool uses `PUT` (full overwrite) for skill attaches.
 - `conversationPayload` → `face_id` + `pal_id`, optional name/callback/greeting,
-  `properties.language`, and (when canvas is on) the assembled
+  `properties.languages` — an ORDERED list of the 42 Tavus language codes,
+  first entry = the language the call opens in; sending it REPLACES the PAL's
+  set rather than merging (the deprecated single-name `properties.language` is
+  gone, and `applyConfig` migrates old scenarios by name) — and (when canvas
+  is on) the assembled
   `conversational_context` combining style text, per-card rules, playbook, and a
   `layout.preferred_slot` instruction for `safe-area-{left|right}`.
 
@@ -813,12 +890,21 @@ their interactions broke the paste-a-link golden path). Three standing
 rules, in force for EVERY change:
 
 1. **The golden path is executable.** `cd builder && npm run smoke` runs
-   the objectives-compiler invariant tests + a real-browser drive of the
-   New Demo flow (mocked backend) asserting intake → build → apply →
-   settings, PAL-id survival, greeting cohesion, and feature toggles.
-   Run it before pushing anything that touches draftDemo, launch,
-   parseObjectives, conversationPayload, or the start step — and extend
-   it when adding an intake field or feature pick. RED = don't ship.
+   the objectives-compiler invariant tests, `tools/api-kinds.test.mjs`
+   (invokes the generate-persona handler once per `kind` with no
+   ANTHROPIC_API_KEY, so each branch builds its whole prompt and stops at
+   the key check — **add a case when you add a kind**), and a real-browser
+   drive of the New Demo flow (mocked backend) asserting intake → build →
+   apply → settings, PAL-id survival, greeting cohesion, and feature
+   toggles. Run it before pushing anything that touches draftDemo, launch,
+   parseObjectives, conversationPayload, the start step, or a
+   generate-persona branch — and extend it when adding an intake field or
+   feature pick. RED = don't ship.
+   (`const c = context || {}` is declared PER BRANCH in generate-persona:
+   a branch that uses `c` without declaring it throws only at request
+   time, shipping clean through build and lint and surfacing as Vercel's
+   FUNCTION_INVOCATION_FAILED. That is the bug api-kinds.test.mjs exists
+   to catch.)
 2. **Complexity budget on the PAL's standing instructions.** The default
    PAL model is tavus-gemma-4 (small): `conversational_context` stays
    ≤ ~450 words fully loaded, no rule stated twice across prompt and

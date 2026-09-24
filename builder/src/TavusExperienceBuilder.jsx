@@ -13,18 +13,14 @@ import { upload as blobUpload } from "@vercel/blob/client";
 
 const API_BASE = "https://tavusapi.com/v2";
 
-// Tavus's full spoken-language list (docs → Language Support; pass the full
-// name in properties.language). "multilingual" auto-detects per speaker.
-const LANGUAGES = [
-  "multilingual", "english",
-  "arabic", "bengali", "bulgarian", "chinese", "croatian", "czech", "danish",
-  "dutch", "finnish", "french", "georgian", "german", "greek", "gujarati",
-  "hebrew", "hindi", "hungarian", "indonesian", "italian", "japanese",
-  "kannada", "korean", "malay", "malayalam", "marathi", "norwegian", "polish",
-  "portuguese", "punjabi", "romanian", "russian", "slovak", "spanish",
-  "swahili", "swedish", "tagalog", "tamil", "telugu", "thai", "turkish",
-  "ukrainian", "vietnamese",
-];
+/* The 42 languages Tavus speaks with the default tavus-auto engine (docs →
+   Language Support). Sent as `properties.languages` — an ORDERED list of
+   codes, where the first entry is the language the call opens in.
+   `properties.language` (one full name) is deprecated; LANG_LEGACY migrates
+   scenarios saved against it. */
+const LANGUAGES = [{ c: "ar", n: "Arabic" }, { c: "bg", n: "Bulgarian" }, { c: "bn", n: "Bengali" }, { c: "cs", n: "Czech" }, { c: "da", n: "Danish" }, { c: "de", n: "German" }, { c: "el", n: "Greek" }, { c: "en", n: "English" }, { c: "es", n: "Spanish" }, { c: "fi", n: "Finnish" }, { c: "fr", n: "French" }, { c: "gu", n: "Gujarati" }, { c: "he", n: "Hebrew" }, { c: "hi", n: "Hindi" }, { c: "hr", n: "Croatian" }, { c: "hu", n: "Hungarian" }, { c: "id", n: "Indonesian" }, { c: "it", n: "Italian" }, { c: "ja", n: "Japanese" }, { c: "ka", n: "Georgian" }, { c: "kn", n: "Kannada" }, { c: "ko", n: "Korean" }, { c: "ml", n: "Malayalam" }, { c: "mr", n: "Marathi" }, { c: "ms", n: "Malay" }, { c: "nl", n: "Dutch" }, { c: "no", n: "Norwegian" }, { c: "pa", n: "Punjabi" }, { c: "pl", n: "Polish" }, { c: "pt", n: "Portuguese" }, { c: "ro", n: "Romanian" }, { c: "ru", n: "Russian" }, { c: "sk", n: "Slovak" }, { c: "sv", n: "Swedish" }, { c: "ta", n: "Tamil" }, { c: "te", n: "Telugu" }, { c: "th", n: "Thai" }, { c: "tl", n: "Tagalog" }, { c: "tr", n: "Turkish" }, { c: "uk", n: "Ukrainian" }, { c: "vi", n: "Vietnamese" }, { c: "zh", n: "Chinese" }];
+const LANG_NAME = (c) => LANGUAGES.find((l) => l.c === c)?.n || c;
+const LANG_LEGACY = Object.fromEntries(LANGUAGES.map((l) => [l.n.toLowerCase(), l.c]));
 
 const CANVAS_COMPONENTS = [
   { key: "question", label: "Question", desc: "Multiple-choice cards; answers flow back to the PAL and your webhook." },
@@ -54,6 +50,7 @@ const STEPS = [
   { id: "controls", label: "Timing", group: "Run it" },
   { id: "launch", label: "Launch & Share", group: "Run it" },
   { id: "studio", label: "Studio", group: "Run it" },
+  { id: "grade", label: "Scorecard", group: "Run it" },
   { id: "calls", label: "Results", group: "Run it" },
 ];
 
@@ -117,7 +114,9 @@ function demoBadges(cfg) {
   if (cfg.expEmailGate !== false) b.push("✉ email gate");
   if (cfg.recordingEnabled) b.push("⏺ records");
   if (cfg.duetPlan) b.push("🎭 duet");
-  if (String(cfg.language || "english").toLowerCase() !== "english") b.push(`🌐 ${cfg.language}`);
+  const cfgLangs = Array.isArray(cfg.languages) ? cfg.languages : (cfg.language ? [cfg.language] : []);
+  if (cfgLangs.length > 1) b.push(`🌐 ${cfgLangs.length} languages`);
+  else if (cfgLangs.length === 1 && cfgLangs[0] !== "en" && String(cfgLangs[0]).toLowerCase() !== "english") b.push(`🌐 ${cfgLangs[0]}`);
   return b;
 }
 
@@ -543,6 +542,27 @@ const BUILDER_CSS = `
         .rail-btn:hover { background:var(--surface); color:var(--text); }
         .rail-btn.active { background:var(--surface); color:var(--text); border:1px solid var(--border); box-shadow:0 1px 2px rgba(20,20,20,.04); }
         .rail-check { margin-left:auto; color:var(--ok); font-size:11px; }
+        .rail-warn { margin-left:auto; min-width:17px; height:17px; border-radius:9px; background:#C4553B; color:#fff;
+          font-size:10.5px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; padding:0 5px; }
+
+        /* Cross-check */
+        .xc { border:1px solid var(--border); border-radius:18px; padding:18px 20px; margin-bottom:26px; background:var(--surface); }
+        .xc-bad { border-color:#C4553B; box-shadow:0 0 0 3px rgba(196,85,59,.09); }
+        .xc-warn { border-color:#D9922E; box-shadow:0 0 0 3px rgba(217,146,46,.08); }
+        .xc-head { display:grid; grid-template-columns:auto 1fr; gap:0 11px; align-items:center; margin-bottom:4px; }
+        .xc-head h2 { margin:0; font-size:17px; letter-spacing:-.01em; }
+        .xc-sub { grid-column:2; font-size:12.5px; color:var(--muted); }
+        .xc-dot { grid-row:span 2; width:11px; height:11px; border-radius:50%; background:var(--ok,#2E9E6B); }
+        .xc-bad .xc-dot { background:#C4553B; } .xc-warn .xc-dot { background:#D9922E; }
+        .xc-row { display:flex; gap:13px; align-items:flex-start; padding:14px 0; border-top:1px solid var(--border); margin-top:14px; }
+        .xc-tag { flex-shrink:0; margin-top:1px; font-size:9.5px; font-weight:750; letter-spacing:.07em; padding:3px 7px; border-radius:5px; }
+        .xc-break .xc-tag { background:rgba(196,85,59,.12); color:#9c4230; }
+        .xc-look .xc-tag { background:rgba(217,146,46,.14); color:#8a5b12; }
+        .xc-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+        .xc-body b { font-size:13.5px; font-weight:600; line-height:1.45; }
+        .xc-body span { font-size:12.5px; color:var(--muted); line-height:1.5; }
+        .xc-acts { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
+        @media (max-width:720px) { .xc-row { flex-wrap:wrap; } .xc-acts { width:100%; justify-content:flex-start; } }
         .rail-group { font-family:var(--mono); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); opacity:.75; padding:14px 14px 4px; }
         .rail > div:first-child .rail-group { padding-top:2px; }
         .flow-nav { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:36px; padding-top:18px; border-top:1px solid var(--border); }
@@ -606,6 +626,55 @@ const BUILDER_CSS = `
         .sc-title { font-weight:700; font-size:15px; letter-spacing:-.2px; }
         .sc-note p { margin:0 0 8px; font-size:13.5px; line-height:1.55; }
         .sc-note p:last-child { margin-bottom:0; }
+
+        .lang-picked { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+        .lang-picked:empty { display:none; }
+        .lang-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 8px 5px 11px; border-radius:999px;
+          border:1px solid var(--border,#E6E4DF); background:var(--surface,#fff); font-size:12.5px; }
+        .lang-chip.lang-first { border-color:var(--accent,#F0A891); background:color-mix(in srgb, var(--accent,#F0A891) 12%, var(--surface,#fff)); }
+        .lang-open { font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--muted,#7A7A73); }
+        .lang-chip button { border:0; background:none; cursor:pointer; font:inherit; font-size:12px; color:var(--muted,#7A7A73); padding:0 2px; }
+        .lang-chip button:disabled { opacity:.28; cursor:default; }
+        .lang-opts { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+
+        /* Interview grade */
+        .gc { background:var(--surface,#fff); border:1px solid var(--border,#E6E4DF); border-radius:20px; padding:22px; max-width:720px; }
+        .gc-top { display:flex; gap:22px; align-items:flex-start; padding-bottom:18px; border-bottom:1px solid var(--border,#E6E4DF); }
+        .gc-ring { position:relative; flex-shrink:0; width:104px; height:104px; border-radius:50%; display:flex; flex-direction:column;
+          align-items:center; justify-content:center; gap:0;
+          background:conic-gradient(var(--gc-c) var(--gc-pct), var(--canvas,#F5F4F1) 0); }
+        .gc-ring::after { content:""; position:absolute; inset:9px; border-radius:50%; background:var(--surface,#fff); }
+        .gc-ring > * { position:relative; z-index:1; }
+        .gc-num { font-size:30px; font-weight:650; letter-spacing:-.02em; line-height:1; }
+        .gc-den { font-size:11.5px; color:var(--muted,#7A7A73); margin-top:3px; }
+        .gc-hi { --gc-c:#2E9E6B; } .gc-mid { --gc-c:#D9922E; } .gc-lo { --gc-c:#C4553B; } .gc-none { --gc-c:var(--border,#E6E4DF); }
+        .gc-head { flex:1; min-width:0; }
+        .gc-verdict { display:inline-block; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:650;
+          background:color-mix(in srgb, var(--gc-c) 14%, transparent); color:var(--gc-c); margin-bottom:9px; }
+        .gc-summary { margin:0 0 8px; font-size:14.5px; line-height:1.55; }
+        .gc-meta { font-size:11.5px; color:var(--muted,#7A7A73); }
+        .gc-rows { display:flex; flex-direction:column; }
+        .gc-row { padding:15px 0; border-bottom:1px solid var(--border,#E6E4DF); }
+        .gc-row:last-child { border-bottom:0; }
+        .gc-row-null { opacity:.62; }
+        .gc-row-head { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+        .gc-label { font-size:13.5px; font-weight:600; }
+        .gc-weight { font-size:10.5px; font-weight:650; color:var(--muted,#7A7A73); border:1px solid var(--border,#E6E4DF); border-radius:5px; padding:1px 5px; }
+        .gc-dots { display:flex; gap:4px; margin-left:auto; }
+        .gc-dot { width:9px; height:9px; border-radius:50%; background:var(--canvas,#F5F4F1); border:1px solid var(--border,#E6E4DF); }
+        .gc-dot.on { background:var(--gc-c); border-color:var(--gc-c); }
+        .gc-score { font-size:12px; font-weight:650; color:var(--muted,#7A7A73); min-width:56px; text-align:right; }
+        .gc-quote { margin:9px 0 0; padding:8px 0 8px 13px; border-left:2px solid var(--accent,#F0A891);
+          font-size:13px; line-height:1.5; color:var(--text,#17181A); }
+        .gc-quote::before { content:"“"; } .gc-quote::after { content:"”"; }
+        .gc-note { margin:7px 0 0; font-size:12.5px; line-height:1.5; color:var(--muted,#7A7A73); }
+        .gc-split { display:grid; grid-template-columns:1fr 1fr; gap:18px; padding-top:16px; border-top:1px solid var(--border,#E6E4DF); }
+        .gc-sub { font-size:11px; font-weight:650; letter-spacing:.05em; text-transform:uppercase; color:var(--muted,#7A7A73); margin-bottom:8px; }
+        .gc-chip { display:inline-block; margin:0 5px 5px 0; padding:4px 10px; border-radius:999px; font-size:12px; line-height:1.35; }
+        .gc-chip-hi { background:rgba(46,158,107,.11); color:#24734f; }
+        .gc-chip-lo { background:rgba(196,85,59,.11); color:#9c4230; }
+        @media (max-width:640px) { .gc-top { flex-direction:column; } .gc-split { grid-template-columns:1fr; } }
+        .sc-link-btn { display:inline-block; margin-top:10px; padding:10px 16px; border-radius:999px; background:var(--text,#17181A); color:var(--surface,#fff); font-size:13px; font-weight:600; text-decoration:none; }
         .sc-chart { display:flex; flex-direction:column; gap:8px; }
         .sc-bar-row { display:grid; grid-template-columns:minmax(56px,38%) 1fr auto; align-items:center; gap:8px; font-size:12px; }
         .sc-bar-label { color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -615,7 +684,7 @@ const BUILDER_CSS = `
         .sc-stat { text-align:center; padding:6px 0; }
         .sc-stat-value { display:block; font-size:36px; font-weight:700; letter-spacing:-1.2px; line-height:1.1; }
         .sc-stat-label { display:block; color:var(--muted); font-size:13px; line-height:1.5; margin-top:3px; }
-        .sc-img { width:100%; border-radius:10px; object-fit:cover; }
+        .sc-img { width:100%; border-radius:10px; display:block; }
         .sc-preview { flex:0 0 260px; background:var(--canvas); border:1px dashed var(--border); border-radius:var(--r-md); padding:14px; display:flex; align-items:center; justify-content:center; }
         .sc-preview .sc-card { position:static; transform:none; width:100%; box-shadow:0 10px 30px -14px rgba(20,20,20,.25); }
         .sc-preview-empty { color:var(--muted); font-size:12px; text-align:center; line-height:1.6; }
@@ -805,6 +874,7 @@ const BUILDER_CSS = `
         .demo-stage { width:min(1080px,100%); aspect-ratio:16/9; background:var(--surface); border:1px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:0 20px 60px -24px rgba(20,20,20,.18); display:flex; align-items:center; justify-content:center; position:relative; }
         .demo-stage iframe { width:100%; height:100%; border:none; }
         .cvi-wrap { position:relative; width:100%; height:100%; background:#0e0f12; overflow:hidden; --canvas-panel-w:min(480px, 46%); }
+        .cvi-wrap.canvas-wide { --canvas-panel-w:min(760px, 58%); }
         .cvi-wrap > * { width:100%; height:100%; }
         /* Split layout: an active side card claims a dedicated panel and the
            video pane RESIZES into the remaining width — the canvas gets its own
@@ -887,13 +957,17 @@ const BUILDER_CSS = `
         /* Call controls stay over the video, not under the canvas panel */
         .canvas-split-right .interrupt-btn { right:calc(var(--canvas-panel-w) + 18px); }
         .canvas-split-left .rec-live { left:calc(var(--canvas-panel-w) + 14px); }
-        .interrupt-btn { position:absolute; bottom:18px; right:18px; z-index:30; border-radius:999px; border:none; background:rgba(255,255,255,.92); color:#17181A; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+        /* Sits ABOVE the call's own control cluster, never beside it, and stays
+           visually subordinate to the face — it is an escape hatch, not a CTA. */
+        .interrupt-btn { position:absolute; bottom:92px; right:18px; z-index:30; border-radius:999px; border:none; background:rgba(255,255,255,.86); color:#17181A; padding:6px 12px; font:inherit; font-size:12px; font-weight:600; line-height:1.35; white-space:nowrap; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.22); opacity:.9; animation:intfade .18s ease-out; }
+        @keyframes intfade { from { opacity:0; transform:translateY(4px); } to { opacity:.9; transform:none; } }
+        @media (prefers-reduced-motion:reduce) { .interrupt-btn { animation:none; } }
         /* pointer-events:none — must never block call controls under it */
         .rec-live { position:absolute; top:14px; left:14px; z-index:30; pointer-events:none; display:inline-flex; align-items:center; gap:7px; background:rgba(0,0,0,.55); color:#fff; border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; letter-spacing:.3px; }
         .rec-live.rec-fail { background:rgba(214,69,69,.92); }
         .stage-rec-btn { position:absolute; bottom:18px; left:18px; z-index:30; border-radius:999px; border:none; background:rgba(214,69,69,.94); color:#fff; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); display:inline-flex; align-items:center; gap:8px; }
         .stage-rec-btn:hover { background:rgba(214,69,69,1); }
-        .interrupt-btn:hover { background:#fff; }
+        .interrupt-btn:hover { background:#fff; opacity:1; }
         .demo-cta { display:flex; flex-direction:column; align-items:center; gap:14px; }
         /* pre-call email gate & post-call feedback screens (inside the stage) */
         .exp-screen { display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; padding:28px 24px; max-width:460px; width:100%; }
@@ -1842,10 +1916,17 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
     const timers = [];
     let current = -1;
     let armed = false;
-    const showCard = (i) => {
-      if (fired.has(i)) return;
-      fired.add(i);
+    let shownAt = 0;
+    const queue = [];
+    // A card triggered a second after another wiped it off screen before anyone
+    // could read it — an image card "flashed" and was replaced by the next
+    // note. Each card holds the panel for a beat; anything triggered meanwhile
+    // waits its turn (at most two waiting, so a card never lands minutes late).
+    const MIN_DWELL_MS = 6000;
+    const STALE_QUEUE_MS = 20000;
+    const present = (i) => {
       current = i;
+      shownAt = Date.now();
       onScriptedCard({
         card: cards[i],
         seq: i,
@@ -1861,8 +1942,30 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
           } catch { /* room gone */ }
         },
       });
-      const hide = Number(cards[i].hideAfter) || 0;
-      if (hide > 0) timers.push(setTimeout(() => { if (current === i) { current = -1; onScriptedCard(null); } }, hide * 1000));
+      // Blank auto-hide used to mean "until the next card" — and when no next
+      // card ever fired, a note about step 2 sat beside her for the rest of the
+      // call. Blank now means the same 45s the link-catalog photo cards use.
+      const hide = Number(cards[i].hideAfter) || DEFAULT_HIDE_S;
+      timers.push(setTimeout(() => { if (current === i) { current = -1; onScriptedCard(null); } }, hide * 1000));
+    };
+    const drain = () => {
+      // A card whose cue has long passed is worse than no card, so waiting
+      // entries expire rather than surfacing minutes later. (The old overflow
+      // rule binned the OLDEST entry outright — already in `fired`, so it could
+      // never come back, and the card silently never appeared.)
+      const cutoff = Date.now() - STALE_QUEUE_MS;
+      while (queue.length && queue[0].at < cutoff) queue.shift();
+      if (!queue.length) return;
+      const wait = shownAt ? Math.max(0, shownAt + MIN_DWELL_MS - Date.now()) : 0;
+      if (wait > 0) { timers.push(setTimeout(drain, wait)); return; }
+      present(queue.shift().i);
+      if (queue.length) timers.push(setTimeout(drain, MIN_DWELL_MS));
+    };
+    const showCard = (i) => {
+      if (fired.has(i)) return;
+      fired.add(i);
+      queue.push({ i, at: Date.now() });
+      drain();
     };
     const arm = () => {
       if (armed) return;
@@ -1879,9 +1982,17 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
       if (!d?.event_type || !/utterance/i.test(d.event_type)) return;
       const speech = String(d.properties?.speech ?? d.properties?.text ?? "").toLowerCase();
       if (!speech) return;
+      // Same role read the coach panel uses. Without it a card fires on the
+      // PAL's OWN answer — ask about forms, the PAL says "that's under user
+      // management", and the user-management card jumps up looking like the
+      // question triggered it.
+      const role = String(d.properties?.role ?? (/\.user\./i.test(d.event_type) ? "user" : "replica")).toLowerCase();
+      const fromVisitor = role === "user";
       for (let i = 0; i < cards.length; i++) {
         const c = cards[i];
         if (c.trigger !== "keyword" || fired.has(i)) continue;
+        if (c.speaker === "visitor" && !fromVisitor) continue;
+        if (c.speaker === "ai" && fromVisitor) continue;
         const kws = String(c.keywords || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
         if (kws.some((k) => speech.includes(k))) { showCard(i); break; }
       }
@@ -2006,7 +2117,9 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
   // once the participant has joined. Non-fatal: a recording hiccup must
   // never take down a live demo. recStatus drives the on-screen ⏺ REC badge
   // so "is it actually recording?" is answerable at a glance.
-  const [recStatus, setRecStatus] = useState(""); // "" | "starting" | "recording" | "error"
+  const [recStatus, setRecStatus] = useState("");
+  const [palSpeaking, setPalSpeaking] = useState(false);
+  const speakingRef = useRef(false); // "" | "starting" | "recording" | "error"
 
   /* Full-stage capture: getDisplayMedia needs a user gesture, so it rides the
      ⏺ button click. The tab is published into the call as a screenshare and
@@ -2132,6 +2245,18 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
       if (!d?.event_type) return;
       // Anyone talking (user utterances, PAL speech events) counts as engagement.
       if (/utterance|speaking|respond/i.test(d.event_type)) { armInactivity(); onHumanSpeech(d); }
+      // Track whether SHE is mid-sentence, for the interrupt affordance. Only
+      // set state on an actual change — these fire several times a turn, and
+      // the call surface must not re-render on speech events.
+      if (/speaking/i.test(d.event_type)) {
+        const who = String(d.properties?.role ?? (/\.user\./i.test(d.event_type) ? "user" : "replica")).toLowerCase();
+        if (who !== "user") {
+          const now = /started_speaking/i.test(d.event_type);
+          if (/stopped_speaking/i.test(d.event_type) || now) {
+            if (speakingRef.current !== now) { speakingRef.current = now; setPalSpeaking(now); }
+          }
+        }
+      }
       // Manual objective confirmation: Tavus emits objective.pending and waits
       // for a client confirm — without this reply the flow never advances and
       // the PAL loops on step one.
@@ -2278,9 +2403,13 @@ function CallExtras({ controls, conversationId, onForceLeave, visitor = false, o
           ⏺ Record full stage
         </button>
       )}
-      {controls.interruptButton && (
-        <button className="interrupt-btn" onClick={interrupt} title="Stop the PAL mid-sentence">
-          ✋ Interrupt
+      {/* Only while she is actually talking. A permanent button sits over the
+          face for the whole call offering to stop speech that isn't happening —
+          the visitor reads it as chrome, and it's in the shot on every
+          recording and screenshot. */}
+      {controls.interruptButton && palSpeaking && (
+        <button className="interrupt-btn" onClick={interrupt} title="Stop her mid-sentence">
+          <span aria-hidden="true">✋</span> Interrupt
         </button>
       )}
     </>
@@ -2328,11 +2457,31 @@ function Toggle({ on, onChange }) {
 
 /* Editor/plan shape → deliverable scripted cards. Incomplete cards drop out
    silently (missing content or an unusable trigger). */
+const DEFAULT_HIDE_S = 45; // blank auto-hide — matches the link-catalog photo cards
+const SC_STYLES = ["note", "chart", "stat", "image", "question", "link"];
+const scStyle = (c) => (SC_STYLES.includes(c?.style) ? c.style : "note");
+const scTrigger = (c) => (["keyword", "beat", "time", "start"].includes(c?.trigger) ? c.trigger : "keyword");
+/* What each style needs before it can appear. The editor's live preview asks
+   the SAME question the compiler does — two copies of this test drifted, and a
+   card that compiled but read as incomplete shifted every preview after it. */
+function scCardComplete(c) {
+  const t = (v) => String(v ?? "").trim();
+  const style = scStyle(c);
+  const content = style === "image" ? t(c?.url) : style === "link" ? t(c?.href) : t(c?.body);
+  const trig = scTrigger(c);
+  const trigOk = trig === "start"
+    ? true
+    : trig === "keyword" ? !!t(c?.keywords)
+    : trig === "beat" ? parseInt(c?.atBeat, 10) > 0
+    : Math.round((parseFloat(c?.atMinutes) || 0) * 60) > 0; // matches the compiled atSeconds exactly
+  return !!content && trigOk;
+}
+
 function compileScriptedCards(arr) {
   return (Array.isArray(arr) ? arr : []).map((c) => {
     const t = (v) => String(v ?? "").trim();
-    const style = ["note", "chart", "stat", "image", "question"].includes(c.style) ? c.style : "note";
-    const trigger = ["keyword", "beat", "time", "start"].includes(c.trigger) ? c.trigger : "keyword";
+    const style = scStyle(c);
+    const trigger = scTrigger(c);
     const card = {
       style,
       trigger,
@@ -2344,12 +2493,13 @@ function compileScriptedCards(arr) {
       atBeat: Math.max(0, parseInt(c.atBeat, 10) || 0), // duets: 1-indexed talk-track beat
       atSeconds: Math.max(0, Math.round((parseFloat(c.atMinutes) || 0) * 60)),
       hideAfter: Math.max(0, parseInt(c.hideAfter, 10) || 0),
+      linkLabel: t(c.linkLabel),
+      // Which side's speech arms a keyword card. "either" is the old behaviour
+      // and stays the default so saved demos don't change under people.
+      speaker: ["visitor", "ai"].includes(c.speaker) ? c.speaker : "either",
       owner: c.owner === "host" ? "host" : "featured", // duets: whose screen it belongs on — ALWAYS explicit, placement is never speaker-dependent
     };
-    if (style === "image" ? !card.url : !card.body) return null;
-    if (trigger === "keyword" && !card.keywords) return null;
-    if (trigger === "beat" && !card.atBeat) return null;
-    if (trigger === "time" && !card.atSeconds) return null;
+    if (!scCardComplete(c)) return null;
     return card;
   }).filter(Boolean).slice(0, 12);
 }
@@ -2358,7 +2508,7 @@ function compileScriptedCards(arr) {
       two ways — instantly on trainee keywords, and every ~25s a fast Claude
       judge reads the transcript for the judgment-call behaviors. Plus a
       talk/listen meter, live transcript, and a REC countdown. ── */
-function CoachPanel({ coach, events, conversationId, slug, maxSeconds }) {
+function CoachPanel({ coach, events, conversationId, slug, maxSeconds, hidden = false }) {
   const [ticked, setTicked] = useState(() => new Set());
   const [elapsed, setElapsed] = useState(0);
   const tickedRef = useRef(ticked); tickedRef.current = ticked;
@@ -2443,6 +2593,12 @@ function CoachPanel({ coach, events, conversationId, slug, maxSeconds }) {
   const talkPct = you + them ? Math.round((you / (you + them)) * 100) : 0;
   const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
+  // Assessment mode: the criteria ARE the answer key. A candidate reading
+  // "mentions total cost of ownership" off a sidebar mid-interview is being
+  // handed the marking scheme. Score silently — the keyword ticks, the judge,
+  // and the final post to the call record all still run above.
+  if (hidden) return null;
+
   return (
     <div className="coach-panel">
       <div className="coach-rec">
@@ -2478,6 +2634,73 @@ function CoachPanel({ coach, events, conversationId, slug, maxSeconds }) {
 /* ── Scripted card renderer: SE-authored content, rendered verbatim.
       Styles: note (text), chart (one "Label: value" bar per line),
       stat (big value + label), image (URL). No model involved. ── */
+/* Rendered interview grade. Every number carries the quote that produced it —
+   a score with no receipt is the first thing anyone argues with. */
+function GradeCard({ grade, rubric }) {
+  const weightOf = (label) => rubric.find((r) => r.label === label)?.weight || 1;
+  const pct = grade.overall != null ? (grade.overall / 5) * 100 : 0;
+  const tone = grade.overall == null ? "none" : grade.overall >= 4 ? "hi" : grade.overall >= 3 ? "mid" : "lo";
+  return (
+    <div className="gc">
+      <div className="gc-top">
+        <div className={`gc-ring gc-${tone}`} style={{ "--gc-pct": `${pct}%` }}>
+          <span className="gc-num">{grade.overall != null ? grade.overall.toFixed(1) : "—"}</span>
+          <span className="gc-den">/ 5</span>
+        </div>
+        <div className="gc-head">
+          {grade.verdict && <span className={`gc-verdict gc-${tone}`}>{grade.verdict}</span>}
+          <p className="gc-summary">{grade.summary}</p>
+          <span className="gc-meta">
+            {grade.scored} of {grade.total} competencies evidenced
+            {grade.at ? ` · graded ${grade.at.slice(0, 16).replace("T", " ")}` : ""}
+          </span>
+        </div>
+      </div>
+
+      <div className="gc-rows">
+        {grade.rows.map((r, i) => {
+          const sc = Number(r.score);
+          const has = Number.isFinite(sc);
+          const w = weightOf(r.label);
+          return (
+            <div key={i} className={"gc-row" + (has ? "" : " gc-row-null")}>
+              <div className="gc-row-head">
+                <span className="gc-label">{r.label}</span>
+                {w > 1 && <span className="gc-weight" title={`Weighted ${w}×`}>{w}×</span>}
+                <span className="gc-dots" aria-hidden="true">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <span key={n} className={"gc-dot" + (has && n <= sc ? ` on gc-${sc >= 4 ? "hi" : sc >= 3 ? "mid" : "lo"}` : "")} />
+                  ))}
+                </span>
+                <span className="gc-score">{has ? sc : "no signal"}</span>
+              </div>
+              {r.evidence ? <blockquote className="gc-quote">{r.evidence}</blockquote> : null}
+              {r.note && <p className="gc-note">{r.note}</p>}
+            </div>
+          );
+        })}
+      </div>
+
+      {!!(grade.strengths?.length || grade.gaps?.length) && (
+        <div className="gc-split">
+          {!!grade.strengths?.length && (
+            <div>
+              <div className="gc-sub">Strengths</div>
+              {grade.strengths.map((x, i) => <span key={i} className="gc-chip gc-chip-hi">{x}</span>)}
+            </div>
+          )}
+          {!!grade.gaps?.length && (
+            <div>
+              <div className="gc-sub">Gaps</div>
+              {grade.gaps.map((x, i) => <span key={i} className="gc-chip gc-chip-lo">{x}</span>)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ScriptedCard({ card, onAnswer, forcePicked = null }) {
   const [picked, setPicked] = useState(null); // question style: chosen option index
   useEffect(() => { setPicked(null); }, [card]);
@@ -2524,6 +2747,17 @@ function ScriptedCard({ card, onAnswer, forcePicked = null }) {
       <div className="sc-stat">
         <span className="sc-stat-value">{lines[0] || ""}</span>
         {lines.slice(1, 4).map((l, i) => <span key={i} className="sc-stat-label">{l}</span>)}
+      </div>
+    );
+  } else if (card.style === "link") {
+    // The whole point is the click: a scheduling page the visitor opens from
+    // the card, with no model involvement and no URL read aloud.
+    inner = (
+      <div className="sc-note">
+        {lines.map((l, i) => <p key={i}>{l}</p>)}
+        <a className="sc-link-btn" href={card.href || ""} target="_blank" rel="noreferrer">
+          {card.linkLabel || "Book a time"} →
+        </a>
       </div>
     );
   } else if (card.style === "image") {
@@ -2827,16 +3061,22 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
       // Coach mode claims a persistent right sidebar on wide stages; the
       // canvas/card panel then uses the left side so the two never collide.
       const coach = wide && controls.coach && Array.isArray(controls.coach.criteria) && controls.coach.criteria.length ? controls.coach : null;
-      const cardSide = coach ? "left" : canvasPanel.side;
+      // Hidden coaching still scores, but claims no screen — so the stage must
+      // not split for a sidebar nobody can see.
+      const coachShown = !!coach && coach.visible !== false;
+      const cardSide = coachShown ? "left" : canvasPanel.side;
+      // A UI screenshot is unreadable at note-card width. Image cards claim a
+      // wider panel; the video pane already resizes into whatever is left.
+      const liveCard = scCard && !canvasPanel.active && wide ? scCard.card : null;
       return (
         <CVIProvider>
-          <div className={"cvi-wrap" + (split ? ` canvas-split canvas-split-${cardSide}` : "") + (coach ? " coach-split" : "")}>
+          <div className={"cvi-wrap" + (split ? ` canvas-split canvas-split-${cardSide}` : "") + (coachShown ? " coach-split" : "") + (liveCard?.style === "image" ? " canvas-wide" : "")}>
             {/* The video pane resizes into the space the canvas panel doesn't
                 claim, so active cards get their own screen region beside the
                 video instead of cutting into it. */}
             <div className="cvi-video-pane">
               <Conversation conversationUrl={conversationUrl} onLeave={handleLeave} />
-              {coach && coachEvents.length === 0 && (
+              {coachShown && coachEvents.length === 0 && (
                 <div className="coach-scene">
                   <div className="coach-scene-badge">{(coach.title || "GO").split(/[\s·]+/).filter(Boolean).slice(-2).map((w) => w[0]).join("").toUpperCase()}</div>
                   <div className="coach-scene-title">{coach.scene || "They're about to pick up…"}</div>
@@ -2870,7 +3110,7 @@ function DemoSite({ site, conversationUrl, conversationId, controls, onStart, on
               )}
             </div>
             {/* Contained inside the stage instead of a full-viewport overlay */}
-            {coach && <CoachPanel coach={coach} events={coachEvents} conversationId={conversationId} slug={slug} maxSeconds={Number(controls.maxSeconds) || 0} />}
+            {coach && <CoachPanel coach={coach} events={coachEvents} conversationId={conversationId} slug={slug} maxSeconds={Number(controls.maxSeconds) || 0} hidden={!coachShown} />}
             {controls.annot && annotChips.length > 0 && (
               <div className="annot-rail" aria-hidden="true">
                 {annotChips.map((c) => (
@@ -3272,7 +3512,8 @@ export default function TavusExperienceBuilder() {
   const [apiKey, setApiKey] = useState("");
   const [faceId, setFaceId] = useState("");
   const [palId, setPalId] = useState("");
-  const [language, setLanguage] = useState("english");
+  const [languages, setLanguages] = useState(["en"]);
+  const [langQuery, setLangQuery] = useState("");
   const [conversationName, setConversationName] = useState("");
   // Webhook is account plumbing, not demo content — remembered per browser
   // (like the API key and S3 fields) so scenario loads/reloads can't wipe it.
@@ -3482,6 +3723,100 @@ export default function TavusExperienceBuilder() {
       setBrowserFlowBusy(false);
     }
   };
+  /* Paste a JD or curriculum → rubric rows. Editable after, like everything. */
+  const draftRubric = async () => {
+    if (gradeBusy || !gradeSource.trim()) return;
+    setGradeBusy(true);
+    try {
+      addLog("info", "Reading the source and drafting the rubric…");
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "rubric",
+          vibe: gradeSource.trim(),
+          context: { role: gradeRole.trim(), objectives: objectivesText },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: drafting failed`);
+      }
+      const rows = JSON.parse(text.slice(text.indexOf("["), text.lastIndexOf("]") + 1));
+      if (!Array.isArray(rows) || !rows.length) throw new Error("The rubric came back empty — paste more of the role or curriculum.");
+      setGradeRubricText(rows.map((r) =>
+        `${String(r.label || "").trim()} | ${String(r.good || "").trim()} | ${Math.min(3, Math.max(1, parseInt(r.weight, 10) || 1))}`
+      ).filter((l) => l.trim().length > 4).join("\n"));
+      setGradeEnabled(true);
+      addLog("ok", `Rubric drafted — ${rows.length} competencies. Edit any line; weights are the last number.`);
+    } catch (e) {
+      addLog("err", `Rubric: ${e.message}`);
+    } finally {
+      setGradeBusy(false);
+    }
+  };
+
+  /* Grade one finished call. The transcript comes straight from Tavus — no
+     recording, no webhook, nothing to have gone missing mid-call. */
+  const gradeCall = async (id, transcript) => {
+    if (gradingId) return;
+    if (!parsedRubric.length) { addLog("err", "No rubric yet — build one on the Scorecard step first."); return; }
+    const lines = (Array.isArray(transcript) ? transcript : [])
+      .filter((m) => m.role !== "system")
+      .map((m) => `${m.role === "assistant" ? "INTERVIEWER" : "CANDIDATE"}: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
+      .join("\n");
+    if (!lines.trim()) { addLog("err", "That call has no transcript yet — Tavus takes a minute after a call ends."); return; }
+    setGradingId(id);
+    try {
+      addLog("info", `Grading ${id} against ${parsedRubric.length} competencies…`);
+      const res = await fetch("/api/generate-persona", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "grade",
+          vibe: lines,
+          context: { rubric: parsedRubric.map(({ label, good }) => ({ label, good })), role: gradeRole.trim() },
+        }),
+      });
+      const text = await res.text();
+      if (!res.ok || text.startsWith("[error]")) {
+        let msg = text.replace(/^\[error\]\s*/, "");
+        try { msg = JSON.parse(text).error || msg; } catch { /* plain text */ }
+        if (res.status === 401) setAuth({ checked: true, required: true, authed: false });
+        throw new Error(msg || `${res.status}: grading failed`);
+      }
+      const g = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+      if (!Array.isArray(g?.rows) || !g.rows.length) throw new Error("The grade came back empty.");
+      // The weighted mean is computed HERE, not by the model — arithmetic is
+      // the one part of this it has no business doing. Unscored rows are left
+      // out of both halves rather than counted as zero.
+      const byLabel = new Map(parsedRubric.map((r) => [r.label, r.weight]));
+      let num = 0, den = 0;
+      for (const row of g.rows) {
+        const sc = Number(row.score);
+        if (!Number.isFinite(sc)) continue;
+        const w = byLabel.get(row.label) ?? 1;
+        num += sc * w; den += w;
+      }
+      const graded = {
+        ...g,
+        overall: den ? Math.round((num / den) * 10) / 10 : null,
+        scored: den ? g.rows.filter((r) => Number.isFinite(Number(r.score))).length : 0,
+        total: g.rows.length,
+        at: new Date().toISOString(),
+      };
+      setGradeResults((m) => ({ ...m, [id]: graded }));
+      addLog("ok", `Graded — ${graded.overall ?? "—"}/5 across ${graded.scored}/${graded.total} competencies.`);
+    } catch (e) {
+      addLog("err", `Grade: ${e.message}`);
+    } finally {
+      setGradingId("");
+    }
+  };
+
   const draftCoach = async () => {
     if (coachBusy) return;
     setCoachBusy(true);
@@ -3549,7 +3884,7 @@ export default function TavusExperienceBuilder() {
 
   // Integrations (custom LLM tools → any webhook)
   const [toolsEnabled, setToolsEnabled] = useState(false);
-  const [toolRows, setToolRows] = useState([{ name: "", desc: "", fields: "" }]);
+  const [toolRows, setToolRows] = useState([{ name: "", desc: "", fields: "", delivery: "app_message" }]);
   const [toolWebhook, setToolWebhook] = useState("");
   const [toolEcho, setToolEcho] = useState("");
 
@@ -3638,6 +3973,10 @@ export default function TavusExperienceBuilder() {
   // Session-only slide images (base64) for vision-grounded talk-track drafts —
   // deliberately NOT saved with scenarios (too big; the notes are the artifact).
   const [slideShots, setSlideShots] = useState([]);
+  const visionFileRef = useRef(null);
+  // Session-only frames of the real scene (base64) for vision-grounded
+  // perception queries — never saved, same handling as slideShots.
+  const [visionShots, setVisionShots] = useState([]);
   const slideFileRef = useRef(null);
 
   // Objectives & Guardrails
@@ -3973,7 +4312,20 @@ export default function TavusExperienceBuilder() {
   // Coach mode — a live roleplay scorecard beside the call (Rilla-style):
   // criteria tick as the trainee demonstrates them, talk/listen meter,
   // transcript, REC countdown, scene line while connecting.
+  // Post-call grading: the rubric is authored here, the grade runs on demand
+  // from Results. Nothing about it reaches the PAL or the conversation.
+  const [gradeEnabled, setGradeEnabled] = useState(false);
+  const [gradeRole, setGradeRole] = useState("");
+  const [gradeRubricText, setGradeRubricText] = useState("");
+  const [gradeSource, setGradeSource] = useState("");   // JD / curriculum paste
+  const [gradeBusy, setGradeBusy] = useState(false);    // drafting the rubric
+  const [gradingId, setGradingId] = useState("");       // conversation being graded
+  const [gradeResults, setGradeResults] = useState({}); // conversation_id → grade
   const [coachEnabled, setCoachEnabled] = useState(false);
+  // Whether the person ON the call sees the scorecard. True for roleplay
+  // training (the panel is the product); false for any assessment, where the
+  // criteria are the answer key.
+  const [coachVisible, setCoachVisible] = useState(true);
   const [coachTitle, setCoachTitle] = useState("");
   const [coachScene, setCoachScene] = useState("");
   const [coachTalkHint, setCoachTalkHint] = useState("Keep them talking.");
@@ -4072,7 +4424,7 @@ export default function TavusExperienceBuilder() {
 
   const collectConfig = () => ({
     v: 1,
-    faceId, palId, language, conversationName, callbackUrl, greeting,
+    faceId, palId, languages, conversationName, callbackUrl, greeting,
     personaBrief, personaDraft,
     visionEnabled, visionVibe, visualQueriesText, audioQueriesText,
     speechEnabled, pronunciationText, pronDictId, pronDictName, emotionControl, externalVoiceId, externalVoiceName,
@@ -4094,12 +4446,18 @@ export default function TavusExperienceBuilder() {
     expJourney,
     expEmailGate, expEmailRequired, expEmailPrompt, expNotifyWebhook,
     expRating, expBooking, expTalkAgain, expThanks,
-    coachEnabled, coachTitle, coachScene, coachTalkHint, coachCriteriaText, coachVibe,
+    gradeEnabled, gradeRole, gradeRubricText, gradeSource,
+    coachEnabled, coachVisible, coachTitle, coachScene, coachTalkHint, coachCriteriaText, coachVibe,
   });
 
   const applyConfig = (c) => {
     if (!c || typeof c !== "object") return;
-    setFaceId(c.faceId ?? ""); setPalId(c.palId ?? ""); setLanguage(c.language ?? "english");
+    setFaceId(c.faceId ?? ""); setPalId(c.palId ?? "");
+    // Scenarios saved before the multi-language switch carry one full name
+    // ("spanish"), or "multilingual", which named nothing at all.
+    setLanguages(Array.isArray(c.languages) && c.languages.length
+      ? c.languages.filter((x) => LANGUAGES.some((l) => l.c === x)).slice(0, 42)
+      : [LANG_LEGACY[String(c.language ?? "").toLowerCase()] || "en"]);
     setConversationName(c.conversationName ?? "");
     // Older scenarios without a webhook must not wipe the remembered one.
     setCallbackUrl(c.callbackUrl || store.get(WEBHOOK_KEY, ""));
@@ -4189,7 +4547,11 @@ export default function TavusExperienceBuilder() {
     setExpBooking(!!c.expBooking);
     setExpTalkAgain(!!c.expTalkAgain);
     setExpThanks(c.expThanks ?? "");
+    setGradeEnabled(!!c.gradeEnabled);
+    setGradeRole(c.gradeRole ?? ""); setGradeRubricText(c.gradeRubricText ?? "");
+    setGradeSource(c.gradeSource ?? "");
     setCoachEnabled(!!c.coachEnabled);
+    setCoachVisible(c.coachVisible !== false); // older scenarios showed it
     setCoachTitle(c.coachTitle ?? ""); setCoachScene(c.coachScene ?? "");
     setCoachTalkHint(c.coachTalkHint ?? "Keep them talking.");
     setCoachCriteriaText(c.coachCriteriaText ?? ""); setCoachVibe(c.coachVibe ?? "");
@@ -4566,7 +4928,10 @@ export default function TavusExperienceBuilder() {
     // persona drafted before the doc id was pasted has no presenting section.
     if (presentationEnabled && docIds.length) {
       parts.push(slidesTrigger === "walk_the_deck"
-        ? "A slide deck is attached: walk through it during this conversation — bring it up once the visitor's opening question is handled, and talk to each slide briefly rather than reading it."
+        // No conditional cue here. "Bring it up once their opening question is
+        // handled" left the deck waiting for a question that never came — the
+        // PAL said "let's get started" and then stood there.
+        ? "A slide deck is attached. Open slide 1 and start presenting as your first action, on your own initiative. Talk to each slide briefly rather than reading it; if they interrupt with a question, answer it and pick up where you left off."
         : "A slide deck is attached: open it whenever the visitor asks to see slides, the deck, or a walkthrough — and offer it once, naturally, when it would clearly help.");
     }
 
@@ -4577,12 +4942,22 @@ export default function TavusExperienceBuilder() {
     }
 
     if (canvasEnabled) {
-      const styleText = {
-        eager: "Use Magic Canvas cards frequently and proactively — whenever a card could make information clearer or capture input, show one.",
-        balanced: "",
-        minimal: "Use Magic Canvas cards sparingly — only when a card is clearly more effective than speaking.",
-        on_request: "Do not show Magic Canvas cards unless the user explicitly asks to see one, or a rule below says to.",
-      }[canvasStyle];
+      // A live deck owns the screen beside the face, so the style dial is the
+      // wrong instruction to send — "use cards proactively" plus a deck walk is
+      // how cards ended up standing in for slides. One line replaces it.
+      const deckLive = presentationEnabled && docIds.length > 0;
+      const styleText = deckLive
+        // "Show a Text card with the steps" on its own asks for A card, not a
+        // card about the question — a tickets question came back as a Managing
+        // Forms card, because the tickets material talks about forms. Bind the
+        // card to the thing asked, and make skipping it the easy option.
+        ? "While the deck is up, the slides are your visual — talk to them. Between slides, a card is for one thing: the exact topic they just asked about, as steps they could follow. If the answer is broader than that, say it out loud and show nothing."
+        : {
+            eager: "Use Magic Canvas cards frequently and proactively — whenever a card could make information clearer or capture input, show one.",
+            balanced: "",
+            minimal: "Use Magic Canvas cards sparingly — only when a card is clearly more effective than speaking.",
+            on_request: "Do not show Magic Canvas cards unless the user explicitly asks to see one, or a rule below says to.",
+          }[canvasStyle];
       if (styleText) parts.push(styleText);
 
       // Card contract, imperative and tight — the default PAL model is small
@@ -4643,7 +5018,9 @@ export default function TavusExperienceBuilder() {
 
     if (knowledgeIds.length) body.document_ids = knowledgeIds;
 
-    body.properties = { language };
+    // Ordered — Tavus opens the call in the first entry. Sending this REPLACES
+    // whatever the PAL carries; the two sets are never merged.
+    body.properties = { languages: languages.length ? languages : ["en"] };
     const mins = parseInt(maxMinutes, 10);
     if (mins > 0) body.properties.max_call_duration = mins * 60;
 
@@ -4660,13 +5037,14 @@ export default function TavusExperienceBuilder() {
       if (recS3ExternalId.trim()) body.properties.recording_storage.external_id = recS3ExternalId.trim();
     }
     return body;
-  }, [faceId, palId, conversationName, callbackUrl, greeting, language, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan, browserCfgObj, memoryEnabled, memoryMode, memoryKey, annotMemory, presentationEnabled, docIds, slidesTrigger]);
+  }, [faceId, palId, conversationName, callbackUrl, greeting, languages, canvasEnabled, placement, canvasStyle, components, componentRules, canvasPlaybook, linkCatalog, knowledgeIds, wakePhrase, maxMinutes, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recS3ExternalId, recLayout, browserUseEnabled, browsePlan, browserCfgObj, memoryEnabled, memoryMode, memoryKey, annotMemory, presentationEnabled, docIds, slidesTrigger]);
 
   const objectivesPayload = useMemo(
     () => ({ data: parseObjectives(objectivesText, confirmationMode) }),
     [objectivesText, confirmationMode]
   );
   const guardrailsParsed = useMemo(() => parseGuardrails(guardrailsText), [guardrailsText]);
+
 
   const visionPayload = useMemo(() => {
     const lines = (t) => t.split("\n").map((s) => s.trim().replace(/^[-*•]\s*/, "")).filter(Boolean);
@@ -4717,28 +5095,72 @@ export default function TavusExperienceBuilder() {
   }, [visualQueriesText, audioQueriesText, annotEmotion, annotVision]);
 
   /* Plain-English tool rows → OpenAI function-shape tools for the PAL's LLM. */
+  /* Tools are standalone objects in the registry (POST /v2/tools) attached to
+     a PAL (POST /pals/{id}/tools) — NOT the deprecated inline layers.llm.tools.
+     The reason that matters: inline tools can only be delivered to the browser
+     and the result never re-enters the conversation. A registry tool with
+     delivery.api + on_resolve:"generate_response" lets the PAL call a real
+     endpoint and SPEAK the answer, which is the whole point of a tool in a
+     demo. */
   const toolDefs = useMemo(() => toolRows
     .filter((r) => r.name.trim() && r.desc.trim())
     .map((r) => {
       const name = r.name.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60) || "tool";
       const fields = r.fields.split(",").map((f) => f.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_")).filter(Boolean);
-      return {
-        type: "function",
-        function: {
-          name,
-          description: r.desc.trim(),
-          parameters: {
-            type: "object",
-            properties: Object.fromEntries(fields.map((f) => [f, { type: "string" }])),
-            required: fields,
-          },
+      const api = r.delivery === "api" && String(r.url || "").trim().startsWith("https://");
+      const def = {
+        name,
+        description: r.desc.trim(),
+        parameters: {
+          type: "object",
+          properties: Object.fromEntries(fields.map((f) => [f, { type: "string" }])),
+          required: fields,
         },
+        origin: "llm",
+        // Defaults ARE the feature: an API tool that narrates itself and then
+        // ignores its own result is the useless version.
+        on_call: r.onCall || (api ? "silent" : "generate_filler"),
+        on_resolve: r.onResolve || (api ? "generate_response" : "fire_and_forget"),
       };
+      if (def.on_call === "static_filler") def.static_filler = String(r.filler || "").trim() || "One moment.";
+      if (api) {
+        const auth = { type: r.authType || "none" };
+        if (auth.type === "bearer" && String(r.authValue || "").trim()) auth.token = r.authValue.trim();
+        if (auth.type === "api_key") { auth.name = String(r.authName || "").trim() || "x-api-key"; auth.value = String(r.authValue || "").trim(); }
+        const method = r.method || "POST";
+        def.delivery = {
+          app_message: false,
+          api: {
+            url: r.url.trim(),
+            method,
+            timeout: Math.min(60, Math.max(1, parseInt(r.timeout, 10) || 10)),
+            auth,
+            // The body writes itself from the fields — every {placeholder} must
+            // be a declared property, and hand-written JSON is where that breaks.
+            ...(["GET", "HEAD", "DELETE"].includes(method) || !fields.length
+              ? {}
+              : { body_template: Object.fromEntries(fields.map((f) => [f, `{${f}}`])) }),
+          },
+        };
+      } else {
+        def.delivery = { app_message: true };
+      }
+      return def;
     }), [toolRows]);
 
   /* Editor shape → the scripted cards that ship. Incomplete cards drop out
      silently (missing content or an unusable trigger). */
-  const compiledScriptedCards = useMemo(() => compileScriptedCards(scCards), [scCards]);
+  // A booking card with no URL of its own uses the demo's scheduling link —
+  // the same one the Canvas scheduling card and the post-call screen use, so
+  // it's entered once per demo rather than per card.
+  const compiledScriptedCards = useMemo(
+    () => compileScriptedCards(scCards.map((c) => (
+      c.style === "link" && !String(c.href || "").trim() && schedulingUrl.trim()
+        ? { ...c, href: schedulingUrl.trim() }
+        : c
+    ))),
+    [scCards, schedulingUrl]
+  );
 
   /* Approved-links rows with a photo become deterministic image cards: the
      moment EITHER side says the item's words, the product appears beside the
@@ -4761,10 +5183,142 @@ export default function TavusExperienceBuilder() {
 
   /* Coach criteria: one per line, "behavior label | instant-tick keywords"
      (keywords optional — the live Claude judge covers the rest). */
+  /* Rubric rows: "competency | what strong looks like | weight". Weight is
+     optional and defaults to 1 — the format has to survive being typed by
+     hand, so only the label is required. */
+  const parsedRubric = useMemo(() => gradeRubricText
+    .split("\n")
+    .map((line) => {
+      const [label, good, w] = line.split("|").map((x) => x.trim());
+      const weight = Math.min(3, Math.max(1, parseInt(w, 10) || 1));
+      return { label: label || "", good: good || "", weight };
+    })
+    .filter((r) => r.label)
+    .slice(0, 12), [gradeRubricText]);
+
   const parsedCoachCriteria = useMemo(() => coachCriteriaText
     .split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 8)
     .map((l) => { const [label, kw = ""] = l.split("|"); return { label: label.trim(), keywords: kw.trim() }; })
     .filter((c) => c.label), [coachCriteriaText]);
+
+  /* ── Cross-check: does this demo still hang together? ──────────────────
+     Every finding is a FACT about the config, computed here — never a model's
+     opinion, so it can't invent a problem. It reports and offers one fix at a
+     time; it never reconciles anything on its own. A button that quietly
+     rewrote the persona, objectives and cards together would change a demo in
+     the one way you can't catch before you're live in front of someone. */
+  const crossCheck = useMemo(() => {
+    const f = [];
+    const add = (level, title, why, stepId, fix) => f.push({ level, title, why, step: stepId, fix });
+
+    if (palId.trim() && personaDraft.trim() && !personaAttached) {
+      add("break", "The PAL is running an older prompt than the one you're looking at",
+        "The draft on the Persona step has never been attached, so the call uses whatever was attached last.",
+        "persona", { label: "Attach it now", run: () => attachPersona() });
+    }
+    if (visionEnabled && visualQueriesText.trim() && personaDraft.trim() && !/perception/i.test(personaDraft)) {
+      add("look", "Perception checks exist, but the prompt never mentions them",
+        "Raven will answer these every second and nothing will act on the answers.",
+        "vision", { label: "🪡 Weave them in", run: () => injectVisionIntoPrompt() });
+    }
+    if (presentationEnabled && docIds.length > 0 && personaDraft.trim() && !/slide|deck|present/i.test(personaDraft)) {
+      add("look", "A deck is attached, but the prompt has no presenting section",
+        "The persona has no instruction about when to open the deck or how to walk it.",
+        "presentation", { label: "🪡 Weave it in", run: () => injectPresentationIntoPrompt() });
+    }
+    // Tavus rejects this pair at the API: "Browser Use and Presentation cannot
+    // be attached together; move presentation slides into Browser Use instead."
+    // Launch attaches Browser Use first, so the deck is the one that 400s and
+    // the fail-safe deletes it — the PAL then looks like no deck was ever set.
+    if (presentationEnabled && docIds.length && browserUseEnabled &&
+        (browserCfgObj.guided_flows || []).some((f) => String(f?.name || "").trim())) {
+      add("break", "Browser Use and Slides can't both be on",
+        "Tavus refuses the pair outright. Launch attaches Browser Use first, so the deck attach 400s and gets cleared — the PAL ends up with no slides at all. Put the deck inside Browser Use as a slide step, or turn Browser Use off.",
+        "presentation");
+    }
+    if (presentationEnabled && !docIds.length) {
+      add("break", "Slides are on with no documents chosen",
+        "Launch will skip the deck entirely and clear whatever deck the PAL was carrying.", "presentation");
+    }
+    // The inverse of the check above it, and the one that actually bit: the
+    // deck inject writes a presenting section into the persona, and nothing
+    // removes it when the deck goes away. The PAL then insists on showing a
+    // diagram it cannot show, and reaches for any other screen it has.
+    if (personaDraft.trim() && !(presentationEnabled && docIds.length) &&
+        /##\s*present|slide deck|the deck\b|bring up the .{0,24}diagram/i.test(personaDraft)) {
+      add("break", "The prompt promises a deck that isn't attached",
+        "The persona has presenting instructions but no deck is configured, so it can't show slides — it will talk about a diagram nobody can see, or open whatever other screen it has (a browser flow).",
+        "presentation", { label: "Strip the deck talk", run: () => stripDeckFromPrompt() });
+    }
+    if (canvasEnabled && presentationEnabled && docIds.length > 0 && slidesTrigger === "walk_the_deck") {
+      add("look", "The deck and Magic Canvas both want the screen beside the face",
+        "Slides lead and cards are held for questions — the canvas style dial is overridden while a deck is attached.", "canvas");
+    }
+    if (objectivesEnabled && !objectivesPayload.data.length) {
+      add("break", "Objectives are on but nothing parsed", "The call runs with no flow at all.", "guide");
+    }
+    if (guardrailsEnabled && !guardrailsParsed.length) {
+      add("break", "Guardrails are on but nothing parsed", "No rules will be attached to the PAL.", "guide");
+    }
+    if (scCards.length > compiledScriptedCards.length) {
+      add("break", `${scCards.length - compiledScriptedCards.length} scripted card${scCards.length - compiledScriptedCards.length > 1 ? "s" : ""} won't appear`,
+        "Missing content or a trigger, so the card is dropped before the call and never fires.", "canvas");
+    }
+    // Substring matching + first-match-wins: a shared word means the later
+    // card is unreachable for the whole call.
+    const seen = new Map();
+    for (const [i, c] of compiledScriptedCards.entries()) {
+      if (c.trigger !== "keyword") continue;
+      for (const k of c.keywords.split(",").map((x) => x.trim().toLowerCase()).filter(Boolean)) {
+        if (seen.has(k)) {
+          add("break", `Cards ${seen.get(k) + 1} and ${i + 1} both trigger on "${k}"`,
+            `Whichever fires first wins, and card ${i + 1} never appears. Give them distinct trigger words.`, "canvas");
+        } else seen.set(k, i);
+      }
+    }
+    if (coachEnabled && parsedCoachCriteria.length > 0 && coachVisible && (gradeEnabled || parsedRubric.length > 0)) {
+      add("break", "The person on the call can read your scorecard",
+        "Coach mode is showing its criteria beside the video, and you're grading this conversation — that's the answer key, on screen, during the assessment.",
+        "experience", { label: "Hide it from them", run: () => setCoachVisible(false) });
+    }
+    if (coachEnabled && !parsedCoachCriteria.length) {
+      add("break", "Coach mode is on with no criteria", "The scorecard panel renders empty.", "experience");
+    }
+    if (browserUseEnabled && !(browserCfgObj.guided_flows || []).some((x) => String(x?.name || "").trim())) {
+      add("break", "Browser Use is on with no complete flow",
+        "Launch will skip the attach and clear any flows the PAL carries.", "presentation");
+    }
+    if (memoryEnabled && memoryMode === "visitor" && !expEmailGate) {
+      add("break", "Per-visitor memory needs the email gate",
+        "The store is keyed to the email a visitor enters; with the gate off nobody has a key, so nobody is remembered.",
+        "experience", { label: "Turn the gate on", run: () => setExpEmailGate(true) });
+    }
+    const wantsBooking = expBooking || components.scheduling_embed || compiledScriptedCards.some((c) => c.style === "link");
+    if (wantsBooking && !schedulingUrl.trim()) {
+      add("break", "Something offers booking but there's no scheduling link",
+        "The booking card, the scheduling component and the post-call screen all read one URL, and it's empty.", "canvas");
+    }
+    if (gradeEnabled && !parsedRubric.length) {
+      add("look", "The scorecard is on with no rubric", "Grading a call will refuse until there's at least one competency.", "grade");
+    }
+    if (!gradeEnabled && parsedRubric.length > 0) {
+      add("look", "You have a rubric but the scorecard is switched off",
+        "The Grade button won't appear on a call in Results.", "grade", { label: "Switch it on", run: () => setGradeEnabled(true) });
+    }
+    if (languages[0] && languages[0] !== "en" && greeting.trim()) {
+      add("look", `The call opens in ${LANG_NAME(languages[0])} — check the greeting matches`,
+        "The scripted greeting plays verbatim before anyone speaks, so it can't adapt the way the rest of the call does.", "setup");
+    }
+    if (recordingEnabled && !(recS3Bucket.trim() && recS3Region.trim() && recS3RoleArn.trim())) {
+      add("look", "Recording is on but the S3 details are incomplete", "The call will run and simply not be recorded.", "controls");
+    }
+    return f;
+  }, [palId, personaDraft, personaAttached, visionEnabled, visualQueriesText, presentationEnabled, docIds,
+      canvasEnabled, slidesTrigger, objectivesEnabled, objectivesPayload, guardrailsEnabled, guardrailsParsed,
+      scCards, compiledScriptedCards, coachEnabled, parsedCoachCriteria, browserUseEnabled, browserCfgObj,
+      memoryEnabled, memoryMode, expEmailGate, expBooking, components, schedulingUrl, gradeEnabled, coachVisible,
+      parsedRubric, languages, greeting, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn]);
+  const crossBreaks = crossCheck.filter((x) => x.level === "break").length;
 
   const controlsConfig = useMemo(() => ({
     scriptedCards: [...compiledScriptedCards, ...productCards].slice(0, 16),
@@ -4773,6 +5327,7 @@ export default function TavusExperienceBuilder() {
       scene: coachScene.trim(),
       talkHint: coachTalkHint.trim(),
       criteria: parsedCoachCriteria,
+      visible: coachVisible,
     } : undefined,
     maxSeconds: parseInt(maxMinutes, 10) > 0 ? parseInt(maxMinutes, 10) * 60 : 0,
     timeWarning: timeWarning.trim(),
@@ -4791,7 +5346,7 @@ export default function TavusExperienceBuilder() {
       emotion: annotEmotion, vision: annotVision, memory: annotMemory,
       memoryOn: annotMemory && memoryEnabled,
     } : undefined,
-  }), [compiledScriptedCards, productCards, coachEnabled, parsedCoachCriteria, coachTitle, coachScene, coachTalkHint, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout, annotEmotion, annotVision, annotMemory, memoryEnabled]);
+  }), [compiledScriptedCards, productCards, coachEnabled, coachVisible, parsedCoachCriteria, coachTitle, coachScene, coachTalkHint, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout, annotEmotion, annotVision, annotMemory, memoryEnabled]);
 
   /* Journey editor helpers — steps the builder composes for the guided
      pre-call flow (waiver questions, persona pickers, videos, …). */
@@ -4911,7 +5466,7 @@ export default function TavusExperienceBuilder() {
     if (step === "speech")
       return { title: "POST /pronunciation-dictionaries", text: curlFor("POST", "/pronunciation-dictionaries", pronunciationPayload) };
     if (step === "tools")
-      return { title: "PATCH /pals/… (llm tools)", text: curlFor("PATCH", `/pals/${pal}`, [{ op: "add", path: "/layers/llm/tools", value: toolDefs }]) };
+      return { title: "POST /tools  →  POST /pals/…/tools", text: curlFor("POST", "/tools", toolDefs[0] || {}) };
     if (step === "calls")
       return {
         title: "GET /conversations/{id}?verbose=true",
@@ -5174,6 +5729,44 @@ export default function TavusExperienceBuilder() {
      only presents WELL when the prompt owns the beat — when the deck starts,
      the pacing, resuming after questions, closing it. Same revise machinery
      as the canvas inject. */
+  /* Raven answers the queries whether or not anything reads them. This weaves
+     them into the persona so seeing something actually changes what it does —
+     without it, perception observes into the void. */
+  const injectVisionIntoPrompt = async () => {
+    if (!personaDraft.trim()) {
+      addLog("err", "Perception inject: draft a persona first (Persona step) — there's no prompt to weave the checks into.");
+      return;
+    }
+    const visual = visualQueriesText.split("\n").map((l) => l.trim().replace(/^[-•]\s*/, "")).filter(Boolean);
+    const audio = audioQueriesText.split("\n").map((l) => l.trim().replace(/^[-•]\s*/, "")).filter(Boolean);
+    if (!visionEnabled || (!visual.length && !audio.length)) {
+      addLog("err", "Perception inject: turn on Perception and generate the checks first.");
+      return;
+    }
+    const parts = [
+      "Update the persona's Perception section so what it SEES and HEARS changes what it does. For each check below, name the observation and the specific response it should trigger — a different question, a slower pace, skipping a step, an escalation. Keep them as natural conversational moves, never announcements: it must never narrate that it is observing, never say what the camera shows, and never mention a check by name.",
+      `Visual checks running continuously:\n${visual.map((q) => `- ${q}`).join("\n")}`,
+    ];
+    if (audio.length) parts.push(`Audio/tone checks running continuously:\n${audio.map((q) => `- ${q}`).join("\n")}`);
+    parts.push("If a check maps to a moment in the flow, mirror it in the objectives so the step actually waits for what it needs to see. Checks that shouldn't change the conversation at all can stay out of the prompt.");
+    await revisePersona(parts.join("\n\n"), "Perception woven into prompt");
+  };
+
+  /* The mirror of the deck inject. injectPresentationIntoPrompt writes a
+     presenting section into the persona, and NOTHING took it back out when the
+     deck went away — so the PAL kept being told to bring up a diagram it had no
+     way to show, and reached for whatever screen surface it did have. */
+  const stripDeckFromPrompt = async () => {
+    if (!personaDraft.trim()) {
+      addLog("err", "No persona draft to edit.");
+      return;
+    }
+    await revisePersona(
+      "This demo has NO slide deck attached. Remove every instruction about presenting: delete the presenting/deck section entirely, and any line telling it to bring up, open, walk, resume or close a slide, deck or diagram. Do not replace them with anything. Leave the rest of the persona exactly as it is.",
+      "Deck instructions removed",
+    );
+  };
+
   const injectPresentationIntoPrompt = async () => {
     if (!personaDraft.trim()) {
       addLog("err", "Slides inject: draft a persona first (Persona step) — there's no prompt to weave the deck into.");
@@ -5361,6 +5954,8 @@ export default function TavusExperienceBuilder() {
   /* ── Vision: Claude drafts awareness queries from a plain-English vibe ── */
 
   const generateVision = async () => {
+    const visionImages = imageBlocks(visionShots, "frames");
+    if (visionImages === null) return;
     setVisionGenerating(true);
     try {
       const res = await fetch("/api/generate-persona", {
@@ -5369,7 +5964,14 @@ export default function TavusExperienceBuilder() {
         body: JSON.stringify({
           kind: "vision",
           vibe: visionVibe,
-          context: { product: personaBrief.product, brand: site.brand, brief: buildBrief() },
+          images: visionImages,
+          context: {
+            product: personaBrief.product,
+            brand: site.brand,
+            brief: buildBrief(),
+            objectives: objectivesEnabled ? objectivesText : "",
+            guardrails: guardrailsEnabled ? guardrailsText : "",
+          },
         }),
       });
       const text = await res.text();
@@ -5630,11 +6232,14 @@ export default function TavusExperienceBuilder() {
      uploaded, the draft is VISION-GROUNDED — one image block per slide, notes
      grounded in what's actually on each one. ── */
 
-  const onSlideFiles = (files) => {
-    const room = 20 - slideShots.filter(Boolean).length;
+  /* Files → downscaled JPEG data URLs for Claude's vision blocks. Shared by
+     the deck's slide images and the vision step's scene frames; the indexed
+     insert keeps selection order even when reads finish out of order. */
+  const readShrunkImages = (files, { have, cap, setter, noun }) => {
+    const room = cap - have;
     const list = [...files].filter((f) => f.type.startsWith("image/")).slice(0, Math.max(0, room));
-    if (!list.length) { if (room <= 0) addLog("err", "20 slides max per draft — clear the images to start over."); return; }
-    const base = slideShots.length;
+    if (!list.length) { if (room <= 0) addLog("err", `${cap} ${noun} max per draft — clear them to start over.`); return; }
+    const base = have;
     list.forEach((file, idx) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -5650,14 +6255,36 @@ export default function TavusExperienceBuilder() {
             data = canvas.toDataURL("image/jpeg", q);
             if (data.length <= 240_000) break;
           }
-          // Indexed insert keeps selection order even when loads finish out of order.
-          setSlideShots((s) => { const n = [...s]; n[base + idx] = data; return n; });
+          setter((s) => { const n = [...s]; n[base + idx] = data; return n; });
         };
         img.onerror = () => addLog("err", `Couldn't read ${file.name}.`);
         img.src = reader.result;
       };
       reader.readAsDataURL(file);
     });
+  };
+
+  const onSlideFiles = (files) => readShrunkImages(files, {
+    have: slideShots.filter(Boolean).length, cap: 20, setter: setSlideShots, noun: "slides",
+  });
+  const onVisionFiles = (files) => readShrunkImages(files, {
+    have: visionShots.filter(Boolean).length, cap: 20, setter: setVisionShots, noun: "frames",
+  });
+
+  /* data-URL frames → Claude image blocks, with the one limit that's real:
+     the serverless request body. Say so plainly instead of letting a 413
+     come back as "generation failed". */
+  const imageBlocks = (shots, label) => {
+    const blocks = shots.filter(Boolean).map((d) => {
+      const m = /^data:(image\/\w+);base64,(.+)$/s.exec(d);
+      return m ? { media_type: m[1], data: m[2] } : null;
+    }).filter(Boolean);
+    const bytes = blocks.reduce((n, b) => n + b.data.length, 0);
+    if (bytes > 3_600_000) {
+      addLog("err", `${blocks.length} ${label} is more than the request can carry (~${(bytes / 1e6).toFixed(1)}MB). Remove a few and draft again — they're already downscaled, so the only lever is fewer.`);
+      return null;
+    }
+    return blocks;
   };
 
   const draftTalkTrack = async () => {
@@ -7014,10 +7641,22 @@ export default function TavusExperienceBuilder() {
             [{ op: "remove", path: "/layers/tts/pronunciation_dictionary_id" }],
             [{ op: "add", path: "/layers/tts/pronunciation_dictionary_id", value: null }]);
         }
-        if ((!toolsEnabled || !toolDefs.length) && Array.isArray(palState.layers?.llm?.tools) && palState.layers.llm.tools.length) {
-          await clearPatch("custom tools",
+        // Inline layers.llm.tools is the deprecated path and this builder no
+        // longer writes it. Clear it ALWAYS, not just when tools are off: a PAL
+        // built by an older version would otherwise offer every function twice,
+        // once inline and once from the registry.
+        if (Array.isArray(palState.layers?.llm?.tools) && palState.layers.llm.tools.length) {
+          await clearPatch("legacy inline tools",
             [{ op: "replace", path: "/layers/llm/tools", value: [] }],
             [{ op: "add", path: "/layers/llm/tools", value: [] }]);
+        }
+        // Registry tools the operator has since switched off.
+        if (!toolsEnabled || !toolDefs.length) {
+          try {
+            const attached = (await tavusFetch("GET", `/pals/${pal}/tools`))?.data || [];
+            for (const t of attached) if (t?.tool_id && !t.is_system_tool) await tavusFetch("DELETE", `/pals/${pal}/tools/${t.tool_id}`);
+            if (attached.some((t) => !t?.is_system_tool)) addLog("ok", "Detached the PAL's tools — this demo has tools off.");
+          } catch { /* none attached */ }
         }
         // Asymmetric bleed: an old demo that turned expressive delivery OFF
         // left it off forever — turn it back on when this demo wants it on.
@@ -7183,11 +7822,50 @@ export default function TavusExperienceBuilder() {
 
       // Integrations: attach custom tools to the PAL's LLM (persists on the PAL).
       if (toolsEnabled && toolDefs.length) await section("Tools", async () => {
-        addLog("info", `Attaching ${toolDefs.length} custom tool${toolDefs.length > 1 ? "s" : ""} to the PAL…`);
-        await tavusFetch("PATCH", `/pals/${pal}`, [
-          { op: "add", path: "/layers/llm/tools", value: toolDefs },
-        ]);
-        addLog("ok", `Tools attached: ${toolDefs.map((t) => t.function.name).join(", ")}.`);
+        addLog("info", `Registering ${toolDefs.length} tool${toolDefs.length > 1 ? "s" : ""}…`);
+        const ids = [];
+        for (const def of toolDefs) {
+          // Tool names are unique per ACCOUNT, so a relaunch of the same demo
+          // hits 409 on create. Look the name up first and PATCH it instead —
+          // the tool_id stays stable and anything else using it keeps working.
+          let existing = null;
+          try {
+            const found = await tavusFetch("GET", `/tools?type=user&name_or_uuid=${encodeURIComponent(def.name)}`);
+            existing = (found?.data || []).find((t) => t.name === def.name) || null;
+          } catch { /* treat as new */ }
+          if (existing?.tool_id) {
+            await tavusFetch("PATCH", `/tools/${existing.tool_id}`, def);
+            ids.push(existing.tool_id);
+            addLog("info", `↻ ${def.name} updated.`);
+          } else {
+            const made = await tavusFetch("POST", "/tools", def);
+            const id = made?.tool_id || made?.data?.tool_id;
+            if (!id) throw new Error(`Tavus didn't return a tool_id for "${def.name}".`);
+            ids.push(id);
+            addLog("info", `＋ ${def.name} created.`);
+          }
+        }
+        await tavusFetch("POST", `/pals/${pal}/tools`, { tool_ids: ids });
+        // Full replace, same principle as guardrails: this demo owns the PAL's
+        // tool set, or a previous demo's tools ride along into this call.
+        try {
+          const attached = (await tavusFetch("GET", `/pals/${pal}/tools`))?.data || [];
+          for (const t of attached) {
+            if (t?.tool_id && !ids.includes(t.tool_id) && !t.is_system_tool) {
+              await tavusFetch("DELETE", `/pals/${pal}/tools/${t.tool_id}`);
+              addLog("info", `Detached "${t.name}" — left over from another demo.`);
+            }
+          }
+        } catch { /* listing is best-effort; the attach above already landed */ }
+        const speaks = toolDefs.filter((d) => d.on_resolve === "generate_response" || d.on_resolve === "response_in_result");
+        addLog("ok", `Tools attached: ${toolDefs.map((t) => t.name).join(", ")}.`
+          + (speaks.length ? ` ${speaks.length} of them answer back into the conversation.` : ""));
+      }, async () => {
+        try {
+          const attached = (await tavusFetch("GET", `/pals/${pal}/tools`))?.data || [];
+          for (const t of attached) if (t?.tool_id && !t.is_system_tool) await tavusFetch("DELETE", `/pals/${pal}/tools/${t.tool_id}`);
+          addLog("info", "Cleared the PAL's tools so the call can't offer a half-registered one — fix and relaunch.");
+        } catch { /* nothing attached */ }
       });
 
       // Browser Use runs pre-authored guided flows only — with no complete
@@ -7235,7 +7913,14 @@ export default function TavusExperienceBuilder() {
         });
       }
 
-      if (presentationEnabled) {
+      if (presentationEnabled && docIds.length && canvasEnabled) {
+        addLog("info", "Deck + Magic Canvas: the slides lead and cards are reserved for questions (this replaces the canvas style dial for this call). Scripted cards and link photos still fire on their keywords — check those if a card lands mid-slide.");
+      }
+      const browserWins = browserCfg && Object.keys(browserCfg).length > 0;
+      if (presentationEnabled && docIds.length && browserWins) {
+        addLog("err", "SKIPPING the deck: Tavus won't attach Browser Use and Presentation to the same PAL. Move the deck into Browser Use (set its slide document and add a 🖼 slide step), or turn Browser Use off — the deck can't ride alongside it.");
+      }
+      if (presentationEnabled && !browserWins) {
         if (!docIds.length) {
           addLog("err", "Presentation is on but has no document IDs — SKIPPING the deck this launch. Add your Knowledge Base doc IDs on the Presentation step (a fresh demo starts with none).");
           // Without this, the PAL keeps whatever deck the LAST demo attached
@@ -7256,8 +7941,12 @@ export default function TavusExperienceBuilder() {
               try {
                 const doc = await tavusFetch("GET", `/documents/${id}`);
                 const st = String(doc?.status || doc?.data?.status || "").toLowerCase();
+                const durl = String(doc?.document_url || doc?.data?.document_url || "");
                 if (st && st !== "ready") addLog("err", `Deck doc ${id} ("${doc?.document_name || doc?.name || "?"}") is "${st}" — slides won't render until it's ready. A fresh upload takes a few minutes; relaunch after.`);
                 else addLog("info", `Deck doc ${id} ("${doc?.document_name || doc?.name || id}") is ready.`);
+                // The deck list is not the Knowledge Base. Articles and help-centre
+                // pages read fine for RAG and render as nothing at all as slides.
+                if (durl && !PRESENTABLE.test(durl)) addLog("err", `Deck doc ${id} ("${doc?.document_name || doc?.name || id}") doesn't look like a deck — reference material belongs on the Knowledge step ("PAL can use"), not in the deck. Only the PDF/PPTX/image deck should be here.`);
               } catch {
                 addLog("err", `Deck doc ${id} can't be read — check the ID against the Knowledge Base step (this is usually a typo or a deleted doc).`);
               }
@@ -7288,6 +7977,14 @@ export default function TavusExperienceBuilder() {
         } else {
           addLog("err", "Recording is toggled on but bucket / region / role ARN aren't all filled in (Timing step) — launching WITHOUT recording.");
         }
+      }
+      // The compiler drops cards that can't render. Silently, until now — a
+      // booking card with no URL just never appeared mid-demo.
+      if (scCards.length > compiledScriptedCards.length) {
+        const bad = scCards.map((c, i) => ({ c, i })).filter(({ c }) => !scCardComplete(
+          c.style === "link" && !String(c.href || "").trim() && schedulingUrl.trim() ? { ...c, href: schedulingUrl.trim() } : c
+        ));
+        addLog("err", `${bad.length} scripted card${bad.length > 1 ? "s" : ""} won't appear — missing content or a trigger: ${bad.map(({ c, i }) => `#${i + 1} ${c.title || c.style || "untitled"}`).join(", ")}. Fix them on the Magic Canvas step.`);
       }
       addLog("info", "Creating conversation…");
       const payload = journeyPrefs
@@ -7583,6 +8280,8 @@ export default function TavusExperienceBuilder() {
               {s.id === "tools" && toolsEnabled && toolDefs.length > 0 && <span className="rail-check">●</span>}
               {s.id === "controls" && (maxMinutes || inactivitySeconds || wakePhrase.trim() || interruptButton || guardrailEcho.trim() || recordingEnabled) && <span className="rail-check">●</span>}
               {s.id === "presentation" && presentationEnabled && docIds.length > 0 && <span className="rail-check">●</span>}
+              {s.id === "grade" && gradeEnabled && parsedRubric.length > 0 && <span className="rail-check">●</span>}
+              {s.id === "launch" && crossBreaks > 0 && <span className="rail-warn" title={`${crossBreaks} will misbehave on this call`}>{crossBreaks}</span>}
               {s.id === "canvas" && canvasEnabled && <span className="rail-check">●</span>}
               {s.id === "site" && site.brand && <span className="rail-check">●</span>}
             </button>
@@ -7719,6 +8418,12 @@ export default function TavusExperienceBuilder() {
                       </button>
                     ))}
                   </div>
+                  {demoFeatures.presentation && (
+                    <span className="field-hint">
+                      With both the deck and Magic Canvas on, the slides lead and cards answer questions — the demo won't card over its own slides.
+                      You'll pick the deck document (just the deck, not your whole Knowledge Base) on the Presentation step.
+                    </span>
+                  )}
                 </Field>
                 <button className="pill-btn primary big" onClick={async () => {
                   // Theme FIRST: it reads the real site and returns the real
@@ -7835,11 +8540,41 @@ export default function TavusExperienceBuilder() {
               <Field label="PAL ID" hint="Filled automatically when you create a persona in the Persona step — or paste an existing p… ID here.">
                 <input className="mono" value={palId} onChange={(e) => setPalId(e.target.value)} placeholder="p… (or create one in the Persona step)" />
               </Field>
-              <Field label="Language" hint="Full language name. Multilingual auto-detects the speaker's language and responds in kind.">
-                <select value={language} onChange={(e) => setLanguage(e.target.value)}>
-                  {LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
-                </select>
+              <Field label="Languages" hint="Name only the languages you expect — a narrower set is recognised more accurately than a wide one. The call opens in the first, and switches as the visitor does.">
+                <div className="lang-picked">
+                  {languages.map((code, i) => (
+                    <span key={code} className={"lang-chip" + (i === 0 ? " lang-first" : "")}>
+                      {i === 0 && <b className="lang-open">opens in</b>}
+                      {LANG_NAME(code)}
+                      <button type="button" title="Make this the opening language" disabled={i === 0}
+                        onClick={() => setLanguages((ls) => [code, ...ls.filter((x) => x !== code)])}>↑</button>
+                      <button type="button" title="Remove" disabled={languages.length === 1}
+                        onClick={() => setLanguages((ls) => (ls.length > 1 ? ls.filter((x) => x !== code) : ls))}>✕</button>
+                    </span>
+                  ))}
+                </div>
+                <input value={langQuery} onChange={(e) => setLangQuery(e.target.value)}
+                  placeholder={`Add a language — ${languages.length}/42 chosen`} />
+                {langQuery.trim() && (
+                  <div className="lang-opts">
+                    {LANGUAGES
+                      .filter((l) => !languages.includes(l.c) && l.n.toLowerCase().includes(langQuery.trim().toLowerCase()))
+                      .slice(0, 8)
+                      .map((l) => (
+                        <button key={l.c} type="button" className="pill-btn" style={{ padding: "4px 11px", fontSize: 12.5 }}
+                          onClick={() => { setLanguages((ls) => (ls.length < 42 ? [...ls, l.c] : ls)); setLangQuery(""); }}>
+                          + {l.n} <span style={{ color: "var(--muted)" }}>{l.c}</span>
+                        </button>
+                      ))}
+                  </div>
+                )}
               </Field>
+              {languages.length > 1 && greeting.trim() && (
+                <p className="field-hint" style={{ maxWidth: 560, marginTop: -8, marginBottom: 16 }}>
+                  Your scripted greeting plays verbatim before anyone speaks, so write it in <b>{LANG_NAME(languages[0])}</b> —
+                  it can't adapt to the visitor the way the rest of the conversation does.
+                </p>
+              )}
               <Field label="Conversation name" hint="Optional label for your dashboard.">
                 <input value={conversationName} onChange={(e) => setConversationName(e.target.value)} placeholder="e.g. Acme demo — presentation" />
               </Field>
@@ -8385,6 +9120,36 @@ export default function TavusExperienceBuilder() {
                   placeholder={"Notice when they hold up their ID or a document, when someone else walks into frame, and when they sound confused or frustrated so it can slow down and help."}
                 />
               </Field>
+              <div className="skill-head" style={{ marginTop: 4 }}>
+                <div className="subhead" style={{ margin: 0 }}>Frames of the real scene</div>
+                <span className="field-hint" style={{ margin: 0 }}>
+                  {visionShots.filter(Boolean).length || "no"} frame{visionShots.filter(Boolean).length === 1 ? "" : "s"} · never saved
+                </span>
+              </div>
+              <p className="field-hint" style={{ maxWidth: 620, marginBottom: 10 }}>
+                Without these, Claude is writing checks for a scene it has never seen, and you get generic ones —
+                "is the user showing something to the camera". Upload a photo of the actual setup, a screenshot of what
+                they'll share, or a still from a previous call, and the checks name what's really in shot. Add as many
+                angles as the scene needs — frames are downscaled on the way in, and you'll be told if the set outgrows
+                what one request can carry.
+              </p>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
+                <button className="pill-btn" onClick={() => visionFileRef.current?.click()} disabled={!visionEnabled}>⬆ Add frames</button>
+                {visionShots.filter(Boolean).length > 0 && (
+                  <button className="pill-btn ghost" style={{ padding: "5px 12px", fontSize: 12 }} onClick={() => setVisionShots([])}>✕ Clear</button>
+                )}
+                <input ref={visionFileRef} type="file" accept="image/*" multiple style={{ display: "none" }}
+                  onChange={(e) => { onVisionFiles(e.target.files); e.target.value = ""; }} />
+              </div>
+              {visionShots.filter(Boolean).length > 0 && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                  {visionShots.filter(Boolean).map((d, i) => (
+                    <img key={i} src={d} alt={`Scene ${i + 1}`}
+                      style={{ width: 116, borderRadius: 8, border: "1px solid var(--border)" }} />
+                  ))}
+                </div>
+              )}
+
               <button className="pill-btn primary" style={{ marginBottom: 22 }} onClick={generateVision} disabled={!visionEnabled || visionGenerating || !visionVibe.trim()}>
                 {visionGenerating ? "Drafting…" : (visualQueriesText || audioQueriesText) ? "Regenerate checks" : "Generate checks with Claude"}
               </button>
@@ -8422,6 +9187,19 @@ export default function TavusExperienceBuilder() {
                   placeholder={"Does the user sound confused or frustrated?\nHas the user asked to speak to a human?"}
                 />
               </Field>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                <button className="pill-btn" onClick={injectVisionIntoPrompt}
+                  disabled={!visionEnabled || generating || !personaDraft.trim() || !(visualQueriesText.trim() || audioQueriesText.trim())}
+                  title={personaDraft.trim() ? "Claude rewrites the persona so each check changes what it does" : "Draft a persona first — there's no prompt to inject into yet"}>
+                  {generating ? "Weaving…" : "🪡 Inject into prompt"}
+                </button>
+              </div>
+              <p className="field-hint" style={{ maxWidth: 620 }}>
+                Raven answers these checks every second of the call whether or not anything acts on them — the queries alone
+                change nothing. <b>Inject into prompt</b> weaves them into the persona so what it sees moves the conversation.
+                Re-attach the prompt on the Persona step afterwards.
+              </p>
             </>
           )}
 
@@ -8728,6 +9506,10 @@ export default function TavusExperienceBuilder() {
                 <Toggle on={presentationEnabled} onChange={setPresentationEnabled} />
               </div>
               <p className="lede">The PAL presents PDF decks and images from your Knowledge Base as a live screen share. PDFs must be 50 pages or fewer and fully processed ("ready") before launching. Slides appear inside the conversation automatically.</p>
+              <p className="field-hint" style={{ maxWidth: 620, marginTop: -6, marginBottom: 14 }}>
+                <b>Pick the deck only.</b> Help-centre articles and other reference docs belong on the Knowledge step —
+                the PAL reads those to answer questions; it can't present them, and adding them here is what turns a deck walk into a shrug.
+              </p>
 
               <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
                 <button className="pill-btn primary" onClick={() => deckFileRef.current?.click()} disabled={kbAdding || !presentationEnabled}>
@@ -8763,6 +9545,16 @@ export default function TavusExperienceBuilder() {
                     </div>
                   ))}
                 </div>
+              )}
+
+              {!!kbDocs?.length && docIds.some((id) => {
+                const d = kbDocs.find((x) => x.document_id === id);
+                return d && d.document_url && !PRESENTABLE.test(d.document_url);
+              }) && (
+                <p className="field-hint" style={{ color: "var(--danger)", maxWidth: 620, marginTop: 4 }}>
+                  ⚠ Some of the documents in this deck aren't PDFs, slides, or images. If they're reference articles, take them out —
+                  add them on the Knowledge step instead, where the PAL can read them.
+                </p>
               )}
 
               {docIds.length > 1 && (
@@ -9027,13 +9819,19 @@ export default function TavusExperienceBuilder() {
                         <option value="image">🖼 image</option>
                         <option value="question">☑️ multiple choice</option>
                         <option value="stat">📈 big stat</option>
+                        <option value="link">📅 booking link</option>
                       </select>
                       <input style={{ flex: "1 1 140px", fontSize: 12 }} placeholder="Card title" value={c.title || ""} onChange={(e) => setCardField(j, "title", e.target.value)} />
                       <button className="pill-btn" style={{ padding: "2px 9px", flexShrink: 0 }} onClick={() => setScCards((cs) => cs.filter((_, idx) => idx !== j))}>✕</button>
                     </div>
+                    {c.style === "link" && (
+                      <input className="mono" style={{ fontSize: 12, marginTop: 6 }}
+                        placeholder={schedulingUrl.trim() ? "Booking URL — blank uses the scheduling link below" : "Booking URL — e.g. https://calendly.com/you/30min"}
+                        value={c.href || ""} onChange={(e) => setCardField(j, "href", e.target.value)} />
+                    )}
                     {c.style === "image"
                       ? <input className="mono" style={{ fontSize: 12, marginTop: 6 }} placeholder="Image URL (or 📷 a product from Approved links below)" value={c.url || ""} onChange={(e) => setCardField(j, "url", e.target.value)} />
-                      : <textarea style={{ minHeight: 44, fontSize: 12, marginTop: 6 }} placeholder={c.style === "question" ? "One option per line" : c.style === "stat" ? "Big value on line 1, label on line 2" : "What the card says (one point per line)"} value={c.body || ""} onChange={(e) => setCardField(j, "body", e.target.value)} />}
+                      : <textarea style={{ minHeight: 44, fontSize: 12, marginTop: 6 }} placeholder={c.style === "question" ? "One option per line" : c.style === "stat" ? "Big value on line 1, label on line 2" : c.style === "link" ? "Optional lines above the button" : "What the card says (one point per line)"} value={c.body || ""} onChange={(e) => setCardField(j, "body", e.target.value)} />}
                     {withTrigger ? (
                       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
                         <select style={{ width: "auto", fontSize: 11.5 }} value={c.trigger || "keyword"} onChange={(e) => setCardField(j, "trigger", e.target.value)}>
@@ -9042,8 +9840,16 @@ export default function TavusExperienceBuilder() {
                           <option value="start">at call start</option>
                         </select>
                         {(c.trigger || "keyword") === "keyword" && (
+                          <select style={{ width: "auto", fontSize: 11.5 }} value={c.speaker || "either"} onChange={(e) => setCardField(j, "speaker", e.target.value)}
+                            title="Whose speech arms this card">
+                            <option value="either">either of us</option>
+                            <option value="visitor">the visitor</option>
+                            <option value="ai">the AI human</option>
+                          </select>
+                        )}
+                        {(c.trigger || "keyword") === "keyword" && (
                           <input style={{ flex: "1 1 180px", fontSize: 11.5 }} value={c.keywords || ""} onChange={(e) => setCardField(j, "keywords", e.target.value)}
-                            placeholder="Trigger words — comma-separated, either side can say them" />
+                            placeholder="Trigger words — comma-separated" />
                         )}
                         {c.trigger === "time" && (
                           <input style={{ width: 140, fontSize: 11.5 }} value={c.atMinutes || ""} onChange={(e) => setCardField(j, "atMinutes", e.target.value)}
@@ -9240,9 +10046,15 @@ export default function TavusExperienceBuilder() {
                   <button key={o.v} className={canvasStyle === o.v ? "on" : ""} onClick={() => setCanvasStyle(o.v)}>{o.label}</button>
                 ))}
               </div>
-              <p className="field-hint" style={{ maxWidth: 560, marginBottom: 20 }}>
+              <p className="field-hint" style={{ maxWidth: 560, marginBottom: presentationEnabled && docIds.length ? 8 : 20 }}>
                 Eager: cards at every opportunity. Balanced: the PAL's default judgment. Minimal: only when clearly better than speaking. Only when asked: nothing appears unless the user requests it or a rule triggers it.
               </p>
+              {presentationEnabled && !!docIds.length && (
+                <p className="field-hint" style={{ maxWidth: 560, marginBottom: 20 }}>
+                  <b>This dial is overridden while a deck is attached.</b> The slides lead and cards are reserved for questions,
+                  so the deck walk isn't interrupted by a card. Turn the deck off on the Presentation step to get the dial back.
+                </p>
+              )}
 
               <div className="subhead">Canvas playbook</div>
               <Field label="" hint="Plain-English direction the PAL follows for this conversation — sequencing, triggers, exclusions. Sent as conversation context on launch, so different demos can run different playbooks without touching the PAL.">
@@ -9319,6 +10131,7 @@ export default function TavusExperienceBuilder() {
                           <option value="stat">🔢 Big stat</option>
                           <option value="image">🖼 Image</option>
                           <option value="question">❓ Multiple choice</option>
+                          <option value="link">📅 Booking link</option>
                         </select>
                         <select style={{ width: "auto", padding: "4px 10px", fontSize: 12 }} value={c.trigger || "keyword"}
                           onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, trigger: e.target.value } : x)))}>
@@ -9326,6 +10139,15 @@ export default function TavusExperienceBuilder() {
                           <option value="time">at a set time</option>
                           <option value="start">at call start</option>
                         </select>
+                        {(c.trigger || "keyword") === "keyword" && (
+                          <select style={{ width: "auto", padding: "4px 10px", fontSize: 12 }} value={c.speaker || "either"}
+                            title="Whose speech arms this card. The PAL says your trigger words far more often than the visitor does."
+                            onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, speaker: e.target.value } : x)))}>
+                            <option value="either">by either of us</option>
+                            <option value="visitor">by the visitor</option>
+                            <option value="ai">by the AI human</option>
+                          </select>
+                        )}
                         <span className="jr-btns">
                           <button className="kb-move" onClick={() => setScCards((cs) => { if (!cs[i - 1]) return cs; const n = [...cs]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; return n; })} disabled={i === 0} title="Move up">↑</button>
                           <button className="kb-move" onClick={() => setScCards((cs) => { if (!cs[i + 1]) return cs; const n = [...cs]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; return n; })} disabled={i === scCards.length - 1} title="Move down">↓</button>
@@ -9335,8 +10157,17 @@ export default function TavusExperienceBuilder() {
                       <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                         <div style={{ flex: "1 1 280px", minWidth: 240 }}>
                           {(c.trigger || "keyword") === "keyword" && (
-                            <input value={c.keywords || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, keywords: e.target.value } : x)))}
-                              placeholder='Trigger words, comma-separated — e.g. pricing, cost, tiers' />
+                            <>
+                              <input value={c.keywords || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, keywords: e.target.value } : x)))}
+                                placeholder='Trigger words, comma-separated — e.g. pricing, cost, tiers' />
+                              {/* A comma-less sentence is one phrase, matched verbatim — it
+                                  reads like a list and silently never fires. */}
+                              {!(c.keywords || "").includes(",") && (c.keywords || "").trim().split(/\s+/).length >= 3 && (
+                                <span className="field-hint" style={{ color: "var(--danger)" }}>
+                                  No commas — this fires only if someone says “{(c.keywords || "").trim()}” word for word. Separate the alternatives with commas.
+                                </span>
+                              )}
+                            </>
                           )}
                           {c.trigger === "time" && (
                             <input type="number" min="0.5" step="0.5" value={c.atMinutes ?? ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, atMinutes: e.target.value } : x)))}
@@ -9344,27 +10175,34 @@ export default function TavusExperienceBuilder() {
                           )}
                           <input value={c.title || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
                             placeholder={c.style === "question" ? "The question — e.g. Which package fits you best?" : "Card title (optional)"} />
+                          {c.style === "link" && (
+                            <>
+                              <input className="mono" value={c.href || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, href: e.target.value } : x)))}
+                                placeholder={schedulingUrl.trim() ? `Booking URL — blank uses ${schedulingUrl.trim()}` : "Booking URL — e.g. https://calendly.com/you/30min"} />
+                              <input value={c.linkLabel || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, linkLabel: e.target.value } : x)))}
+                                placeholder='Button label — e.g. "Book a session" (blank = Book a time)' />
+                            </>
+                          )}
                           {c.style === "image" ? (
                             <input className="mono" value={c.url || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))} placeholder="Image URL" />
                           ) : (
                             <textarea value={c.body || ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))}
-                              placeholder={c.style === "chart" ? "One bar per line — Label: number (e.g. Tier 1: 4900)" : c.style === "stat" ? "Big value on the first line, label on the second — e.g.\n87%\nless manual work" : c.style === "question" ? "One choice per line (2–4):\nClassic Santa\nBetter Santa" : "The exact text to show, one paragraph per line."}
+                              placeholder={c.style === "chart" ? "One bar per line — Label: number (e.g. Tier 1: 4900)" : c.style === "stat" ? "Big value on the first line, label on the second — e.g.\n87%\nless manual work" : c.style === "question" ? "One choice per line (2–4):\nClassic Santa\nBetter Santa" : c.style === "link" ? "Optional lines above the button — e.g.\nYour issue and full context are attached" : "The exact text to show, one paragraph per line."}
                               style={{ minHeight: 68 }} />
                           )}
                           <input type="number" min="0" value={c.hideAfter ?? ""} onChange={(e) => setScCards((cs) => cs.map((x, j) => (j === i ? { ...x, hideAfter: e.target.value } : x)))}
-                            placeholder="Auto-hide after N seconds (blank = stays until the next card)" />
+                            placeholder={`Auto-hide after N seconds (blank = ${DEFAULT_HIDE_S})`} />
                         </div>
                         {(() => {
                           const preview = compiledScriptedCards.find((_, k) => {
                             // map editor index → compiled index (incomplete cards drop out)
                             let n = -1;
                             for (let j = 0; j <= i; j++) {
-                              const cj = scCards[j];
-                              const style = ["note", "chart", "stat", "image"].includes(cj.style) ? cj.style : "note";
-                              const hasContent = style === "image" ? (cj.url || "").trim() : (cj.body || "").trim();
-                              const trig = cj.trigger || "keyword";
-                              const trigOk = trig === "start" || (trig === "keyword" ? (cj.keywords || "").trim() : parseFloat(cj.atMinutes) > 0);
-                              if (hasContent && trigOk) n++;
+                              // Same completeness test the compiler runs, so a
+                              // booking card can't shift every preview below it.
+                              if (scCardComplete(scCards[j].style === "link" && !String(scCards[j].href || "").trim() && schedulingUrl.trim()
+                                ? { ...scCards[j], href: schedulingUrl.trim() }
+                                : scCards[j])) n++;
                             }
                             return k === n && n >= 0;
                           });
@@ -9373,7 +10211,16 @@ export default function TavusExperienceBuilder() {
                               <ScriptedCard card={preview} />
                             </div>
                           ) : (
-                            <div className="sc-preview sc-preview-empty">fill in the content + trigger<br />to see the live preview</div>
+                            <div className="sc-preview sc-preview-empty">
+                              <b style={{ color: "var(--danger)" }}>⚠ This card won't appear.</b><br />
+                              {c.style === "link" && !String(c.href || "").trim() && !schedulingUrl.trim()
+                                ? "It needs a booking URL — either here, or the scheduling link on this step."
+                                : c.style === "image" && !String(c.url || "").trim()
+                                ? "It needs an image URL."
+                                : !String(c.body || "").trim()
+                                ? "It needs card text."
+                                : "It needs a trigger — words, a time, or call start."}
+                            </div>
                           );
                         })()}
                       </div>
@@ -9392,7 +10239,7 @@ export default function TavusExperienceBuilder() {
                 <Toggle on={toolsEnabled} onChange={setToolsEnabled} />
               </div>
               <p className="lede">
-                Give the PAL abilities in plain English — "book a meeting", "create a CRM lead", "file a ticket". When the PAL decides to use one mid-conversation, the call fires into any webhook you point at (Zapier, Make, n8n, your own endpoint) with the details it collected. This is the "Tavus plugs into anything" demo: no code on the Tavus side.
+                Give the PAL abilities in plain English — "check a seat count", "book a meeting", "file a ticket". When it decides to use one mid-conversation, Tavus can either fire the call at your frontend and any webhook you point at, or <b>call your API, wait for the answer, and let the PAL say it out loud</b>. The second is what makes a tool demo land: the AI human looks something real up and tells them what it found.
               </p>
 
               {toolRows.map((row, i) => (
@@ -9406,10 +10253,65 @@ export default function TavusExperienceBuilder() {
                   {toolRows.length > 1 && (
                     <button className="kb-del" onClick={() => setToolRows((rs) => rs.filter((_, j) => j !== i))}>✕</button>
                   )}
+                  <div style={{ flexBasis: "100%", display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <select style={{ width: "auto", fontSize: 12.5, padding: "5px 9px" }} disabled={!toolsEnabled}
+                      value={row.delivery || "app_message"}
+                      onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, delivery: e.target.value } : r))}>
+                      <option value="app_message">→ the browser (fire & forget)</option>
+                      <option value="api">→ your API (it speaks the answer)</option>
+                    </select>
+                    {row.delivery === "api" && (
+                      <>
+                        <select style={{ width: "auto", fontSize: 12.5, padding: "5px 9px" }} disabled={!toolsEnabled}
+                          value={row.method || "POST"}
+                          onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, method: e.target.value } : r))}>
+                          {["POST", "GET", "PUT", "PATCH", "DELETE"].map((m) => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                        <input className="mono" style={{ flex: "1 1 240px", fontSize: 12.5 }} disabled={!toolsEnabled}
+                          value={row.url || ""} placeholder="https://your-api.example.com/lookup"
+                          onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, url: e.target.value } : r))} />
+                        <select style={{ width: "auto", fontSize: 12.5, padding: "5px 9px" }} disabled={!toolsEnabled}
+                          value={row.authType || "none"}
+                          onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, authType: e.target.value } : r))}>
+                          <option value="none">no auth</option>
+                          <option value="bearer">bearer token</option>
+                          <option value="api_key">API key header</option>
+                        </select>
+                        {row.authType === "api_key" && (
+                          <input className="mono" style={{ width: 130, fontSize: 12.5 }} disabled={!toolsEnabled}
+                            value={row.authName || ""} placeholder="header name"
+                            onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, authName: e.target.value } : r))} />
+                        )}
+                        {(row.authType === "bearer" || row.authType === "api_key") && (
+                          <input className="mono" type="password" style={{ width: 150, fontSize: 12.5 }} disabled={!toolsEnabled}
+                            value={row.authValue || ""} placeholder="secret"
+                            onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, authValue: e.target.value } : r))} />
+                        )}
+                      </>
+                    )}
+                    <select style={{ width: "auto", fontSize: 12.5, padding: "5px 9px" }} disabled={!toolsEnabled}
+                      title="What it does while the call is in flight"
+                      value={row.onCall || (row.delivery === "api" ? "silent" : "generate_filler")}
+                      onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, onCall: e.target.value } : r))}>
+                      <option value="silent">stays quiet while it runs</option>
+                      <option value="generate_filler">improvises a filler line</option>
+                      <option value="static_filler">says a set line</option>
+                    </select>
+                    {(row.onCall || (row.delivery === "api" ? "silent" : "generate_filler")) === "static_filler" && (
+                      <input style={{ flex: "1 1 180px", fontSize: 12.5 }} disabled={!toolsEnabled}
+                        value={row.filler || ""} placeholder='e.g. "Let me pull that up."'
+                        onChange={(e) => setToolRows((rs) => rs.map((r, j) => j === i ? { ...r, filler: e.target.value } : r))} />
+                    )}
+                  </div>
+                  {row.delivery === "api" && !String(row.url || "").trim().startsWith("https://") && (
+                    <span className="field-hint" style={{ flexBasis: "100%", color: "var(--danger)" }}>
+                      Needs an https:// URL — without one this falls back to browser delivery and the PAL can't use the result.
+                    </span>
+                  )}
                 </div>
               ))}
               <button className="pill-btn" style={{ padding: "6px 14px", fontSize: 13, marginBottom: 20 }} disabled={!toolsEnabled}
-                onClick={() => setToolRows((rs) => [...rs, { name: "", desc: "", fields: "" }])}>+ Add ability</button>
+                onClick={() => setToolRows((rs) => [...rs, { name: "", desc: "", fields: "", delivery: "app_message" }])}>+ Add ability</button>
 
               <Field label="Send tool calls to (webhook URL)" hint="Any HTTPS endpoint — a Zapier 'Catch Hook', Make, n8n, or your own API. Each call posts JSON: { tool, arguments, conversation_id }. Fires live from the demo page.">
                 <input className="mono" disabled={!toolsEnabled} value={toolWebhook} onChange={(e) => setToolWebhook(e.target.value)} placeholder="https://hooks.zapier.com/hooks/catch/…" />
@@ -9417,8 +10319,15 @@ export default function TavusExperienceBuilder() {
               <Field label="Spoken confirmation (optional)" hint="Said by the PAL right after it uses an ability.">
                 <input disabled={!toolsEnabled} value={toolEcho} onChange={(e) => setToolEcho(e.target.value)} placeholder="Done — I've sent that over to the team." />
               </Field>
-              <p className="field-hint" style={{ maxWidth: 560 }}>
-                On launch the abilities attach to the PAL ({toolDefs.length ? toolDefs.map((t) => t.function.name).join(", ") : "none defined yet"}) and persist on it. The webhook forwarding works on the demo page's custom call UI — including shared /d/ links.
+              <p className="field-hint" style={{ maxWidth: 620 }}>
+                On launch each ability is registered at <span className="mono">/v2/tools</span> and attached to the PAL
+                ({toolDefs.length ? toolDefs.map((t) => t.name).join(", ") : "none defined yet"}); re-launching updates them in place
+                rather than creating duplicates, and anything left attached from another demo is detached.
+                <br /><br />
+                <b>→ your API</b> is the one worth using. Tavus calls your endpoint, waits for the JSON, and the PAL answers
+                from what came back — "your account has 2 of 100 seats used". <b>→ the browser</b> is the old behaviour:
+                the call reaches the demo page and the webhook below, the PAL never learns the result, so it can only
+                acknowledge that something happened.
               </p>
 
               <div className="subhead" style={{ marginTop: 26 }}>Tavus skills</div>
@@ -9441,6 +10350,70 @@ export default function TavusExperienceBuilder() {
                 🌐 <b>Browser Use moved to the Presentation step</b> — it's an on-stage surface like slides, so it lives with them now
                 (browse plan, live config options from Tavus, validate-and-attach).{" "}
                 <button className="pill-btn" style={{ padding: "2px 10px", fontSize: 11.5 }} onClick={() => setStep("presentation")}>Take me there</button>
+              </p>
+            </>
+          )}
+
+          {step === "grade" && (
+            <>
+              <div className="skill-head">
+                <h1>Scorecard</h1>
+                <Toggle on={gradeEnabled} onChange={setGradeEnabled} />
+              </div>
+              <p className="lede">
+                Grade a finished interview against a rubric you define. This runs <b>after</b> the call, on the transcript Tavus
+                already keeps — it never touches the PAL, the conversation, or what the candidate sees. Grade from the Results step.
+              </p>
+
+              <Field label="Role" hint="Gives the grader the context a hiring manager would have. Optional.">
+                <input value={gradeRole} onChange={(e) => setGradeRole(e.target.value)} placeholder="e.g. Enterprise AE, Mid-Market · Construction SaaS" />
+              </Field>
+
+              <div className="subhead" style={{ marginTop: 18 }}>Build the rubric from what you already have</div>
+              <Field label="" hint="Paste a job description, a training curriculum, an interview guide — whatever defines what good looks like. Claude keeps only the competencies a spoken conversation can actually evidence.">
+                <textarea style={{ minHeight: 110 }} value={gradeSource} onChange={(e) => setGradeSource(e.target.value)}
+                  placeholder="Paste the JD or curriculum here…" />
+              </Field>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+                <button className="pill-btn primary" onClick={draftRubric} disabled={gradeBusy || !gradeSource.trim()}>
+                  {gradeBusy ? "Reading…" : parsedRubric.length ? "✨ Redraft the rubric" : "✨ Draft the rubric"}
+                </button>
+              </div>
+
+              <div className="subhead">The rubric</div>
+              <Field label="" hint="One competency per line: what it is | what a strong answer sounds like | weight 1-3. The middle part is what the grader actually matches against, so make it observable — something they'd SAY, not a trait.">
+                <textarea style={{ minHeight: 150 }} className="mono" value={gradeRubricText} onChange={(e) => setGradeRubricText(e.target.value)}
+                  placeholder={"Discovery | Asks what the buyer's process looks like before pitching | 3\nHandles objection | Acknowledges the concern, then reframes with a concrete example | 2\nProduct fluency | Explains a technical detail so a non-technical buyer follows it | 1"} />
+              </Field>
+
+              {parsedRubric.length > 0 ? (
+                <>
+                  <div className="subhead" style={{ marginTop: 4 }}>Parsed — {parsedRubric.length} competenc{parsedRubric.length === 1 ? "y" : "ies"}</div>
+                  <div className="kb-list" style={{ maxWidth: 640, marginBottom: 16 }}>
+                    {parsedRubric.map((r, i) => (
+                      <div key={i} className="kb-row" style={{ alignItems: "flex-start", gap: 10 }}>
+                        <span style={{ color: "var(--muted)", fontSize: 12, width: 18, flexShrink: 0 }}>{i + 1}.</span>
+                        <span style={{ flex: 1, fontSize: 13, lineHeight: 1.5 }}>
+                          <b>{r.label}</b>
+                          {r.good ? <span style={{ color: "var(--muted)" }}> — {r.good}</span>
+                            : <span style={{ color: "var(--danger)" }}> — no "strong looks like" yet; the grader is guessing</span>}
+                        </span>
+                        <span className="gc-weight" style={{ flexShrink: 0 }}>{r.weight}×</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <p className="field-hint" style={{ color: "var(--muted)", marginBottom: 16 }}>
+                  Nothing parsed yet — each line needs at least a competency name.
+                </p>
+              )}
+
+              <p className="field-hint" style={{ maxWidth: 620 }}>
+                Scores are 1-5 per competency and every score comes with the candidate's own words as evidence. A competency the
+                conversation never reached is marked <b>no signal</b> rather than scored — it doesn't drag the average down, and the
+                overall says how many of the rubric actually got evidenced. The weighted average is computed in the browser, not by
+                the model.
               </p>
             </>
           )}
@@ -9632,8 +10605,36 @@ export default function TavusExperienceBuilder() {
                     const pEvents = events.filter((e) => /perception/i.test(e.event_type || ""));
                     const rec = recMap[callDetail.conversation_id];
                     const ex = expMap[callDetail.conversation_id];
+                    const graded = gradeResults[callDetail.conversation_id];
                     return (
                       <>
+                        {gradeEnabled && (
+                          <>
+                            <div className="subhead">Scorecard</div>
+                            {parsedRubric.length === 0 ? (
+                              <p className="field-hint" style={{ marginBottom: 14 }}>
+                                No rubric yet — build one on the <b>Scorecard</b> step, then grade from here.
+                              </p>
+                            ) : (
+                              <div style={{ marginBottom: 16 }}>
+                                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: graded ? 14 : 0 }}>
+                                  <button className="pill-btn primary" style={{ padding: "6px 14px", fontSize: 13 }}
+                                    onClick={() => gradeCall(callDetail.conversation_id, transcript)}
+                                    disabled={!!gradingId || !Array.isArray(transcript)}
+                                    title={Array.isArray(transcript) ? `Grade against ${parsedRubric.length} competencies` : "No transcript on this call yet"}>
+                                    {gradingId === callDetail.conversation_id ? "Grading…" : graded ? "Grade again" : "◎ Grade this call"}
+                                  </button>
+                                  <span className="field-hint" style={{ margin: 0 }}>
+                                    {Array.isArray(transcript)
+                                      ? `${parsedRubric.length} competenc${parsedRubric.length === 1 ? "y" : "ies"} · runs on the transcript below`
+                                      : "Waiting on the transcript — Tavus posts it a minute or so after a call ends."}
+                                  </span>
+                                </div>
+                                {graded && <GradeCard grade={graded} rubric={parsedRubric} />}
+                              </div>
+                            )}
+                          </>
+                        )}
                         {ex && (ex.email || ex.rating || ex.comment) && (
                           <>
                             <div className="subhead">Visitor</div>
@@ -10205,6 +11206,16 @@ export default function TavusExperienceBuilder() {
                   <p className="field-hint" style={{ maxWidth: 640 }}>
                     Coach mode shows on desktop and live-kiosk formats. Tip: make the persona a hard character on the Persona step and keep Magic Canvas minimal — the scorecard <i>is</i> the visual.
                   </p>
+                  <div className="skill-head" style={{ marginTop: 14, marginBottom: 4 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>👁 Show the scorecard to the person on the call</span>
+                    <Toggle on={coachVisible} onChange={setCoachVisible} />
+                  </div>
+                  <p className="field-hint" style={{ maxWidth: 640 }}>
+                    <b>On</b> for roleplay training — watching the criteria tick as they talk is the whole point.
+                    <b> Off</b> for anything you're assessing: an interview candidate reading "mentions total cost of ownership"
+                    off a sidebar is being handed the answer key. Scoring runs either way and still lands on the call record;
+                    only the panel disappears.
+                  </p>
                 </>
               )}
 
@@ -10408,11 +11419,14 @@ export default function TavusExperienceBuilder() {
                           <div key={ci} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 8, marginBottom: 8, background: "var(--surface)" }}>
                             <div style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
                               <select style={{ ...inp, width: 96, flexShrink: 0 }} value={c.style || "note"} onChange={(e) => setCard(ci, { style: e.target.value })}>
-                                <option value="note">📄 note</option><option value="stat">🔢 stat</option><option value="chart">📊 chart</option><option value="image">🖼 image</option><option value="question">❓ question</option>
+                                <option value="note">📄 note</option><option value="stat">🔢 stat</option><option value="chart">📊 chart</option><option value="image">🖼 image</option><option value="question">❓ question</option><option value="link">📅 booking link</option>
                               </select>
                               <input style={inp} placeholder="Card title" value={c.title ?? ""} onChange={(e) => setCard(ci, { title: e.target.value })} />
                               <button className="kb-del" onClick={() => delCard(ci)} title="Remove this card">✕</button>
                             </div>
+                            {c.style === "link" && (
+                              <input style={{ ...inp, marginBottom: 6 }} placeholder="Booking URL — e.g. https://calendly.com/you/30min" value={c.href ?? ""} onChange={(e) => setCard(ci, { href: e.target.value })} />
+                            )}
                             {c.style === "image"
                               ? <input style={{ ...inp, marginBottom: 6 }} placeholder="Image URL" value={c.url ?? ""} onChange={(e) => setCard(ci, { url: e.target.value })} />
                               : <textarea style={{ ...inp, marginBottom: 6, minHeight: 44, resize: "vertical" }} placeholder={c.style === "question" ? "The options — one per line" : c.style === "chart" ? "One “Label: value” per line" : c.style === "stat" ? "Big value\nlabel" : "Card text"} value={c.body ?? ""} onChange={(e) => setCard(ci, { body: e.target.value })} />}
@@ -10635,6 +11649,41 @@ export default function TavusExperienceBuilder() {
 
           {step === "launch" && (
             <>
+              <div className={"xc" + (crossBreaks ? " xc-bad" : crossCheck.length ? " xc-warn" : " xc-ok")}>
+                <div className="xc-head">
+                  <span className="xc-dot" />
+                  <h2>
+                    {crossBreaks
+                      ? `${crossBreaks} thing${crossBreaks > 1 ? "s" : ""} will misbehave on this call`
+                      : crossCheck.length
+                      ? `${crossCheck.length} thing${crossCheck.length > 1 ? "s" : ""} worth a look`
+                      : "Everything lines up"}
+                  </h2>
+                  <span className="xc-sub">
+                    {crossCheck.length
+                      ? "Facts about this config, not opinions — nothing here changes until you click a fix."
+                      : "No contradictions between the persona, the flow, the cards and the skills."}
+                  </span>
+                </div>
+                {crossCheck.map((x, i) => (
+                  <div key={i} className={`xc-row xc-${x.level}`}>
+                    <span className="xc-tag">{x.level === "break" ? "WILL BREAK" : "LOOK"}</span>
+                    <div className="xc-body">
+                      <b>{x.title}</b>
+                      <span>{x.why}</span>
+                    </div>
+                    <div className="xc-acts">
+                      {x.fix && (
+                        <button className="pill-btn primary" style={{ padding: "5px 12px", fontSize: 12.5 }}
+                          disabled={generating}
+                          onClick={() => x.fix.run()}>{x.fix.label}</button>
+                      )}
+                      <button className="pill-btn" style={{ padding: "5px 12px", fontSize: 12.5 }}
+                        onClick={() => setStep(x.step)}>Open {STEPS.find((st) => st.id === x.step)?.label || x.step} →</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
               <h1>Launch &amp; Share</h1>
               <p className="lede">
                 On launch: {[
