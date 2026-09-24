@@ -1,5 +1,6 @@
 {
   "name": "CIO Office / Morning Notes",
+  "desc": "Private-banking morning note as a live briefing — figures on Magic Canvas, a live market-data function call, advisor-callback handoff. Add your face + PAL IDs and launch.",
   "config": {
     "v": 1,
     "faceId": "",
