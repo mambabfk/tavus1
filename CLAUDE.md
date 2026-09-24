@@ -82,6 +82,12 @@ Anthropic key.
   bundled ffmpeg is VP8-only). Output `builder/walkthroughs/` is
   gitignored — regenerate after feature changes; add scenes to the `SCENES`
   list.
+- `builder/demos/*.json` — ready-made scenarios for client demos (Demo
+  library → Import). `cio-morning-notes.json` pairs with
+  `builder/api/cio-desk.js`, a public, read-only data endpoint serving the
+  CIO Office morning note's figures so the `get_market_brief` registry tool
+  (delivery api) has something real to speak; set that tool's URL to the
+  deployed domain after import.
 - Note: the repo **root** `api/`, `vercel.json`, `package.json`, and
   `.vercelignore` mirror `builder/` so the Vercel project can build from the
   repo root with zero config. Keep root `api/` in sync with `builder/api/`.
