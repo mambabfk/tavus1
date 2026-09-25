@@ -927,7 +927,7 @@ const BUILDER_CSS = `
         .coach-scene { position:absolute; inset:0; z-index:7; background:#0d0e10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:24px; }
         /* On-stage annotation chips — ONE-SHOT entrance only (A/V invariant:
            nothing may animate perpetually over a live call). */
-        .annot-rail { position:absolute; top:14px; left:14px; z-index:8; display:flex; flex-direction:column; align-items:flex-start; gap:6px; pointer-events:none; max-width:min(46%, 380px); }
+        .annot-rail { position:absolute; top:14px; left:14px; z-index:8; width:auto; height:auto; display:flex; flex-direction:column; align-items:flex-start; gap:6px; pointer-events:none; max-width:min(46%, 380px); }
         .annot-chip { background:rgba(13,14,16,.82); color:#fff; font-size:12.5px; line-height:1.35; padding:7px 12px 7px 9px; border-radius:999px; border:1px solid rgba(255,255,255,.14); display:flex; align-items:center; gap:7px; animation:annotin .3s ease both; box-shadow:0 2px 10px rgba(0,0,0,.25); }
         .annot-icon { font-size:14px; flex-shrink:0; }
         .annot-chip.annot-react { margin-left:18px; background:rgba(13,14,16,.68); font-size:11.5px; }
@@ -959,13 +959,17 @@ const BUILDER_CSS = `
         .canvas-split-left .rec-live { left:calc(var(--canvas-panel-w) + 14px); }
         /* Sits ABOVE the call's own control cluster, never beside it, and stays
            visually subordinate to the face — it is an escape hatch, not a CTA. */
-        .interrupt-btn { position:absolute; bottom:92px; right:18px; z-index:30; border-radius:999px; border:none; background:rgba(255,255,255,.86); color:#17181A; padding:6px 12px; font:inherit; font-size:12px; font-weight:600; line-height:1.35; white-space:nowrap; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.22); opacity:.9; animation:intfade .18s ease-out; }
+        /* width/height auto on every direct-child overlay of .cvi-wrap: the
+           .cvi-wrap > * 100% sizing rule otherwise inflates these pills to the
+           whole stage — a stage-sized translucent disc over the face (seen
+           live: the "giant white disc" bug). */
+        .interrupt-btn { position:absolute; bottom:92px; right:18px; z-index:30; width:auto; height:auto; border-radius:999px; border:none; background:rgba(255,255,255,.86); color:#17181A; padding:6px 12px; font:inherit; font-size:12px; font-weight:600; line-height:1.35; white-space:nowrap; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.22); opacity:.9; animation:intfade .18s ease-out; }
         @keyframes intfade { from { opacity:0; transform:translateY(4px); } to { opacity:.9; transform:none; } }
         @media (prefers-reduced-motion:reduce) { .interrupt-btn { animation:none; } }
         /* pointer-events:none — must never block call controls under it */
-        .rec-live { position:absolute; top:14px; left:14px; z-index:30; pointer-events:none; display:inline-flex; align-items:center; gap:7px; background:rgba(0,0,0,.55); color:#fff; border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; letter-spacing:.3px; }
+        .rec-live { position:absolute; top:14px; left:14px; z-index:30; width:auto; height:auto; pointer-events:none; display:inline-flex; align-items:center; gap:7px; background:rgba(0,0,0,.55); color:#fff; border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; letter-spacing:.3px; }
         .rec-live.rec-fail { background:rgba(214,69,69,.92); }
-        .stage-rec-btn { position:absolute; bottom:18px; left:18px; z-index:30; border-radius:999px; border:none; background:rgba(214,69,69,.94); color:#fff; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); display:inline-flex; align-items:center; gap:8px; }
+        .stage-rec-btn { position:absolute; bottom:18px; left:18px; z-index:30; width:auto; height:auto; border-radius:999px; border:none; background:rgba(214,69,69,.94); color:#fff; padding:10px 16px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.25); display:inline-flex; align-items:center; gap:8px; }
         .stage-rec-btn:hover { background:rgba(214,69,69,1); }
         .interrupt-btn:hover { background:#fff; opacity:1; }
         .demo-cta { display:flex; flex-direction:column; align-items:center; gap:14px; }

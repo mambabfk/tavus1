@@ -822,6 +822,14 @@ buffer the page starved)
   per-word setState was the highest-frequency React work on a plain call.
 - Live diagnosis: `chrome://webrtc-internals` → receive-audio
   jitter-buffer target rising then dropping during the drift.
+- **Every direct child of `.cvi-wrap` MUST size itself** (`width:auto;
+  height:auto` on absolutely-positioned pills, or an explicit width):
+  `.cvi-wrap > * { width:100%; height:100% }` inflates anything that
+  doesn't — a pill with `border-radius:999px` then renders as a
+  stage-sized translucent disc over the face (the interrupt button did
+  exactly this once `palSpeaking` started popping it in mid-call).
+  CallExtras returns a fragment, so ALL its overlays (interrupt-btn,
+  rec-live, stage-rec-btn, annot-rail) are direct children of the wrap.
 
 ### Fixed — custom CVI call UI used to hang on "Connecting"
 
