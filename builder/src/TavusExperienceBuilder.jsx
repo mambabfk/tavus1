@@ -5321,7 +5321,10 @@ export default function TavusExperienceBuilder() {
   const crossBreaks = crossCheck.filter((x) => x.level === "break").length;
 
   const controlsConfig = useMemo(() => ({
-    scriptedCards: [...compiledScriptedCards, ...productCards].slice(0, 16),
+    // Gated on the canvas toggle: "remove magic canvas" must remove the
+    // cards too — magic moments and product cards are canvas features, and
+    // features that are off ship nothing (rule 3).
+    scriptedCards: canvasEnabled ? [...compiledScriptedCards, ...productCards].slice(0, 16) : [],
     coach: coachEnabled && parsedCoachCriteria.length ? {
       title: coachTitle.trim(),
       scene: coachScene.trim(),
@@ -5346,7 +5349,7 @@ export default function TavusExperienceBuilder() {
       emotion: annotEmotion, vision: annotVision, memory: annotMemory,
       memoryOn: annotMemory && memoryEnabled,
     } : undefined,
-  }), [compiledScriptedCards, productCards, coachEnabled, coachVisible, parsedCoachCriteria, coachTitle, coachScene, coachTalkHint, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout, annotEmotion, annotVision, annotMemory, memoryEnabled]);
+  }), [canvasEnabled, compiledScriptedCards, productCards, coachEnabled, coachVisible, parsedCoachCriteria, coachTitle, coachScene, coachTalkHint, maxMinutes, timeWarning, inactivitySeconds, inactivityUtterance, interruptButton, guardrailEcho, toolsEnabled, toolWebhook, toolEcho, recordingEnabled, recS3Bucket, recS3Region, recS3RoleArn, recLayout, annotEmotion, annotVision, annotMemory, memoryEnabled]);
 
   /* Journey editor helpers — steps the builder composes for the guided
      pre-call flow (waiver questions, persona pickers, videos, …). */
